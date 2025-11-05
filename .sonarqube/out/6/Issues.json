@@ -12,69 +12,6 @@
       },
       "results": [
         {
-          "ruleId": "S6580",
-          "level": "warning",
-          "message": "Use a format provider when parsing date and time.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core.Desktop/Program.cs",
-                "region": {
-                  "startLine": 410,
-                  "startColumn": 35,
-                  "endLine": 411,
-                  "endColumn": 43
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S6580",
-          "level": "warning",
-          "message": "Use a format provider when parsing date and time.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core.Desktop/Program.cs",
-                "region": {
-                  "startLine": 414,
-                  "startColumn": 31,
-                  "endLine": 415,
-                  "endColumn": 39
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S6580",
-          "level": "warning",
-          "message": "Use a format provider when parsing date and time.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core.Desktop/Program.cs",
-                "region": {
-                  "startLine": 421,
-                  "startColumn": 35,
-                  "endLine": 422,
-                  "endColumn": 48
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
           "ruleId": "CA1859",
           "level": "note",
           "message": "Change return type of method 'ConfigureServices' from 'Microsoft.Extensions.DependencyInjection.IServiceCollection' to 'Microsoft.Extensions.DependencyInjection.ServiceCollection' for improved performance",
@@ -83,9 +20,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core.Desktop/Program.cs",
                 "region": {
-                  "startLine": 181,
+                  "startLine": 182,
                   "startColumn": 39,
-                  "endLine": 181,
+                  "endLine": 182,
                   "endColumn": 56
                 }
               }
@@ -109,23 +46,6 @@
             "tags": [
               "Telemetry",
               "EnabledRuleInAggressiveMode"
-            ]
-          }
-        },
-        "S6580": {
-          "id": "S6580",
-          "shortDescription": "Use a format provider when parsing date and time",
-          "fullDescription": "When converting a string representation of a date and time to a DateTime object or any other temporal type with one of the available system parsing methods, you should always provide an IFormatProvider parameter.",
-          "defaultLevel": "warning",
-          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-6580",
-          "properties": {
-            "category": "Major Code Smell",
-            "isEnabledByDefault": true,
-            "tags": [
-              "C#",
-              "MainSourceScope",
-              "TestSourceScope",
-              "SonarWay"
             ]
           }
         }

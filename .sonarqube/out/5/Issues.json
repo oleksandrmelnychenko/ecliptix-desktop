@@ -57,27 +57,6 @@
           }
         },
         {
-          "ruleId": "S3260",
-          "level": "warning",
-          "message": "Private record classes which are not derived in the current assembly should be marked as 'sealed'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Messaging/Services/BottomSheetService.cs",
-                "region": {
-                  "startLine": 223,
-                  "startColumn": 20,
-                  "endLine": 223,
-                  "endColumn": 38
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
           "ruleId": "S1075",
           "level": "warning",
           "message": "Refactor your code not to use hardcoded absolute paths or URIs.",
@@ -99,18 +78,18 @@
           }
         },
         {
-          "ruleId": "S5332",
+          "ruleId": "S1075",
           "level": "warning",
-          "message": "Using http protocol is insecure. Use https instead.",
+          "message": "Refactor your code not to use hardcoded absolute paths or URIs.",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Connectivity/InternetConnectivityObserverOptions.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Settings/Constants/AppCultureSettingsConstants.cs",
                 "region": {
-                  "startLine": 12,
-                  "startColumn": 9,
-                  "endLine": 12,
-                  "endColumn": 46
+                  "startLine": 11,
+                  "startColumn": 51,
+                  "endLine": 11,
+                  "endColumn": 107
                 }
               }
             }
@@ -141,18 +120,21 @@
           }
         },
         {
-          "ruleId": "S1075",
+          "ruleId": "IL2026",
           "level": "warning",
-          "message": "Refactor your code not to use hardcoded absolute paths or URIs.",
+          "message": "Using member 'Ecliptix.Core.VersionHelper.CalculateInformationalVersion()' which has 'RequiresUnreferencedCodeAttribute' can break functionality when trimming application code. Reads assembly attributes which may be trimmed.",
+          "suppressionStates": [
+            "suppressedInSource"
+          ],
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Settings/Constants/AppCultureSettingsConstants.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/VersionHelper.cs",
                 "region": {
-                  "startLine": 11,
-                  "startColumn": 51,
-                  "endLine": 11,
-                  "endColumn": 107
+                  "startLine": 23,
+                  "startColumn": 69,
+                  "endLine": 23,
+                  "endColumn": 98
                 }
               }
             }
@@ -211,187 +193,24 @@
           }
         },
         {
-          "ruleId": "IL2026",
+          "ruleId": "S5332",
           "level": "warning",
-          "message": "Using member 'Ecliptix.Core.VersionHelper.CalculateInformationalVersion()' which has 'RequiresUnreferencedCodeAttribute' can break functionality when trimming application code. Reads assembly attributes which may be trimmed.",
-          "suppressionStates": [
-            "suppressedInSource"
-          ],
+          "message": "Using http protocol is insecure. Use https instead.",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/VersionHelper.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Connectivity/InternetConnectivityObserverOptions.cs",
                 "region": {
-                  "startLine": 23,
-                  "startColumn": 69,
-                  "endLine": 23,
-                  "endColumn": 98
+                  "startLine": 12,
+                  "startColumn": 9,
+                  "endLine": 12,
+                  "endColumn": 46
                 }
               }
             }
           ],
           "properties": {
             "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S3881",
-          "level": "warning",
-          "message": "Fix this implementation of 'IDisposable' to conform to the dispose pattern.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Modularity/CompositeServiceScope.cs",
-                "region": {
-                  "startLine": 36,
-                  "startColumn": 16,
-                  "endLine": 36,
-                  "endColumn": 40
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Modularity/CompositeServiceScope.cs",
-                "region": {
-                  "startLine": 36,
-                  "startColumn": 16,
-                  "endLine": 36,
-                  "endColumn": 40
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Modularity/CompositeServiceScope.cs",
-                "region": {
-                  "startLine": 56,
-                  "startColumn": 17,
-                  "endLine": 56,
-                  "endColumn": 24
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "0": "Provide 'protected' overridable implementation of 'Dispose(bool)' on 'CompositeServiceProvider' or mark the type as 'sealed'.",
-              "1": "'CompositeServiceProvider.Dispose()' should call 'Dispose(true)' and 'GC.SuppressFinalize(this)'."
-            }
-          }
-        },
-        {
-          "ruleId": "S4144",
-          "level": "warning",
-          "message": "Update this method so that its implementation is not identical to 'RequestLanguageChangeAsync'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Messaging/Services/LanguageDetectionService.cs",
-                "region": {
-                  "startLine": 22,
-                  "startColumn": 23,
-                  "endLine": 22,
-                  "endColumn": 49
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Messaging/Services/LanguageDetectionService.cs",
-                "region": {
-                  "startLine": 11,
-                  "startColumn": 23,
-                  "endLine": 11,
-                  "endColumn": 49
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "0": "Update this method so that its implementation is not identical to 'ConfirmLanguageChangeAsync'."
-            }
-          }
-        },
-        {
-          "ruleId": "S4144",
-          "level": "warning",
-          "message": "Update this method so that its implementation is not identical to 'OnDragEnter'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 824,
-                  "startColumn": 18,
-                  "endLine": 824,
-                  "endColumn": 28
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 815,
-                  "startColumn": 18,
-                  "endLine": 815,
-                  "endColumn": 29
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "0": "Update this method so that its implementation is not identical to 'OnDragOver'."
-            }
-          }
-        },
-        {
-          "ruleId": "S4144",
-          "level": "warning",
-          "message": "Update this method so that its implementation is not identical to 'OnDragEnter'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 833,
-                  "startColumn": 18,
-                  "endLine": 833,
-                  "endColumn": 24
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 815,
-                  "startColumn": 18,
-                  "endLine": 815,
-                  "endColumn": 29
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "0": "Update this method so that its implementation is not identical to 'OnDrop'."
-            }
           }
         },
         {
@@ -416,18 +235,18 @@
           }
         },
         {
-          "ruleId": "S1144",
+          "ruleId": "S2376",
           "level": "warning",
-          "message": "Remove the unused private get accessor in property 'CurrentRetryCount'.",
+          "message": "Provide a getter for 'CurrentRetryCount' or replace the property with a 'SetCurrentRetryCount' method.",
           "locations": [
             {
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
                 "region": {
-                  "startLine": 59,
-                  "startColumn": 13,
-                  "endLine": 59,
-                  "endColumn": 16
+                  "startLine": 57,
+                  "startColumn": 20,
+                  "endLine": 57,
+                  "endColumn": 37
                 }
               }
             }
@@ -500,18 +319,31 @@
           }
         },
         {
-          "ruleId": "S107",
-          "level": "warning",
-          "message": "Method has 8 parameters, which is greater than the 7 authorized.",
+          "ruleId": "CA1513",
+          "level": "note",
+          "message": "Use 'ObjectDisposedException.ThrowIf' instead of explicitly throwing a new exception instance",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Transport/Grpc/Interceptors/GrpcMetadataHandler.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Messaging/Subscriptions/SubscriptionManager.cs",
                 "region": {
-                  "startLine": 28,
-                  "startColumn": 44,
-                  "endLine": 36,
-                  "endColumn": 26
+                  "startLine": 31,
+                  "startColumn": 9,
+                  "endLine": 34,
+                  "endColumn": 10
+                }
+              }
+            }
+          ],
+          "relatedLocations": [
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Messaging/Subscriptions/SubscriptionManager.cs",
+                "region": {
+                  "startLine": 31,
+                  "startColumn": 13,
+                  "endLine": 31,
+                  "endColumn": 22
                 }
               }
             }
@@ -521,321 +353,24 @@
           }
         },
         {
-          "ruleId": "S1313",
-          "level": "warning",
-          "message": "Make sure using this hardcoded IP address '8.8.8.8' is safe here.",
+          "ruleId": "CA1859",
+          "level": "note",
+          "message": "Change return type of method 'CreateFallbackView' from 'Avalonia.Controls.Control' to 'Avalonia.Controls.TextBlock' for improved performance",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Transport/Grpc/Interceptors/GrpcMetadataHandler.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Controls/ModuleContentControl.cs",
                 "region": {
-                  "startLine": 81,
+                  "startLine": 150,
                   "startColumn": 28,
-                  "endLine": 81,
-                  "endColumn": 37
+                  "endLine": 150,
+                  "endColumn": 46
                 }
               }
             }
           ],
           "properties": {
             "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1068",
-          "level": "note",
-          "message": "Method 'Ecliptix.Core.Services.Network.Rpc.UnaryRpcServices.ExecuteGrpcCallAsync(Ecliptix.Core.Services.Network.Rpc.RpcServiceType, Ecliptix.Core.Core.Messaging.Services.IConnectivityService, Ecliptix.Core.Services.Network.Rpc.RpcRequestContext?, System.Threading.CancellationToken, System.Func<Grpc.Core.CallOptions, Grpc.Core.AsyncUnaryCall<Ecliptix.Protobuf.Common.SecureEnvelope>>)' should take CancellationToken as the last parameter",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Rpc/UnaryRpcServices.cs",
-                "region": {
-                  "startLine": 331,
-                  "startColumn": 64,
-                  "endLine": 331,
-                  "endColumn": 84
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S4036",
-          "level": "warning",
-          "message": "Make sure the \"PATH\" variable only contains fixed, unwriteable directories.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Features/Authentication/ViewModels/Hosts/AuthenticationViewModel.cs",
-                "region": {
-                  "startLine": 283,
-                  "startColumn": 13,
-                  "endLine": 283,
-                  "endColumn": 58
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S4036",
-          "level": "warning",
-          "message": "Make sure the \"PATH\" variable only contains fixed, unwriteable directories.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Features/Authentication/ViewModels/Hosts/AuthenticationViewModel.cs",
-                "region": {
-                  "startLine": 288,
-                  "startColumn": 13,
-                  "endLine": 288,
-                  "endColumn": 62
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S4036",
-          "level": "warning",
-          "message": "Make sure the \"PATH\" variable only contains fixed, unwriteable directories.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Security/Platform/CrossPlatformSecurityProvider.cs",
-                "region": {
-                  "startLine": 582,
-                  "startColumn": 21,
-                  "endLine": 582,
-                  "endColumn": 29
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S6444",
-          "level": "warning",
-          "message": "Pass a timeout to limit the execution time.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Security/Platform/CrossPlatformSecurityProvider.cs",
-                "region": {
-                  "startLine": 594,
-                  "startColumn": 27,
-                  "endLine": 594,
-                  "endColumn": 66
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S4036",
-          "level": "warning",
-          "message": "Make sure the \"PATH\" variable only contains fixed, unwriteable directories.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Security/Platform/CrossPlatformSecurityProvider.cs",
-                "region": {
-                  "startLine": 645,
-                  "startColumn": 17,
-                  "endLine": 645,
-                  "endColumn": 25
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "SYSLIB1045",
-          "level": "note",
-          "message": "Use 'GeneratedRegexAttribute' to generate the regular expression implementation at compile-time.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Security/Platform/CrossPlatformSecurityProvider.cs",
-                "region": {
-                  "startLine": 594,
-                  "startColumn": 27,
-                  "endLine": 594,
-                  "endColumn": 66
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S2325",
-          "level": "warning",
-          "message": "Make 'ReadSecureFileAsync' a static method.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Security/Storage/SecureProtocolStateStorage.cs",
-                "region": {
-                  "startLine": 461,
-                  "startColumn": 40,
-                  "endLine": 461,
-                  "endColumn": 59
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA2016",
-          "level": "note",
-          "message": "Forward the 'cancellationToken' parameter to the 'PublishAsync' method or pass in 'CancellationToken.None' explicitly to indicate intentionally not propagating the token",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Rpc/SecrecyChannelRpcServices.cs",
-                "region": {
-                  "startLine": 90,
-                  "startColumn": 19,
-                  "endLine": 90,
-                  "endColumn": 51
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "ArgumentName": "cancellationToken",
-              "ParameterName": null,
-              "ShouldFix": "1"
-            }
-          }
-        },
-        {
-          "ruleId": "CA2016",
-          "level": "note",
-          "message": "Forward the 'cancellationToken' parameter to the 'PublishAsync' method or pass in 'CancellationToken.None' explicitly to indicate intentionally not propagating the token",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Rpc/SecrecyChannelRpcServices.cs",
-                "region": {
-                  "startLine": 119,
-                  "startColumn": 19,
-                  "endLine": 119,
-                  "endColumn": 51
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "ArgumentName": "cancellationToken",
-              "ParameterName": null,
-              "ShouldFix": "1"
-            }
-          }
-        },
-        {
-          "ruleId": "CA2016",
-          "level": "note",
-          "message": "Forward the 'cancellationToken' parameter to the 'PublishAsync' method or pass in 'CancellationToken.None' explicitly to indicate intentionally not propagating the token",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Rpc/SecrecyChannelRpcServices.cs",
-                "region": {
-                  "startLine": 151,
-                  "startColumn": 19,
-                  "endLine": 151,
-                  "endColumn": 51
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "ArgumentName": "cancellationToken",
-              "ParameterName": null,
-              "ShouldFix": "1"
-            }
-          }
-        },
-        {
-          "ruleId": "CA2016",
-          "level": "note",
-          "message": "Forward the 'cancellationToken' parameter to the 'PublishAsync' method or pass in 'CancellationToken.None' explicitly to indicate intentionally not propagating the token",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Rpc/SecrecyChannelRpcServices.cs",
-                "region": {
-                  "startLine": 165,
-                  "startColumn": 19,
-                  "endLine": 165,
-                  "endColumn": 51
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "ArgumentName": "cancellationToken",
-              "ParameterName": null,
-              "ShouldFix": "1"
-            }
-          }
-        },
-        {
-          "ruleId": "CA1836",
-          "level": "note",
-          "message": "Prefer 'IsEmpty' over 'Count' to determine whether the object is empty",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Communication/ModuleMessageBus.cs",
-                "region": {
-                  "startLine": 128,
-                  "startColumn": 13,
-                  "endLine": 128,
-                  "endColumn": 39
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "OperationKey": "OperationBinaryLeft",
-              "ShouldNegateKey": null
-            }
           }
         },
         {
@@ -857,58 +392,6 @@
           ],
           "properties": {
             "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA2016",
-          "level": "note",
-          "message": "Forward the 'cancellationToken' parameter to the 'PublishAsync' method or pass in 'CancellationToken.None' explicitly to indicate intentionally not propagating the token",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Rpc/SecrecyChannelRpcServices.cs",
-                "region": {
-                  "startLine": 193,
-                  "startColumn": 19,
-                  "endLine": 193,
-                  "endColumn": 51
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "ArgumentName": "cancellationToken",
-              "ParameterName": null,
-              "ShouldFix": "1"
-            }
-          }
-        },
-        {
-          "ruleId": "CA2016",
-          "level": "note",
-          "message": "Forward the 'cancellationToken' parameter to the 'PublishAsync' method or pass in 'CancellationToken.None' explicitly to indicate intentionally not propagating the token",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Rpc/SecrecyChannelRpcServices.cs",
-                "region": {
-                  "startLine": 207,
-                  "startColumn": 19,
-                  "endLine": 207,
-                  "endColumn": 51
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "ArgumentName": "cancellationToken",
-              "ParameterName": null,
-              "ShouldFix": "1"
-            }
           }
         },
         {
@@ -1201,169 +684,6 @@
           }
         },
         {
-          "ruleId": "S1066",
-          "level": "warning",
-          "message": "Merge this if statement with the enclosing one.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Communication/ModuleMessageBus.cs",
-                "region": {
-                  "startLine": 171,
-                  "startColumn": 13,
-                  "endLine": 171,
-                  "endColumn": 15
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Communication/ModuleMessageBus.cs",
-                "region": {
-                  "startLine": 169,
-                  "startColumn": 9,
-                  "endLine": 169,
-                  "endColumn": 11
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "0": "Merge this if statement with its nested one."
-            }
-          }
-        },
-        {
-          "ruleId": "S1994",
-          "level": "warning",
-          "message": "This loop's stop condition tests 'bytesGenerated' and 'outputLength' but the incrementer updates 'i'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Security/KeySplitting/HardenedKeyDerivation.cs",
-                "region": {
-                  "startLine": 132,
-                  "startColumn": 33,
-                  "endLine": 132,
-                  "endColumn": 62
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1822",
-          "level": "note",
-          "message": "Member 'StretchKeyAsync' does not access instance data and can be marked as static",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Security/KeySplitting/HardenedKeyDerivation.cs",
-                "region": {
-                  "startLine": 70,
-                  "startColumn": 61,
-                  "endLine": 70,
-                  "endColumn": 76
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1859",
-          "level": "note",
-          "message": "Change return type of method 'CreateFallbackView' from 'Avalonia.Controls.Control' to 'Avalonia.Controls.TextBlock' for improved performance",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Controls/ModuleContentControl.cs",
-                "region": {
-                  "startLine": 150,
-                  "startColumn": 28,
-                  "endLine": 150,
-                  "endColumn": 46
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S2325",
-          "level": "warning",
-          "message": "Make 'ParseErrorCode' a static method.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Rpc/GrpcErrorProcessor.cs",
-                "region": {
-                  "startLine": 73,
-                  "startColumn": 23,
-                  "endLine": 73,
-                  "endColumn": 37
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1865",
-          "level": "note",
-          "message": "Use 'string.StartsWith(char)' instead of 'string.StartsWith(string)' when you have a string with a single char",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Rpc/GrpcErrorProcessor.cs",
-                "region": {
-                  "startLine": 138,
-                  "startColumn": 32,
-                  "endLine": 138,
-                  "endColumn": 63
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1865",
-          "level": "note",
-          "message": "Use 'string.EndsWith(char)' instead of 'string.EndsWith(string)' when you have a string with a single char",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Rpc/GrpcErrorProcessor.cs",
-                "region": {
-                  "startLine": 138,
-                  "startColumn": 81,
-                  "endLine": 138,
-                  "endColumn": 112
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
           "ruleId": "CA1068",
           "level": "note",
           "message": "Method 'Ecliptix.Core.Infrastructure.Network.Core.Providers.NetworkProvider.ExecuteUnaryRequestAsync(uint, Ecliptix.Core.Services.Network.Rpc.RpcServiceType, byte[], System.Func<byte[], System.Threading.Tasks.Task<Ecliptix.Utilities.Result<Ecliptix.Utilities.Unit, Ecliptix.Utilities.Failures.Network.NetworkFailure>>>, bool, System.Threading.CancellationToken, bool, Ecliptix.Core.Services.Network.Rpc.RpcRequestContext?)' should take CancellationToken as the last parameter",
@@ -1385,40 +705,45 @@
           }
         },
         {
-          "ruleId": "S3267",
+          "ruleId": "S4036",
           "level": "warning",
-          "message": "Loops should be simplified using the \"Where\" LINQ method",
+          "message": "Make sure the \"PATH\" variable only contains fixed, unwriteable directories.",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Rpc/GrpcErrorProcessor.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Features/Authentication/ViewModels/Hosts/AuthenticationViewModel.cs",
                 "region": {
-                  "startLine": 167,
-                  "startColumn": 42,
-                  "endLine": 167,
-                  "endColumn": 50
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Rpc/GrpcErrorProcessor.cs",
-                "region": {
-                  "startLine": 169,
-                  "startColumn": 17,
-                  "endLine": 169,
-                  "endColumn": 74
+                  "startLine": 283,
+                  "startColumn": 13,
+                  "endLine": 283,
+                  "endColumn": 58
                 }
               }
             }
           ],
           "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "0": null
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S4036",
+          "level": "warning",
+          "message": "Make sure the \"PATH\" variable only contains fixed, unwriteable directories.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Features/Authentication/ViewModels/Hosts/AuthenticationViewModel.cs",
+                "region": {
+                  "startLine": 288,
+                  "startColumn": 13,
+                  "endLine": 288,
+                  "endColumn": 62
+                }
+              }
             }
+          ],
+          "properties": {
+            "warningLevel": 1
           }
         },
         {
@@ -1443,18 +768,18 @@
           }
         },
         {
-          "ruleId": "S2139",
+          "ruleId": "S3776",
           "level": "warning",
-          "message": "Either log this exception and handle it, or rethrow it with some contextual information.",
+          "message": "Refactor this constructor to reduce its Cognitive Complexity from 16 to the 15 allowed.",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
                 "region": {
-                  "startLine": 88,
-                  "startColumn": 26,
-                  "endLine": 88,
-                  "endColumn": 28
+                  "startLine": 114,
+                  "startColumn": 12,
+                  "endLine": 114,
+                  "endColumn": 45
                 }
               }
             }
@@ -1462,23 +787,122 @@
           "relatedLocations": [
             {
               "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
                 "region": {
-                  "startLine": 90,
-                  "startColumn": 13,
-                  "endLine": 90,
-                  "endColumn": 72
+                  "startLine": 159,
+                  "startColumn": 17,
+                  "endLine": 159,
+                  "endColumn": 18
                 }
               }
             },
             {
               "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
                 "region": {
-                  "startLine": 92,
-                  "startColumn": 13,
-                  "endLine": 92,
+                  "startLine": 165,
+                  "startColumn": 17,
+                  "endLine": 165,
+                  "endColumn": 18
+                }
+              }
+            },
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
+                "region": {
+                  "startLine": 171,
+                  "startColumn": 17,
+                  "endLine": 171,
                   "endColumn": 19
+                }
+              }
+            },
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
+                "region": {
+                  "startLine": 171,
+                  "startColumn": 81,
+                  "endLine": 171,
+                  "endColumn": 83
+                }
+              }
+            },
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
+                "region": {
+                  "startLine": 177,
+                  "startColumn": 17,
+                  "endLine": 177,
+                  "endColumn": 19
+                }
+              }
+            },
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
+                "region": {
+                  "startLine": 187,
+                  "startColumn": 38,
+                  "endLine": 187,
+                  "endColumn": 44
+                }
+              }
+            },
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
+                "region": {
+                  "startLine": 189,
+                  "startColumn": 65,
+                  "endLine": 189,
+                  "endColumn": 67
+                }
+              }
+            },
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
+                "region": {
+                  "startLine": 224,
+                  "startColumn": 49,
+                  "endLine": 224,
+                  "endColumn": 55
+                }
+              }
+            },
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
+                "region": {
+                  "startLine": 231,
+                  "startColumn": 53,
+                  "endLine": 231,
+                  "endColumn": 55
+                }
+              }
+            },
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
+                "region": {
+                  "startLine": 237,
+                  "startColumn": 52,
+                  "endLine": 237,
+                  "endColumn": 54
+                }
+              }
+            },
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
+                "region": {
+                  "startLine": 270,
+                  "startColumn": 17,
+                  "endLine": 270,
+                  "endColumn": 22
                 }
               }
             }
@@ -1486,37 +910,58 @@
           "properties": {
             "warningLevel": 1,
             "customProperties": {
-              "0": "Logging statement.",
-              "1": "Thrown exception."
+              "0": "+1",
+              "1": "+1",
+              "10": "+2 (incl 1 for nesting)",
+              "2": "+2 (incl 1 for nesting)",
+              "3": "+1",
+              "4": "+2 (incl 1 for nesting)",
+              "5": "+2 (incl 1 for nesting)",
+              "6": "+1",
+              "7": "+2 (incl 1 for nesting)",
+              "8": "+1",
+              "9": "+1"
             }
           }
         },
         {
-          "ruleId": "CA1513",
+          "ruleId": "CA1836",
           "level": "note",
-          "message": "Use 'ObjectDisposedException.ThrowIf' instead of explicitly throwing a new exception instance",
+          "message": "Prefer 'IsEmpty' over 'Count' to determine whether the object is empty",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Communication/ModuleMessageBus.cs",
                 "region": {
-                  "startLine": 102,
-                  "startColumn": 9,
-                  "endLine": 105,
-                  "endColumn": 10
+                  "startLine": 128,
+                  "startColumn": 13,
+                  "endLine": 128,
+                  "endColumn": 39
                 }
               }
             }
           ],
-          "relatedLocations": [
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "OperationKey": "OperationBinaryLeft",
+              "ShouldNegateKey": null
+            }
+          }
+        },
+        {
+          "ruleId": "S6966",
+          "level": "warning",
+          "message": "Await CancelAsync instead.",
+          "locations": [
             {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
                 "region": {
-                  "startLine": 102,
-                  "startColumn": 13,
-                  "endLine": 102,
-                  "endColumn": 24
+                  "startLine": 313,
+                  "startColumn": 37,
+                  "endLine": 313,
+                  "endColumn": 46
                 }
               }
             }
@@ -1526,18 +971,60 @@
           }
         },
         {
-          "ruleId": "CA1068",
-          "level": "note",
-          "message": "Method 'Ecliptix.Core.Services.Network.Resilience.RetryStrategy.ExecuteSecrecyChannelOperationInternalAsync<TResponse>(System.Func<int, System.Threading.CancellationToken, System.Threading.Tasks.Task<Ecliptix.Utilities.Result<TResponse, Ecliptix.Utilities.Failures.Network.NetworkFailure>>>, string, uint?, Ecliptix.Core.Services.Network.Rpc.RpcServiceType?, int?, System.Threading.CancellationToken, bool)' should take CancellationToken as the last parameter",
+          "ruleId": "S1313",
+          "level": "warning",
+          "message": "Make sure using this hardcoded IP address '8.8.8.8' is safe here.",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Transport/Grpc/Interceptors/GrpcMetadataHandler.cs",
                 "region": {
-                  "startLine": 140,
-                  "startColumn": 59,
-                  "endLine": 140,
-                  "endColumn": 102
+                  "startLine": 80,
+                  "startColumn": 28,
+                  "endLine": 80,
+                  "endColumn": 37
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S1121",
+          "level": "warning",
+          "message": "Extract the assignment of '_cachedServerUnreachableIcon' from this expression.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
+                "region": {
+                  "startLine": 476,
+                  "startColumn": 93,
+                  "endLine": 476,
+                  "endColumn": 96
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S1121",
+          "level": "warning",
+          "message": "Extract the assignment of '_cachedInternetUnavailableIcon' from this expression.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
+                "region": {
+                  "startLine": 478,
+                  "startColumn": 53,
+                  "endLine": 478,
+                  "endColumn": 56
                 }
               }
             }
@@ -1565,139 +1052,6 @@
           ],
           "properties": {
             "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S3776",
-          "level": "warning",
-          "message": "Refactor this method to reduce its Cognitive Complexity from 16 to the 15 allowed.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
-                "region": {
-                  "startLine": 210,
-                  "startColumn": 17,
-                  "endLine": 210,
-                  "endColumn": 38
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
-                "region": {
-                  "startLine": 212,
-                  "startColumn": 9,
-                  "endLine": 212,
-                  "endColumn": 11
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
-                "region": {
-                  "startLine": 219,
-                  "startColumn": 13,
-                  "endLine": 219,
-                  "endColumn": 15
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
-                "region": {
-                  "startLine": 230,
-                  "startColumn": 21,
-                  "endLine": 230,
-                  "endColumn": 28
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
-                "region": {
-                  "startLine": 232,
-                  "startColumn": 25,
-                  "endLine": 232,
-                  "endColumn": 27
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
-                "region": {
-                  "startLine": 232,
-                  "startColumn": 62,
-                  "endLine": 232,
-                  "endColumn": 64
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
-                "region": {
-                  "startLine": 245,
-                  "startColumn": 21,
-                  "endLine": 245,
-                  "endColumn": 23
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
-                "region": {
-                  "startLine": 257,
-                  "startColumn": 13,
-                  "endLine": 257,
-                  "endColumn": 18
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
-                "region": {
-                  "startLine": 263,
-                  "startColumn": 13,
-                  "endLine": 263,
-                  "endColumn": 15
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
-                "region": {
-                  "startLine": 263,
-                  "startColumn": 32,
-                  "endLine": 263,
-                  "endColumn": 34
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "0": "+1",
-              "1": "+2 (incl 1 for nesting)",
-              "2": "+2 (incl 1 for nesting)",
-              "3": "+3 (incl 2 for nesting)",
-              "4": "+1",
-              "5": "+2 (incl 1 for nesting)",
-              "6": "+2 (incl 1 for nesting)",
-              "7": "+2 (incl 1 for nesting)",
-              "8": "+1"
-            }
           }
         },
         {
@@ -2002,252 +1356,6 @@
           }
         },
         {
-          "ruleId": "S108",
-          "level": "warning",
-          "message": "Either remove or fill this block of code.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Providers/NetworkProvider.cs",
-                "region": {
-                  "startLine": 555,
-                  "startColumn": 9,
-                  "endLine": 556,
-                  "endColumn": 10
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1513",
-          "level": "note",
-          "message": "Use 'ObjectDisposedException.ThrowIf' instead of explicitly throwing a new exception instance",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
-                "region": {
-                  "startLine": 212,
-                  "startColumn": 9,
-                  "endLine": 215,
-                  "endColumn": 10
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
-                "region": {
-                  "startLine": 212,
-                  "startColumn": 13,
-                  "endLine": 212,
-                  "endColumn": 24
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S3776",
-          "level": "warning",
-          "message": "Refactor this constructor to reduce its Cognitive Complexity from 16 to the 15 allowed.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
-                "region": {
-                  "startLine": 114,
-                  "startColumn": 12,
-                  "endLine": 114,
-                  "endColumn": 45
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
-                "region": {
-                  "startLine": 159,
-                  "startColumn": 17,
-                  "endLine": 159,
-                  "endColumn": 18
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
-                "region": {
-                  "startLine": 165,
-                  "startColumn": 17,
-                  "endLine": 165,
-                  "endColumn": 18
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
-                "region": {
-                  "startLine": 171,
-                  "startColumn": 17,
-                  "endLine": 171,
-                  "endColumn": 19
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
-                "region": {
-                  "startLine": 171,
-                  "startColumn": 81,
-                  "endLine": 171,
-                  "endColumn": 83
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
-                "region": {
-                  "startLine": 177,
-                  "startColumn": 17,
-                  "endLine": 177,
-                  "endColumn": 19
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
-                "region": {
-                  "startLine": 187,
-                  "startColumn": 38,
-                  "endLine": 187,
-                  "endColumn": 44
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
-                "region": {
-                  "startLine": 189,
-                  "startColumn": 65,
-                  "endLine": 189,
-                  "endColumn": 67
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
-                "region": {
-                  "startLine": 224,
-                  "startColumn": 49,
-                  "endLine": 224,
-                  "endColumn": 55
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
-                "region": {
-                  "startLine": 231,
-                  "startColumn": 53,
-                  "endLine": 231,
-                  "endColumn": 55
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
-                "region": {
-                  "startLine": 237,
-                  "startColumn": 52,
-                  "endLine": 237,
-                  "endColumn": 54
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
-                "region": {
-                  "startLine": 270,
-                  "startColumn": 17,
-                  "endLine": 270,
-                  "endColumn": 22
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "0": "+1",
-              "1": "+1",
-              "10": "+2 (incl 1 for nesting)",
-              "2": "+2 (incl 1 for nesting)",
-              "3": "+1",
-              "4": "+2 (incl 1 for nesting)",
-              "5": "+2 (incl 1 for nesting)",
-              "6": "+1",
-              "7": "+2 (incl 1 for nesting)",
-              "8": "+1",
-              "9": "+1"
-            }
-          }
-        },
-        {
-          "ruleId": "CA1513",
-          "level": "note",
-          "message": "Use 'ObjectDisposedException.ThrowIf' instead of explicitly throwing a new exception instance",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
-                "region": {
-                  "startLine": 274,
-                  "startColumn": 9,
-                  "endLine": 277,
-                  "endColumn": 10
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
-                "region": {
-                  "startLine": 274,
-                  "startColumn": 13,
-                  "endLine": 274,
-                  "endColumn": 24
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
           "ruleId": "S107",
           "level": "warning",
           "message": "Method has 9 parameters, which is greater than the 7 authorized.",
@@ -2269,18 +1377,225 @@
           }
         },
         {
-          "ruleId": "CA2016",
+          "ruleId": "CA1510",
           "level": "note",
-          "message": "Forward the 'cancellationToken' parameter to the 'Run' method or pass in 'CancellationToken.None' explicitly to indicate intentionally not propagating the token",
+          "message": "Use 'ArgumentNullException.ThrowIfNull' instead of explicitly throwing a new exception instance",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/PendingLogoutProcessor.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Connectivity/InternetConnectivityObserver.cs",
                 "region": {
-                  "startLine": 64,
-                  "startColumn": 21,
-                  "endLine": 64,
-                  "endColumn": 29
+                  "startLine": 32,
+                  "startColumn": 9,
+                  "endLine": 35,
+                  "endColumn": 10
+                }
+              }
+            }
+          ],
+          "relatedLocations": [
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Connectivity/InternetConnectivityObserver.cs",
+                "region": {
+                  "startLine": 32,
+                  "startColumn": 13,
+                  "endLine": 32,
+                  "endColumn": 27
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S1075",
+          "level": "warning",
+          "message": "Refactor your code not to use hardcoded absolute paths or URIs.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Core/IconService.cs",
+                "region": {
+                  "startLine": 46,
+                  "startColumn": 45,
+                  "endLine": 46,
+                  "endColumn": 115
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S1075",
+          "level": "warning",
+          "message": "Refactor your code not to use hardcoded absolute paths or URIs.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Core/IconService.cs",
+                "region": {
+                  "startLine": 51,
+                  "startColumn": 45,
+                  "endLine": 51,
+                  "endColumn": 118
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S1075",
+          "level": "warning",
+          "message": "Refactor your code not to use hardcoded absolute paths or URIs.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Core/IconService.cs",
+                "region": {
+                  "startLine": 56,
+                  "startColumn": 45,
+                  "endLine": 56,
+                  "endColumn": 117
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S6966",
+          "level": "warning",
+          "message": "Await DisposeAsync instead.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Providers/NetworkProvider.cs",
+                "region": {
+                  "startLine": 527,
+                  "startColumn": 13,
+                  "endLine": 527,
+                  "endColumn": 40
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1068",
+          "level": "note",
+          "message": "Method 'Ecliptix.Core.Services.Network.Rpc.UnaryRpcServices.ExecuteGrpcCallAsync(Ecliptix.Core.Services.Network.Rpc.RpcServiceType, Ecliptix.Core.Core.Messaging.Services.IConnectivityService, Ecliptix.Core.Services.Network.Rpc.RpcRequestContext?, System.Threading.CancellationToken, System.Func<Grpc.Core.CallOptions, Grpc.Core.AsyncUnaryCall<Ecliptix.Protobuf.Common.SecureEnvelope>>)' should take CancellationToken as the last parameter",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Rpc/UnaryRpcServices.cs",
+                "region": {
+                  "startLine": 331,
+                  "startColumn": 64,
+                  "endLine": 331,
+                  "endColumn": 84
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1513",
+          "level": "note",
+          "message": "Use 'ObjectDisposedException.ThrowIf' instead of explicitly throwing a new exception instance",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Authentication/SecureTextBuffer.cs",
+                "region": {
+                  "startLine": 41,
+                  "startColumn": 9,
+                  "endLine": 44,
+                  "endColumn": 10
+                }
+              }
+            }
+          ],
+          "relatedLocations": [
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Authentication/SecureTextBuffer.cs",
+                "region": {
+                  "startLine": 41,
+                  "startColumn": 13,
+                  "endLine": 41,
+                  "endColumn": 24
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1513",
+          "level": "note",
+          "message": "Use 'ObjectDisposedException.ThrowIf' instead of explicitly throwing a new exception instance",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Authentication/SecureTextBuffer.cs",
+                "region": {
+                  "startLine": 62,
+                  "startColumn": 9,
+                  "endLine": 65,
+                  "endColumn": 10
+                }
+              }
+            }
+          ],
+          "relatedLocations": [
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Authentication/SecureTextBuffer.cs",
+                "region": {
+                  "startLine": 62,
+                  "startColumn": 13,
+                  "endLine": 62,
+                  "endColumn": 24
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2016",
+          "level": "note",
+          "message": "Forward the 'cancellationToken' parameter to the 'PublishAsync' method or pass in 'CancellationToken.None' explicitly to indicate intentionally not propagating the token",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Rpc/SecrecyChannelRpcServices.cs",
+                "region": {
+                  "startLine": 90,
+                  "startColumn": 19,
+                  "endLine": 90,
+                  "endColumn": 51
                 }
               }
             }
@@ -2292,6 +1607,225 @@
               "ParameterName": null,
               "ShouldFix": "1"
             }
+          }
+        },
+        {
+          "ruleId": "CA2016",
+          "level": "note",
+          "message": "Forward the 'cancellationToken' parameter to the 'PublishAsync' method or pass in 'CancellationToken.None' explicitly to indicate intentionally not propagating the token",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Rpc/SecrecyChannelRpcServices.cs",
+                "region": {
+                  "startLine": 119,
+                  "startColumn": 19,
+                  "endLine": 119,
+                  "endColumn": 51
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "ArgumentName": "cancellationToken",
+              "ParameterName": null,
+              "ShouldFix": "1"
+            }
+          }
+        },
+        {
+          "ruleId": "S108",
+          "level": "warning",
+          "message": "Either remove or fill this block of code.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Providers/NetworkProvider.cs",
+                "region": {
+                  "startLine": 555,
+                  "startColumn": 9,
+                  "endLine": 556,
+                  "endColumn": 10
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2016",
+          "level": "note",
+          "message": "Forward the 'cancellationToken' parameter to the 'PublishAsync' method or pass in 'CancellationToken.None' explicitly to indicate intentionally not propagating the token",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Rpc/SecrecyChannelRpcServices.cs",
+                "region": {
+                  "startLine": 151,
+                  "startColumn": 19,
+                  "endLine": 151,
+                  "endColumn": 51
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "ArgumentName": "cancellationToken",
+              "ParameterName": null,
+              "ShouldFix": "1"
+            }
+          }
+        },
+        {
+          "ruleId": "CA2016",
+          "level": "note",
+          "message": "Forward the 'cancellationToken' parameter to the 'PublishAsync' method or pass in 'CancellationToken.None' explicitly to indicate intentionally not propagating the token",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Rpc/SecrecyChannelRpcServices.cs",
+                "region": {
+                  "startLine": 165,
+                  "startColumn": 19,
+                  "endLine": 165,
+                  "endColumn": 51
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "ArgumentName": "cancellationToken",
+              "ParameterName": null,
+              "ShouldFix": "1"
+            }
+          }
+        },
+        {
+          "ruleId": "CA2016",
+          "level": "note",
+          "message": "Forward the 'cancellationToken' parameter to the 'PublishAsync' method or pass in 'CancellationToken.None' explicitly to indicate intentionally not propagating the token",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Rpc/SecrecyChannelRpcServices.cs",
+                "region": {
+                  "startLine": 193,
+                  "startColumn": 19,
+                  "endLine": 193,
+                  "endColumn": 51
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "ArgumentName": "cancellationToken",
+              "ParameterName": null,
+              "ShouldFix": "1"
+            }
+          }
+        },
+        {
+          "ruleId": "CA2016",
+          "level": "note",
+          "message": "Forward the 'cancellationToken' parameter to the 'PublishAsync' method or pass in 'CancellationToken.None' explicitly to indicate intentionally not propagating the token",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Rpc/SecrecyChannelRpcServices.cs",
+                "region": {
+                  "startLine": 207,
+                  "startColumn": 19,
+                  "endLine": 207,
+                  "endColumn": 51
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "ArgumentName": "cancellationToken",
+              "ParameterName": null,
+              "ShouldFix": "1"
+            }
+          }
+        },
+        {
+          "ruleId": "CA2016",
+          "level": "note",
+          "message": "Forward the 'cancellationToken' parameter to the 'Run' method or pass in 'CancellationToken.None' explicitly to indicate intentionally not propagating the token",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Membership/LogoutService.cs",
+                "region": {
+                  "startLine": 250,
+                  "startColumn": 17,
+                  "endLine": 250,
+                  "endColumn": 25
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "ArgumentName": "cancellationToken",
+              "ParameterName": null,
+              "ShouldFix": "1"
+            }
+          }
+        },
+        {
+          "ruleId": "CA1822",
+          "level": "note",
+          "message": "Member 'HasCircularDependency' does not access instance data and can be marked as static",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Modularity/ModuleDependencyResolver.cs",
+                "region": {
+                  "startLine": 70,
+                  "startColumn": 18,
+                  "endLine": 70,
+                  "endColumn": 39
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1822",
+          "level": "note",
+          "message": "Member 'GetDependenciesRecursive' does not access instance data and can be marked as static",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Modularity/ModuleDependencyResolver.cs",
+                "region": {
+                  "startLine": 149,
+                  "startColumn": 18,
+                  "endLine": 149,
+                  "endColumn": 42
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
           }
         },
         {
@@ -2509,6 +2043,40 @@
           }
         },
         {
+          "ruleId": "CA1513",
+          "level": "note",
+          "message": "Use 'ObjectDisposedException.ThrowIf' instead of explicitly throwing a new exception instance",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
+                "region": {
+                  "startLine": 95,
+                  "startColumn": 9,
+                  "endLine": 98,
+                  "endColumn": 10
+                }
+              }
+            }
+          ],
+          "relatedLocations": [
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
+                "region": {
+                  "startLine": 95,
+                  "startColumn": 13,
+                  "endLine": 95,
+                  "endColumn": 24
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
           "ruleId": "CA2208",
           "level": "note",
           "message": "Call the ArgumentOutOfRangeException constructor that contains a message and/or paramName parameter",
@@ -2530,60 +2098,52 @@
           }
         },
         {
-          "ruleId": "S6966",
-          "level": "warning",
-          "message": "Await CancelAsync instead.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
-                "region": {
-                  "startLine": 313,
-                  "startColumn": 37,
-                  "endLine": 313,
-                  "endColumn": 46
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S6966",
-          "level": "warning",
-          "message": "Await DisposeAsync instead.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Providers/NetworkProvider.cs",
-                "region": {
-                  "startLine": 527,
-                  "startColumn": 13,
-                  "endLine": 527,
-                  "endColumn": 40
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1822",
+          "ruleId": "CA1513",
           "level": "note",
-          "message": "Member 'ReadSecureFileAsync' does not access instance data and can be marked as static",
+          "message": "Use 'ObjectDisposedException.ThrowIf' instead of explicitly throwing a new exception instance",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Security/Storage/SecureProtocolStateStorage.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Messaging/MessageBus.cs",
                 "region": {
-                  "startLine": 461,
-                  "startColumn": 40,
-                  "endLine": 461,
-                  "endColumn": 59
+                  "startLine": 37,
+                  "startColumn": 9,
+                  "endLine": 40,
+                  "endColumn": 10
+                }
+              }
+            }
+          ],
+          "relatedLocations": [
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Messaging/MessageBus.cs",
+                "region": {
+                  "startLine": 37,
+                  "startColumn": 13,
+                  "endLine": 37,
+                  "endColumn": 22
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1068",
+          "level": "note",
+          "message": "Method 'Ecliptix.Core.Services.Network.Resilience.RetryStrategy.ExecuteSecrecyChannelOperationInternalAsync<TResponse>(System.Func<int, System.Threading.CancellationToken, System.Threading.Tasks.Task<Ecliptix.Utilities.Result<TResponse, Ecliptix.Utilities.Failures.Network.NetworkFailure>>>, string, uint?, Ecliptix.Core.Services.Network.Rpc.RpcServiceType?, int?, System.Threading.CancellationToken, bool)' should take CancellationToken as the last parameter",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
+                "region": {
+                  "startLine": 131,
+                  "startColumn": 59,
+                  "endLine": 131,
+                  "endColumn": 102
                 }
               }
             }
@@ -2614,196 +2174,17 @@
           }
         },
         {
-          "ruleId": "S2696",
-          "level": "warning",
-          "message": "Make the enclosing instance method 'static' or remove this set on the 'static' field.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
-                "region": {
-                  "startLine": 380,
-                  "startColumn": 9,
-                  "endLine": 380,
-                  "endColumn": 35
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
-                "region": {
-                  "startLine": 64,
-                  "startColumn": 31,
-                  "endLine": 64,
-                  "endColumn": 53
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "0": null
-            }
-          }
-        },
-        {
-          "ruleId": "S2696",
-          "level": "warning",
-          "message": "Make the enclosing instance method 'static' or remove this set on the 'static' field.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
-                "region": {
-                  "startLine": 400,
-                  "startColumn": 9,
-                  "endLine": 400,
-                  "endColumn": 38
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
-                "region": {
-                  "startLine": 65,
-                  "startColumn": 31,
-                  "endLine": 65,
-                  "endColumn": 56
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "0": null
-            }
-          }
-        },
-        {
-          "ruleId": "S1121",
-          "level": "warning",
-          "message": "Extract the assignment of '_cachedServerUnreachableIcon' from this expression.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
-                "region": {
-                  "startLine": 482,
-                  "startColumn": 93,
-                  "endLine": 482,
-                  "endColumn": 96
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S1121",
-          "level": "warning",
-          "message": "Extract the assignment of '_cachedInternetUnavailableIcon' from this expression.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/ConnectivityNotificationViewModel.cs",
-                "region": {
-                  "startLine": 484,
-                  "startColumn": 53,
-                  "endLine": 484,
-                  "endColumn": 56
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S108",
-          "level": "warning",
-          "message": "Either remove or fill this block of code.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Rpc/GrpcErrorProcessor.cs",
-                "region": {
-                  "startLine": 253,
-                  "startColumn": 9,
-                  "endLine": 254,
-                  "endColumn": 10
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1822",
+          "ruleId": "CA1513",
           "level": "note",
-          "message": "Member 'ParseErrorCode' does not access instance data and can be marked as static",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Rpc/GrpcErrorProcessor.cs",
-                "region": {
-                  "startLine": 73,
-                  "startColumn": 23,
-                  "endLine": 73,
-                  "endColumn": 37
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S2325",
-          "level": "warning",
-          "message": "Make 'CreateDelaysCacheKey' a static method.",
+          "message": "Use 'ObjectDisposedException.ThrowIf' instead of explicitly throwing a new exception instance",
           "locations": [
             {
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
                 "region": {
-                  "startLine": 521,
-                  "startColumn": 20,
-                  "endLine": 521,
-                  "endColumn": 40
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1513",
-          "level": "note",
-          "message": "Use 'ObjectDisposedException.ThrowIf' instead of explicitly throwing a new exception instance",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Authentication/SensitiveBytes.cs",
-                "region": {
-                  "startLine": 95,
+                  "startLine": 203,
                   "startColumn": 9,
-                  "endLine": 98,
+                  "endLine": 206,
                   "endColumn": 10
                 }
               }
@@ -2812,45 +2193,11 @@
           "relatedLocations": [
             {
               "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Authentication/SensitiveBytes.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
                 "region": {
-                  "startLine": 95,
+                  "startLine": 203,
                   "startColumn": 13,
-                  "endLine": 95,
-                  "endColumn": 22
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1513",
-          "level": "note",
-          "message": "Use 'ObjectDisposedException.ThrowIf' instead of explicitly throwing a new exception instance",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Authentication/SecureTextBuffer.cs",
-                "region": {
-                  "startLine": 41,
-                  "startColumn": 9,
-                  "endLine": 44,
-                  "endColumn": 10
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Authentication/SecureTextBuffer.cs",
-                "region": {
-                  "startLine": 41,
-                  "startColumn": 13,
-                  "endLine": 41,
+                  "endLine": 203,
                   "endColumn": 24
                 }
               }
@@ -2867,11 +2214,11 @@
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Authentication/SecureTextBuffer.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
                 "region": {
-                  "startLine": 62,
+                  "startLine": 276,
                   "startColumn": 9,
-                  "endLine": 65,
+                  "endLine": 279,
                   "endColumn": 10
                 }
               }
@@ -2880,11 +2227,11 @@
           "relatedLocations": [
             {
               "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Authentication/SecureTextBuffer.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
                 "region": {
-                  "startLine": 62,
+                  "startLine": 276,
                   "startColumn": 13,
-                  "endLine": 62,
+                  "endLine": 276,
                   "endColumn": 24
                 }
               }
@@ -2895,102 +2242,31 @@
           }
         },
         {
-          "ruleId": "S2325",
+          "ruleId": "S3267",
           "level": "warning",
-          "message": "Make 'LogRetryAttempt' a static method.",
+          "message": "Loops should be simplified using the \"Where\" LINQ method",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Authentication/OpaqueAuthenticationService.cs",
                 "region": {
-                  "startLine": 633,
-                  "startColumn": 18,
-                  "endLine": 633,
-                  "endColumn": 33
+                  "startLine": 807,
+                  "startColumn": 36,
+                  "endLine": 807,
+                  "endColumn": 43
                 }
               }
             }
           ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S1075",
-          "level": "warning",
-          "message": "Refactor your code not to use hardcoded absolute paths or URIs.",
-          "locations": [
+          "relatedLocations": [
             {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Core/IconService.cs",
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Authentication/OpaqueAuthenticationService.cs",
                 "region": {
-                  "startLine": 48,
-                  "startColumn": 45,
-                  "endLine": 48,
-                  "endColumn": 115
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S1075",
-          "level": "warning",
-          "message": "Refactor your code not to use hardcoded absolute paths or URIs.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Core/IconService.cs",
-                "region": {
-                  "startLine": 53,
-                  "startColumn": 45,
-                  "endLine": 53,
-                  "endColumn": 118
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S1075",
-          "level": "warning",
-          "message": "Refactor your code not to use hardcoded absolute paths or URIs.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Core/IconService.cs",
-                "region": {
-                  "startLine": 58,
-                  "startColumn": 45,
-                  "endLine": 58,
-                  "endColumn": 117
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA2016",
-          "level": "note",
-          "message": "Forward the 'cancellationToken' parameter to the 'Run' method or pass in 'CancellationToken.None' explicitly to indicate intentionally not propagating the token",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Membership/LogoutService.cs",
-                "region": {
-                  "startLine": 265,
+                  "startLine": 809,
                   "startColumn": 17,
-                  "endLine": 265,
-                  "endColumn": 25
+                  "endLine": 809,
+                  "endColumn": 42
                 }
               }
             }
@@ -2998,10 +2274,50 @@
           "properties": {
             "warningLevel": 1,
             "customProperties": {
-              "ArgumentName": "cancellationToken",
-              "ParameterName": null,
-              "ShouldFix": "1"
+              "0": null
             }
+          }
+        },
+        {
+          "ruleId": "CA1865",
+          "level": "note",
+          "message": "Use 'string.StartsWith(char)' instead of 'string.StartsWith(string)' when you have a string with a single char",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Rpc/GrpcErrorProcessor.cs",
+                "region": {
+                  "startLine": 141,
+                  "startColumn": 32,
+                  "endLine": 141,
+                  "endColumn": 63
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1865",
+          "level": "note",
+          "message": "Use 'string.EndsWith(char)' instead of 'string.EndsWith(string)' when you have a string with a single char",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Rpc/GrpcErrorProcessor.cs",
+                "region": {
+                  "startLine": 141,
+                  "startColumn": 81,
+                  "endLine": 141,
+                  "endColumn": 112
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
           }
         },
         {
@@ -3013,152 +2329,10 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
                 "region": {
-                  "startLine": 925,
-                  "startColumn": 59,
-                  "endLine": 925,
-                  "endColumn": 86
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S2583",
-          "level": "warning",
-          "message": "Change this condition so that it does not always evaluate to 'True'. Some code paths are unreachable.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Authentication/SecureKeyRecoveryService.cs",
-                "region": {
-                  "startLine": 199,
-                  "startColumn": 17,
-                  "endLine": 199,
-                  "endColumn": 43
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Authentication/SecureKeyRecoveryService.cs",
-                "region": {
-                  "startLine": 204,
-                  "startColumn": 20,
-                  "endLine": 204,
-                  "endColumn": 77
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "0": null
-            }
-          }
-        },
-        {
-          "ruleId": "S2325",
-          "level": "warning",
-          "message": "Make 'ExecuteOperationWithLogging' a static method.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
-                "region": {
-                  "startLine": 925,
-                  "startColumn": 59,
-                  "endLine": 925,
-                  "endColumn": 86
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S107",
-          "level": "warning",
-          "message": "Constructor has 8 parameters, which is greater than the 7 authorized.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Core/ApplicationInitializer.cs",
-                "region": {
-                  "startLine": 35,
-                  "startColumn": 43,
-                  "endLine": 43,
-                  "endColumn": 46
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1822",
-          "level": "note",
-          "message": "Member 'CreateDelaysCacheKey' does not access instance data and can be marked as static",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
-                "region": {
-                  "startLine": 521,
-                  "startColumn": 20,
-                  "endLine": 521,
-                  "endColumn": 40
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1822",
-          "level": "note",
-          "message": "Member 'LogRetryAttempt' does not access instance data and can be marked as static",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
-                "region": {
-                  "startLine": 633,
-                  "startColumn": 18,
-                  "endLine": 633,
-                  "endColumn": 33
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1822",
-          "level": "note",
-          "message": "Member 'ExecuteOperationWithLogging' does not access instance data and can be marked as static",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
-                "region": {
-                  "startLine": 925,
-                  "startColumn": 59,
-                  "endLine": 925,
-                  "endColumn": 86
+                  "startLine": 930,
+                  "startColumn": 66,
+                  "endLine": 930,
+                  "endColumn": 93
                 }
               }
             }
@@ -3176,9 +2350,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/RetryStrategy.cs",
                 "region": {
-                  "startLine": 827,
+                  "startLine": 833,
                   "startColumn": 61,
-                  "endLine": 827,
+                  "endLine": 833,
                   "endColumn": 80
                 }
               }
@@ -3189,259 +2363,81 @@
           }
         },
         {
-          "ruleId": "S3776",
-          "level": "warning",
-          "message": "Refactor this method to reduce its Cognitive Complexity from 26 to the 15 allowed.",
+          "ruleId": "CA1822",
+          "level": "note",
+          "message": "Member 'StretchKeyAsync' does not access instance data and can be marked as static",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Security/KeySplitting/HardenedKeyDerivation.cs",
                 "region": {
-                  "startLine": 940,
-                  "startColumn": 18,
-                  "endLine": 940,
-                  "endColumn": 34
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 942,
-                  "startColumn": 9,
-                  "endLine": 942,
-                  "endColumn": 11
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 947,
-                  "startColumn": 9,
-                  "endLine": 947,
-                  "endColumn": 11
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 947,
-                  "startColumn": 58,
-                  "endLine": 947,
-                  "endColumn": 60
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 949,
-                  "startColumn": 13,
-                  "endLine": 949,
-                  "endColumn": 19
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 960,
-                  "startColumn": 9,
-                  "endLine": 960,
-                  "endColumn": 11
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 960,
-                  "startColumn": 33,
-                  "endLine": 960,
-                  "endColumn": 35
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 960,
-                  "startColumn": 80,
-                  "endLine": 960,
-                  "endColumn": 82
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 965,
-                  "startColumn": 9,
-                  "endLine": 965,
-                  "endColumn": 11
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 967,
-                  "startColumn": 13,
-                  "endLine": 967,
-                  "endColumn": 19
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 984,
-                  "startColumn": 9,
-                  "endLine": 984,
-                  "endColumn": 11
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 987,
-                  "startColumn": 13,
-                  "endLine": 987,
-                  "endColumn": 15
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 987,
-                  "startColumn": 38,
-                  "endLine": 987,
-                  "endColumn": 40
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 990,
-                  "startColumn": 57,
-                  "endLine": 990,
-                  "endColumn": 58
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1002,
-                  "startColumn": 9,
-                  "endLine": 1002,
-                  "endColumn": 11
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1005,
-                  "startColumn": 13,
-                  "endLine": 1005,
-                  "endColumn": 15
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1005,
-                  "startColumn": 38,
-                  "endLine": 1005,
-                  "endColumn": 40
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1008,
-                  "startColumn": 57,
-                  "endLine": 1008,
-                  "endColumn": 58
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1020,
-                  "startColumn": 9,
-                  "endLine": 1020,
-                  "endColumn": 11
+                  "startLine": 70,
+                  "startColumn": 61,
+                  "endLine": 70,
+                  "endColumn": 76
                 }
               }
             }
           ],
           "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "0": "+1",
-              "1": "+1",
-              "10": "+2 (incl 1 for nesting)",
-              "11": "+1",
-              "12": "+3 (incl 2 for nesting)",
-              "13": "+1",
-              "14": "+2 (incl 1 for nesting)",
-              "15": "+1",
-              "16": "+3 (incl 2 for nesting)",
-              "17": "+1",
-              "2": "+1",
-              "3": "+2 (incl 1 for nesting)",
-              "4": "+1",
-              "5": "+1",
-              "6": "+1",
-              "7": "+1",
-              "8": "+2 (incl 1 for nesting)",
-              "9": "+1"
-            }
+            "warningLevel": 1
           }
         },
         {
-          "ruleId": "S107",
+          "ruleId": "S4036",
           "level": "warning",
-          "message": "Method has 9 parameters, which is greater than the 7 authorized.",
+          "message": "Make sure the \"PATH\" variable only contains fixed, unwriteable directories.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Security/Platform/CrossPlatformSecurityProvider.cs",
+                "region": {
+                  "startLine": 582,
+                  "startColumn": 21,
+                  "endLine": 582,
+                  "endColumn": 29
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S4036",
+          "level": "warning",
+          "message": "Make sure the \"PATH\" variable only contains fixed, unwriteable directories.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Security/Platform/CrossPlatformSecurityProvider.cs",
+                "region": {
+                  "startLine": 651,
+                  "startColumn": 17,
+                  "endLine": 651,
+                  "endColumn": 25
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S108",
+          "level": "warning",
+          "message": "Either remove or fill this block of code.",
           "locations": [
             {
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Providers/NetworkProvider.cs",
                 "region": {
-                  "startLine": 1037,
-                  "startColumn": 75,
-                  "endLine": 1046,
-                  "endColumn": 33
+                  "startLine": 1302,
+                  "startColumn": 9,
+                  "endLine": 1303,
+                  "endColumn": 10
                 }
               }
             }
@@ -3472,18 +2468,18 @@
           }
         },
         {
-          "ruleId": "S108",
+          "ruleId": "S107",
           "level": "warning",
-          "message": "Either remove or fill this block of code.",
+          "message": "Method has 9 parameters, which is greater than the 7 authorized.",
           "locations": [
             {
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Providers/NetworkProvider.cs",
                 "region": {
-                  "startLine": 1308,
-                  "startColumn": 9,
-                  "endLine": 1309,
-                  "endColumn": 10
+                  "startLine": 1037,
+                  "startColumn": 75,
+                  "endLine": 1046,
+                  "endColumn": 33
                 }
               }
             }
@@ -3493,555 +2489,18 @@
           }
         },
         {
-          "ruleId": "S3626",
-          "level": "warning",
-          "message": "Remove this redundant jump.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Providers/NetworkProvider.cs",
-                "region": {
-                  "startLine": 1303,
-                  "startColumn": 21,
-                  "endLine": 1303,
-                  "endColumn": 30
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S3776",
-          "level": "warning",
-          "message": "Refactor this method to reduce its Cognitive Complexity from 21 to the 15 allowed.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1112,
-                  "startColumn": 18,
-                  "endLine": 1112,
-                  "endColumn": 40
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1114,
-                  "startColumn": 9,
-                  "endLine": 1114,
-                  "endColumn": 11
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1114,
-                  "startColumn": 33,
-                  "endLine": 1114,
-                  "endColumn": 35
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1125,
-                  "startColumn": 13,
-                  "endLine": 1125,
-                  "endColumn": 15
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1134,
-                  "startColumn": 21,
-                  "endLine": 1134,
-                  "endColumn": 22
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1137,
-                  "startColumn": 17,
-                  "endLine": 1137,
-                  "endColumn": 19
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1146,
-                  "startColumn": 21,
-                  "endLine": 1146,
-                  "endColumn": 23
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1153,
-                  "startColumn": 17,
-                  "endLine": 1153,
-                  "endColumn": 21
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1165,
-                  "startColumn": 13,
-                  "endLine": 1165,
-                  "endColumn": 18
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1169,
-                  "startColumn": 17,
-                  "endLine": 1169,
-                  "endColumn": 19
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1177,
-                  "startColumn": 21,
-                  "endLine": 1177,
-                  "endColumn": 23
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1184,
-                  "startColumn": 17,
-                  "endLine": 1184,
-                  "endColumn": 21
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1205,
-                  "startColumn": 17,
-                  "endLine": 1205,
-                  "endColumn": 19
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1205,
-                  "startColumn": 42,
-                  "endLine": 1205,
-                  "endColumn": 44
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1208,
-                  "startColumn": 21,
-                  "endLine": 1208,
-                  "endColumn": 23
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "0": "+1",
-              "1": "+1",
-              "10": "+1",
-              "11": "+2 (incl 1 for nesting)",
-              "12": "+1",
-              "13": "+3 (incl 2 for nesting)",
-              "2": "+1",
-              "3": "+1",
-              "4": "+1",
-              "5": "+2 (incl 1 for nesting)",
-              "6": "+1",
-              "7": "+1",
-              "8": "+2 (incl 1 for nesting)",
-              "9": "+3 (incl 2 for nesting)"
-            }
-          }
-        },
-        {
-          "ruleId": "S3267",
-          "level": "warning",
-          "message": "Loops should be simplified using the \"Where\" LINQ method",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Modularity/ModuleDependencyResolver.cs",
-                "region": {
-                  "startLine": 40,
-                  "startColumn": 53,
-                  "endLine": 40,
-                  "endColumn": 81
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Modularity/ModuleDependencyResolver.cs",
-                "region": {
-                  "startLine": 42,
-                  "startColumn": 21,
-                  "endLine": 42,
-                  "endColumn": 64
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "0": null
-            }
-          }
-        },
-        {
-          "ruleId": "S3267",
-          "level": "warning",
-          "message": "Loops should be simplified using the \"Where\" LINQ method",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Modularity/ModuleDependencyResolver.cs",
-                "region": {
-                  "startLine": 58,
-                  "startColumn": 36,
-                  "endLine": 58,
-                  "endColumn": 88
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Modularity/ModuleDependencyResolver.cs",
-                "region": {
-                  "startLine": 60,
-                  "startColumn": 17,
-                  "endLine": 60,
-                  "endColumn": 94
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "0": null
-            }
-          }
-        },
-        {
-          "ruleId": "S1117",
-          "level": "warning",
-          "message": "Rename 'handler' which hides the primary constructor parameter with the same name.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Messaging/Subscriptions/SubscriptionTypes.cs",
-                "region": {
-                  "startLine": 46,
-                  "startColumn": 57,
-                  "endLine": 46,
-                  "endColumn": 64
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1513",
+          "ruleId": "CA1859",
           "level": "note",
-          "message": "Use 'ObjectDisposedException.ThrowIf' instead of explicitly throwing a new exception instance",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Messaging/Subscriptions/SubscriptionManager.cs",
-                "region": {
-                  "startLine": 31,
-                  "startColumn": 9,
-                  "endLine": 34,
-                  "endColumn": 10
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Messaging/Subscriptions/SubscriptionManager.cs",
-                "region": {
-                  "startLine": 31,
-                  "startColumn": 13,
-                  "endLine": 31,
-                  "endColumn": 22
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S3776",
-          "level": "warning",
-          "message": "Refactor this method to reduce its Cognitive Complexity from 24 to the 15 allowed.",
+          "message": "Change type of field '_currentTypingAnimation' from 'System.IDisposable?' to 'System.Threading.Tasks.Task?' for improved performance",
           "locations": [
             {
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
                 "region": {
-                  "startLine": 1409,
-                  "startColumn": 18,
-                  "endLine": 1409,
-                  "endColumn": 39
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1421,
-                  "startColumn": 21,
-                  "endLine": 1421,
-                  "endColumn": 23
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1426,
-                  "startColumn": 17,
-                  "endLine": 1426,
-                  "endColumn": 22
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1437,
-                  "startColumn": 82,
-                  "endLine": 1437,
-                  "endColumn": 83
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1437,
-                  "startColumn": 47,
-                  "endLine": 1437,
+                  "startLine": 170,
+                  "startColumn": 26,
+                  "endLine": 170,
                   "endColumn": 49
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1442,
-                  "startColumn": 21,
-                  "endLine": 1442,
-                  "endColumn": 23
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1442,
-                  "startColumn": 38,
-                  "endLine": 1442,
-                  "endColumn": 40
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1447,
-                  "startColumn": 17,
-                  "endLine": 1447,
-                  "endColumn": 22
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1455,
-                  "startColumn": 45,
-                  "endLine": 1455,
-                  "endColumn": 47
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1460,
-                  "startColumn": 21,
-                  "endLine": 1460,
-                  "endColumn": 23
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1465,
-                  "startColumn": 17,
-                  "endLine": 1465,
-                  "endColumn": 22
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1478,
-                  "startColumn": 21,
-                  "endLine": 1478,
-                  "endColumn": 23
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1481,
-                  "startColumn": 29,
-                  "endLine": 1481,
-                  "endColumn": 30
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1485,
-                  "startColumn": 17,
-                  "endLine": 1485,
-                  "endColumn": 22
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "0": "+2 (incl 1 for nesting)",
-              "1": "+2 (incl 1 for nesting)",
-              "10": "+2 (incl 1 for nesting)",
-              "11": "+3 (incl 2 for nesting)",
-              "12": "+2 (incl 1 for nesting)",
-              "2": "+2 (incl 1 for nesting)",
-              "3": "+1",
-              "4": "+2 (incl 1 for nesting)",
-              "5": "+1",
-              "6": "+2 (incl 1 for nesting)",
-              "7": "+1",
-              "8": "+2 (incl 1 for nesting)",
-              "9": "+2 (incl 1 for nesting)"
-            }
-          }
-        },
-        {
-          "ruleId": "CA1513",
-          "level": "note",
-          "message": "Use 'ObjectDisposedException.ThrowIf' instead of explicitly throwing a new exception instance",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Messaging/MessageBus.cs",
-                "region": {
-                  "startLine": 37,
-                  "startColumn": 9,
-                  "endLine": 40,
-                  "endColumn": 10
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Messaging/MessageBus.cs",
-                "region": {
-                  "startLine": 37,
-                  "startColumn": 13,
-                  "endLine": 37,
-                  "endColumn": 22
                 }
               }
             }
@@ -4059,9 +2518,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Providers/NetworkProvider.cs",
                 "region": {
-                  "startLine": 1827,
+                  "startLine": 1821,
                   "startColumn": 17,
-                  "endLine": 1827,
+                  "endLine": 1821,
                   "endColumn": 24
                 }
               }
@@ -4072,9 +2531,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Providers/NetworkProvider.cs",
                 "region": {
-                  "startLine": 1829,
+                  "startLine": 1823,
                   "startColumn": 9,
-                  "endLine": 1829,
+                  "endLine": 1823,
                   "endColumn": 11
                 }
               }
@@ -4083,9 +2542,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Providers/NetworkProvider.cs",
                 "region": {
-                  "startLine": 1836,
+                  "startLine": 1830,
                   "startColumn": 13,
-                  "endLine": 1836,
+                  "endLine": 1830,
                   "endColumn": 15
                 }
               }
@@ -4094,9 +2553,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Providers/NetworkProvider.cs",
                 "region": {
-                  "startLine": 1847,
+                  "startLine": 1841,
                   "startColumn": 17,
-                  "endLine": 1847,
+                  "endLine": 1841,
                   "endColumn": 24
                 }
               }
@@ -4105,10 +2564,21 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Providers/NetworkProvider.cs",
                 "region": {
-                  "startLine": 1849,
+                  "startLine": 1843,
                   "startColumn": 21,
-                  "endLine": 1849,
+                  "endLine": 1843,
                   "endColumn": 23
+                }
+              }
+            },
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Providers/NetworkProvider.cs",
+                "region": {
+                  "startLine": 1853,
+                  "startColumn": 21,
+                  "endLine": 1853,
+                  "endColumn": 26
                 }
               }
             },
@@ -4117,19 +2587,8 @@
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Providers/NetworkProvider.cs",
                 "region": {
                   "startLine": 1859,
-                  "startColumn": 21,
-                  "endLine": 1859,
-                  "endColumn": 26
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Providers/NetworkProvider.cs",
-                "region": {
-                  "startLine": 1865,
                   "startColumn": 17,
-                  "endLine": 1865,
+                  "endLine": 1859,
                   "endColumn": 24
                 }
               }
@@ -4138,9 +2597,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Providers/NetworkProvider.cs",
                 "region": {
-                  "startLine": 1867,
+                  "startLine": 1861,
                   "startColumn": 21,
-                  "endLine": 1867,
+                  "endLine": 1861,
                   "endColumn": 23
                 }
               }
@@ -4149,10 +2608,21 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Providers/NetworkProvider.cs",
                 "region": {
-                  "startLine": 1877,
+                  "startLine": 1871,
                   "startColumn": 21,
-                  "endLine": 1877,
+                  "endLine": 1871,
                   "endColumn": 26
+                }
+              }
+            },
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Providers/NetworkProvider.cs",
+                "region": {
+                  "startLine": 1885,
+                  "startColumn": 17,
+                  "endLine": 1885,
+                  "endColumn": 24
                 }
               }
             },
@@ -4161,19 +2631,8 @@
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Providers/NetworkProvider.cs",
                 "region": {
                   "startLine": 1891,
-                  "startColumn": 17,
-                  "endLine": 1891,
-                  "endColumn": 24
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Providers/NetworkProvider.cs",
-                "region": {
-                  "startLine": 1897,
                   "startColumn": 21,
-                  "endLine": 1897,
+                  "endLine": 1891,
                   "endColumn": 26
                 }
               }
@@ -4182,9 +2641,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Providers/NetworkProvider.cs",
                 "region": {
-                  "startLine": 1909,
+                  "startLine": 1903,
                   "startColumn": 17,
-                  "endLine": 1909,
+                  "endLine": 1903,
                   "endColumn": 24
                 }
               }
@@ -4193,9 +2652,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Providers/NetworkProvider.cs",
                 "region": {
-                  "startLine": 1920,
+                  "startLine": 1914,
                   "startColumn": 13,
-                  "endLine": 1920,
+                  "endLine": 1914,
                   "endColumn": 18
                 }
               }
@@ -4217,353 +2676,6 @@
               "8": "+1",
               "9": "+2 (incl 1 for nesting)"
             }
-          }
-        },
-        {
-          "ruleId": "CA1510",
-          "level": "note",
-          "message": "Use 'ArgumentNullException.ThrowIfNull' instead of explicitly throwing a new exception instance",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Connectivity/InternetConnectivityObserver.cs",
-                "region": {
-                  "startLine": 34,
-                  "startColumn": 9,
-                  "endLine": 37,
-                  "endColumn": 10
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Connectivity/InternetConnectivityObserver.cs",
-                "region": {
-                  "startLine": 34,
-                  "startColumn": 13,
-                  "endLine": 34,
-                  "endColumn": 27
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S1940",
-          "level": "warning",
-          "message": "Use the opposite operator ('<=') instead.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 1555,
-                  "startColumn": 17,
-                  "endLine": 1555,
-                  "endColumn": 78
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S2325",
-          "level": "warning",
-          "message": "Make 'TopologicalSort' a static method.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Modularity/ModuleDependencyResolver.cs",
-                "region": {
-                  "startLine": 97,
-                  "startColumn": 34,
-                  "endLine": 97,
-                  "endColumn": 49
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S2583",
-          "level": "warning",
-          "message": "Remove this unnecessary check for null. Some code paths are unreachable.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Authentication/OpaqueAuthenticationService.cs",
-                "region": {
-                  "startLine": 161,
-                  "startColumn": 17,
-                  "endLine": 161,
-                  "endColumn": 26
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Authentication/OpaqueAuthenticationService.cs",
-                "region": {
-                  "startLine": 161,
-                  "startColumn": 30,
-                  "endLine": 161,
-                  "endColumn": 109
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "0": null
-            }
-          }
-        },
-        {
-          "ruleId": "CA1854",
-          "level": "note",
-          "message": "Prefer a 'TryGetValue' call over a Dictionary indexer access guarded by a 'ContainsKey' check to avoid double lookup",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Modularity/ModuleDependencyResolver.cs",
-                "region": {
-                  "startLine": 113,
-                  "startColumn": 21,
-                  "endLine": 113,
-                  "endColumn": 52
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Modularity/ModuleDependencyResolver.cs",
-                "region": {
-                  "startLine": 115,
-                  "startColumn": 21,
-                  "endLine": 115,
-                  "endColumn": 40
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1822",
-          "level": "note",
-          "message": "Member 'HasCircularDependency' does not access instance data and can be marked as static",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Modularity/ModuleDependencyResolver.cs",
-                "region": {
-                  "startLine": 67,
-                  "startColumn": 18,
-                  "endLine": 67,
-                  "endColumn": 39
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1822",
-          "level": "note",
-          "message": "Member 'GetDependenciesRecursive' does not access instance data and can be marked as static",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Modularity/ModuleDependencyResolver.cs",
-                "region": {
-                  "startLine": 147,
-                  "startColumn": 18,
-                  "endLine": 147,
-                  "endColumn": 42
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1822",
-          "level": "note",
-          "message": "Member 'TopologicalSort' does not access instance data and can be marked as static",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Core/Modularity/ModuleDependencyResolver.cs",
-                "region": {
-                  "startLine": 97,
-                  "startColumn": 34,
-                  "endLine": 97,
-                  "endColumn": 49
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1859",
-          "level": "note",
-          "message": "Change type of field '_currentTypingAnimation' from 'System.IDisposable?' to 'System.Threading.Tasks.Task?' for improved performance",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/HintedTextBox.axaml.cs",
-                "region": {
-                  "startLine": 168,
-                  "startColumn": 26,
-                  "endLine": 168,
-                  "endColumn": 49
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S2325",
-          "level": "warning",
-          "message": "Make 'CleanupSignInContext' a static method.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Authentication/OpaqueAuthenticationService.cs",
-                "region": {
-                  "startLine": 394,
-                  "startColumn": 18,
-                  "endLine": 394,
-                  "endColumn": 38
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S1066",
-          "level": "warning",
-          "message": "Merge this if statement with the enclosing one.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Authentication/OpaqueRegistrationService.cs",
-                "region": {
-                  "startLine": 942,
-                  "startColumn": 13,
-                  "endLine": 942,
-                  "endColumn": 15
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Authentication/OpaqueRegistrationService.cs",
-                "region": {
-                  "startLine": 940,
-                  "startColumn": 9,
-                  "endLine": 940,
-                  "endColumn": 11
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "0": "Merge this if statement with its nested one."
-            }
-          }
-        },
-        {
-          "ruleId": "S3267",
-          "level": "warning",
-          "message": "Loops should be simplified using the \"Where\" LINQ method",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Authentication/OpaqueAuthenticationService.cs",
-                "region": {
-                  "startLine": 833,
-                  "startColumn": 36,
-                  "endLine": 833,
-                  "endColumn": 43
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Authentication/OpaqueAuthenticationService.cs",
-                "region": {
-                  "startLine": 835,
-                  "startColumn": 17,
-                  "endLine": 835,
-                  "endColumn": 42
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "0": null
-            }
-          }
-        },
-        {
-          "ruleId": "CA1822",
-          "level": "note",
-          "message": "Member 'CleanupSignInContext' does not access instance data and can be marked as static",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Authentication/OpaqueAuthenticationService.cs",
-                "region": {
-                  "startLine": 394,
-                  "startColumn": 18,
-                  "endLine": 394,
-                  "endColumn": 38
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
           }
         }
       ],
@@ -4634,21 +2746,6 @@
           "fullDescription": "For determining whether the object contains or not any items, prefer using 'IsEmpty' property rather than retrieving the number of items from the 'Count' property and comparing it to 0 or 1.",
           "defaultLevel": "note",
           "helpUri": "https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1836",
-          "properties": {
-            "category": "Performance",
-            "isEnabledByDefault": true,
-            "tags": [
-              "Telemetry",
-              "EnabledRuleInAggressiveMode"
-            ]
-          }
-        },
-        "CA1854": {
-          "id": "CA1854",
-          "shortDescription": "Prefer the 'IDictionary.TryGetValue(TKey, out TValue)' method",
-          "fullDescription": "Prefer a 'TryGetValue' call over a Dictionary indexer access guarded by a 'ContainsKey' check. 'ContainsKey' and the indexer both would lookup the key under the hood, so using 'TryGetValue' removes the extra lookup.",
-          "defaultLevel": "note",
-          "helpUri": "https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1854",
           "properties": {
             "category": "Performance",
             "isEnabledByDefault": true,
@@ -4758,23 +2855,6 @@
             "isEnabledByDefault": true
           }
         },
-        "S1066": {
-          "id": "S1066",
-          "shortDescription": "Mergeable \"if\" statements should be combined",
-          "fullDescription": "Nested code - blocks of code inside blocks of code - is eventually necessary, but increases complexity. This is why keeping the code as flat as possible, by avoiding unnecessary nesting, is considered a good practice.",
-          "defaultLevel": "warning",
-          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-1066",
-          "properties": {
-            "category": "Major Code Smell",
-            "isEnabledByDefault": true,
-            "tags": [
-              "C#",
-              "MainSourceScope",
-              "TestSourceScope",
-              "SonarWay"
-            ]
-          }
-        },
         "S107": {
           "id": "S107",
           "shortDescription": "Methods should not have too many parameters",
@@ -4825,46 +2905,12 @@
             ]
           }
         },
-        "S1117": {
-          "id": "S1117",
-          "shortDescription": "Local variables should not shadow class fields or properties",
-          "fullDescription": "Shadowing occurs when a local variable has the same name as a variable, field, or property in an outer scope.",
-          "defaultLevel": "warning",
-          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-1117",
-          "properties": {
-            "category": "Major Code Smell",
-            "isEnabledByDefault": true,
-            "tags": [
-              "C#",
-              "MainSourceScope",
-              "TestSourceScope",
-              "SonarWay"
-            ]
-          }
-        },
         "S1121": {
           "id": "S1121",
           "shortDescription": "Assignments should not be made from within sub-expressions",
           "fullDescription": "A common code smell that can hinder the clarity of source code is making assignments within sub-expressions. This practice involves assigning a value to a variable inside a larger expression, such as within a loop or a conditional statement.",
           "defaultLevel": "warning",
           "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-1121",
-          "properties": {
-            "category": "Major Code Smell",
-            "isEnabledByDefault": true,
-            "tags": [
-              "C#",
-              "MainSourceScope",
-              "TestSourceScope",
-              "SonarWay"
-            ]
-          }
-        },
-        "S1144": {
-          "id": "S1144",
-          "shortDescription": "Unused private types or members should be removed",
-          "fullDescription": "This rule raises an issue when a private/internal type or member is never referenced in the code.",
-          "defaultLevel": "warning",
-          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-1144",
           "properties": {
             "category": "Major Code Smell",
             "isEnabledByDefault": true,
@@ -4892,118 +2938,19 @@
             ]
           }
         },
-        "S1940": {
-          "id": "S1940",
-          "shortDescription": "Boolean checks should not be inverted",
-          "fullDescription": "It is needlessly complex to invert the result of a boolean comparison. The opposite comparison should be made instead.",
+        "S2376": {
+          "id": "S2376",
+          "shortDescription": "Write-only properties should not be used",
+          "fullDescription": "Properties with only setters are confusing and counterintuitive. Instead, a property getter should be added if possible, or the property should be replaced with a setter method.",
           "defaultLevel": "warning",
-          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-1940",
-          "properties": {
-            "category": "Minor Code Smell",
-            "isEnabledByDefault": true,
-            "tags": [
-              "C#",
-              "MainSourceScope",
-              "TestSourceScope",
-              "SonarWay"
-            ]
-          }
-        },
-        "S1994": {
-          "id": "S1994",
-          "shortDescription": "\"for\" loop increment clauses should modify the loops' counters",
-          "fullDescription": "The for loop is designed to iterate over a range using a counter variable, with the counter being updated in the loop’s increment section. Misusing this structure can lead to issues such as infinite loops if the counter is not updated correctly. If this is intentional, use a while or do while loop instead of a for loop.",
-          "defaultLevel": "warning",
-          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-1994",
-          "properties": {
-            "category": "Critical Code Smell",
-            "isEnabledByDefault": true,
-            "tags": [
-              "C#",
-              "MainSourceScope",
-              "TestSourceScope",
-              "SonarWay"
-            ]
-          }
-        },
-        "S2139": {
-          "id": "S2139",
-          "shortDescription": "Exceptions should be either logged or rethrown but not both",
-          "fullDescription": "When an exception is logged and rethrown, the upstream code may not be aware that the exception has already been logged. As a result, the same exception gets logged multiple times, making it difficult to identify the root cause of the issue. This can be particularly problematic in multi-threaded applications where messages from other threads can be interwoven with the repeated log entries.",
-          "defaultLevel": "warning",
-          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-2139",
+          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-2376",
           "properties": {
             "category": "Major Code Smell",
             "isEnabledByDefault": true,
             "tags": [
               "C#",
               "MainSourceScope",
-              "SonarWay"
-            ]
-          }
-        },
-        "S2325": {
-          "id": "S2325",
-          "shortDescription": "Methods and properties that don't access instance data should be static",
-          "fullDescription": "Methods and properties that don’t access instance data should be marked as static for the following reasons:",
-          "defaultLevel": "warning",
-          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-2325",
-          "properties": {
-            "category": "Minor Code Smell",
-            "isEnabledByDefault": true,
-            "tags": [
-              "C#",
-              "MainSourceScope",
               "TestSourceScope",
-              "SonarWay"
-            ]
-          }
-        },
-        "S2583": {
-          "id": "S2583",
-          "shortDescription": "Conditionally executed code should be reachable",
-          "fullDescription": "Conditional expressions which are always true or false can lead to unreachable code.",
-          "defaultLevel": "warning",
-          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-2583",
-          "properties": {
-            "category": "Major Bug",
-            "isEnabledByDefault": true,
-            "tags": [
-              "C#",
-              "MainSourceScope",
-              "TestSourceScope",
-              "SonarWay"
-            ]
-          }
-        },
-        "S2696": {
-          "id": "S2696",
-          "shortDescription": "Instance members should not write to \"static\" fields",
-          "fullDescription": "This rule raises an issue each time a static field is updated from a non-static method or property.",
-          "defaultLevel": "warning",
-          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-2696",
-          "properties": {
-            "category": "Critical Code Smell",
-            "isEnabledByDefault": true,
-            "tags": [
-              "C#",
-              "MainSourceScope",
-              "SonarWay"
-            ]
-          }
-        },
-        "S3260": {
-          "id": "S3260",
-          "shortDescription": "Non-derived \"private\" classes and records should be \"sealed\"",
-          "fullDescription": "Classes and records with either private or file access modifiers aren’t visible outside of their assemblies or files, so if they’re not extended inside their scope, they should be made explicitly non-extensible with the addition of the sealed keyword.",
-          "defaultLevel": "warning",
-          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-3260",
-          "properties": {
-            "category": "Minor Code Smell",
-            "isEnabledByDefault": true,
-            "tags": [
-              "C#",
-              "MainSourceScope",
               "SonarWay"
             ]
           }
@@ -5020,23 +2967,6 @@
             "tags": [
               "C#",
               "MainSourceScope",
-              "SonarWay"
-            ]
-          }
-        },
-        "S3626": {
-          "id": "S3626",
-          "shortDescription": "Jump statements should not be redundant",
-          "fullDescription": "Jump statements, such as return, yield break, goto, and continue are used to change the normal flow of execution in a program. However, redundant jump statements can make code difficult to read and maintain.",
-          "defaultLevel": "warning",
-          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-3626",
-          "properties": {
-            "category": "Minor Code Smell",
-            "isEnabledByDefault": true,
-            "tags": [
-              "C#",
-              "MainSourceScope",
-              "TestSourceScope",
               "SonarWay"
             ]
           }
@@ -5108,23 +3038,6 @@
             ]
           }
         },
-        "S4144": {
-          "id": "S4144",
-          "shortDescription": "Methods should not have identical implementations",
-          "fullDescription": "Two methods having the same implementation are suspicious. It might be that something else was intended. Or the duplication is intentional, which becomes a maintenance burden.",
-          "defaultLevel": "warning",
-          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-4144",
-          "properties": {
-            "category": "Major Code Smell",
-            "isEnabledByDefault": true,
-            "tags": [
-              "C#",
-              "MainSourceScope",
-              "TestSourceScope",
-              "SonarWay"
-            ]
-          }
-        },
         "S5332": {
           "id": "S5332",
           "shortDescription": "Using clear-text protocols is security-sensitive",
@@ -5133,22 +3046,6 @@
           "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-5332",
           "properties": {
             "category": "Critical Security Hotspot",
-            "isEnabledByDefault": true,
-            "tags": [
-              "C#",
-              "MainSourceScope",
-              "SonarWay"
-            ]
-          }
-        },
-        "S6444": {
-          "id": "S6444",
-          "shortDescription": "Not specifying a timeout for regular expressions is security-sensitive",
-          "fullDescription": "Not specifying a timeout for regular expressions can lead to a Denial-of-Service attack. Pass a timeout when using System.Text.RegularExpressions to process untrusted input because a malicious user might craft a value for which the evaluation lasts excessively long.",
-          "defaultLevel": "warning",
-          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-6444",
-          "properties": {
-            "category": "Major Security Hotspot",
             "isEnabledByDefault": true,
             "tags": [
               "C#",
@@ -5172,16 +3069,6 @@
               "TestSourceScope",
               "SonarWay"
             ]
-          }
-        },
-        "SYSLIB1045": {
-          "id": "SYSLIB1045",
-          "shortDescription": "Convert to 'GeneratedRegexAttribute'.",
-          "defaultLevel": "note",
-          "helpUri": "https://learn.microsoft.com/dotnet/fundamentals/syslib-diagnostics/syslib1045",
-          "properties": {
-            "category": "Performance",
-            "isEnabledByDefault": true
           }
         }
       }

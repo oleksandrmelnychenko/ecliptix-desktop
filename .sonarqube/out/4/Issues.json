@@ -14,6 +14,48 @@
         {
           "ruleId": "CA1815",
           "level": "note",
+          "message": "CertificatePinningByteArrayResult should override Equals",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningByteArrayResult.cs",
+                "region": {
+                  "startLine": 5,
+                  "startColumn": 24,
+                  "endLine": 5,
+                  "endColumn": 57
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1815",
+          "level": "note",
+          "message": "CertificatePinningByteArrayResult should override the equality (==) and inequality (!=) operators",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningByteArrayResult.cs",
+                "region": {
+                  "startLine": 5,
+                  "startColumn": 24,
+                  "endLine": 5,
+                  "endColumn": 57
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1815",
+          "level": "note",
           "message": "CertificatePinningBoolResult should override Equals",
           "locations": [
             {
@@ -96,48 +138,6 @@
           }
         },
         {
-          "ruleId": "CA1815",
-          "level": "note",
-          "message": "CertificatePinningByteArrayResult should override Equals",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningByteArrayResult.cs",
-                "region": {
-                  "startLine": 5,
-                  "startColumn": 24,
-                  "endLine": 5,
-                  "endColumn": 57
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1815",
-          "level": "note",
-          "message": "CertificatePinningByteArrayResult should override the equality (==) and inequality (!=) operators",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningByteArrayResult.cs",
-                "region": {
-                  "startLine": 5,
-                  "startColumn": 24,
-                  "endLine": 5,
-                  "endColumn": 57
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
           "ruleId": "S6640",
           "level": "warning",
           "message": "Make sure that using \"unsafe\" is safe here.",
@@ -161,16 +161,16 @@
         {
           "ruleId": "CA5392",
           "level": "note",
-          "message": "The method Initialize didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
+          "message": "The method Cleanup didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
           "locations": [
             {
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
                 "region": {
-                  "startLine": 83,
-                  "startColumn": 57,
-                  "endLine": 83,
-                  "endColumn": 67
+                  "startLine": 88,
+                  "startColumn": 31,
+                  "endLine": 88,
+                  "endColumn": 38
                 }
               }
             }
@@ -182,16 +182,16 @@
         {
           "ruleId": "CA5392",
           "level": "note",
-          "message": "The method Cleanup didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
+          "message": "The method Initialize didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
           "locations": [
             {
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
                 "region": {
-                  "startLine": 86,
-                  "startColumn": 31,
-                  "endLine": 86,
-                  "endColumn": 38
+                  "startLine": 85,
+                  "startColumn": 57,
+                  "endLine": 85,
+                  "endColumn": 67
                 }
               }
             }
@@ -209,9 +209,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
                 "region": {
-                  "startLine": 86,
+                  "startLine": 88,
                   "startColumn": 31,
-                  "endLine": 86,
+                  "endLine": 88,
                   "endColumn": 38
                 }
               }
@@ -235,9 +235,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
                 "region": {
-                  "startLine": 83,
+                  "startLine": 85,
                   "startColumn": 57,
-                  "endLine": 83,
+                  "endLine": 85,
                   "endColumn": 67
                 }
               }
@@ -261,9 +261,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
                 "region": {
-                  "startLine": 89,
+                  "startLine": 91,
                   "startColumn": 57,
-                  "endLine": 89,
+                  "endLine": 91,
                   "endColumn": 72
                 }
               }
@@ -282,57 +282,10 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
                 "region": {
-                  "startLine": 89,
+                  "startLine": 91,
                   "startColumn": 57,
-                  "endLine": 89,
+                  "endLine": 91,
                   "endColumn": 72
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "CharSet": "None",
-              "ExactSpelling": "False",
-              "MayRequireAdditionalWork": "False"
-            }
-          }
-        },
-        {
-          "ruleId": "CA5392",
-          "level": "note",
-          "message": "The method Decrypt didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
-                "region": {
-                  "startLine": 99,
-                  "startColumn": 57,
-                  "endLine": 99,
-                  "endColumn": 64
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "SYSLIB1054",
-          "level": "note",
-          "message": "Mark the method 'Decrypt' with 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
-                "region": {
-                  "startLine": 99,
-                  "startColumn": 57,
-                  "endLine": 99,
-                  "endColumn": 64
                 }
               }
             }
@@ -355,9 +308,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
                 "region": {
-                  "startLine": 94,
+                  "startLine": 96,
                   "startColumn": 57,
-                  "endLine": 94,
+                  "endLine": 96,
                   "endColumn": 64
                 }
               }
@@ -365,6 +318,79 @@
           ],
           "properties": {
             "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "SYSLIB1054",
+          "level": "note",
+          "message": "Mark the method 'Encrypt' with 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
+                "region": {
+                  "startLine": 96,
+                  "startColumn": 57,
+                  "endLine": 96,
+                  "endColumn": 64
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "CharSet": "None",
+              "ExactSpelling": "False",
+              "MayRequireAdditionalWork": "False"
+            }
+          }
+        },
+        {
+          "ruleId": "CA5392",
+          "level": "note",
+          "message": "The method Decrypt didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
+                "region": {
+                  "startLine": 101,
+                  "startColumn": 57,
+                  "endLine": 101,
+                  "endColumn": 64
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "SYSLIB1054",
+          "level": "note",
+          "message": "Mark the method 'Decrypt' with 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
+                "region": {
+                  "startLine": 101,
+                  "startColumn": 57,
+                  "endLine": 101,
+                  "endColumn": 64
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "CharSet": "None",
+              "ExactSpelling": "False",
+              "MayRequireAdditionalWork": "False"
+            }
           }
         },
         {
@@ -376,9 +402,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
                 "region": {
-                  "startLine": 104,
+                  "startLine": 106,
                   "startColumn": 57,
-                  "endLine": 104,
+                  "endLine": 106,
                   "endColumn": 69
                 }
               }
@@ -397,36 +423,10 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
                 "region": {
-                  "startLine": 104,
+                  "startLine": 106,
                   "startColumn": 57,
-                  "endLine": 104,
+                  "endLine": 106,
                   "endColumn": 69
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "CharSet": "None",
-              "ExactSpelling": "False",
-              "MayRequireAdditionalWork": "False"
-            }
-          }
-        },
-        {
-          "ruleId": "SYSLIB1054",
-          "level": "note",
-          "message": "Mark the method 'Encrypt' with 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
-                "region": {
-                  "startLine": 94,
-                  "startColumn": 57,
-                  "endLine": 94,
-                  "endColumn": 64
                 }
               }
             }
@@ -449,9 +449,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
                 "region": {
-                  "startLine": 108,
+                  "startLine": 110,
                   "startColumn": 32,
-                  "endLine": 108,
+                  "endLine": 110,
                   "endColumn": 47
                 }
               }
@@ -470,9 +470,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
                 "region": {
-                  "startLine": 108,
+                  "startLine": 110,
                   "startColumn": 32,
-                  "endLine": 108,
+                  "endLine": 110,
                   "endColumn": 47
                 }
               }
@@ -488,43 +488,6 @@
           }
         },
         {
-          "ruleId": "S3267",
-          "level": "warning",
-          "message": "Loops should be simplified using the \"Where\" LINQ method",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
-                "region": {
-                  "startLine": 51,
-                  "startColumn": 36,
-                  "endLine": 51,
-                  "endColumn": 47
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
-                "region": {
-                  "startLine": 53,
-                  "startColumn": 17,
-                  "endLine": 53,
-                  "endColumn": 37
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "0": null
-            }
-          }
-        },
-        {
           "ruleId": "S6640",
           "level": "warning",
           "message": "Make sure that using \"unsafe\" is safe here.",
@@ -533,9 +496,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningService.cs",
                 "region": {
-                  "startLine": 104,
+                  "startLine": 105,
                   "startColumn": 13,
-                  "endLine": 104,
+                  "endLine": 105,
                   "endColumn": 19
                 }
               }
@@ -554,9 +517,30 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningService.cs",
                 "region": {
-                  "startLine": 289,
+                  "startLine": 238,
                   "startColumn": 13,
-                  "endLine": 289,
+                  "endLine": 238,
+                  "endColumn": 19
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S6640",
+          "level": "warning",
+          "message": "Make sure that using \"unsafe\" is safe here.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningService.cs",
+                "region": {
+                  "startLine": 152,
+                  "startColumn": 13,
+                  "endLine": 152,
                   "endColumn": 19
                 }
               }
@@ -599,9 +583,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningService.cs",
                 "region": {
-                  "startLine": 237,
+                  "startLine": 290,
                   "startColumn": 13,
-                  "endLine": 237,
+                  "endLine": 290,
                   "endColumn": 19
                 }
               }
@@ -620,73 +604,10 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningService.cs",
                 "region": {
-                  "startLine": 151,
-                  "startColumn": 13,
-                  "endLine": 151,
-                  "endColumn": 19
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S6640",
-          "level": "warning",
-          "message": "Make sure that using \"unsafe\" is safe here.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningService.cs",
-                "region": {
-                  "startLine": 333,
+                  "startLine": 334,
                   "startColumn": 20,
-                  "endLine": 333,
+                  "endLine": 334,
                   "endColumn": 26
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S6618",
-          "level": "warning",
-          "message": "Use \"string.Create\" instead of \"FormattableString\".",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningService.cs",
-                "region": {
-                  "startLine": 340,
-                  "startColumn": 87,
-                  "endLine": 340,
-                  "endColumn": 96
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S6618",
-          "level": "warning",
-          "message": "Use \"string.Create\" instead of \"FormattableString\".",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningService.cs",
-                "region": {
-                  "startLine": 349,
-                  "startColumn": 34,
-                  "endLine": 349,
-                  "endColumn": 43
                 }
               }
             }
@@ -736,39 +657,6 @@
           "properties": {
             "category": "SingleFile",
             "isEnabledByDefault": true
-          }
-        },
-        "S3267": {
-          "id": "S3267",
-          "shortDescription": "Loops should be simplified with \"LINQ\" expressions",
-          "fullDescription": "Using explicit loops for filtering, selecting, or aggregating elements can make code more verbose and harder to read. LINQ expressions provide a more concise and expressive way to perform these operations, improving code clarity and maintainability.",
-          "defaultLevel": "warning",
-          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-3267",
-          "properties": {
-            "category": "Minor Code Smell",
-            "isEnabledByDefault": true,
-            "tags": [
-              "C#",
-              "MainSourceScope",
-              "SonarWay"
-            ]
-          }
-        },
-        "S6618": {
-          "id": "S6618",
-          "shortDescription": "\"string.Create\" should be used instead of \"FormattableString\"",
-          "fullDescription": "In order to produce a formatted string, both string.Create and either FormattableString.Invariant or FormattableString.CurrentCulture can be used. However, string.Create rents array buffers from ArrayPool<char> making it more performant, as well as preventing unnecessary allocations and future stress on the Garbage Collector.",
-          "defaultLevel": "warning",
-          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-6618",
-          "properties": {
-            "category": "Minor Code Smell",
-            "isEnabledByDefault": true,
-            "tags": [
-              "C#",
-              "MainSourceScope",
-              "TestSourceScope",
-              "SonarWay"
-            ]
           }
         },
         "S6640": {

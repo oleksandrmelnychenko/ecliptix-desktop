@@ -1,8 +1,8 @@
-÷
- /Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/obj/Debug/net9.0/Microsoft.Interop.LibraryImportGenerator/Microsoft.Interop.LibraryImportGenerator/LibraryImports.g.csutf-8ô
-ç/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/obj/Debug/net9.0/Ecliptix.Protocol.System.AssemblyInfo.csutf-8ü
-ì/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/obj/Debug/net9.0/.NETCoreApp,Version=v9.0.AssemblyAttributes.csutf-8õ
-è/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/obj/Debug/net9.0/Ecliptix.Protocol.System.GlobalUsings.g.csutf-8}
+ÿ
+Ã/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/obj/Release/net9.0/Microsoft.Interop.LibraryImportGenerator/Microsoft.Interop.LibraryImportGenerator/LibraryImports.g.csutf-8õ
+è/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/obj/Release/net9.0/Ecliptix.Protocol.System.AssemblyInfo.csutf-8°
+ï/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/obj/Release/net9.0/.NETCoreApp,Version=v9.0.AssemblyAttributes.csutf-8ù
+ë/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/obj/Release/net9.0/Ecliptix.Protocol.System.GlobalUsings.g.csutf-8}
 t/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Utilities/SecureStringHandler.csutf-8{
 r/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Utilities/SecurePooledArray.csutf-8{
 r/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Utilities/SecureMemoryUtils.csutf-8z
@@ -25,9 +25,9 @@ o/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.Sy
 n/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/OneTimePreKeyLocal.csutf-8x
 o/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/MasterKeyDerivation.csutf-8x
 o/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/LogoutKeyDerivation.csutf-8z
-q/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/IProtocolEventHandler.csutf-8
-v/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.csutf-8{
+q/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/IProtocolEventHandler.csutf-8{
 r/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolSystem.csutf-8
+v/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.csutf-8
 v/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolConnection.csutf-8~
 u/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolChainStep.csutf-8p
 g/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/DhValidator.csutf-8r

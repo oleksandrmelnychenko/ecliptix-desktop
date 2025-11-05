@@ -1,7 +1,8 @@
+{"dotnetenterprise.s4net.params.sonar_branch_name.source":"CLI"}
 {"dotnetenterprise.s4net.serverInfo.region":"default"}
 {"dotnetenterprise.s4net.serverInfo.product":"SQ_Cloud"}
 {"dotnetenterprise.s4net.serverInfo.serverUrl":"https://sonarcloud.io"}
-{"dotnetenterprise.s4net.serverInfo.version":"8.0.0.69488"}
+{"dotnetenterprise.s4net.serverInfo.version":"8.0.0.69498"}
 {"dotnetenterprise.s4net.jre.bootstrapping":"Enabled"}
 {"dotnetenterprise.s4net.jre.download":"CacheHit"}
 {"dotnetenterprise.s4net.scannerEngine.bootstrapping":"Enabled"}

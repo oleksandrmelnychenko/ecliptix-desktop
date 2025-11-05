@@ -12,27 +12,6 @@
       },
       "results": [
         {
-          "ruleId": "S101",
-          "level": "warning",
-          "message": "Rename class 'ErrorI18nKeys' to match pascal case naming rules, consider using 'ErrorI18NKeys'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/ErrorI18nKeys.cs",
-                "region": {
-                  "startLine": 3,
-                  "startColumn": 21,
-                  "endLine": 3,
-                  "endColumn": 34
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
           "ruleId": "CA1805",
           "level": "note",
           "message": "Member 'Value' is explicitly initialized to its default value",
@@ -45,48 +24,6 @@
                   "startColumn": 39,
                   "endLine": 5,
                   "endColumn": 46
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S2342",
-          "level": "warning",
-          "message": "Rename the enumeration 'ERROR_CODE' to match the regular expression: '^([A-Z]{1,3}[a-z0-9]+)*([A-Z]{2})?$'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Failures/KeySplittingFailure.cs",
-                "region": {
-                  "startLine": 7,
-                  "startColumn": 17,
-                  "endLine": 7,
-                  "endColumn": 27
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1062",
-          "level": "note",
-          "message": "In externally visible method 'CertificatePinningFailure CertificatePinningFailure.CERTIFICATE_VALIDATION_EXCEPTION(Exception ex)', validate parameter 'ex' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Failures/CertificatePinning/CertificatePinningFailure.cs",
-                "region": {
-                  "startLine": 44,
-                  "startColumn": 150,
-                  "endLine": 44,
-                  "endColumn": 152
                 }
               }
             }
@@ -119,16 +56,79 @@
         {
           "ruleId": "CA1062",
           "level": "note",
-          "message": "In externally visible method 'Result<T, TE> Result<T, TE>.Validate(T value, Func<T, bool> predicate, TE errorWhenInvalid)', validate parameter 'predicate' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
+          "message": "In externally visible method 'CertificatePinningFailure CertificatePinningFailure.CERTIFICATE_VALIDATION_EXCEPTION(Exception ex)', validate parameter 'ex' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Result.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Failures/CertificatePinning/CertificatePinningFailure.cs",
                 "region": {
-                  "startLine": 46,
-                  "startColumn": 16,
-                  "endLine": 46,
-                  "endColumn": 25
+                  "startLine": 44,
+                  "startColumn": 150,
+                  "endLine": 44,
+                  "endColumn": 152
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1062",
+          "level": "note",
+          "message": "In externally visible method 'CertificatePinningFailure CertificatePinningFailure.RSA_DECRYPTION_EXCEPTION(Exception ex)', validate parameter 'ex' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Failures/CertificatePinning/CertificatePinningFailure.cs",
+                "region": {
+                  "startLine": 62,
+                  "startColumn": 134,
+                  "endLine": 62,
+                  "endColumn": 136
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1062",
+          "level": "note",
+          "message": "In externally visible method 'CertificatePinningFailure CertificatePinningFailure.RSA_ENCRYPTION_EXCEPTION(Exception ex)', validate parameter 'ex' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Failures/CertificatePinning/CertificatePinningFailure.cs",
+                "region": {
+                  "startLine": 53,
+                  "startColumn": 134,
+                  "endLine": 53,
+                  "endColumn": 136
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1062",
+          "level": "note",
+          "message": "In externally visible method 'CertificatePinningFailure CertificatePinningFailure.ED_25519_VERIFICATION_EXCEPTION(Exception ex)', validate parameter 'ex' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Failures/CertificatePinning/CertificatePinningFailure.cs",
+                "region": {
+                  "startLine": 74,
+                  "startColumn": 148,
+                  "endLine": 74,
+                  "endColumn": 150
                 }
               }
             }
@@ -161,16 +161,37 @@
         {
           "ruleId": "CA1062",
           "level": "note",
-          "message": "In externally visible method 'Option<TResult> Option<T>.Map<TResult>(Func<T, TResult> selector)', validate parameter 'selector' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
+          "message": "In externally visible method 'Option<TResult> OptionExtensions.Bind<T, TResult>(Option<T> option, Func<T, Option<TResult>> binder)', validate parameter 'binder' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Option.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/OptionExtensions.cs",
                 "region": {
-                  "startLine": 46,
-                  "startColumn": 46,
-                  "endLine": 46,
-                  "endColumn": 54
+                  "startLine": 17,
+                  "startColumn": 25,
+                  "endLine": 17,
+                  "endColumn": 31
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1062",
+          "level": "note",
+          "message": "In externally visible method 'Option<T> OptionExtensions.Where<T>(Option<T> option, Func<T, bool> predicate)', validate parameter 'predicate' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/OptionExtensions.cs",
+                "region": {
+                  "startLine": 11,
+                  "startColumn": 26,
+                  "endLine": 11,
+                  "endColumn": 35
                 }
               }
             }
@@ -188,10 +209,10 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Option.cs",
                 "region": {
-                  "startLine": 24,
-                  "startColumn": 42,
-                  "endLine": 24,
-                  "endColumn": 48
+                  "startLine": 19,
+                  "startColumn": 111,
+                  "endLine": 19,
+                  "endColumn": 117
                 }
               }
             }
@@ -209,10 +230,10 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Option.cs",
                 "region": {
-                  "startLine": 24,
-                  "startColumn": 25,
-                  "endLine": 24,
-                  "endColumn": 31
+                  "startLine": 19,
+                  "startColumn": 94,
+                  "endLine": 19,
+                  "endColumn": 100
                 }
               }
             }
@@ -224,16 +245,58 @@
         {
           "ruleId": "CA1062",
           "level": "note",
-          "message": "In externally visible method 'CertificatePinningFailure CertificatePinningFailure.RSA_DECRYPTION_EXCEPTION(Exception ex)', validate parameter 'ex' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
+          "message": "In externally visible method 'T OptionExtensions.GetValueOrDefault<T>(Option<T> option, Func<T> defaultFactory)', validate parameter 'defaultFactory' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Failures/CertificatePinning/CertificatePinningFailure.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/OptionExtensions.cs",
                 "region": {
-                  "startLine": 68,
-                  "startColumn": 134,
-                  "endLine": 68,
-                  "endColumn": 136
+                  "startLine": 21,
+                  "startColumn": 124,
+                  "endLine": 21,
+                  "endColumn": 138
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1062",
+          "level": "note",
+          "message": "In externally visible method 'void OptionExtensions.Do<T>(Option<T> option, Action<T> action)', validate parameter 'action' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/OptionExtensions.cs",
+                "region": {
+                  "startLine": 27,
+                  "startColumn": 13,
+                  "endLine": 27,
+                  "endColumn": 19
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1062",
+          "level": "note",
+          "message": "In externally visible method 'Option<T> OptionExtensions.Or<T>(Option<T> option, Func<Option<T>> alternativeFactory)', validate parameter 'alternativeFactory' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/OptionExtensions.cs",
+                "region": {
+                  "startLine": 31,
+                  "startColumn": 122,
+                  "endLine": 31,
+                  "endColumn": 140
                 }
               }
             }
@@ -251,9 +314,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Option.cs",
                 "region": {
-                  "startLine": 35,
+                  "startLine": 29,
                   "startColumn": 13,
-                  "endLine": 35,
+                  "endLine": 29,
                   "endColumn": 19
                 }
               }
@@ -272,9 +335,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Option.cs",
                 "region": {
-                  "startLine": 31,
+                  "startLine": 25,
                   "startColumn": 13,
-                  "endLine": 31,
+                  "endLine": 25,
                   "endColumn": 19
                 }
               }
@@ -287,16 +350,79 @@
         {
           "ruleId": "CA1062",
           "level": "note",
-          "message": "In externally visible method 'CertificatePinningFailure CertificatePinningFailure.RSA_ENCRYPTION_EXCEPTION(Exception ex)', validate parameter 'ex' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
+          "message": "In externally visible method 'Result<T, TE> Result<T, TE>.Validate(T value, Func<T, bool> predicate, TE errorWhenInvalid)', validate parameter 'predicate' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Failures/CertificatePinning/CertificatePinningFailure.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Result.cs",
                 "region": {
-                  "startLine": 56,
-                  "startColumn": 134,
-                  "endLine": 56,
-                  "endColumn": 136
+                  "startLine": 38,
+                  "startColumn": 100,
+                  "endLine": 38,
+                  "endColumn": 109
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1062",
+          "level": "note",
+          "message": "In externally visible method 'Option<TResult> Option<T>.Map<TResult>(Func<T, TResult> selector)', validate parameter 'selector' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Option.cs",
+                "region": {
+                  "startLine": 35,
+                  "startColumn": 101,
+                  "endLine": 35,
+                  "endColumn": 109
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1062",
+          "level": "note",
+          "message": "In externally visible method 'Result<TNext, TE> Result<T, TE>.Map<TNext>(Func<T, TNext> mapFn)', validate parameter 'mapFn' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Result.cs",
+                "region": {
+                  "startLine": 90,
+                  "startColumn": 37,
+                  "endLine": 90,
+                  "endColumn": 42
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1062",
+          "level": "note",
+          "message": "In externally visible method 'Result<TNext, TE> Result<T, TE>.Bind<TNext>(Func<T, Result<TNext, TE>> bindFn)', validate parameter 'bindFn' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Result.cs",
+                "region": {
+                  "startLine": 93,
+                  "startColumn": 16,
+                  "endLine": 93,
+                  "endColumn": 22
                 }
               }
             }
@@ -314,9 +440,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Result.cs",
                 "region": {
-                  "startLine": 57,
+                  "startLine": 48,
                   "startColumn": 24,
-                  "endLine": 57,
+                  "endLine": 48,
                   "endColumn": 35
                 }
               }
@@ -335,9 +461,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Result.cs",
                 "region": {
-                  "startLine": 53,
+                  "startLine": 44,
                   "startColumn": 23,
-                  "endLine": 53,
+                  "endLine": 44,
                   "endColumn": 27
                 }
               }
@@ -356,9 +482,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Result.cs",
                 "region": {
-                  "startLine": 73,
+                  "startLine": 64,
                   "startColumn": 24,
-                  "endLine": 73,
+                  "endLine": 64,
                   "endColumn": 35
                 }
               }
@@ -377,9 +503,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Result.cs",
                 "region": {
-                  "startLine": 68,
+                  "startLine": 59,
                   "startColumn": 13,
-                  "endLine": 68,
+                  "endLine": 59,
                   "endColumn": 19
                 }
               }
@@ -387,311 +513,6 @@
           ],
           "properties": {
             "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1062",
-          "level": "note",
-          "message": "In externally visible method 'CertificatePinningFailure CertificatePinningFailure.AES_GCM_DECRYPTION_EXCEPTION(Exception ex)', validate parameter 'ex' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Failures/CertificatePinning/CertificatePinningFailure.cs",
-                "region": {
-                  "startLine": 80,
-                  "startColumn": 142,
-                  "endLine": 80,
-                  "endColumn": 144
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1062",
-          "level": "note",
-          "message": "In externally visible method 'CertificatePinningFailure CertificatePinningFailure.ED_25519_SIGNING_EXCEPTION(Exception ex)', validate parameter 'ex' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Failures/CertificatePinning/CertificatePinningFailure.cs",
-                "region": {
-                  "startLine": 92,
-                  "startColumn": 138,
-                  "endLine": 92,
-                  "endColumn": 140
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1062",
-          "level": "note",
-          "message": "In externally visible method 'CertificatePinningFailure CertificatePinningFailure.ED_25519_VERIFICATION_EXCEPTION(Exception ex)', validate parameter 'ex' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Failures/CertificatePinning/CertificatePinningFailure.cs",
-                "region": {
-                  "startLine": 101,
-                  "startColumn": 148,
-                  "endLine": 101,
-                  "endColumn": 150
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1062",
-          "level": "note",
-          "message": "In externally visible method 'CertificatePinningFailure CertificatePinningFailure.RANDOM_BYTES_GENERATION_EXCEPTION(Exception ex)', validate parameter 'ex' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Failures/CertificatePinning/CertificatePinningFailure.cs",
-                "region": {
-                  "startLine": 110,
-                  "startColumn": 152,
-                  "endLine": 110,
-                  "endColumn": 154
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1062",
-          "level": "note",
-          "message": "In externally visible method 'CertificatePinningFailure CertificatePinningFailure.LIBRARY_CLEANUP_ERROR(Exception ex)', validate parameter 'ex' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Failures/CertificatePinning/CertificatePinningFailure.cs",
-                "region": {
-                  "startLine": 113,
-                  "startColumn": 128,
-                  "endLine": 113,
-                  "endColumn": 130
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1062",
-          "level": "note",
-          "message": "In externally visible method 'CertificatePinningFailure CertificatePinningFailure.NATIVE_LIBRARY_NOT_FOUND(string operationName, Exception ex)', validate parameter 'ex' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Failures/CertificatePinning/CertificatePinningFailure.cs",
-                "region": {
-                  "startLine": 125,
-                  "startColumn": 157,
-                  "endLine": 125,
-                  "endColumn": 159
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1062",
-          "level": "note",
-          "message": "In externally visible method 'KeySplittingFailure KeySplittingFailure.FromSodiumFailure(SodiumFailure failure)', validate parameter 'failure' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Failures/KeySplittingFailure.cs",
-                "region": {
-                  "startLine": 148,
-                  "startColumn": 71,
-                  "endLine": 148,
-                  "endColumn": 78
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1062",
-          "level": "note",
-          "message": "In externally visible method 'CertificatePinningFailure CertificatePinningFailure.NATIVE_OPERATION_FAILED(string operationName, Exception ex)', validate parameter 'ex' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Failures/CertificatePinning/CertificatePinningFailure.cs",
-                "region": {
-                  "startLine": 128,
-                  "startColumn": 155,
-                  "endLine": 128,
-                  "endColumn": 157
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1062",
-          "level": "note",
-          "message": "In externally visible method 'Result<TNext, TE> Result<T, TE>.Bind<TNext>(Func<T, Result<TNext, TE>> bindFn)', validate parameter 'bindFn' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Result.cs",
-                "region": {
-                  "startLine": 122,
-                  "startColumn": 23,
-                  "endLine": 122,
-                  "endColumn": 29
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1062",
-          "level": "note",
-          "message": "In externally visible method 'Result<T, TENext> Result<T, TE>.MapErr<TENext>(Func<TE, TENext> mapFn)', validate parameter 'mapFn' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Result.cs",
-                "region": {
-                  "startLine": 117,
-                  "startColumn": 77,
-                  "endLine": 117,
-                  "endColumn": 82
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1062",
-          "level": "note",
-          "message": "In externally visible method 'Result<TNext, TE> Result<T, TE>.Map<TNext>(Func<T, TNext> mapFn)', validate parameter 'mapFn' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Result.cs",
-                "region": {
-                  "startLine": 112,
-                  "startColumn": 44,
-                  "endLine": 112,
-                  "endColumn": 49
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S4456",
-          "level": "warning",
-          "message": "Split this method into two, one handling parameters check and the other handling the iterator.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/OptionExtensions.cs",
-                "region": {
-                  "startLine": 143,
-                  "startColumn": 34,
-                  "endLine": 143,
-                  "endColumn": 40
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/OptionExtensions.cs",
-                "region": {
-                  "startLine": 145,
-                  "startColumn": 9,
-                  "endLine": 145,
-                  "endColumn": 51
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "0": null
-            }
-          }
-        },
-        {
-          "ruleId": "IDE0028",
-          "level": "note",
-          "message": "Collection initialization can be simplified",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/OptionExtensions.cs",
-                "region": {
-                  "startLine": 130,
-                  "startColumn": 27,
-                  "endLine": 130,
-                  "endColumn": 30
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/OptionExtensions.cs",
-                "region": {
-                  "startLine": 130,
-                  "startColumn": 27,
-                  "endLine": 130,
-                  "endColumn": 32
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "UseCollectionExpressionName": "UseCollectionExpressionName"
-            }
           }
         }
       ],
@@ -726,71 +547,6 @@
               "PortedFromFxCop",
               "Telemetry",
               "EnabledRuleInAggressiveMode"
-            ]
-          }
-        },
-        "IDE0028": {
-          "id": "IDE0028",
-          "shortDescription": "Simplify collection initialization",
-          "defaultLevel": "note",
-          "helpUri": "https://learn.microsoft.com/dotnet/fundamentals/code-analysis/style-rules/ide0028",
-          "properties": {
-            "category": "Style",
-            "isEnabledByDefault": true,
-            "tags": [
-              "Telemetry",
-              "EnforceOnBuild_Recommended"
-            ]
-          }
-        },
-        "S101": {
-          "id": "S101",
-          "shortDescription": "Types should be named in PascalCase",
-          "fullDescription": "Shared naming conventions allow teams to collaborate efficiently.",
-          "defaultLevel": "warning",
-          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-101",
-          "properties": {
-            "category": "Minor Code Smell",
-            "isEnabledByDefault": true,
-            "tags": [
-              "C#",
-              "MainSourceScope",
-              "TestSourceScope",
-              "SonarWay"
-            ]
-          }
-        },
-        "S2342": {
-          "id": "S2342",
-          "shortDescription": "Enumeration types should comply with a naming convention",
-          "fullDescription": "Shared naming conventions allow teams to collaborate efficiently. This rule checks that all enum names match a provided regular expression.",
-          "defaultLevel": "warning",
-          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-2342",
-          "properties": {
-            "category": "Minor Code Smell",
-            "isEnabledByDefault": false,
-            "tags": [
-              "C#",
-              "MainSourceScope",
-              "TestSourceScope",
-              "SonarWay"
-            ]
-          }
-        },
-        "S4456": {
-          "id": "S4456",
-          "shortDescription": "Parameter validation in yielding methods should be wrapped",
-          "fullDescription": "Because of the way yield methods are rewritten by the compiler (they become lazily evaluated state machines) any exceptions thrown during the parameters check will happen only when the collection is iterated over. That could happen far away from the source of the buggy code.",
-          "defaultLevel": "warning",
-          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-4456",
-          "properties": {
-            "category": "Major Code Smell",
-            "isEnabledByDefault": true,
-            "tags": [
-              "C#",
-              "MainSourceScope",
-              "TestSourceScope",
-              "SonarWay"
             ]
           }
         }

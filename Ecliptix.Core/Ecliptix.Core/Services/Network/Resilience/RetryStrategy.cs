@@ -589,42 +589,9 @@ public sealed class RetryStrategy : IRetryStrategy
             .OrResult(result => shouldRetryDelegate(result))
             .WaitAndRetryAsync(
                 retryDelays,
-                async (outcome, delay, retryCount, context) =>
-                {
-                    context[ATTEMPT_KEY] = retryCount + 1;
-
-                    bool isTimeout = outcome.Exception is TimeoutRejectedException;
-                    bool hasResult = outcome.Exception is null;
-                    Result<TResponse, NetworkFailure> result = hasResult ? outcome.Result : default;
-
-                    LogRetryAttempt(isTimeout, operationName, connectId, retryCount, retryDelays.Length, delay);
-
-                    TrackRetryOperation(retryCount, operationName, connectId, retryDelays.Length, operationKey,
-                        serviceType);
-
-                    NetworkFailure? currentFailure = ExtractCurrentFailure(isTimeout, hasResult, result);
-
-                    await _connectivityService.PublishAsync(
-                            ConnectivityIntent.Recovering(
-                                currentFailure ?? NetworkFailure.DataCenterNotResponding("Retrying operation"),
-                                connectId, retryCount + 1, delay))
-                        .ConfigureAwait(false);
-
-                    if (retryCount == retryDelays.Length)
-                    {
-                        await HandleRetriesExhaustedAsync(
-                                operationKey, operationName, connectId, retryCount, retryDelays.Length, currentFailure)
-                            .ConfigureAwait(false);
-                    }
-
-                    bool requiresRecovery =
-                        DetermineIfRecoveryRequired(isTimeout, hasResult, result, connectionRecoveryDelegate);
-
-                    if (requiresRecovery && !_isDisposed && !cancellationToken.IsCancellationRequested)
-                    {
-                        await EnsureSecrecyChannelAsync(connectId, cancellationToken).ConfigureAwait(false);
-                    }
-                });
+                (outcome, delay, retryCount, context) => OnRetryAttemptAsync(
+                    outcome, delay, retryCount, context, retryDelays, operationKey, operationName,
+                    connectId, serviceType, cancellationToken, connectionRecoveryDelegate));
 
         IAsyncPolicy<Result<TResponse, NetworkFailure>> timeoutPolicy =
             CreateTimeoutPolicy<TResponse>(operationName, connectId);
@@ -633,6 +600,74 @@ public sealed class RetryStrategy : IRetryStrategy
             Policy.WrapAsync(retryPolicy, timeoutPolicy);
 
         return combinedPolicy;
+    }
+
+    private async Task OnRetryAttemptAsync<TResponse>(
+        DelegateResult<Result<TResponse, NetworkFailure>> outcome,
+        TimeSpan delay,
+        int retryCount,
+        Context context,
+        TimeSpan[] retryDelays,
+        string operationKey,
+        string operationName,
+        uint connectId,
+        RpcServiceType? serviceType,
+        CancellationToken cancellationToken,
+        RequiresConnectionRecoveryDelegate<TResponse> connectionRecoveryDelegate)
+    {
+        context[ATTEMPT_KEY] = retryCount + 1;
+
+        bool isTimeout = outcome.Exception is TimeoutRejectedException;
+        bool hasResult = outcome.Exception is null;
+        Result<TResponse, NetworkFailure> result = hasResult ? outcome.Result : default;
+
+        LogRetryAttempt(isTimeout, operationName, connectId, retryCount, retryDelays.Length, delay);
+        TrackRetryOperation(retryCount, operationName, connectId, retryDelays.Length, operationKey, serviceType);
+
+        NetworkFailure? currentFailure = ExtractCurrentFailure(isTimeout, hasResult, result);
+
+        await PublishRecoveringIntentAsync(currentFailure, connectId, retryCount, delay).ConfigureAwait(false);
+
+        if (retryCount == retryDelays.Length)
+        {
+            await HandleRetriesExhaustedAsync(
+                    operationKey, operationName, connectId, retryCount, retryDelays.Length, currentFailure)
+                .ConfigureAwait(false);
+        }
+
+        await EnsureChannelRecoveryIfNeededAsync(
+            isTimeout, hasResult, result, connectionRecoveryDelegate, connectId, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task PublishRecoveringIntentAsync(
+        NetworkFailure? currentFailure,
+        uint connectId,
+        int retryCount,
+        TimeSpan delay)
+    {
+        await _connectivityService.PublishAsync(
+                ConnectivityIntent.Recovering(
+                    currentFailure ?? NetworkFailure.DataCenterNotResponding("Retrying operation"),
+                    connectId, retryCount + 1, delay))
+            .ConfigureAwait(false);
+    }
+
+    private async Task EnsureChannelRecoveryIfNeededAsync<TResponse>(
+        bool isTimeout,
+        bool hasResult,
+        Result<TResponse, NetworkFailure> result,
+        RequiresConnectionRecoveryDelegate<TResponse> connectionRecoveryDelegate,
+        uint connectId,
+        CancellationToken cancellationToken)
+    {
+        bool requiresRecovery =
+            DetermineIfRecoveryRequired(isTimeout, hasResult, result, connectionRecoveryDelegate);
+
+        if (requiresRecovery && !_isDisposed && !cancellationToken.IsCancellationRequested)
+        {
+            await EnsureSecrecyChannelAsync(connectId, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     private static void LogRetryAttempt(

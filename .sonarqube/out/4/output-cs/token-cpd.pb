@@ -1,35 +1,4 @@
-ﬂ
-é/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/ICertificatePinningServiceFactory.cs
-	namespace 	
-Ecliptix
- 
-. 
-Security 
-. 
-Certificate '
-.' (
-Pinning( /
-./ 0
-Services0 8
-;8 9
-public 
-	interface -
-!ICertificatePinningServiceFactory 2
-:3 4
-IAsyncDisposable5 E
-{ 
-Task 
-< 	
-Option	 
-< %
-CertificatePinningService )
->) *
->* +'
-GetOrInitializeServiceAsync, G
-(G H
-)H I
-;I J
-} ‰4
+‰4
 ç/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningServiceFactory.cs
 	namespace 	
 Ecliptix
@@ -389,34 +358,58 @@ GetAwaiter00( 2
 ;dd. /
 }ee 	
 }ff 
-}gg ÉÇ
-Ü/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningService.cs
-	namespace 	
-Ecliptix
+}gg ﬂ
+é/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/ICertificatePinningServiceFactory.cs
+	namespace 	
+Ecliptix
  
-. 
-Security 
-. 
-Certificate '
-.' (
-Pinning( /
-./ 0
-Services0 8
-;8 9
-public 
-sealed 
-class %
-CertificatePinningService -
-:. /
-IAsyncDisposable0 @
-{ 
-private		 
-const		 
-int		 
-NOT_INITIALIZED		 %
-=		& '
-$num		( )
-;		) *
+. 
+Security 
+. 
+Certificate '
+.' (
+Pinning( /
+./ 0
+Services0 8
+;8 9
+public 
+	interface -
+!ICertificatePinningServiceFactory 2
+:3 4
+IAsyncDisposable5 E
+{ 
+Task 
+< 	
+Option	 
+< %
+CertificatePinningService )
+>) *
+>* +'
+GetOrInitializeServiceAsync, G
+(G H
+)H I
+;I J
+} ∞É
+Ü/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningService.cs
+	namespace 	
+Ecliptix
+ 
+. 
+Security 
+. 
+Certificate '
+.' (
+Pinning( /
+./ 0
+Services0 8
+;8 9
+public 
+sealed 
+class %
+CertificatePinningService -
+:. /
+IAsyncDisposable0 @
+{		 
 private
 
  
@@ -425,2675 +418,2692 @@ GetAwaiter00( 2
  
 int
 
- 
-INITIALIZING
+ 
+NOT_INITIALIZED
 
- "
+ %
 =
 
-# $
+& '
 $num
 
-% &
+( )
 ;
 
-& '
+) *
 private 
 const 
-int 
-INITIALIZED !
-=" #
-$num$ %
-;% &
+int 
+INITIALIZING "
+=# $
+$num% &
+;& '
 private 
 const 
-int 
-DISPOSED 
-=  
-$num! "
-;" #
-private 
-volatile 
-int 
-_state 
-=  !
-NOT_INITIALIZED" 1
-;1 2
+int 
+INITIALIZED !
+=" #
+$num$ %
+;% &
+private 
+const 
+int 
+DISPOSED 
+=  
+$num! "
+;" #
 private 
-readonly 
-SemaphoreSlim "
-_initializationLock# 6
-=7 8
-new9 <
-(< =
-$num= >
-,> ?
-$num@ A
-)A B
-;B C
-public 
+volatile 
+int 
+_state 
+=  !
+NOT_INITIALIZED" 1
+;1 2
+private 
+readonly 
+SemaphoreSlim "
+_initializationLock# 6
+=7 8
+new9 <
+(< =
+$num= >
+,> ?
+$num@ A
+)A B
+;B C
+public 
 -
-!CertificatePinningOperationResult ,
+!CertificatePinningOperationResult ,
 
-Initialize- 7
-(7 8
-CancellationToken8 I
-cancellationTokenJ [
-=\ ]
-default^ e
-)e f
-{ 
-if 
+Initialize- 7
+(7 8
+CancellationToken8 I
+cancellationTokenJ [
+=\ ]
+default^ e
+)e f
+{ 
+if 
 
-( 
-_state 
-== 
-DISPOSED 
-) 
-{ 	
-return -
-!CertificatePinningOperationResult 4
-.4 5
-	FromError5 >
-(> ?%
-CertificatePinningFailure? X
-.X Y
-SERVICE_DISPOSEDY i
-(i j
-)j k
-)k l
-;l m
-} 	
-if 
+( 
+_state 
+== 
+DISPOSED 
+) 
+{ 	
+return -
+!CertificatePinningOperationResult 4
+.4 5
+	FromError5 >
+(> ?%
+CertificatePinningFailure? X
+.X Y
+SERVICE_DISPOSEDY i
+(i j
+)j k
+)k l
+;l m
+} 	
+if 
 
-( 
-_state 
-== 
-INITIALIZED !
-)! "
-{ 	
-return -
-!CertificatePinningOperationResult 4
-.4 5
-Success5 <
-(< =
-)= >
-;> ?
-} 	
-_initializationLock 
-. 
-Wait  
-(  !
-cancellationToken! 2
-)2 3
-;3 4
-try 
-{ 	
-if   
-(   
-_state   
-==   
-INITIALIZED   %
-)  % &
-{!! 
-return"" -
-!CertificatePinningOperationResult"" 8
-.""8 9
-Success""9 @
-(""@ A
-)""A B
-;""B C
-}## 
-if%% 
-(%% 
-_state%% 
-==%% 
-DISPOSED%% "
-)%%" #
-{&& 
-return'' -
-!CertificatePinningOperationResult'' 8
-.''8 9
-	FromError''9 B
-(''B C%
-CertificatePinningFailure''C \
-.''\ ]
-SERVICE_DISPOSED''] m
-(''m n
-)''n o
-)''o p
-;''p q
-}(( 
-Interlocked** 
-.** 
-Exchange**  
-(**  !
-ref**! $
-_state**% +
-,**+ ,
-INITIALIZING**- 9
-)**9 :
-;**: ;-
-!CertificatePinningOperationResult,, -
-result,,. 4
-=,,5 6
-InitializeCore,,7 E
-(,,E F
-),,F G
-;,,G H
-Interlocked.. 
-... 
-Exchange..  
-(..  !
-ref..! $
-_state..% +
-,..+ ,
-result..- 3
-...3 4
-	IsSuccess..4 =
-?..> ?
-INITIALIZED..@ K
-:..L M
-NOT_INITIALIZED..N ]
-)..] ^
-;..^ _
-return// 
-result// 
-;// 
-}00 	
-finally11 
-{22 	
-_initializationLock33 
-.33  
-Release33  '
-(33' (
-)33( )
-;33) *
-}44 	
-}55 
-private77 
-static77 -
-!CertificatePinningOperationResult77 4
-InitializeCore775 C
-(77C D
-)77D E
-{88 
-try99 
-{:: 	*
-CertificatePinningNativeResult;; *
-nativeResult;;+ 7
-=;;8 9+
-CertificatePinningNativeLibrary;;: Y
-.;;Y Z
+( 
+_state 
+== 
+INITIALIZED !
+)! "
+{ 	
+return -
+!CertificatePinningOperationResult 4
+.4 5
+Success5 <
+(< =
+)= >
+;> ?
+} 	
+_initializationLock 
+. 
+Wait  
+(  !
+cancellationToken! 2
+)2 3
+;3 4
+try 
+{   	
+if!! 
+(!! 
+_state!! 
+==!! 
+INITIALIZED!! %
+)!!% &
+{"" 
+return## -
+!CertificatePinningOperationResult## 8
+.##8 9
+Success##9 @
+(##@ A
+)##A B
+;##B C
+}$$ 
+if&& 
+(&& 
+_state&& 
+==&& 
+DISPOSED&& "
+)&&" #
+{'' 
+return(( -
+!CertificatePinningOperationResult(( 8
+.((8 9
+	FromError((9 B
+(((B C%
+CertificatePinningFailure((C \
+.((\ ]
+SERVICE_DISPOSED((] m
+(((m n
+)((n o
+)((o p
+;((p q
+})) 
+Interlocked++ 
+.++ 
+Exchange++  
+(++  !
+ref++! $
+_state++% +
+,+++ ,
+INITIALIZING++- 9
+)++9 :
+;++: ;-
+!CertificatePinningOperationResult-- -
+result--. 4
+=--5 6
+InitializeCore--7 E
+(--E F
+)--F G
+;--G H
+Interlocked// 
+.// 
+Exchange//  
+(//  !
+ref//! $
+_state//% +
+,//+ ,
+result//- 3
+.//3 4
+	IsSuccess//4 =
+?//> ?
+INITIALIZED//@ K
+://L M
+NOT_INITIALIZED//N ]
+)//] ^
+;//^ _
+return00 
+result00 
+;00 
+}11 	
+finally22 
+{33 	
+_initializationLock44 
+.44  
+Release44  '
+(44' (
+)44( )
+;44) *
+}55 	
+}66 
+private88 
+static88 -
+!CertificatePinningOperationResult88 4
+InitializeCore885 C
+(88C D
+)88D E
+{99 
+try:: 
+{;; 	*
+CertificatePinningNativeResult<< *
+nativeResult<<+ 7
+=<<8 9+
+CertificatePinningNativeLibrary<<: Y
+.<<Y Z
 
-Initialize;;Z d
-(;;d e
-);;e f
-;;;f g
-if<< 
-(<< 
-nativeResult<< 
-!=<< *
-CertificatePinningNativeResult<<  >
-.<<> ?
-Success<<? F
-)<<F G
-{== 
-string>> 
-error>> 
-=>>  
-GetErrorStringStatic>> 3
-(>>3 4
-nativeResult>>4 @
-)>>@ A
-;>>A B
-return?? -
-!CertificatePinningOperationResult?? 8
-.??8 9
-	FromError??9 B
-(??B C%
-CertificatePinningFailure@@ -
-.@@- .)
-LIBRARY_INITIALIZATION_FAILED@@. K
-(@@K L
-error@@L Q
-)@@Q R
-)@@R S
-;@@S T
-}AA 
-returnCC -
-!CertificatePinningOperationResultCC 4
-.CC4 5
-SuccessCC5 <
-(CC< =
-)CC= >
-;CC> ?
-}DD 	
-catchEE 
-(EE 
-	ExceptionEE 
-exEE 
-)EE 
-{FF 	
-returnGG -
-!CertificatePinningOperationResultGG 4
-.GG4 5
-	FromErrorGG5 >
-(GG> ?%
-CertificatePinningFailureHH )
-.HH) *$
-INITIALIZATION_EXCEPTIONHH* B
-(HHB C
-exHHC E
-)HHE F
-)HHF G
-;HHG H
-}II 	
-}JJ 
-publicLL 
+Initialize<<Z d
+(<<d e
+)<<e f
+;<<f g
+if== 
+(== 
+nativeResult== 
+!=== *
+CertificatePinningNativeResult==  >
+.==> ?
+Success==? F
+)==F G
+{>> 
+string?? 
+error?? 
+=??  
+GetErrorStringStatic?? 3
+(??3 4
+nativeResult??4 @
+)??@ A
+;??A B
+return@@ -
+!CertificatePinningOperationResult@@ 8
+.@@8 9
+	FromError@@9 B
+(@@B C%
+CertificatePinningFailureAA -
+.AA- .)
+LIBRARY_INITIALIZATION_FAILEDAA. K
+(AAK L
+errorAAL Q
+)AAQ R
+)AAR S
+;AAS T
+}BB 
+returnDD -
+!CertificatePinningOperationResultDD 4
+.DD4 5
+SuccessDD5 <
+(DD< =
+)DD= >
+;DD> ?
+}EE 	
+catchFF 
+(FF 
+	ExceptionFF 
+exFF 
+)FF 
+{GG 	
+returnHH -
+!CertificatePinningOperationResultHH 4
+.HH4 5
+	FromErrorHH5 >
+(HH> ?%
+CertificatePinningFailureII )
+.II) *$
+INITIALIZATION_EXCEPTIONII* B
+(IIB C
+exIIC E
+)IIE F
+)IIF G
+;IIG H
+}JJ 	
+}KK 
+publicMM 
 (
-CertificatePinningBoolResultLL '!
-VerifyServerSignatureLL( =
-(LL= >
-ReadOnlyMemoryMM 
-<MM 
-byteMM 
->MM 
-dataMM !
-,MM! "
+CertificatePinningBoolResultMM '!
+VerifyServerSignatureMM( =
+(MM= >
 ReadOnlyMemoryNN 
 <NN 
 byteNN 
->NN 
-	signatureNN &
-)NN& '
-{OO -
-!CertificatePinningOperationResultPP )
+>NN 
+dataNN !
+,NN! "
+ReadOnlyMemoryOO 
+<OO 
+byteOO 
+>OO 
+	signatureOO &
+)OO& '
+{PP -
+!CertificatePinningOperationResultQQ )
 
-stateCheckPP* 4
-=PP5 6"
-ValidateOperationStatePP7 M
-(PPM N
-)PPN O
-;PPO P
-ifQQ 
+stateCheckQQ* 4
+=QQ5 6"
+ValidateOperationStateQQ7 M
+(QQM N
+)QQN O
+;QQO P
+ifRR 
 
-(QQ 
-!QQ 
+(RR 
+!RR 
 
-stateCheckQQ 
-.QQ 
-	IsSuccessQQ !
-)QQ! "
-{RR 	
-returnSS (
-CertificatePinningBoolResultSS /
-.SS/ 0
-	FromErrorSS0 9
-(SS9 :
+stateCheckRR 
+.RR 
+	IsSuccessRR !
+)RR! "
+{SS 	
+returnTT (
+CertificatePinningBoolResultTT /
+.TT/ 0
+	FromErrorTT0 9
+(TT9 :
 
-stateCheckSS: D
-.SSD E
-ERRORSSE J
-!SSJ K
-)SSK L
-;SSL M
-}TT 	
-ifVV 
+stateCheckTT: D
+.TTD E
+ERRORTTE J
+!TTJ K
+)TTK L
+;TTL M
+}UU 	
+ifWW 
 
-(VV 
-dataVV 
-.VV 
-IsEmptyVV 
-)VV 
-{WW 	
-returnXX (
-CertificatePinningBoolResultXX /
-.XX/ 0
-	FromErrorXX0 9
-(XX9 :%
-CertificatePinningFailureXX: S
-.XXS T
-MESSAGE_REQUIREDXXT d
-(XXd e
-)XXe f
-)XXf g
-;XXg h
-}YY 	
-if[[ 
+(WW 
+dataWW 
+.WW 
+IsEmptyWW 
+)WW 
+{XX 	
+returnYY (
+CertificatePinningBoolResultYY /
+.YY/ 0
+	FromErrorYY0 9
+(YY9 :%
+CertificatePinningFailureYY: S
+.YYS T
+MESSAGE_REQUIREDYYT d
+(YYd e
+)YYe f
+)YYf g
+;YYg h
+}ZZ 	
+if\\ 
 
-([[ 
-	signature[[ 
-.[[ 
-IsEmpty[[ 
-)[[ 
-{\\ 	
-return]] (
-CertificatePinningBoolResult]] /
-.]]/ 0
-	FromError]]0 9
-(]]9 :%
-CertificatePinningFailure]]: S
-.]]S T"
-INVALID_SIGNATURE_SIZE]]T j
-(]]j k
-$num]]k l
-)]]l m
-)]]m n
-;]]n o
-}^^ 	
-return`` !
-VerifySignatureUnsafe`` $
-(``$ %
-data``% )
-.``) *
-Span``* .
-,``. /
-	signature``0 9
-.``9 :
-Span``: >
-)``> ?
-;``? @
-}aa 
-privatedd 
-staticdd (
-CertificatePinningBoolResultdd /!
-VerifySignatureUnsafedd0 E
-(ddE F
-ReadOnlySpanddF R
-<ddR S
-byteddS W
->ddW X
-dataddY ]
-,dd] ^
-ReadOnlySpandd_ k
-<ddk l
-byteddl p
->ddp q
-	signatureddr {
-)dd{ |
-{ee 
-tryff 
-{gg 	
-unsafehh 
-{ii 
-fixedjj 
-(jj 
-bytejj 
-*jj 
-dataPtrjj $
-=jj% &
-datajj' +
-)jj+ ,
+(\\ 
+	signature\\ 
+.\\ 
+IsEmpty\\ 
+)\\ 
+{]] 	
+return^^ (
+CertificatePinningBoolResult^^ /
+.^^/ 0
+	FromError^^0 9
+(^^9 :%
+CertificatePinningFailure^^: S
+.^^S T"
+INVALID_SIGNATURE_SIZE^^T j
+(^^j k
+$num^^k l
+)^^l m
+)^^m n
+;^^n o
+}__ 	
+returnaa !
+VerifySignatureUnsafeaa $
+(aa$ %
+dataaa% )
+.aa) *
+Spanaa* .
+,aa. /
+	signatureaa0 9
+.aa9 :
+Spanaa: >
+)aa> ?
+;aa? @
+}bb 
+privateee 
+staticee (
+CertificatePinningBoolResultee /!
+VerifySignatureUnsafeee0 E
+(eeE F
+ReadOnlySpaneeF R
+<eeR S
+byteeeS W
+>eeW X
+dataeeY ]
+,ee] ^
+ReadOnlySpanee_ k
+<eek l
+byteeel p
+>eep q
+	signatureeer {
+)ee{ |
+{ff 
+trygg 
+{hh 	
+unsafeii 
+{jj 
 fixedkk 
 (kk 
 bytekk 
-*kk 
-signaturePtrkk )
-=kk* +
-	signaturekk, 5
-)kk5 6
-{ll *
-CertificatePinningNativeResultmm 2
-resultmm3 9
-=mm: ;+
-CertificatePinningNativeLibrarymm< [
-.mm[ \
-VerifySignaturemm\ k
-(mmk l
-dataPtrnn 
-,nn  
-(nn! "
-nuintnn" '
-)nn' (
-datann( ,
-.nn, -
-Lengthnn- 3
-,nn3 4
-signaturePtroo $
-,oo$ %
-(oo& '
-nuintoo' ,
-)oo, -
-	signatureoo- 6
-.oo6 7
-Lengthoo7 =
-)oo= >
-;oo> ?
-returnqq 
-resultqq !
-switchqq" (
-{rr *
-CertificatePinningNativeResultss 6
-.ss6 7
-Successss7 >
-=>ss? A(
-CertificatePinningBoolResultssB ^
-.ss^ _
-	FromValuess_ h
-(ssh i
-truessi m
-)ssm n
-,ssn o*
+*kk 
+dataPtrkk $
+=kk% &
+datakk' +
+)kk+ ,
+fixedll 
+(ll 
+bytell 
+*ll 
+signaturePtrll )
+=ll* +
+	signaturell, 5
+)ll5 6
+{mm *
+CertificatePinningNativeResultnn 2
+resultnn3 9
+=nn: ;+
+CertificatePinningNativeLibrarynn< [
+.nn[ \
+VerifySignaturenn\ k
+(nnk l
+dataPtroo 
+,oo  
+(oo! "
+nuintoo" '
+)oo' (
+dataoo( ,
+.oo, -
+Lengthoo- 3
+,oo3 4
+signaturePtrpp $
+,pp$ %
+(pp& '
+nuintpp' ,
+)pp, -
+	signaturepp- 6
+.pp6 7
+Lengthpp7 =
+)pp= >
+;pp> ?
+returnrr 
+resultrr !
+switchrr" (
+{ss *
 CertificatePinningNativeResulttt 6
-.tt6 7#
-ErrorVerificationFailedtt7 N
-=>ttO Q(
-CertificatePinningBoolResultttR n
-.ttn o
-	FromValuetto x
-(ttx y
-falsetty ~
-)tt~ 
-,	tt Ä
-_uu 
-=>uu (
-CertificatePinningBoolResultuu 9
-.uu9 :
-	FromErroruu: C
-(uuC D%
-CertificatePinningFailurevv 5
-.vv5 6'
-ED_25519_VERIFICATION_ERRORvv6 Q
-(vvQ R 
-GetErrorStringStaticvvR f
-(vvf g
-resultvvg m
-)vvm n
-)vvn o
-)vvo p
-}ww 
-;ww 
-}xx 
-}yy 
-}zz 	
-catch{{ 
-({{ 
-	Exception{{ 
-ex{{ 
-){{ 
-{|| 	
-return}} (
-CertificatePinningBoolResult}} /
-.}}/ 0
-	FromError}}0 9
-(}}9 :%
-CertificatePinningFailure}}: S
-.}}S T+
-ED_25519_VERIFICATION_EXCEPTION}}T s
-(}}s t
-ex}}t v
-)}}v w
-)}}w x
-;}}x y
-}~~ 	
-} 
+.tt6 7
+Successtt7 >
+=>tt? A(
+CertificatePinningBoolResultttB ^
+.tt^ _
+	FromValuett_ h
+(tth i
+truetti m
+)ttm n
+,ttn o*
+CertificatePinningNativeResultuu 6
+.uu6 7#
+ErrorVerificationFaileduu7 N
+=>uuO Q(
+CertificatePinningBoolResultuuR n
+.uun o
+	FromValueuuo x
+(uux y
+falseuuy ~
+)uu~ 
+,	uu Ä
+_vv 
+=>vv (
+CertificatePinningBoolResultvv 9
+.vv9 :
+	FromErrorvv: C
+(vvC D%
+CertificatePinningFailureww 5
+.ww5 6'
+ED_25519_VERIFICATION_ERRORww6 Q
+(wwQ R 
+GetErrorStringStaticwwR f
+(wwf g
+resultwwg m
+)wwm n
+)wwn o
+)wwo p
+}xx 
+;xx 
+}yy 
+}zz 
+}{{ 	
+catch|| 
+(|| 
+	Exception|| 
+ex|| 
+)|| 
+{}} 	
+return~~ (
+CertificatePinningBoolResult~~ /
+.~~/ 0
+	FromError~~0 9
+(~~9 :%
+CertificatePinningFailure~~: S
+.~~S T+
+ED_25519_VERIFICATION_EXCEPTION~~T s
+(~~s t
+ex~~t v
+)~~v w
+)~~w x
+;~~x y
+} 	
+}
+ÄÄ 
 public
-ÅÅ 
+ÇÇ 
 /
 !CertificatePinningByteArrayResult
-ÅÅ ,
+ÇÇ ,
 Encrypt
-ÅÅ- 4
+ÇÇ- 4
 (
-ÅÅ4 5
+ÇÇ4 5
 ReadOnlyMemory
-ÇÇ 
+ÉÉ 
 <
-ÇÇ 
+ÉÉ 
 byte
-ÇÇ 
+ÉÉ 
 >
-ÇÇ 
+ÉÉ 
 	plaintext
-ÇÇ &
+ÉÉ &
 )
-ÇÇ& '
+ÉÉ& '
 {
-ÉÉ /
+ÑÑ /
 !CertificatePinningOperationResult
-ÑÑ )
+ÖÖ )
 
 stateCheck
-ÑÑ* 4
+ÖÖ* 4
 =
-ÑÑ5 6$
+ÖÖ5 6$
 ValidateOperationState
-ÑÑ7 M
+ÖÖ7 M
 (
-ÑÑM N
+ÖÖM N
 )
-ÑÑN O
+ÖÖN O
 ;
-ÑÑO P
+ÖÖO P
 if
-ÖÖ 
+ÜÜ 
 
 (
-ÖÖ 
+ÜÜ 
 !
-ÖÖ 
+ÜÜ 
 
 stateCheck
-ÖÖ 
+ÜÜ 
 .
-ÖÖ 
+ÜÜ 
 	IsSuccess
-ÖÖ !
+ÜÜ !
 )
-ÖÖ! "
+ÜÜ! "
 {
-ÜÜ 	
+áá 	
 return
-áá /
+àà /
 !CertificatePinningByteArrayResult
-áá 4
+àà 4
 .
-áá4 5
+àà4 5
 	FromError
-áá5 >
+àà5 >
 (
-áá> ?
+àà> ?
 
 stateCheck
-áá? I
+àà? I
 .
-ááI J
+ààI J
 ERROR
-ááJ O
+ààJ O
 !
-ááO P
+ààO P
 )
-ááP Q
+ààP Q
 ;
-ááQ R
+ààQ R
 }
-àà 	
+ââ 	
 if
-ää 
+ãã 
 
 (
-ää 
+ãã 
 	plaintext
-ää 
+ãã 
 .
-ää 
+ãã 
 IsEmpty
-ää 
+ãã 
 )
-ää 
+ãã 
 {
-ãã 	
+åå 	
 return
-åå /
+çç /
 !CertificatePinningByteArrayResult
-åå 4
+çç 4
 .
-åå4 5
+çç4 5
 	FromError
-åå5 >
+çç5 >
 (
-åå> ?'
+çç> ?'
 CertificatePinningFailure
-åå? X
+çç? X
 .
-ååX Y 
+ççX Y 
 PLAINTEXT_REQUIRED
-ååY k
+ççY k
 (
-ååk l
+ççk l
 )
-åål m
+ççl m
 )
-ååm n
+ççm n
 ;
-åån o
+ççn o
 }
-çç 	
+éé 	
 return
-èè 
+êê 
 EncryptUnsafe
-èè 
+êê 
 (
-èè 
+êê 
 	plaintext
-èè &
+êê &
 .
-èè& '
+êê& '
 Span
-èè' +
+êê' +
 )
-èè+ ,
+êê+ ,
 ;
-èè, -
+êê, -
 }
-êê 
+ëë 
 private
-ìì 
+îî 
 static
-ìì /
+îî /
 !CertificatePinningByteArrayResult
-ìì 4
+îî 4
 EncryptUnsafe
-ìì5 B
+îî5 B
 (
-ììB C
+îîB C
 ReadOnlySpan
-ììC O
+îîC O
 <
-ììO P
+îîO P
 byte
-ììP T
+îîP T
 >
-ììT U
+îîT U
 	plaintext
-ììV _
+îîV _
 )
-ìì_ `
+îî_ `
 {
-îî 
+ïï 
 try
-ïï 
+ññ 
 {
-ññ 	
+óó 	
 unsafe
-óó 
+òò 
 {
-òò 
+ôô 
 fixed
-ôô 
+öö 
 (
-ôô 
+öö 
 byte
-ôô 
+öö 
 *
-ôô 
+öö 
 plaintextPtr
-ôô )
+öö )
 =
-ôô* +
+öö* +
 	plaintext
-ôô, 5
+öö, 5
 )
-ôô5 6
+öö5 6
 {
-öö 
+õõ 
 const
-õõ 
+úú 
 nuint
-õõ 
+úú 
 MAX_STACK_SIZE
-õõ  .
+úú  .
 =
-õõ/ 0
+úú/ 0
 $num
-õõ1 5
+úú1 5
 ;
-õõ5 6
+úú5 6
 nuint
-úú 
+ùù 
 estimatedSize
-úú '
+ùù '
 =
-úú( )
+ùù( )
 (
-úú* +
+ùù* +
 nuint
-úú+ 0
+ùù+ 0
 )
-úú0 1
+ùù0 1
 	plaintext
-úú1 :
+ùù1 :
 .
-úú: ;
+ùù: ;
 Length
-úú; A
+ùù; A
 +
-úúB C
+ùùB C
 $num
-úúD G
+ùùD G
 ;
-úúG H
+ùùG H
 if
-ûû 
+üü 
 (
-ûû 
+üü 
 estimatedSize
-ûû %
+üü %
 <=
-ûû& (
+üü& (
 MAX_STACK_SIZE
-ûû) 7
+üü) 7
 )
-ûû7 8
+üü7 8
 {
-üü 
+†† 
 byte
-†† 
+°° 
 *
-†† 
+°° 
 stackBuffer
-†† )
+°° )
 =
-††* +
+°°* +
 
 stackalloc
-††, 6
+°°, 6
 byte
-††7 ;
+°°7 ;
 [
-††; <
+°°; <
 (
-††< =
+°°< =
 int
-††= @
+°°= @
 )
-††@ A
+°°@ A
 estimatedSize
-††A N
+°°A N
 ]
-††N O
+°°N O
 ;
-††O P
+°°O P
 nuint
-°° 
+¢¢ 
 
 actualSize
-°° (
+¢¢ (
 =
-°°) *
+¢¢) *
 estimatedSize
-°°+ 8
+¢¢+ 8
 ;
-°°8 9,
+¢¢8 9,
 CertificatePinningNativeResult
-££ 6
+§§ 6
 result
-££7 =
+§§7 =
 =
-££> ?-
+§§> ?-
 CertificatePinningNativeLibrary
-££@ _
+§§@ _
 .
-££_ `
+§§_ `
 Encrypt
-££` g
+§§` g
 (
-££g h
+§§g h
 plaintextPtr
-§§ (
+•• (
 ,
-§§( )
+••( )
 (
-§§* +
+••* +
 nuint
-§§+ 0
+••+ 0
 )
-§§0 1
+••0 1
 	plaintext
-§§1 :
+••1 :
 .
-§§: ;
+••: ;
 Length
-§§; A
+••; A
 ,
-§§A B
+••A B
 stackBuffer
-•• '
+¶¶ '
 ,
-••' (
+¶¶' (
 &
-••) *
+¶¶) *
 
 actualSize
-••* 4
+¶¶* 4
 )
-••4 5
+¶¶4 5
 ;
-••5 6
+¶¶5 6
 if
-ßß 
+®® 
 (
-ßß 
+®® 
 result
-ßß "
+®® "
 ==
-ßß# %,
+®®# %,
 CertificatePinningNativeResult
-ßß& D
+®®& D
 .
-ßßD E
+®®D E
 Success
-ßßE L
+®®E L
 )
-ßßL M
+®®L M
 {
-®® 
+©© 
 byte
-©©  
+™™  
 [
-©©  !
+™™  !
 ]
-©©! "
+™™! "
 output
-©©# )
+™™# )
 =
-©©* +
+™™* +
 new
-©©, /
+™™, /
 byte
-©©0 4
+™™0 4
 [
-©©4 5
+™™4 5
 
 actualSize
-©©5 ?
+™™5 ?
 ]
-©©? @
+™™? @
 ;
-©©@ A
+™™@ A
 fixed
-™™ !
+´´ !
 (
-™™" #
+´´" #
 byte
-™™# '
+´´# '
 *
-™™' (
+´´' (
 	outputPtr
-™™) 2
+´´) 2
 =
-™™3 4
+´´3 4
 output
-™™5 ;
+´´5 ;
 )
-™™; <
+´´; <
 {
-´´ 
+¨¨ 
 Buffer
-¨¨  &
+≠≠  &
 .
-¨¨& '
+≠≠& '
 
 MemoryCopy
-¨¨' 1
+≠≠' 1
 (
-¨¨1 2
+≠≠1 2
 stackBuffer
-¨¨2 =
+≠≠2 =
 ,
-¨¨= >
+≠≠= >
 	outputPtr
-¨¨? H
+≠≠? H
 ,
-¨¨H I
+≠≠H I
 
 actualSize
-¨¨J T
+≠≠J T
 ,
-¨¨T U
+≠≠T U
 
 actualSize
-¨¨V `
+≠≠V `
 )
-¨¨` a
+≠≠` a
 ;
-¨¨a b
+≠≠a b
 }
-≠≠ 
+ÆÆ 
 return
-ÆÆ "/
+ØØ "/
 !CertificatePinningByteArrayResult
-ÆÆ# D
+ØØ# D
 .
-ÆÆD E
+ØØD E
 	FromValue
-ÆÆE N
+ØØE N
 (
-ÆÆN O
+ØØN O
 output
-ÆÆO U
+ØØO U
 )
-ÆÆU V
+ØØU V
 ;
-ÆÆV W
+ØØV W
 }
-ØØ 
+∞∞ 
 return
-±± /
+≤≤ /
 !CertificatePinningByteArrayResult
-±± @
+≤≤ @
 .
-±±@ A
+≤≤@ A
 	FromError
-±±A J
+≤≤A J
 (
-±±J K'
+≤≤J K'
 CertificatePinningFailure
-≤≤ 5
+≥≥ 5
 .
-≤≤5 6#
+≥≥5 6#
 RSA_ENCRYPTION_FAILED
-≤≤6 K
+≥≥6 K
 (
-≤≤K L"
+≥≥K L"
 GetErrorStringStatic
-≤≤L `
+≥≥L `
 (
-≤≤` a
+≥≥` a
 result
-≤≤a g
+≥≥a g
 )
-≤≤g h
+≥≥g h
 )
-≤≤h i
+≥≥h i
 )
-≤≤i j
+≥≥i j
 ;
-≤≤j k
+≥≥j k
 }
-≥≥ 
+¥¥ 
 else
-¥¥ 
+µµ 
 {
-µµ 
+∂∂ 
 byte
-∂∂ 
+∑∑ 
 [
-∂∂ 
+∑∑ 
 ]
-∂∂ 
+∑∑ 
 
 ciphertext
-∂∂ )
+∑∑ )
 =
-∂∂* +
+∑∑* +
 new
-∂∂, /
+∑∑, /
 byte
-∂∂0 4
+∑∑0 4
 [
-∂∂4 5
+∑∑4 5
 estimatedSize
-∂∂5 B
+∑∑5 B
 ]
-∂∂B C
+∑∑B C
 ;
-∂∂C D
+∑∑C D
 nuint
-∑∑ 
+∏∏ 
 
 actualSize
-∑∑ (
+∏∏ (
 =
-∑∑) *
+∏∏) *
 estimatedSize
-∑∑+ 8
+∏∏+ 8
 ;
-∑∑8 9
+∏∏8 9
 fixed
-ππ 
+∫∫ 
 (
-ππ 
+∫∫ 
 byte
-ππ #
+∫∫ #
 *
-ππ# $
+∫∫# $
 ciphertextPtr
-ππ% 2
+∫∫% 2
 =
-ππ3 4
+∫∫3 4
 
 ciphertext
-ππ5 ?
+∫∫5 ?
 )
-ππ? @
+∫∫? @
 {
-∫∫ ,
+ªª ,
 CertificatePinningNativeResult
-ªª :
+ºº :
 result
-ªª; A
+ºº; A
 =
-ªªB C-
+ººB C-
 CertificatePinningNativeLibrary
-ªªD c
+ººD c
 .
-ªªc d
+ººc d
 Encrypt
-ªªd k
+ººd k
 (
-ªªk l
+ººk l
 plaintextPtr
-ºº  ,
+ΩΩ  ,
 ,
-ºº, -
+ΩΩ, -
 (
-ºº. /
+ΩΩ. /
 nuint
-ºº/ 4
+ΩΩ/ 4
 )
-ºº4 5
+ΩΩ4 5
 	plaintext
-ºº5 >
+ΩΩ5 >
 .
-ºº> ?
+ΩΩ> ?
 Length
-ºº? E
+ΩΩ? E
 ,
-ººE F
+ΩΩE F
 ciphertextPtr
-ΩΩ  -
+ææ  -
 ,
-ΩΩ- .
+ææ- .
 &
-ΩΩ/ 0
+ææ/ 0
 
 actualSize
-ΩΩ0 :
+ææ0 :
 )
-ΩΩ: ;
+ææ: ;
 ;
-ΩΩ; <
+ææ; <
 if
-øø 
+¿¿ 
 (
-øø  
+¿¿  
 result
-øø  &
+¿¿  &
 ==
-øø' ),
+¿¿' ),
 CertificatePinningNativeResult
-øø* H
+¿¿* H
 .
-øøH I
+¿¿H I
 Success
-øøI P
+¿¿I P
 )
-øøP Q
+¿¿P Q
 {
-¿¿ 
+¡¡ 
 if
-¡¡  "
+¬¬  "
 (
-¡¡# $
+¬¬# $
 
 actualSize
-¡¡$ .
+¬¬$ .
 !=
-¡¡/ 1
+¬¬/ 1
 estimatedSize
-¡¡2 ?
+¬¬2 ?
 )
-¡¡? @
+¬¬? @
 {
-¬¬  !
+√√  !
 byte
-√√$ (
+ƒƒ$ (
 [
-√√( )
+ƒƒ( )
 ]
-√√) *
+ƒƒ) *
 resized
-√√+ 2
+ƒƒ+ 2
 =
-√√3 4
+ƒƒ3 4
 new
-√√5 8
+ƒƒ5 8
 byte
-√√9 =
+ƒƒ9 =
 [
-√√= >
+ƒƒ= >
 
 actualSize
-√√> H
+ƒƒ> H
 ]
-√√H I
+ƒƒH I
 ;
-√√I J
+ƒƒI J
 Array
-ƒƒ$ )
+≈≈$ )
 .
-ƒƒ) *
+≈≈) *
 Copy
-ƒƒ* .
+≈≈* .
 (
-ƒƒ. /
+≈≈. /
 
 ciphertext
-ƒƒ/ 9
+≈≈/ 9
 ,
-ƒƒ9 :
+≈≈9 :
 resized
-ƒƒ; B
+≈≈; B
 ,
-ƒƒB C
+≈≈B C
 (
-ƒƒD E
+≈≈D E
 int
-ƒƒE H
+≈≈E H
 )
-ƒƒH I
+≈≈H I
 
 actualSize
-ƒƒI S
+≈≈I S
 )
-ƒƒS T
+≈≈S T
 ;
-ƒƒT U
+≈≈T U
 return
-≈≈$ */
+∆∆$ */
 !CertificatePinningByteArrayResult
-≈≈+ L
+∆∆+ L
 .
-≈≈L M
+∆∆L M
 	FromValue
-≈≈M V
+∆∆M V
 (
-≈≈V W
+∆∆V W
 resized
-≈≈W ^
+∆∆W ^
 )
-≈≈^ _
+∆∆^ _
 ;
-≈≈_ `
+∆∆_ `
 }
-∆∆  !
+««  !
 return
-««  &/
+»»  &/
 !CertificatePinningByteArrayResult
-««' H
+»»' H
 .
-««H I
+»»H I
 	FromValue
-««I R
+»»I R
 (
-««R S
+»»R S
 
 ciphertext
-««S ]
+»»S ]
 )
-««] ^
+»»] ^
 ;
-««^ _
+»»^ _
 }
-»» 
+…… 
 return
-   "/
+ÀÀ "/
 !CertificatePinningByteArrayResult
-  # D
+ÀÀ# D
 .
-  D E
+ÀÀD E
 	FromError
-  E N
+ÀÀE N
 (
-  N O'
+ÀÀN O'
 CertificatePinningFailure
-ÀÀ  9
+ÃÃ  9
 .
-ÀÀ9 :#
+ÃÃ9 :#
 RSA_ENCRYPTION_FAILED
-ÀÀ: O
+ÃÃ: O
 (
-ÀÀO P"
+ÃÃO P"
 GetErrorStringStatic
-ÀÀP d
+ÃÃP d
 (
-ÀÀd e
+ÃÃd e
 result
-ÀÀe k
+ÃÃe k
 )
-ÀÀk l
+ÃÃk l
 )
-ÀÀl m
+ÃÃl m
 )
-ÀÀm n
+ÃÃm n
 ;
-ÀÀn o
+ÃÃn o
 }
-ÃÃ 
+ÕÕ 
 }
-ÕÕ 
+ŒŒ 
 }
-ŒŒ 
+œœ 
 }
-œœ 
+–– 
 }
-–– 	
+—— 	
 catch
-—— 
+““ 
 (
-—— 
+““ 
 	Exception
-—— 
+““ 
 ex
-—— 
+““ 
 )
-—— 
+““ 
 {
-““ 	
+”” 	
 return
-”” /
+‘‘ /
 !CertificatePinningByteArrayResult
-”” 4
+‘‘ 4
 .
-””4 5
+‘‘4 5
 	FromError
-””5 >
+‘‘5 >
 (
-””> ?'
+‘‘> ?'
 CertificatePinningFailure
-””? X
+‘‘? X
 .
-””X Y&
+‘‘X Y&
 RSA_ENCRYPTION_EXCEPTION
-””Y q
+‘‘Y q
 (
-””q r
+‘‘q r
 ex
-””r t
+‘‘r t
 )
-””t u
+‘‘t u
 )
-””u v
+‘‘u v
 ;
-””v w
+‘‘v w
 }
-‘‘ 	
+’’ 	
 }
-’’ 
+÷÷ 
 public
-◊◊ 
+ÿÿ 
 /
 !CertificatePinningByteArrayResult
-◊◊ ,
+ÿÿ ,
 Decrypt
-◊◊- 4
+ÿÿ- 4
 (
-◊◊4 5
+ÿÿ4 5
 ReadOnlyMemory
-ÿÿ 
+ŸŸ 
 <
-ÿÿ 
+ŸŸ 
 byte
-ÿÿ 
+ŸŸ 
 >
-ÿÿ 
+ŸŸ 
 
 ciphertext
-ÿÿ '
+ŸŸ '
 )
-ÿÿ' (
+ŸŸ' (
 {
-ŸŸ /
+⁄⁄ /
 !CertificatePinningOperationResult
-⁄⁄ )
+€€ )
 
 stateCheck
-⁄⁄* 4
+€€* 4
 =
-⁄⁄5 6$
+€€5 6$
 ValidateOperationState
-⁄⁄7 M
+€€7 M
 (
-⁄⁄M N
+€€M N
 )
-⁄⁄N O
+€€N O
 ;
-⁄⁄O P
+€€O P
 if
-€€ 
+‹‹ 
 
 (
-€€ 
+‹‹ 
 !
-€€ 
+‹‹ 
 
 stateCheck
-€€ 
+‹‹ 
 .
-€€ 
+‹‹ 
 	IsSuccess
-€€ !
+‹‹ !
 )
-€€! "
+‹‹! "
 {
-‹‹ 	
+›› 	
 return
-›› /
+ﬁﬁ /
 !CertificatePinningByteArrayResult
-›› 4
+ﬁﬁ 4
 .
-››4 5
+ﬁﬁ4 5
 	FromError
-››5 >
+ﬁﬁ5 >
 (
-››> ?
+ﬁﬁ> ?
 
 stateCheck
-››? I
+ﬁﬁ? I
 .
-››I J
+ﬁﬁI J
 ERROR
-››J O
+ﬁﬁJ O
 !
-››O P
+ﬁﬁO P
 )
-››P Q
+ﬁﬁP Q
 ;
-››Q R
+ﬁﬁQ R
 }
-ﬁﬁ 	
+ﬂﬂ 	
 if
-‡‡ 
+·· 
 
 (
-‡‡ 
+·· 
 
 ciphertext
-‡‡ 
+·· 
 .
-‡‡ 
+·· 
 IsEmpty
-‡‡ 
+·· 
 )
-‡‡ 
+·· 
 {
-·· 	
+‚‚ 	
 return
-‚‚ /
+„„ /
 !CertificatePinningByteArrayResult
-‚‚ 4
+„„ 4
 .
-‚‚4 5
+„„4 5
 	FromError
-‚‚5 >
+„„5 >
 (
-‚‚> ?'
+„„> ?'
 CertificatePinningFailure
-‚‚? X
+„„? X
 .
-‚‚X Y!
+„„X Y!
 CIPHERTEXT_REQUIRED
-‚‚Y l
+„„Y l
 (
-‚‚l m
+„„l m
 )
-‚‚m n
+„„m n
 )
-‚‚n o
+„„n o
 ;
-‚‚o p
+„„o p
 }
-„„ 	
+‰‰ 	
 return
-ÂÂ 
+ÊÊ 
 DecryptUnsafe
-ÂÂ 
+ÊÊ 
 (
-ÂÂ 
+ÊÊ 
 
 ciphertext
-ÂÂ '
+ÊÊ '
 .
-ÂÂ' (
+ÊÊ' (
 Span
-ÂÂ( ,
+ÊÊ( ,
 )
-ÂÂ, -
+ÊÊ, -
 ;
-ÂÂ- .
+ÊÊ- .
 }
-ÊÊ 
+ÁÁ 
 private
-ÈÈ 
+ÍÍ 
 static
-ÈÈ /
+ÍÍ /
 !CertificatePinningByteArrayResult
-ÈÈ 4
+ÍÍ 4
 DecryptUnsafe
-ÈÈ5 B
+ÍÍ5 B
 (
-ÈÈB C
+ÍÍB C
 ReadOnlySpan
-ÈÈC O
+ÍÍC O
 <
-ÈÈO P
+ÍÍO P
 byte
-ÈÈP T
+ÍÍP T
 >
-ÈÈT U
+ÍÍT U
 
 ciphertext
-ÈÈV `
+ÍÍV `
 )
-ÈÈ` a
+ÍÍ` a
 {
-ÍÍ 
+ÎÎ 
 try
-ÎÎ 
+ÏÏ 
 {
-ÏÏ 	
+ÌÌ 	
 unsafe
-ÌÌ 
+ÓÓ 
 {
-ÓÓ 
+ÔÔ 
 fixed
-ÔÔ 
+ 
 (
-ÔÔ 
+ 
 byte
-ÔÔ 
+ 
 *
-ÔÔ 
+ 
 ciphertextPtr
-ÔÔ *
+ *
 =
-ÔÔ+ ,
++ ,
 
 ciphertext
-ÔÔ- 7
+- 7
 )
-ÔÔ7 8
+7 8
 {
- 
+ÒÒ 
 nuint
-ÒÒ 
+ÚÚ 
 plaintextLen
-ÒÒ &
+ÚÚ &
 =
-ÒÒ' (
+ÚÚ' (
 (
-ÒÒ) *
+ÚÚ) *
 nuint
-ÒÒ* /
+ÚÚ* /
 )
-ÒÒ/ 0
+ÚÚ/ 0
 
 ciphertext
-ÒÒ0 :
+ÚÚ0 :
 .
-ÒÒ: ;
+ÚÚ: ;
 Length
-ÒÒ; A
+ÚÚ; A
 ;
-ÒÒA B
+ÚÚA B
 byte
-ÚÚ 
+ÛÛ 
 [
-ÚÚ 
+ÛÛ 
 ]
-ÚÚ 
+ÛÛ 
 	plaintext
-ÚÚ $
+ÛÛ $
 =
-ÚÚ% &
+ÛÛ% &
 new
-ÚÚ' *
+ÛÛ' *
 byte
-ÚÚ+ /
+ÛÛ+ /
 [
-ÚÚ/ 0
+ÛÛ/ 0
 plaintextLen
-ÚÚ0 <
+ÛÛ0 <
 ]
-ÚÚ< =
+ÛÛ< =
 ;
-ÚÚ= >
+ÛÛ= >
 fixed
-ÙÙ 
+ıı 
 (
-ÙÙ 
+ıı 
 byte
-ÙÙ 
+ıı 
 *
-ÙÙ  
+ıı  
 plaintextPtr
-ÙÙ! -
+ıı! -
 =
-ÙÙ. /
+ıı. /
 	plaintext
-ÙÙ0 9
+ıı0 9
 )
-ÙÙ9 :
+ıı9 :
 {
-ıı ,
+ˆˆ ,
 CertificatePinningNativeResult
-ˆˆ 6
+˜˜ 6
 result
-ˆˆ7 =
+˜˜7 =
 =
-ˆˆ> ?-
+˜˜> ?-
 CertificatePinningNativeLibrary
-ˆˆ@ _
+˜˜@ _
 .
-ˆˆ_ `
+˜˜_ `
 Decrypt
-ˆˆ` g
+˜˜` g
 (
-ˆˆg h
+˜˜g h
 ciphertextPtr
-˜˜ )
+¯¯ )
 ,
-˜˜) *
+¯¯) *
 (
-˜˜+ ,
+¯¯+ ,
 nuint
-˜˜, 1
+¯¯, 1
 )
-˜˜1 2
+¯¯1 2
 
 ciphertext
-˜˜2 <
+¯¯2 <
 .
-˜˜< =
+¯¯< =
 Length
-˜˜= C
+¯¯= C
 ,
-˜˜C D
+¯¯C D
 plaintextPtr
-¯¯ (
+˘˘ (
 ,
-¯¯( )
+˘˘( )
 &
-¯¯* +
+˘˘* +
 plaintextLen
-¯¯+ 7
+˘˘+ 7
 )
-¯¯7 8
+˘˘7 8
 ;
-¯¯8 9
+˘˘8 9
 if
-˙˙ 
+˚˚ 
 (
-˙˙ 
+˚˚ 
 result
-˙˙ "
+˚˚ "
 ==
-˙˙# %,
+˚˚# %,
 CertificatePinningNativeResult
-˙˙& D
+˚˚& D
 .
-˙˙D E
+˚˚D E
 Success
-˙˙E L
+˚˚E L
 )
-˙˙L M
+˚˚L M
 {
-˚˚ 
+¸¸ 
 if
-¸¸ 
+˝˝ 
 (
-¸¸  
+˝˝  
 plaintextLen
-¸¸  ,
+˝˝  ,
 !=
-¸¸- /
+˝˝- /
 (
-¸¸0 1
+˝˝0 1
 nuint
-¸¸1 6
+˝˝1 6
 )
-¸¸6 7
+˝˝6 7
 
 ciphertext
-¸¸7 A
+˝˝7 A
 .
-¸¸A B
+˝˝A B
 Length
-¸¸B H
+˝˝B H
 )
-¸¸H I
+˝˝H I
 {
-˝˝ 
+˛˛ 
 byte
-˛˛  $
+ˇˇ  $
 [
-˛˛$ %
+ˇˇ$ %
 ]
-˛˛% &
+ˇˇ% &
 resized
-˛˛' .
+ˇˇ' .
 =
-˛˛/ 0
+ˇˇ/ 0
 new
-˛˛1 4
+ˇˇ1 4
 byte
-˛˛5 9
+ˇˇ5 9
 [
-˛˛9 :
+ˇˇ9 :
 plaintextLen
-˛˛: F
+ˇˇ: F
 ]
-˛˛F G
+ˇˇF G
 ;
-˛˛G H
+ˇˇG H
 Array
-ˇˇ  %
+ÄÄ  %
 .
-ˇˇ% &
+ÄÄ% &
 Copy
-ˇˇ& *
+ÄÄ& *
 (
-ˇˇ* +
+ÄÄ* +
 	plaintext
-ˇˇ+ 4
+ÄÄ+ 4
 ,
-ˇˇ4 5
+ÄÄ4 5
 resized
-ˇˇ6 =
+ÄÄ6 =
 ,
-ˇˇ= >
+ÄÄ= >
 (
-ˇˇ? @
+ÄÄ? @
 int
-ˇˇ@ C
+ÄÄ@ C
 )
-ˇˇC D
+ÄÄC D
 plaintextLen
-ˇˇD P
+ÄÄD P
 )
-ˇˇP Q
+ÄÄP Q
 ;
-ˇˇQ R
+ÄÄQ R
 return
-ÄÄ  &/
+ÅÅ  &/
 !CertificatePinningByteArrayResult
-ÄÄ' H
+ÅÅ' H
 .
-ÄÄH I
+ÅÅH I
 	FromValue
-ÄÄI R
+ÅÅI R
 (
-ÄÄR S
+ÅÅR S
 resized
-ÄÄS Z
+ÅÅS Z
 )
-ÄÄZ [
+ÅÅZ [
 ;
-ÄÄ[ \
+ÅÅ[ \
 }
-ÅÅ 
+ÇÇ 
 return
-ÇÇ "/
+ÉÉ "/
 !CertificatePinningByteArrayResult
-ÇÇ# D
+ÉÉ# D
 .
-ÇÇD E
+ÉÉD E
 	FromValue
-ÇÇE N
+ÉÉE N
 (
-ÇÇN O
+ÉÉN O
 	plaintext
-ÇÇO X
+ÉÉO X
 )
-ÇÇX Y
+ÉÉX Y
 ;
-ÇÇY Z
+ÉÉY Z
 }
-ÉÉ 
+ÑÑ 
 return
-ÖÖ /
+ÜÜ /
 !CertificatePinningByteArrayResult
-ÖÖ @
+ÜÜ @
 .
-ÖÖ@ A
+ÜÜ@ A
 	FromError
-ÖÖA J
+ÜÜA J
 (
-ÖÖJ K'
+ÜÜJ K'
 CertificatePinningFailure
-ÜÜ 5
+áá 5
 .
-ÜÜ5 6#
+áá5 6#
 RSA_DECRYPTION_FAILED
-ÜÜ6 K
+áá6 K
 (
-ÜÜK L"
+ááK L"
 GetErrorStringStatic
-ÜÜL `
+ááL `
 (
-ÜÜ` a
+áá` a
 result
-ÜÜa g
+ááa g
 )
-ÜÜg h
+áág h
 )
-ÜÜh i
+ááh i
 )
-ÜÜi j
+áái j
 ;
-ÜÜj k
+ááj k
 }
-áá 
+àà 
 }
-àà 
+ââ 
 }
-ââ 
+ää 
 }
-ää 	
+ãã 	
 catch
-ãã 
+åå 
 (
-ãã 
+åå 
 	Exception
-ãã 
+åå 
 ex
-ãã 
+åå 
 )
-ãã 
+åå 
 {
-åå 	
+çç 	
 return
-çç /
+éé /
 !CertificatePinningByteArrayResult
-çç 4
+éé 4
 .
-çç4 5
+éé4 5
 	FromError
-çç5 >
+éé5 >
 (
-çç> ?'
+éé> ?'
 CertificatePinningFailure
-çç? X
+éé? X
 .
-ççX Y&
+ééX Y&
 RSA_DECRYPTION_EXCEPTION
-ççY q
+ééY q
 (
-ççq r
+ééq r
 ex
-ççr t
+éér t
 )
-ççt u
+éét u
 )
-ççu v
+ééu v
 ;
-ççv w
+éév w
 }
-éé 	
+èè 	
 }
-èè 
+êê 
 public
-ëë 
+íí 
 /
 !CertificatePinningByteArrayResult
-ëë ,
+íí ,
 GetPublicKey
-ëë- 9
+íí- 9
 (
-ëë9 :
+íí9 :
 )
-ëë: ;
+íí: ;
 {
-íí /
+ìì /
 !CertificatePinningOperationResult
-ìì )
+îî )
 
 stateCheck
-ìì* 4
+îî* 4
 =
-ìì5 6$
+îî5 6$
 ValidateOperationState
-ìì7 M
+îî7 M
 (
-ììM N
+îîM N
 )
-ììN O
+îîN O
 ;
-ììO P
+îîO P
 if
-îî 
+ïï 
 
 (
-îî 
+ïï 
 !
-îî 
+ïï 
 
 stateCheck
-îî 
+ïï 
 .
-îî 
+ïï 
 	IsSuccess
-îî !
+ïï !
 )
-îî! "
+ïï! "
 {
-ïï 	
+ññ 	
 return
-ññ /
+óó /
 !CertificatePinningByteArrayResult
-ññ 4
+óó 4
 .
-ññ4 5
+óó4 5
 	FromError
-ññ5 >
+óó5 >
 (
-ññ> ?
+óó> ?
 
 stateCheck
-ññ? I
+óó? I
 .
-ññI J
+óóI J
 ERROR
-ññJ O
+óóJ O
 !
-ññO P
+óóO P
 )
-ññP Q
+óóP Q
 ;
-ññQ R
+óóQ R
 }
-óó 	
+òò 	
 return
-ôô  
+öö  
 GetPublicKeyUnsafe
-ôô !
+öö !
 (
-ôô! "
+öö! "
 )
-ôô" #
+öö" #
 ;
-ôô# $
+öö# $
 }
-öö 
+õõ 
 private
-ùù 
+ûû 
 static
-ùù /
+ûû /
 !CertificatePinningByteArrayResult
-ùù 4 
+ûû 4 
 GetPublicKeyUnsafe
-ùù5 G
+ûû5 G
 (
-ùùG H
+ûûG H
 )
-ùùH I
+ûûH I
 {
-ûû 
+üü 
 try
-üü 
+†† 
 {
-†† 	
+°° 	
 unsafe
-°° 
+¢¢ 
 {
-¢¢ 
+££ 
 const
-££ 
+§§ 
 nuint
-££ %
+§§ %
 INITIAL_KEY_BUFFER_SIZE
-££ 3
+§§ 3
 =
-££4 5
+§§4 5
 $num
-££6 :
+§§6 :
 ;
-££: ;
+§§: ;
 nuint
-§§ 
+•• 
 keyLen
-§§ 
+•• 
 =
-§§ %
+•• %
 INITIAL_KEY_BUFFER_SIZE
-§§ 6
+•• 6
 ;
-§§6 7
+••6 7
 byte
-•• 
+¶¶ 
 [
-•• 
+¶¶ 
 ]
-•• 
+¶¶ 
 	publicKey
-••  
+¶¶  
 =
-••! "
+¶¶! "
 new
-••# &
+¶¶# &
 byte
-••' +
+¶¶' +
 [
-••+ ,
+¶¶+ ,
 keyLen
-••, 2
+¶¶, 2
 ]
-••2 3
+¶¶2 3
 ;
-••3 4
+¶¶3 4
 fixed
-ßß 
+®® 
 (
-ßß 
+®® 
 byte
-ßß 
+®® 
 *
-ßß 
+®® 
 keyPtr
-ßß #
+®® #
 =
-ßß$ %
+®®$ %
 	publicKey
-ßß& /
+®®& /
 )
-ßß/ 0
+®®/ 0
 {
-®® ,
+©© ,
 CertificatePinningNativeResult
-©© 2
+™™ 2
 result
-©©3 9
+™™3 9
 =
-©©: ;-
+™™: ;-
 CertificatePinningNativeLibrary
-©©< [
+™™< [
 .
-©©[ \
+™™[ \
 GetPublicKey
-©©\ h
+™™\ h
 (
-©©h i
+™™h i
 keyPtr
-©©i o
+™™i o
 ,
-©©o p
+™™o p
 &
-©©q r
+™™q r
 keyLen
-©©r x
+™™r x
 )
-©©x y
+™™x y
 ;
-©©y z
+™™y z
 if
-´´ 
+¨¨ 
 (
-´´ 
+¨¨ 
 result
-´´ 
+¨¨ 
 ==
-´´ !,
+¨¨ !,
 CertificatePinningNativeResult
-´´" @
+¨¨" @
 .
-´´@ A
+¨¨@ A
 Success
-´´A H
+¨¨A H
 )
-´´H I
+¨¨H I
 {
-¨¨ 
+≠≠ 
 if
-≠≠ 
+ÆÆ 
 (
-≠≠ 
+ÆÆ 
 keyLen
-≠≠ "
+ÆÆ "
 !=
-≠≠# %%
+ÆÆ# %%
 INITIAL_KEY_BUFFER_SIZE
-≠≠& =
+ÆÆ& =
 )
-≠≠= >
+ÆÆ= >
 {
-ÆÆ 
+ØØ 
 byte
-ØØ  
+∞∞  
 [
-ØØ  !
+∞∞  !
 ]
-ØØ! "
+∞∞! "
 resized
-ØØ# *
+∞∞# *
 =
-ØØ+ ,
+∞∞+ ,
 new
-ØØ- 0
+∞∞- 0
 byte
-ØØ1 5
+∞∞1 5
 [
-ØØ5 6
+∞∞5 6
 keyLen
-ØØ6 <
+∞∞6 <
 ]
-ØØ< =
+∞∞< =
 ;
-ØØ= >
+∞∞= >
 Array
-∞∞ !
+±± !
 .
-∞∞! "
+±±! "
 Copy
-∞∞" &
+±±" &
 (
-∞∞& '
+±±& '
 	publicKey
-∞∞' 0
+±±' 0
 ,
-∞∞0 1
+±±0 1
 resized
-∞∞2 9
+±±2 9
 ,
-∞∞9 :
+±±9 :
 (
-∞∞; <
+±±; <
 int
-∞∞< ?
+±±< ?
 )
-∞∞? @
+±±? @
 keyLen
-∞∞@ F
+±±@ F
 )
-∞∞F G
+±±F G
 ;
-∞∞G H
+±±G H
 return
-±± "/
+≤≤ "/
 !CertificatePinningByteArrayResult
-±±# D
+≤≤# D
 .
-±±D E
+≤≤D E
 	FromValue
-±±E N
+≤≤E N
 (
-±±N O
+≤≤N O
 resized
-±±O V
+≤≤O V
 )
-±±V W
+≤≤V W
 ;
-±±W X
+≤≤W X
 }
-≤≤ 
+≥≥ 
 return
-≥≥ /
+¥¥ /
 !CertificatePinningByteArrayResult
-≥≥ @
+¥¥ @
 .
-≥≥@ A
+¥¥@ A
 	FromValue
-≥≥A J
+¥¥A J
 (
-≥≥J K
+¥¥J K
 	publicKey
-≥≥K T
+¥¥K T
 )
-≥≥T U
+¥¥T U
 ;
-≥≥U V
+¥¥U V
 }
-¥¥ 
+µµ 
 return
-∂∂ /
+∑∑ /
 !CertificatePinningByteArrayResult
-∂∂ <
+∑∑ <
 .
-∂∂< =
+∑∑< =
 	FromError
-∂∂= F
+∑∑= F
 (
-∂∂F G'
+∑∑F G'
 CertificatePinningFailure
-∑∑ 1
+∏∏ 1
 .
-∑∑1 2+
+∏∏1 2+
 CERTIFICATE_VALIDATION_FAILED
-∑∑2 O
+∏∏2 O
 (
-∑∑O P"
+∏∏O P"
 GetErrorStringStatic
-∑∑P d
+∏∏P d
 (
-∑∑d e
+∏∏d e
 result
-∑∑e k
+∏∏e k
 )
-∑∑k l
+∏∏k l
 )
-∑∑l m
+∏∏l m
 )
-∑∑m n
+∏∏m n
 ;
-∑∑n o
+∏∏n o
 }
-∏∏ 
+ππ 
 }
-ππ 
+∫∫ 
 }
-∫∫ 	
+ªª 	
 catch
-ªª 
+ºº 
 (
-ªª 
+ºº 
 	Exception
-ªª 
+ºº 
 ex
-ªª 
+ºº 
 )
-ªª 
+ºº 
 {
-ºº 	
+ΩΩ 	
 return
-ΩΩ /
+ææ /
 !CertificatePinningByteArrayResult
-ΩΩ 4
+ææ 4
 .
-ΩΩ4 5
+ææ4 5
 	FromError
-ΩΩ5 >
+ææ5 >
 (
-ΩΩ> ?'
+ææ> ?'
 CertificatePinningFailure
-ΩΩ? X
+ææ? X
 .
-ΩΩX Y.
+ææX Y.
  CERTIFICATE_VALIDATION_EXCEPTION
-ΩΩY y
+ææY y
 (
-ΩΩy z
+ææy z
 ex
-ΩΩz |
+ææz |
 )
-ΩΩ| }
+ææ| }
 )
-ΩΩ} ~
+ææ} ~
 ;
-ΩΩ~ 
+ææ~ 
 }
-ææ 	
+øø 	
 }
-øø 
+¿¿ 
 private
-¡¡ /
+¬¬ /
 !CertificatePinningOperationResult
-¡¡ -$
+¬¬ -$
 ValidateOperationState
-¡¡. D
+¬¬. D
 (
-¡¡D E
+¬¬D E
 )
-¡¡E F
+¬¬E F
 {
-¬¬ 
+√√ 
 return
-√√ 
+ƒƒ 
 _state
-√√ 
+ƒƒ 
 switch
-√√ 
+ƒƒ 
 {
-ƒƒ 	
+≈≈ 	
 DISPOSED
-≈≈ 
+∆∆ 
 =>
-≈≈ /
+∆∆ /
 !CertificatePinningOperationResult
-≈≈ 9
+∆∆ 9
 .
-≈≈9 :
+∆∆9 :
 	FromError
-≈≈: C
+∆∆: C
 (
-≈≈C D'
+∆∆C D'
 CertificatePinningFailure
-≈≈D ]
+∆∆D ]
 .
-≈≈] ^
+∆∆] ^
 SERVICE_DISPOSED
-≈≈^ n
+∆∆^ n
 (
-≈≈n o
+∆∆n o
 )
-≈≈o p
+∆∆o p
 )
-≈≈p q
+∆∆p q
 ,
-≈≈q r
+∆∆q r
 NOT_INITIALIZED
-∆∆ 
+«« 
 =>
-∆∆ /
+«« /
 !CertificatePinningOperationResult
-∆∆ @
+«« @
 .
-∆∆@ A
+««@ A
 	FromError
-∆∆A J
+««A J
 (
-∆∆J K'
+««J K'
 CertificatePinningFailure
-∆∆K d
+««K d
 .
-∆∆d e%
+««d e%
 SERVICE_NOT_INITIALIZED
-∆∆e |
+««e |
 (
-∆∆| }
+««| }
 )
-∆∆} ~
+««} ~
 )
-∆∆~ 
-,∆∆ Ä
+««~ 
+,«« Ä
 INITIALIZING
-«« 
+»» 
 =>
-«« /
+»» /
 !CertificatePinningOperationResult
-«« =
+»» =
 .
-««= >
+»»= >
 	FromError
-««> G
+»»> G
 (
-««G H'
+»»G H'
 CertificatePinningFailure
-««H a
+»»H a
 .
-««a b"
+»»a b"
 SERVICE_INITIALIZING
-««b v
+»»b v
 (
-««v w
+»»v w
 )
-««w x
+»»w x
 )
-««x y
+»»x y
 ,
-««y z
+»»y z
 INITIALIZED
-»» 
+…… 
 =>
-»» /
+…… /
 !CertificatePinningOperationResult
-»» <
+…… <
 .
-»»< =
+……< =
 Success
-»»= D
+……= D
 (
-»»D E
+……D E
 )
-»»E F
+……E F
 ,
-»»F G
+……F G
 _
-…… 
+   
 =>
-…… /
+   /
 !CertificatePinningOperationResult
-…… 2
+   2
 .
-……2 3
+  2 3
 	FromError
-……3 <
+  3 <
 (
-……< ='
+  < ='
 CertificatePinningFailure
-……= V
+  = V
 .
-……V W#
+  V W#
 SERVICE_INVALID_STATE
-……W l
+  W l
 (
-……l m
+  l m
 )
-……m n
+  m n
 )
-……n o
+  n o
 }
-   	
+ÀÀ 	
 ;
-  	 
+ÀÀ	 
 
 }
-ÀÀ 
+ÃÃ 
 private
-ÕÕ 
+ŒŒ 
 static
-ÕÕ 
+ŒŒ 
 unsafe
-ÕÕ 
+ŒŒ 
 string
-ÕÕ  "
+ŒŒ  "
 GetErrorStringStatic
-ÕÕ! 5
+ŒŒ! 5
 (
-ÕÕ5 6,
+ŒŒ5 6,
 CertificatePinningNativeResult
-ÕÕ6 T
+ŒŒ6 T
 result
-ÕÕU [
+ŒŒU [
 )
-ÕÕ[ \
+ŒŒ[ \
 {
-ŒŒ 
+œœ 
 try
-œœ 
+–– 
 {
-–– 	
+—— 	
 byte
-—— 
+““ 
 *
-—— 
+““ 
 errorPtr
-—— 
+““ 
 =
-—— -
+““ -
 CertificatePinningNativeLibrary
-—— <
+““ <
 .
-——< =
+““< =
 GetErrorMessage
-——= L
+““= L
 (
-——L M
+““L M
 )
-——M N
+““M N
 ;
-——N O
+““N O
 if
-““ 
+”” 
 (
-““ 
+”” 
 errorPtr
-““ 
+”” 
 !=
-““ 
+”” 
 null
-““  
+””  
 )
-““  !
+””  !
 {
-”” 
+‘‘ 
 return
-‘‘ 
+’’ 
 Marshal
-‘‘ 
+’’ 
 .
-‘‘ 
+’’ 
 PtrToStringUTF8
-‘‘ .
+’’ .
 (
-‘‘. /
+’’. /
 (
-‘‘/ 0
+’’/ 0
 IntPtr
-‘‘0 6
+’’0 6
 )
-‘‘6 7
+’’6 7
 errorPtr
-‘‘7 ?
+’’7 ?
 )
-‘‘? @
+’’? @
 ??
-‘‘A C
-FormattableString
-‘‘D U
+’’A C
+string
+’’D J
 .
-‘‘U V
-	Invariant
-‘‘V _
+’’J K
+Create
+’’K Q
 (
-‘‘_ `
+’’Q R
+CultureInfo
+’’R ]
+.
+’’] ^
+InvariantCulture
+’’^ n
+,
+’’n o
 $"
-‘‘` b
-$str
-‘‘b q
-{
-‘‘q r
-result
-‘‘r x
+’’p r
+$str’’r Å
+{’’Å Ç
+result’’Ç à
+}’’à â
+"’’â ä
+)’’ä ã
+;’’ã å
 }
-‘‘x y
-"
-‘‘y z
-)
-‘‘z {
-;
-‘‘{ |
+÷÷ 
 }
-’’ 
-}
-÷÷ 	
+◊◊ 	
 catch
-◊◊ 
+ÿÿ 
 (
-◊◊ 
+ÿÿ 
 	Exception
-◊◊ 
+ÿÿ 
 ex
-◊◊ 
+ÿÿ 
 )
-◊◊ 
+ÿÿ 
 {
-ÿÿ 	
+ŸŸ 	
 Serilog
-ŸŸ 
+⁄⁄ 
 .
-ŸŸ 
+⁄⁄ 
 Log
-ŸŸ 
+⁄⁄ 
 .
-ŸŸ 
+⁄⁄ 
 Warning
-ŸŸ 
+⁄⁄ 
 (
-ŸŸ  
+⁄⁄  
 ex
-ŸŸ  "
+⁄⁄  "
 ,
-ŸŸ" #
+⁄⁄" #
 $str
-ŸŸ$ u
+⁄⁄$ u
 ,
-ŸŸu v
+⁄⁄u v
 result
-⁄⁄ 
+€€ 
 )
-⁄⁄ 
+€€ 
 ;
-⁄⁄ 
+€€ 
 }
-€€ 	
+‹‹ 	
 return
-›› 
-FormattableString
-››  
+ﬁﬁ 
+string
+ﬁﬁ 
 .
-››  !
-	Invariant
-››! *
+ﬁﬁ 
+Create
+ﬁﬁ 
 (
-››* +
+ﬁﬁ 
+CultureInfo
+ﬁﬁ (
+.
+ﬁﬁ( )
+InvariantCulture
+ﬁﬁ) 9
+,
+ﬁﬁ9 :
 $"
-››+ -
+ﬁﬁ; =
 $str
-››- 9
+ﬁﬁ= I
 {
-››9 :
+ﬁﬁI J
 result
-››: @
+ﬁﬁJ P
 }
-››@ A
+ﬁﬁP Q
 "
-››A B
+ﬁﬁQ R
 )
-››B C
+ﬁﬁR S
 ;
-››C D
+ﬁﬁS T
 }
-ﬁﬁ 
+ﬂﬂ 
 public
-‡‡ 
+·· 
 
 async
-‡‡ 
+·· 
 	ValueTask
-‡‡ 
+·· 
 DisposeAsync
-‡‡ '
+·· '
 (
-‡‡' (
+··' (
 )
-‡‡( )
+··( )
 {
-·· 
+‚‚ 
 if
-‚‚ 
+„„ 
 
 (
-‚‚ 
+„„ 
 Interlocked
-‚‚ 
+„„ 
 .
-‚‚ 
+„„ 
 Exchange
-‚‚  
+„„  
 (
-‚‚  !
+„„  !
 ref
-‚‚! $
+„„! $
 _state
-‚‚% +
+„„% +
 ,
-‚‚+ ,
+„„+ ,
 DISPOSED
-‚‚- 5
+„„- 5
 )
-‚‚5 6
+„„5 6
 ==
-‚‚7 9
+„„7 9
 DISPOSED
-‚‚: B
+„„: B
 )
-‚‚B C
+„„B C
 {
-„„ 	
+‰‰ 	
 return
-‰‰ 
+ÂÂ 
 ;
-‰‰ 
+ÂÂ 
 }
-ÂÂ 	
+ÊÊ 	
 try
-ÁÁ 
+ËË 
 {
-ËË 	
+ÈÈ 	
 await
-ÈÈ 
+ÍÍ 
 Task
-ÈÈ 
+ÍÍ 
 .
-ÈÈ 
+ÍÍ 
 Run
-ÈÈ 
+ÍÍ 
 (
-ÈÈ 
+ÍÍ 
 static
-ÈÈ !
+ÍÍ !
 (
-ÈÈ" #
+ÍÍ" #
 )
-ÈÈ# $
+ÍÍ# $
 =>
-ÈÈ% '
+ÍÍ% '
 {
-ÍÍ 
+ÎÎ 
 try
-ÎÎ 
+ÏÏ 
 {
-ÏÏ -
+ÌÌ -
 CertificatePinningNativeLibrary
-ÌÌ 3
+ÓÓ 3
 .
-ÌÌ3 4
+ÓÓ3 4
 Cleanup
-ÌÌ4 ;
+ÓÓ4 ;
 (
-ÌÌ; <
+ÓÓ; <
 )
-ÌÌ< =
+ÓÓ< =
 ;
-ÌÌ= >
+ÓÓ= >
 }
-ÓÓ 
+ÔÔ 
 catch
-ÔÔ 
+ 
 (
-ÔÔ 
+ 
 	Exception
-ÔÔ  
+  
 ex
-ÔÔ! #
+! #
 )
-ÔÔ# $
+# $
 {
- 
+ÒÒ 
 Serilog
-ÒÒ 
+ÚÚ 
 .
-ÒÒ 
+ÚÚ 
 Log
-ÒÒ 
+ÚÚ 
 .
-ÒÒ  
+ÚÚ  
 Warning
-ÒÒ  '
+ÚÚ  '
 (
-ÒÒ' (
+ÚÚ' (
 ex
-ÒÒ( *
+ÚÚ( *
 ,
-ÒÒ* +
+ÚÚ* +
 $str
-ÒÒ, i
+ÚÚ, i
 )
-ÒÒi j
+ÚÚi j
 ;
-ÒÒj k
+ÚÚj k
 }
-ÚÚ 
+ÛÛ 
 }
-ÛÛ 
+ÙÙ 
 )
-ÛÛ 
+ÙÙ 
 .
-ÛÛ 
+ÙÙ 
 ConfigureAwait
-ÛÛ 
+ÙÙ 
 (
-ÛÛ 
+ÙÙ 
 false
-ÛÛ #
+ÙÙ #
 )
-ÛÛ# $
+ÙÙ# $
 ;
-ÛÛ$ %
+ÙÙ$ %
 }
-ÙÙ 	
+ıı 	
 finally
-ıı 
+ˆˆ 
 {
-ˆˆ 	!
+˜˜ 	!
 _initializationLock
-˜˜ 
+¯¯ 
 .
-˜˜  
+¯¯  
 Dispose
-˜˜  '
+¯¯  '
 (
-˜˜' (
+¯¯' (
 )
-˜˜( )
+¯¯( )
 ;
-˜˜) *
+¯¯) *
 }
-¯¯ 	
+˘˘ 	
 }
-˘˘ 
-}˙˙ ·
+˙˙ 
+}˚˚ ·
 é/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningOperationResult.cs
 	namespace 	
 Ecliptix
@@ -3474,7 +3484,7 @@ stateCheck
 $num		 
 }
 
- ÂR
+ ôS
 ä/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs
 	namespace 	
 Ecliptix
@@ -3754,342 +3764,345 @@ AppContext// #
 )33. /
 {44 	
 if55 
-(55 
-File55 
-.55 
-Exists55 
-(55 
-libPath55 #
-)55# $
+(55 
+!55 
+File55 
+.55 
+Exists55 
+(55 
+libPath55 $
 )55$ %
-{66 
-try77 
-{88 
-return99 
-NativeLibrary99 (
-.99( )
-Load99) -
-(99- .
-libPath99. 5
-)995 6
-;996 7
-}:: 
-catch;; 
-(;; 
-	Exception;;  
-);;  !
-{<< 
-}>> 
-}?? 
-}@@ 	
-returnBB 
-IntPtrBB 
-.BB 
-ZeroBB 
-;BB 
-}CC 
-privateEE 
-staticEE 
-stringEE  
-GetRuntimeIdentifierEE .
-(EE. /
-)EE/ 0
-{FF 
-ifGG 
+)55% &
+{66 
+continue77 
+;77 
+}88 
+try:: 
+{;; 
+return<< 
+NativeLibrary<< $
+.<<$ %
+Load<<% )
+(<<) *
+libPath<<* 1
+)<<1 2
+;<<2 3
+}== 
+catch>> 
+(>> 
+	Exception>> 
+)>> 
+{?? 
+}AA 
+}BB 	
+returnDD 
+IntPtrDD 
+.DD 
+ZeroDD 
+;DD 
+}EE 
+privateGG 
+staticGG 
+stringGG  
+GetRuntimeIdentifierGG .
+(GG. /
+)GG/ 0
+{HH 
+ifII 
 
-(GG 
-RuntimeInformationGG 
-.GG 
-IsOSPlatformGG +
-(GG+ ,
+(II 
+RuntimeInformationII 
+.II 
+IsOSPlatformII +
+(II+ ,
 
-OSPlatformGG, 6
-.GG6 7
-WindowsGG7 >
-)GG> ?
-)GG? @
-{HH 	
-returnII 
-RuntimeInformationII %
-.II% &
-ProcessArchitectureII& 9
-==II: <
-ArchitectureII= I
-.III J
-X86IIJ M
-?IIN O
-$strIIP Y
-:IIZ [
-$strII\ e
-;IIe f
-}JJ 	
-ifKK 
+OSPlatformII, 6
+.II6 7
+WindowsII7 >
+)II> ?
+)II? @
+{JJ 	
+returnKK 
+RuntimeInformationKK %
+.KK% &
+ProcessArchitectureKK& 9
+==KK: <
+ArchitectureKK= I
+.KKI J
+X86KKJ M
+?KKN O
+$strKKP Y
+:KKZ [
+$strKK\ e
+;KKe f
+}LL 	
+ifMM 
 
-(KK 
-RuntimeInformationKK 
-.KK 
-IsOSPlatformKK +
-(KK+ ,
+(MM 
+RuntimeInformationMM 
+.MM 
+IsOSPlatformMM +
+(MM+ ,
 
-OSPlatformKK, 6
-.KK6 7
-OSXKK7 :
-)KK: ;
-)KK; <
-{LL 	
-returnMM 
-RuntimeInformationMM %
-.MM% &
-ProcessArchitectureMM& 9
-==MM: <
-ArchitectureMM= I
-.MMI J
-Arm64MMJ O
-?MMP Q
-$strMMR ]
-:MM^ _
-$strMM` i
-;MMi j
-}NN 	
-returnOO 
-$strOO 
-;OO 
-}PP 
-[RR 
-	DllImportRR 
-(RR 
-LIBRARY_NAMERR 
-,RR 
+OSPlatformMM, 6
+.MM6 7
+OSXMM7 :
+)MM: ;
+)MM; <
+{NN 	
+returnOO 
+RuntimeInformationOO %
+.OO% &
+ProcessArchitectureOO& 9
+==OO: <
+ArchitectureOO= I
+.OOI J
+Arm64OOJ O
+?OOP Q
+$strOOR ]
+:OO^ _
+$strOO` i
+;OOi j
+}PP 	
+returnQQ 
+$strQQ 
+;QQ 
+}RR 
+[TT 
+	DllImportTT 
+(TT 
+LIBRARY_NAMETT 
+,TT 
 
-EntryPointRR '
-=RR( )
-$strRR* @
-,RR@ A
-CallingConventionRRB S
-=RRT U
-CallingConventionRRV g
-.RRg h
-CdeclRRh m
-)RRm n
-]RRn o
-publicSS 
+EntryPointTT '
+=TT( )
+$strTT* @
+,TT@ A
+CallingConventionTTB S
+=TTT U
+CallingConventionTTV g
+.TTg h
+CdeclTTh m
+)TTm n
+]TTn o
+publicUU 
 
-staticSS 
-externSS *
-CertificatePinningNativeResultSS 7
+staticUU 
+externUU *
+CertificatePinningNativeResultUU 7
 
-InitializeSS8 B
-(SSB C
-)SSC D
-;SSD E
-[UU 
-	DllImportUU 
-(UU 
-LIBRARY_NAMEUU 
-,UU 
+InitializeUU8 B
+(UUB C
+)UUC D
+;UUD E
+[WW 
+	DllImportWW 
+(WW 
+LIBRARY_NAMEWW 
+,WW 
 
-EntryPointUU '
-=UU( )
-$strUU* C
-,UUC D
-CallingConventionUUE V
-=UUW X
-CallingConventionUUY j
-.UUj k
-CdeclUUk p
-)UUp q
-]UUq r
-publicVV 
+EntryPointWW '
+=WW( )
+$strWW* C
+,WWC D
+CallingConventionWWE V
+=WWW X
+CallingConventionWWY j
+.WWj k
+CdeclWWk p
+)WWp q
+]WWq r
+publicXX 
 
-staticVV 
-externVV 
-voidVV 
-CleanupVV %
-(VV% &
-)VV& '
-;VV' (
-[XX 
-	DllImportXX 
-(XX 
-LIBRARY_NAMEXX 
-,XX 
+staticXX 
+externXX 
+voidXX 
+CleanupXX %
+(XX% &
+)XX& '
+;XX' (
+[ZZ 
+	DllImportZZ 
+(ZZ 
+LIBRARY_NAMEZZ 
+,ZZ 
 
-EntryPointXX '
-=XX( )
-$strXX* B
-,XXB C
-CallingConventionXXD U
-=XXV W
-CallingConventionXXX i
-.XXi j
-CdeclXXj o
-)XXo p
-]XXp q
-publicYY 
+EntryPointZZ '
+=ZZ( )
+$strZZ* B
+,ZZB C
+CallingConventionZZD U
+=ZZV W
+CallingConventionZZX i
+.ZZi j
+CdeclZZj o
+)ZZo p
+]ZZp q
+public[[ 
 
-staticYY 
-externYY *
-CertificatePinningNativeResultYY 7
-VerifySignatureYY8 G
-(YYG H
-byteZZ 
-*ZZ 
-dataZZ 
-,ZZ 
-nuintZZ 
-dataLenZZ !
-,ZZ! "
-byte[[ 
-*[[ 
-	signature[[ 
-,[[ 
-nuint[[ 
-signatureLen[[ +
-)[[+ ,
-;[[, -
-[]] 
-	DllImport]] 
-(]] 
-LIBRARY_NAME]] 
-,]] 
+static[[ 
+extern[[ *
+CertificatePinningNativeResult[[ 7
+VerifySignature[[8 G
+([[G H
+byte\\ 
+*\\ 
+data\\ 
+,\\ 
+nuint\\ 
+dataLen\\ !
+,\\! "
+byte]] 
+*]] 
+	signature]] 
+,]] 
+nuint]] 
+signatureLen]] +
+)]]+ ,
+;]], -
+[__ 
+	DllImport__ 
+(__ 
+LIBRARY_NAME__ 
+,__ 
 
-EntryPoint]] '
-=]]( )
-$str]]* C
-,]]C D
-CallingConvention]]E V
-=]]W X
-CallingConvention]]Y j
-.]]j k
-Cdecl]]k p
-)]]p q
-]]]q r
-public^^ 
+EntryPoint__ '
+=__( )
+$str__* C
+,__C D
+CallingConvention__E V
+=__W X
+CallingConvention__Y j
+.__j k
+Cdecl__k p
+)__p q
+]__q r
+public`` 
 
-static^^ 
-extern^^ *
-CertificatePinningNativeResult^^ 7
-Encrypt^^8 ?
-(^^? @
-byte__ 
-*__ 
-	plaintext__ 
-,__ 
-nuint__ 
-plaintextLen__ +
-,__+ ,
-byte`` 
-*`` 
+static`` 
+extern`` *
+CertificatePinningNativeResult`` 7
+Encrypt``8 ?
+(``? @
+byteaa 
+*aa 
+	plaintextaa 
+,aa 
+nuintaa 
+plaintextLenaa +
+,aa+ ,
+bytebb 
+*bb 
 
-ciphertext`` 
-,`` 
-nuint`` 
-*``  
-ciphertextLen``! .
-)``. /
-;``/ 0
-[bb 
-	DllImportbb 
-(bb 
-LIBRARY_NAMEbb 
-,bb 
+ciphertextbb 
+,bb 
+nuintbb 
+*bb  
+ciphertextLenbb! .
+)bb. /
+;bb/ 0
+[dd 
+	DllImportdd 
+(dd 
+LIBRARY_NAMEdd 
+,dd 
 
-EntryPointbb '
-=bb( )
-$strbb* C
-,bbC D
-CallingConventionbbE V
-=bbW X
-CallingConventionbbY j
-.bbj k
-Cdeclbbk p
-)bbp q
-]bbq r
-publiccc 
+EntryPointdd '
+=dd( )
+$strdd* C
+,ddC D
+CallingConventionddE V
+=ddW X
+CallingConventionddY j
+.ddj k
+Cdeclddk p
+)ddp q
+]ddq r
+publicee 
 
-staticcc 
-externcc *
-CertificatePinningNativeResultcc 7
-Decryptcc8 ?
-(cc? @
-bytedd 
-*dd 
+staticee 
+externee *
+CertificatePinningNativeResultee 7
+Decryptee8 ?
+(ee? @
+byteff 
+*ff 
 
-ciphertextdd 
-,dd 
-nuintdd 
-ciphertextLendd  -
-,dd- .
-byteee 
-*ee 
-	plaintextee 
-,ee 
-nuintee 
-*ee 
-plaintextLenee  ,
-)ee, -
-;ee- .
-[gg 
-	DllImportgg 
-(gg 
-LIBRARY_NAMEgg 
-,gg 
+ciphertextff 
+,ff 
+nuintff 
+ciphertextLenff  -
+,ff- .
+bytegg 
+*gg 
+	plaintextgg 
+,gg 
+nuintgg 
+*gg 
+plaintextLengg  ,
+)gg, -
+;gg- .
+[ii 
+	DllImportii 
+(ii 
+LIBRARY_NAMEii 
+,ii 
 
-EntryPointgg '
-=gg( )
-$strgg* J
-,ggJ K
-CallingConventionggL ]
-=gg^ _
-CallingConventiongg` q
-.ggq r
-Cdeclggr w
-)ggw x
-]ggx y
-publichh 
+EntryPointii '
+=ii( )
+$strii* J
+,iiJ K
+CallingConventioniiL ]
+=ii^ _
+CallingConventionii` q
+.iiq r
+Cdecliir w
+)iiw x
+]iix y
+publicjj 
 
-statichh 
-externhh *
-CertificatePinningNativeResulthh 7
-GetPublicKeyhh8 D
-(hhD E
-byteii 
-*ii 
-publicKeyDerii 
-,ii 
-nuintii !
-*ii! "
-publicKeyLenii# /
-)ii/ 0
-;ii0 1
-[kk 
-	DllImportkk 
-(kk 
-LIBRARY_NAMEkk 
-,kk 
+staticjj 
+externjj *
+CertificatePinningNativeResultjj 7
+GetPublicKeyjj8 D
+(jjD E
+bytekk 
+*kk 
+publicKeyDerkk 
+,kk 
+nuintkk !
+*kk! "
+publicKeyLenkk# /
+)kk/ 0
+;kk0 1
+[mm 
+	DllImportmm 
+(mm 
+LIBRARY_NAMEmm 
+,mm 
 
-EntryPointkk '
-=kk( )
-$strkk* E
-,kkE F
-CallingConventionkkG X
-=kkY Z
-CallingConventionkk[ l
-.kkl m
-Cdeclkkm r
-)kkr s
-]kks t
-publicll 
+EntryPointmm '
+=mm( )
+$strmm* E
+,mmE F
+CallingConventionmmG X
+=mmY Z
+CallingConventionmm[ l
+.mml m
+Cdeclmmm r
+)mmr s
+]mms t
+publicnn 
 
-staticll 
-externll 
-bytell 
-*ll 
-GetErrorMessagell .
-(ll. /
-)ll/ 0
-;ll0 1
-}mm ÷
+staticnn 
+externnn 
+bytenn 
+*nn 
+GetErrorMessagenn .
+(nn. /
+)nn/ 0
+;nn0 1
+}oo ÷
 â/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Constants/CertificatePinningConstants.cs
 	namespace 	
 Ecliptix

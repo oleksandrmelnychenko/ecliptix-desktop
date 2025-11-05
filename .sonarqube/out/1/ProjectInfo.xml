@@ -14,7 +14,7 @@
     <Property Name="sonar.cs.analyzer.projectOutPaths">/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/.sonarqube/out/1</Property>
     <Property Name="sonar.cs.scanner.telemetry">/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/.sonarqube/out/1/Telemetry.json</Property>
   </AnalysisSettings>
-  <Configuration>Debug</Configuration>
+  <Configuration>Release</Configuration>
   <Platform>AnyCPU</Platform>
   <TargetFramework>net9.0</TargetFramework>
 </ProjectInfo>

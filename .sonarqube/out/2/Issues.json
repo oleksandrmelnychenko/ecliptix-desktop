@@ -54,18 +54,60 @@
           }
         },
         {
-          "ruleId": "S125",
-          "level": "warning",
-          "message": "Remove this commented out code.",
+          "ruleId": "CA1815",
+          "level": "note",
+          "message": "OneTimePreKeyLocal should override Equals",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolConnection.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/OneTimePreKeyLocal.cs",
                 "region": {
-                  "startLine": 1077,
-                  "startColumn": 1,
-                  "endLine": 1077,
-                  "endColumn": 10
+                  "startLine": 9,
+                  "startColumn": 24,
+                  "endLine": 9,
+                  "endColumn": 42
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1815",
+          "level": "note",
+          "message": "OneTimePreKeyLocal should override the equality (==) and inequality (!=) operators",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/OneTimePreKeyLocal.cs",
+                "region": {
+                  "startLine": 9,
+                  "startColumn": 24,
+                  "endLine": 9,
+                  "endColumn": 42
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1805",
+          "level": "note",
+          "message": "Member 'EnablePerMessageRatchet' is explicitly initialized to its default value",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/RatchetConfig.cs",
+                "region": {
+                  "startLine": 9,
+                  "startColumn": 56,
+                  "endLine": 9,
+                  "endColumn": 63
                 }
               }
             }
@@ -100,6 +142,80 @@
                   "startColumn": 53,
                   "endLine": 5,
                   "endColumn": 58
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "UseCollectionExpressionName": "UseCollectionExpressionName"
+            }
+          }
+        },
+        {
+          "ruleId": "IDE0028",
+          "level": "note",
+          "message": "Collection initialization can be simplified",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Utilities/SecureMemoryPool.cs",
+                "region": {
+                  "startLine": 7,
+                  "startColumn": 64,
+                  "endLine": 7,
+                  "endColumn": 67
+                }
+              }
+            }
+          ],
+          "relatedLocations": [
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Utilities/SecureMemoryPool.cs",
+                "region": {
+                  "startLine": 7,
+                  "startColumn": 64,
+                  "endLine": 7,
+                  "endColumn": 69
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "UseCollectionExpressionName": "UseCollectionExpressionName"
+            }
+          }
+        },
+        {
+          "ruleId": "IDE0028",
+          "level": "note",
+          "message": "Collection initialization can be simplified",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/RatchetRecovery.cs",
+                "region": {
+                  "startLine": 12,
+                  "startColumn": 87,
+                  "endLine": 12,
+                  "endColumn": 90
+                }
+              }
+            }
+          ],
+          "relatedLocations": [
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/RatchetRecovery.cs",
+                "region": {
+                  "startLine": 12,
+                  "startColumn": 87,
+                  "endLine": 12,
+                  "endColumn": 92
                 }
               }
             }
@@ -177,16 +293,16 @@
         {
           "ruleId": "CA5392",
           "level": "note",
-          "message": "The method sodium_memzero didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
+          "message": "The method sodium_memcmp didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
           "locations": [
             {
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Sodium/SodiumInterop.cs",
                 "region": {
-                  "startLine": 34,
-                  "startColumn": 33,
-                  "endLine": 34,
-                  "endColumn": 47
+                  "startLine": 38,
+                  "startColumn": 32,
+                  "endLine": 38,
+                  "endColumn": 45
                 }
               }
             }
@@ -198,16 +314,16 @@
         {
           "ruleId": "CA5392",
           "level": "note",
-          "message": "The method sodium_memcmp didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
+          "message": "The method sodium_memzero didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
           "locations": [
             {
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Sodium/SodiumInterop.cs",
                 "region": {
-                  "startLine": 38,
-                  "startColumn": 32,
-                  "endLine": 38,
-                  "endColumn": 45
+                  "startLine": 34,
+                  "startColumn": 33,
+                  "endLine": 34,
+                  "endColumn": 47
                 }
               }
             }
@@ -259,18 +375,18 @@
           }
         },
         {
-          "ruleId": "CA1815",
+          "ruleId": "CA1305",
           "level": "note",
-          "message": "OneTimePreKeyLocal should override Equals",
+          "message": "The behavior of 'string.Format(string, object, object)' could vary based on the current user's locale settings. Replace this call in 'DhValidator.ValidateX25519PublicKey(byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/OneTimePreKeyLocal.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/DhValidator.cs",
                 "region": {
-                  "startLine": 9,
-                  "startColumn": 24,
-                  "endLine": 9,
-                  "endColumn": 42
+                  "startLine": 14,
+                  "startColumn": 21,
+                  "endLine": 14,
+                  "endColumn": 156
                 }
               }
             }
@@ -280,18 +396,18 @@
           }
         },
         {
-          "ruleId": "CA1815",
-          "level": "note",
-          "message": "OneTimePreKeyLocal should override the equality (==) and inequality (!=) operators",
+          "ruleId": "S107",
+          "level": "warning",
+          "message": "Constructor has 9 parameters, which is greater than the 7 authorized.",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/OneTimePreKeyLocal.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 9,
-                  "startColumn": 24,
-                  "endLine": 9,
-                  "endColumn": 42
+                  "startLine": 28,
+                  "startColumn": 39,
+                  "endLine": 32,
+                  "endColumn": 39
                 }
               }
             }
@@ -301,98 +417,24 @@
           }
         },
         {
-          "ruleId": "IDE0028",
+          "ruleId": "CA1305",
           "level": "note",
-          "message": "Collection initialization can be simplified",
+          "message": "The behavior of 'string.Format(string, object, object)' could vary based on the current user's locale settings. Replace this call in 'SecureMemoryBuffer.SetRequestedSize(int)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Utilities/SecureMemoryPool.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Utilities/SecureMemoryBuffer.cs",
                 "region": {
-                  "startLine": 7,
-                  "startColumn": 64,
-                  "endLine": 7,
-                  "endColumn": 67
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Utilities/SecureMemoryPool.cs",
-                "region": {
-                  "startLine": 7,
-                  "startColumn": 64,
-                  "endLine": 7,
-                  "endColumn": 69
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "UseCollectionExpressionName": "UseCollectionExpressionName"
-            }
-          }
-        },
-        {
-          "ruleId": "CA1805",
-          "level": "note",
-          "message": "Member 'EnablePerMessageRatchet' is explicitly initialized to its default value",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/RatchetConfig.cs",
-                "region": {
-                  "startLine": 9,
-                  "startColumn": 56,
-                  "endLine": 9,
-                  "endColumn": 63
+                  "startLine": 38,
+                  "startColumn": 41,
+                  "endLine": 38,
+                  "endColumn": 157
                 }
               }
             }
           ],
           "properties": {
             "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "IDE0028",
-          "level": "note",
-          "message": "Collection initialization can be simplified",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/RatchetRecovery.cs",
-                "region": {
-                  "startLine": 12,
-                  "startColumn": 87,
-                  "endLine": 12,
-                  "endColumn": 90
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/RatchetRecovery.cs",
-                "region": {
-                  "startLine": 12,
-                  "startColumn": 87,
-                  "endLine": 12,
-                  "endColumn": 92
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "UseCollectionExpressionName": "UseCollectionExpressionName"
-            }
           }
         },
         {
@@ -404,9 +446,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Utilities/SecureStringHandler.cs",
                 "region": {
-                  "startLine": 121,
+                  "startLine": 119,
                   "startColumn": 19,
-                  "endLine": 121,
+                  "endLine": 119,
                   "endColumn": 22
                 }
               }
@@ -417,9 +459,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Utilities/SecureStringHandler.cs",
                 "region": {
-                  "startLine": 121,
+                  "startLine": 119,
                   "startColumn": 19,
-                  "endLine": 121,
+                  "endLine": 119,
                   "endColumn": 55
                 }
               }
@@ -435,16 +477,121 @@
         {
           "ruleId": "CA1305",
           "level": "note",
-          "message": "The behavior of 'string.Format(string, object, object)' could vary based on the current user's locale settings. Replace this call in 'DhValidator.ValidateX25519PublicKey(byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "message": "The behavior of 'string.Format(string, object, object)' could vary based on the current user's locale settings. Replace this call in 'ReplayProtection.CheckMessageWindow(ulong, ulong)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/DhValidator.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/ReplayProtection.cs",
                 "region": {
-                  "startLine": 14,
-                  "startColumn": 21,
-                  "endLine": 14,
-                  "endColumn": 156
+                  "startLine": 99,
+                  "startColumn": 53,
+                  "endLine": 99,
+                  "endColumn": 179
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object, object, object)' could vary based on the current user's locale settings. Replace this call in 'ReplayProtection.CheckMessageWindow(ulong, ulong)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/ReplayProtection.cs",
+                "region": {
+                  "startLine": 106,
+                  "startColumn": 53,
+                  "endLine": 106,
+                  "endColumn": 186
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S107",
+          "level": "warning",
+          "message": "Constructor has 8 parameters, which is greater than the 7 authorized.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolConnection.cs",
+                "region": {
+                  "startLine": 58,
+                  "startColumn": 39,
+                  "endLine": 60,
+                  "endColumn": 70
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1062",
+          "level": "note",
+          "message": "In externally visible method 'Result<byte[], SodiumFailure> LogoutKeyDerivation.DeriveLogoutHmacKey(SodiumSecureMemoryHandle masterKeyHandle)', validate parameter 'masterKeyHandle' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/LogoutKeyDerivation.cs",
+                "region": {
+                  "startLine": 34,
+                  "startColumn": 56,
+                  "endLine": 34,
+                  "endColumn": 71
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1062",
+          "level": "note",
+          "message": "In externally visible method 'Result<byte[], SodiumFailure> LogoutKeyDerivation.DeriveLogoutProofKey(SodiumSecureMemoryHandle masterKeyHandle)', validate parameter 'masterKeyHandle' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/LogoutKeyDerivation.cs",
+                "region": {
+                  "startLine": 88,
+                  "startColumn": 56,
+                  "endLine": 88,
+                  "endColumn": 71
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S3966",
+          "level": "warning",
+          "message": "Resource 'securePrivateKey' has already been disposed explicitly or through a using statement implicitly. Remove the redundant disposal.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/OneTimePreKeyLocal.cs",
+                "region": {
+                  "startLine": 107,
+                  "startColumn": 30,
+                  "endLine": 107,
+                  "endColumn": 40
                 }
               }
             }
@@ -475,18 +622,18 @@
           }
         },
         {
-          "ruleId": "S6640",
-          "level": "warning",
-          "message": "Make sure that using \"unsafe\" is safe here.",
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'SodiumInterop.InitializeSodium()' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Sodium/SodiumSecureMemoryHandle.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Sodium/SodiumInterop.cs",
                 "region": {
-                  "startLine": 104,
-                  "startColumn": 13,
-                  "endLine": 104,
-                  "endColumn": 19
+                  "startLine": 59,
+                  "startColumn": 21,
+                  "endLine": 59,
+                  "endColumn": 89
                 }
               }
             }
@@ -496,18 +643,18 @@
           }
         },
         {
-          "ruleId": "CA1305",
+          "ruleId": "CA1307",
           "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolChainStep.ExecuteWithKey<T>(uint, Func<ReadOnlySpan<byte>, Result<T, EcliptixProtocolFailure>>)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "message": "'string.Contains(string)' has a method overload that takes a 'StringComparison' parameter. Replace this call in 'Ecliptix.Protocol.System.Sodium.SodiumInterop.InitializeSodium()' with a call to 'string.Contains(string, System.StringComparison)' for clarity of intent.",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolChainStep.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Sodium/SodiumInterop.cs",
                 "region": {
-                  "startLine": 65,
-                  "startColumn": 21,
-                  "endLine": 65,
-                  "endColumn": 112
+                  "startLine": 60,
+                  "startColumn": 53,
+                  "endLine": 61,
+                  "endColumn": 46
                 }
               }
             }
@@ -582,16 +729,50 @@
         {
           "ruleId": "CA1305",
           "level": "note",
-          "message": "The behavior of 'string.Format(string, object, object)' could vary based on the current user's locale settings. Replace this call in 'SodiumSecureMemoryHandle.Write(ReadOnlySpan<byte>)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolChainStep.ExecuteWithKey<T>(uint, Func<ReadOnlySpan<byte>, Result<T, EcliptixProtocolFailure>>)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Sodium/SodiumSecureMemoryHandle.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolChainStep.cs",
                 "region": {
-                  "startLine": 89,
-                  "startColumn": 52,
-                  "endLine": 89,
-                  "endColumn": 145
+                  "startLine": 65,
+                  "startColumn": 21,
+                  "endLine": 65,
+                  "endColumn": 112
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1513",
+          "level": "note",
+          "message": "Use 'ObjectDisposedException.ThrowIf' instead of explicitly throwing a new exception instance",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Utilities/SecureMemoryPool.cs",
+                "region": {
+                  "startLine": 31,
+                  "startColumn": 9,
+                  "endLine": 34,
+                  "endColumn": 10
+                }
+              }
+            }
+          ],
+          "relatedLocations": [
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Utilities/SecureMemoryPool.cs",
+                "region": {
+                  "startLine": 31,
+                  "startColumn": 13,
+                  "endLine": 31,
+                  "endColumn": 22
                 }
               }
             }
@@ -640,16 +821,37 @@
         {
           "ruleId": "CA1305",
           "level": "note",
-          "message": "The behavior of 'string.Format(string, object, object)' could vary based on the current user's locale settings. Replace this call in 'ReplayProtection.CheckMessageWindow(ulong, ulong)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolChainStep.ValidateInitialChainKey(byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/ReplayProtection.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolChainStep.cs",
                 "region": {
-                  "startLine": 99,
-                  "startColumn": 53,
-                  "endLine": 99,
-                  "endColumn": 179
+                  "startLine": 197,
+                  "startColumn": 54,
+                  "endLine": 198,
+                  "endColumn": 122
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S6640",
+          "level": "warning",
+          "message": "Make sure that using \"unsafe\" is safe here.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Sodium/SodiumSecureMemoryHandle.cs",
+                "region": {
+                  "startLine": 104,
+                  "startColumn": 13,
+                  "endLine": 104,
+                  "endColumn": 19
                 }
               }
             }
@@ -661,16 +863,520 @@
         {
           "ruleId": "CA1305",
           "level": "note",
-          "message": "The behavior of 'string.Format(string, object, object, object)' could vary based on the current user's locale settings. Replace this call in 'ReplayProtection.CheckMessageWindow(ulong, ulong)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixSystemIdentityKeys.ToProtoState()' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/ReplayProtection.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
+                "region": {
+                  "startLine": 76,
+                  "startColumn": 29,
+                  "endLine": 76,
+                  "endColumn": 157
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixSystemIdentityKeys.ToProtoState()' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
+                "region": {
+                  "startLine": 94,
+                  "startColumn": 25,
+                  "endLine": 94,
+                  "endColumn": 160
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixSystemIdentityKeys.ToProtoState()' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
+                "region": {
+                  "startLine": 104,
+                  "startColumn": 25,
+                  "endLine": 104,
+                  "endColumn": 175
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixSystemIdentityKeys.ToProtoState()' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
+                "region": {
+                  "startLine": 114,
+                  "startColumn": 25,
+                  "endLine": 114,
+                  "endColumn": 167
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'LocalPublicKeyBundle.FromProtobufExchange(PublicKeyBundle)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/PublicKeyBundle.cs",
+                "region": {
+                  "startLine": 92,
+                  "startColumn": 21,
+                  "endLine": 92,
+                  "endColumn": 142
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'LocalPublicKeyBundle.FromProtobufExchange(PublicKeyBundle)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/PublicKeyBundle.cs",
+                "region": {
+                  "startLine": 94,
+                  "startColumn": 21,
+                  "endLine": 94,
+                  "endColumn": 135
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object, object)' could vary based on the current user's locale settings. Replace this call in 'SodiumSecureMemoryHandle.Write(ReadOnlySpan<byte>)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Sodium/SodiumSecureMemoryHandle.cs",
+                "region": {
+                  "startLine": 89,
+                  "startColumn": 52,
+                  "endLine": 89,
+                  "endColumn": 145
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object, object)' could vary based on the current user's locale settings. Replace this call in 'SodiumInterop.SecureWipe(byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Sodium/SodiumInterop.cs",
+                "region": {
+                  "startLine": 85,
+                  "startColumn": 29,
+                  "endLine": 85,
+                  "endColumn": 121
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1062",
+          "level": "note",
+          "message": "In externally visible method 'Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure> EcliptixSystemIdentityKeys.FromProtoState(IdentityKeysState proto)', validate parameter 'proto' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
+                "region": {
+                  "startLine": 150,
+                  "startColumn": 60,
+                  "endLine": 150,
+                  "endColumn": 65
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'LocalPublicKeyBundle.ExtractAndValidateIdentityX25519(PublicKeyBundle)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/PublicKeyBundle.cs",
+                "region": {
+                  "startLine": 118,
+                  "startColumn": 41,
+                  "endLine": 118,
+                  "endColumn": 161
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'LocalPublicKeyBundle.ExtractAndValidateIdentityX25519(PublicKeyBundle)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/PublicKeyBundle.cs",
+                "region": {
+                  "startLine": 124,
+                  "startColumn": 41,
+                  "endLine": 124,
+                  "endColumn": 170
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'LocalPublicKeyBundle.ExtractAndValidateSignedPreKey(PublicKeyBundle)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/PublicKeyBundle.cs",
+                "region": {
+                  "startLine": 136,
+                  "startColumn": 41,
+                  "endLine": 136,
+                  "endColumn": 166
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'LocalPublicKeyBundle.ExtractAndValidateSignedPreKey(PublicKeyBundle)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/PublicKeyBundle.cs",
+                "region": {
+                  "startLine": 142,
+                  "startColumn": 41,
+                  "endLine": 142,
+                  "endColumn": 175
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1062",
+          "level": "note",
+          "message": "In externally visible method 'bool LogoutKeyDerivation.VerifyHmac(byte[] key, byte[] data, byte[] expectedHmac)', validate parameter 'expectedHmac' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/LogoutKeyDerivation.cs",
+                "region": {
+                  "startLine": 143,
+                  "startColumn": 13,
+                  "endLine": 143,
+                  "endColumn": 25
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'LocalPublicKeyBundle.ExtractAndValidateSignature(PublicKeyBundle)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/PublicKeyBundle.cs",
+                "region": {
+                  "startLine": 154,
+                  "startColumn": 41,
+                  "endLine": 154,
+                  "endColumn": 176
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'LocalPublicKeyBundle.ExtractAndValidateIdentityEd25519(PublicKeyBundle)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/PublicKeyBundle.cs",
                 "region": {
                   "startLine": 106,
-                  "startColumn": 53,
+                  "startColumn": 41,
                   "endLine": 106,
-                  "endColumn": 186
+                  "endColumn": 163
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S107",
+          "level": "warning",
+          "message": "Method has 8 parameters, which is greater than the 7 authorized.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Utilities/EnvelopeBuilder.cs",
+                "region": {
+                  "startLine": 36,
+                  "startColumn": 54,
+                  "endLine": 44,
+                  "endColumn": 40
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object, object)' could vary based on the current user's locale settings. Replace this call in 'LocalPublicKeyBundle.ExtractAndValidateOneTimePreKeys(PublicKeyBundle)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/PublicKeyBundle.cs",
+                "region": {
+                  "startLine": 195,
+                  "startColumn": 45,
+                  "endLine": 195,
+                  "endColumn": 178
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S3966",
+          "level": "warning",
+          "message": "Resource 'initialSendingDhPrivateKeyHandle' has already been disposed explicitly or through a using statement implicitly. Remove the redundant disposal.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolConnection.cs",
+                "region": {
+                  "startLine": 199,
+                  "startColumn": 46,
+                  "endLine": 199,
+                  "endColumn": 56
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S3966",
+          "level": "warning",
+          "message": "Resource 'persistentDhPrivateKeyHandle' has already been disposed explicitly or through a using statement implicitly. Remove the redundant disposal.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolConnection.cs",
+                "region": {
+                  "startLine": 201,
+                  "startColumn": 42,
+                  "endLine": 201,
+                  "endColumn": 52
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolConnection.Create(uint, bool, RatchetConfig, PubKeyExchangeType)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolConnection.cs",
+                "region": {
+                  "startLine": 205,
+                  "startColumn": 21,
+                  "endLine": 205,
+                  "endColumn": 112
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'LocalPublicKeyBundle.ExtractAndValidateEphemeral(PublicKeyBundle)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/PublicKeyBundle.cs",
+                "region": {
+                  "startLine": 171,
+                  "startColumn": 41,
+                  "endLine": 171,
+                  "endColumn": 162
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'LocalPublicKeyBundle.ExtractAndValidateEphemeral(PublicKeyBundle)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/PublicKeyBundle.cs",
+                "region": {
+                  "startLine": 177,
+                  "startColumn": 41,
+                  "endLine": 177,
+                  "endColumn": 171
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolChainStep.ValidateAndPrepareDhKeys(byte[], byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolChainStep.cs",
+                "region": {
+                  "startLine": 221,
+                  "startColumn": 21,
+                  "endLine": 222,
+                  "endColumn": 60
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolChainStep.ValidateAndPrepareDhKeys(byte[], byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolChainStep.cs",
+                "region": {
+                  "startLine": 229,
+                  "startColumn": 21,
+                  "endLine": 230,
+                  "endColumn": 52
                 }
               }
             }
@@ -701,39 +1407,18 @@
           }
         },
         {
-          "ruleId": "S107",
-          "level": "warning",
-          "message": "Constructor has 8 parameters, which is greater than the 7 authorized.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolConnection.cs",
-                "region": {
-                  "startLine": 58,
-                  "startColumn": 39,
-                  "endLine": 60,
-                  "endColumn": 70
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
           "ruleId": "CA1305",
           "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolChainStep.ValidateInitialChainKey(byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "message": "The behavior of 'string.Format(string, object, object, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolChainStep.GetOrDeriveKeyFor(uint)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
           "locations": [
             {
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolChainStep.cs",
                 "region": {
-                  "startLine": 197,
-                  "startColumn": 54,
-                  "endLine": 198,
-                  "endColumn": 122
+                  "startLine": 315,
+                  "startColumn": 21,
+                  "endLine": 316,
+                  "endColumn": 51
                 }
               }
             }
@@ -745,16 +1430,16 @@
         {
           "ruleId": "CA1305",
           "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'SodiumInterop.InitializeSodium()' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolChainStep.GetOrDeriveKeyFor(uint)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Sodium/SodiumInterop.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolChainStep.cs",
                 "region": {
-                  "startLine": 59,
-                  "startColumn": 21,
-                  "endLine": 59,
-                  "endColumn": 89
+                  "startLine": 349,
+                  "startColumn": 25,
+                  "endLine": 350,
+                  "endColumn": 41
                 }
               }
             }
@@ -764,18 +1449,18 @@
           }
         },
         {
-          "ruleId": "CA1307",
+          "ruleId": "CA1305",
           "level": "note",
-          "message": "'string.Contains(string)' has a method overload that takes a 'StringComparison' parameter. Replace this call in 'Ecliptix.Protocol.System.Sodium.SodiumInterop.InitializeSodium()' with a call to 'string.Contains(string, System.StringComparison)' for clarity of intent.",
+          "message": "The behavior of 'string.Format(string, object, object)' could vary based on the current user's locale settings. Replace this call in 'MasterKeyDerivation.DeriveMasterKey(byte[], ByteString)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Sodium/SodiumInterop.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/MasterKeyDerivation.cs",
                 "region": {
                   "startLine": 60,
                   "startColumn": 53,
-                  "endLine": 61,
-                  "endColumn": 46
+                  "endLine": 60,
+                  "endColumn": 204
                 }
               }
             }
@@ -848,90 +1533,6 @@
           }
         },
         {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object, object)' could vary based on the current user's locale settings. Replace this call in 'SodiumInterop.SecureWipe(byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Sodium/SodiumInterop.cs",
-                "region": {
-                  "startLine": 85,
-                  "startColumn": 29,
-                  "endLine": 85,
-                  "endColumn": 121
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S6640",
-          "level": "warning",
-          "message": "Make sure that using \"unsafe\" is safe here.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Sodium/SodiumInterop.cs",
-                "region": {
-                  "startLine": 185,
-                  "startColumn": 13,
-                  "endLine": 185,
-                  "endColumn": 19
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolChainStep.ValidateAndPrepareDhKeys(byte[], byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolChainStep.cs",
-                "region": {
-                  "startLine": 221,
-                  "startColumn": 21,
-                  "endLine": 222,
-                  "endColumn": 60
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolChainStep.ValidateAndPrepareDhKeys(byte[], byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolChainStep.cs",
-                "region": {
-                  "startLine": 229,
-                  "startColumn": 21,
-                  "endLine": 230,
-                  "endColumn": 52
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
           "ruleId": "S6640",
           "level": "warning",
           "message": "Make sure that using \"unsafe\" is safe here.",
@@ -953,18 +1554,39 @@
           }
         },
         {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'SodiumInterop.WipeSmallBuffer(byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "ruleId": "S3966",
+          "level": "warning",
+          "message": "Resource 'rootKeyHandle' has already been disposed explicitly or through a using statement implicitly. Remove the redundant disposal.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolConnection.cs",
+                "region": {
+                  "startLine": 341,
+                  "startColumn": 27,
+                  "endLine": 341,
+                  "endColumn": 37
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S6640",
+          "level": "warning",
+          "message": "Make sure that using \"unsafe\" is safe here.",
           "locations": [
             {
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Sodium/SodiumInterop.cs",
                 "region": {
-                  "startLine": 208,
-                  "startColumn": 21,
-                  "endLine": 208,
-                  "endColumn": 98
+                  "startLine": 185,
+                  "startColumn": 13,
+                  "endLine": 185,
+                  "endColumn": 19
                 }
               }
             }
@@ -1134,123 +1756,18 @@
           }
         },
         {
-          "ruleId": "S107",
-          "level": "warning",
-          "message": "Constructor has 9 parameters, which is greater than the 7 authorized.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 28,
-                  "startColumn": 39,
-                  "endLine": 32,
-                  "endColumn": 39
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
+          "ruleId": "CA5392",
           "level": "note",
-          "message": "The behavior of 'string.Format(string, object, object, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolChainStep.GetOrDeriveKeyFor(uint)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "message": "The method VirtualLock didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
           "locations": [
             {
               "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolChainStep.cs",
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Sodium/SodiumSecureMemoryHandle.cs",
                 "region": {
-                  "startLine": 315,
-                  "startColumn": 21,
-                  "endLine": 316,
-                  "endColumn": 51
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolChainStep.GetOrDeriveKeyFor(uint)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolChainStep.cs",
-                "region": {
-                  "startLine": 349,
-                  "startColumn": 25,
-                  "endLine": 350,
-                  "endColumn": 41
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'SodiumInterop.WipeLargeBuffer(byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Sodium/SodiumInterop.cs",
-                "region": {
-                  "startLine": 236,
-                  "startColumn": 21,
-                  "endLine": 236,
-                  "endColumn": 91
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1307",
-          "level": "note",
-          "message": "'string.Contains(string)' has a method overload that takes a 'StringComparison' parameter. Replace this call in 'Ecliptix.Protocol.System.Sodium.SodiumInterop.WipeLargeBuffer(byte[])' with a call to 'string.Contains(string, System.StringComparison)' for clarity of intent.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Sodium/SodiumInterop.cs",
-                "region": {
-                  "startLine": 232,
-                  "startColumn": 53,
-                  "endLine": 233,
-                  "endColumn": 56
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S107",
-          "level": "warning",
-          "message": "Method has 8 parameters, which is greater than the 7 authorized.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Utilities/EnvelopeBuilder.cs",
-                "region": {
-                  "startLine": 38,
-                  "startColumn": 54,
-                  "endLine": 46,
-                  "endColumn": 40
+                  "startLine": 464,
+                  "startColumn": 32,
+                  "endLine": 464,
+                  "endColumn": 43
                 }
               }
             }
@@ -1272,48 +1789,6 @@
                   "startColumn": 17,
                   "endLine": 383,
                   "endColumn": 49
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolChainStep.DeriveNextChainKeys(Span<byte>, Span<byte>, Span<byte>, uint)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolChainStep.cs",
-                "region": {
-                  "startLine": 418,
-                  "startColumn": 21,
-                  "endLine": 418,
-                  "endColumn": 112
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA5392",
-          "level": "note",
-          "message": "The method VirtualLock didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Sodium/SodiumSecureMemoryHandle.cs",
-                "region": {
-                  "startLine": 464,
-                  "startColumn": 32,
-                  "endLine": 464,
-                  "endColumn": 43
                 }
               }
             }
@@ -1370,27 +1845,6 @@
           }
         },
         {
-          "ruleId": "CA5392",
-          "level": "note",
-          "message": "The method mlock didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Sodium/SodiumSecureMemoryHandle.cs",
-                "region": {
-                  "startLine": 470,
-                  "startColumn": 31,
-                  "endLine": 470,
-                  "endColumn": 36
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
           "ruleId": "SYSLIB1054",
           "level": "note",
           "message": "Mark the method 'VirtualUnlock' with 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time",
@@ -1414,6 +1868,48 @@
               "ExactSpelling": "False",
               "MayRequireAdditionalWork": "True"
             }
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'SodiumInterop.WipeSmallBuffer(byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Sodium/SodiumInterop.cs",
+                "region": {
+                  "startLine": 208,
+                  "startColumn": 21,
+                  "endLine": 208,
+                  "endColumn": 98
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA5392",
+          "level": "note",
+          "message": "The method mlock didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Sodium/SodiumSecureMemoryHandle.cs",
+                "region": {
+                  "startLine": 470,
+                  "startColumn": 31,
+                  "endLine": 470,
+                  "endColumn": 36
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
           }
         },
         {
@@ -1492,37 +1988,16 @@
         {
           "ruleId": "CA1305",
           "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolChainStep.StoreMessageKey(Span<byte>, Span<byte>, uint)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolChainStep.DeriveNextChainKeys(Span<byte>, Span<byte>, Span<byte>, uint)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
           "locations": [
             {
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolChainStep.cs",
                 "region": {
-                  "startLine": 431,
+                  "startLine": 418,
                   "startColumn": 21,
-                  "endLine": 431,
-                  "endColumn": 115
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolChainStep.StoreMessageKey(Span<byte>, Span<byte>, uint)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolChainStep.cs",
-                "region": {
-                  "startLine": 448,
-                  "startColumn": 21,
-                  "endLine": 448,
-                  "endColumn": 108
+                  "endLine": 418,
+                  "endColumn": 112
                 }
               }
             }
@@ -1553,165 +2028,18 @@
           }
         },
         {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixSystemIdentityKeys.ToProtoState()' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 76,
-                  "startColumn": 29,
-                  "endLine": 76,
-                  "endColumn": 157
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixSystemIdentityKeys.ToProtoState()' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 94,
-                  "startColumn": 25,
-                  "endLine": 94,
-                  "endColumn": 160
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixSystemIdentityKeys.ToProtoState()' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 104,
-                  "startColumn": 25,
-                  "endLine": 104,
-                  "endColumn": 175
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixSystemIdentityKeys.ToProtoState()' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 114,
-                  "startColumn": 25,
-                  "endLine": 114,
-                  "endColumn": 167
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
           "ruleId": "S3966",
           "level": "warning",
-          "message": "Resource 'initialSendingDhPrivateKeyHandle' has already been disposed explicitly or through a using statement implicitly. Remove the redundant disposal.",
+          "message": "Resource 'tempRootHandle' has already been disposed explicitly or through a using statement implicitly. Remove the redundant disposal.",
           "locations": [
             {
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolConnection.cs",
                 "region": {
-                  "startLine": 199,
-                  "startColumn": 46,
-                  "endLine": 199,
-                  "endColumn": 56
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S3966",
-          "level": "warning",
-          "message": "Resource 'persistentDhPrivateKeyHandle' has already been disposed explicitly or through a using statement implicitly. Remove the redundant disposal.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolConnection.cs",
-                "region": {
-                  "startLine": 201,
-                  "startColumn": 42,
-                  "endLine": 201,
-                  "endColumn": 52
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolConnection.Create(uint, bool, RatchetConfig, PubKeyExchangeType)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolConnection.cs",
-                "region": {
-                  "startLine": 205,
+                  "startLine": 515,
                   "startColumn": 21,
-                  "endLine": 205,
-                  "endColumn": 112
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S2589",
-          "level": "warning",
-          "message": "Change this condition so that it does not always evaluate to 'True'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Utilities/SecureStringHandler.cs",
-                "region": {
-                  "startLine": 261,
-                  "startColumn": 17,
-                  "endLine": 261,
-                  "endColumn": 35
+                  "endLine": 515,
+                  "endColumn": 45
                 }
               }
             }
@@ -1784,18 +2112,144 @@
           }
         },
         {
-          "ruleId": "CA1062",
+          "ruleId": "CA1305",
           "level": "note",
-          "message": "In externally visible method 'Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure> EcliptixSystemIdentityKeys.FromProtoState(IdentityKeysState proto)', validate parameter 'proto' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'SodiumInterop.WipeLargeBuffer(byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Sodium/SodiumInterop.cs",
+                "region": {
+                  "startLine": 236,
+                  "startColumn": 21,
+                  "endLine": 236,
+                  "endColumn": 91
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1307",
+          "level": "note",
+          "message": "'string.Contains(string)' has a method overload that takes a 'StringComparison' parameter. Replace this call in 'Ecliptix.Protocol.System.Sodium.SodiumInterop.WipeLargeBuffer(byte[])' with a call to 'string.Contains(string, System.StringComparison)' for clarity of intent.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Sodium/SodiumInterop.cs",
+                "region": {
+                  "startLine": 232,
+                  "startColumn": 53,
+                  "endLine": 233,
+                  "endColumn": 56
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixSystemIdentityKeys.Create(uint)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
           "locations": [
             {
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 150,
-                  "startColumn": 60,
-                  "endLine": 150,
-                  "endColumn": 65
+                  "startLine": 288,
+                  "startColumn": 49,
+                  "endLine": 288,
+                  "endColumn": 169
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolChainStep.StoreMessageKey(Span<byte>, Span<byte>, uint)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolChainStep.cs",
+                "region": {
+                  "startLine": 431,
+                  "startColumn": 21,
+                  "endLine": 431,
+                  "endColumn": 115
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolChainStep.StoreMessageKey(Span<byte>, Span<byte>, uint)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolChainStep.cs",
+                "region": {
+                  "startLine": 448,
+                  "startColumn": 21,
+                  "endLine": 448,
+                  "endColumn": 108
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolConnection.ProcessReceivedMessage(uint)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolConnection.cs",
+                "region": {
+                  "startLine": 652,
+                  "startColumn": 53,
+                  "endLine": 654,
+                  "endColumn": 39
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixSystemIdentityKeys.GenerateX25519SignedPreKey(uint)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
+                "region": {
+                  "startLine": 426,
+                  "startColumn": 52,
+                  "endLine": 426,
+                  "endColumn": 143
                 }
               }
             }
@@ -1813,9 +2267,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 299,
+                  "startLine": 377,
                   "startColumn": 24,
-                  "endLine": 299,
+                  "endLine": 377,
                   "endColumn": 34
                 }
               }
@@ -1834,52 +2288,10 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 300,
+                  "startLine": 378,
                   "startColumn": 25,
-                  "endLine": 300,
+                  "endLine": 378,
                   "endColumn": 35
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1062",
-          "level": "note",
-          "message": "In externally visible method 'Result<byte[], SodiumFailure> LogoutKeyDerivation.DeriveLogoutHmacKey(SodiumSecureMemoryHandle masterKeyHandle)', validate parameter 'masterKeyHandle' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/LogoutKeyDerivation.cs",
-                "region": {
-                  "startLine": 34,
-                  "startColumn": 56,
-                  "endLine": 34,
-                  "endColumn": 71
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1062",
-          "level": "note",
-          "message": "In externally visible method 'Result<byte[], SodiumFailure> LogoutKeyDerivation.DeriveLogoutProofKey(SodiumSecureMemoryHandle masterKeyHandle)', validate parameter 'masterKeyHandle' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/LogoutKeyDerivation.cs",
-                "region": {
-                  "startLine": 88,
-                  "startColumn": 56,
-                  "endLine": 88,
-                  "endColumn": 71
                 }
               }
             }
@@ -1897,73 +2309,10 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 301,
+                  "startLine": 379,
                   "startColumn": 25,
-                  "endLine": 301,
+                  "endLine": 379,
                   "endColumn": 35
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixSystemIdentityKeys.Create(uint)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 305,
-                  "startColumn": 53,
-                  "endLine": 305,
-                  "endColumn": 173
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixSystemIdentityKeys.Create(uint)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 315,
-                  "startColumn": 49,
-                  "endLine": 315,
-                  "endColumn": 169
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S2589",
-          "level": "warning",
-          "message": "Change this condition so that it does not always evaluate to 'True'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Utilities/SecureStringHandler.cs",
-                "region": {
-                  "startLine": 84,
-                  "startColumn": 17,
-                  "endLine": 84,
-                  "endColumn": 34
                 }
               }
             }
@@ -1985,439 +2334,6 @@
                   "startColumn": 17,
                   "endLine": 631,
                   "endColumn": 48
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1062",
-          "level": "note",
-          "message": "In externally visible method 'bool LogoutKeyDerivation.VerifyHmac(byte[] key, byte[] data, byte[] expectedHmac)', validate parameter 'expectedHmac' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/LogoutKeyDerivation.cs",
-                "region": {
-                  "startLine": 143,
-                  "startColumn": 13,
-                  "endLine": 143,
-                  "endColumn": 25
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolChainStep.ValidateDhPublicKeySize(byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolChainStep.cs",
-                "region": {
-                  "startLine": 742,
-                  "startColumn": 54,
-                  "endLine": 743,
-                  "endColumn": 118
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolChainStep.ValidateDhPrivateKeySize(byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolChainStep.cs",
-                "region": {
-                  "startLine": 728,
-                  "startColumn": 21,
-                  "endLine": 729,
-                  "endColumn": 60
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object, object)' could vary based on the current user's locale settings. Replace this call in 'MasterKeyDerivation.DeriveMasterKey(byte[], ByteString)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/MasterKeyDerivation.cs",
-                "region": {
-                  "startLine": 60,
-                  "startColumn": 53,
-                  "endLine": 60,
-                  "endColumn": 204
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S3966",
-          "level": "warning",
-          "message": "Resource 'rootKeyHandle' has already been disposed explicitly or through a using statement implicitly. Remove the redundant disposal.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolConnection.cs",
-                "region": {
-                  "startLine": 341,
-                  "startColumn": 27,
-                  "endLine": 341,
-                  "endColumn": 37
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S3966",
-          "level": "warning",
-          "message": "Resource 'securePrivateKey' has already been disposed explicitly or through a using statement implicitly. Remove the redundant disposal.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/OneTimePreKeyLocal.cs",
-                "region": {
-                  "startLine": 108,
-                  "startColumn": 30,
-                  "endLine": 108,
-                  "endColumn": 40
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1513",
-          "level": "note",
-          "message": "Use 'ObjectDisposedException.ThrowIf' instead of explicitly throwing a new exception instance",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Utilities/SecureMemoryPool.cs",
-                "region": {
-                  "startLine": 31,
-                  "startColumn": 9,
-                  "endLine": 34,
-                  "endColumn": 10
-                }
-              }
-            }
-          ],
-          "relatedLocations": [
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Utilities/SecureMemoryPool.cs",
-                "region": {
-                  "startLine": 31,
-                  "startColumn": 13,
-                  "endLine": 31,
-                  "endColumn": 22
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object, object)' could vary based on the current user's locale settings. Replace this call in 'SecureMemoryBuffer.SetRequestedSize(int)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Utilities/SecureMemoryBuffer.cs",
-                "region": {
-                  "startLine": 38,
-                  "startColumn": 41,
-                  "endLine": 38,
-                  "endColumn": 157
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolSystem.CreateAssociatedData(byte[], byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolSystem.cs",
-                "region": {
-                  "startLine": 787,
-                  "startColumn": 17,
-                  "endLine": 787,
-                  "endColumn": 115
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'LocalPublicKeyBundle.ExtractAndValidateIdentityEd25519(PublicKeyBundle)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/PublicKeyBundle.cs",
-                "region": {
-                  "startLine": 106,
-                  "startColumn": 41,
-                  "endLine": 106,
-                  "endColumn": 163
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'LocalPublicKeyBundle.FromProtobufExchange(PublicKeyBundle)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/PublicKeyBundle.cs",
-                "region": {
-                  "startLine": 92,
-                  "startColumn": 21,
-                  "endLine": 92,
-                  "endColumn": 142
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'LocalPublicKeyBundle.FromProtobufExchange(PublicKeyBundle)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/PublicKeyBundle.cs",
-                "region": {
-                  "startLine": 94,
-                  "startColumn": 21,
-                  "endLine": 94,
-                  "endColumn": 135
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'LocalPublicKeyBundle.ExtractAndValidateIdentityX25519(PublicKeyBundle)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/PublicKeyBundle.cs",
-                "region": {
-                  "startLine": 118,
-                  "startColumn": 41,
-                  "endLine": 118,
-                  "endColumn": 161
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'LocalPublicKeyBundle.ExtractAndValidateIdentityX25519(PublicKeyBundle)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/PublicKeyBundle.cs",
-                "region": {
-                  "startLine": 124,
-                  "startColumn": 41,
-                  "endLine": 124,
-                  "endColumn": 170
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'LocalPublicKeyBundle.ExtractAndValidateSignature(PublicKeyBundle)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/PublicKeyBundle.cs",
-                "region": {
-                  "startLine": 154,
-                  "startColumn": 41,
-                  "endLine": 154,
-                  "endColumn": 176
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'LocalPublicKeyBundle.ExtractAndValidateSignedPreKey(PublicKeyBundle)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/PublicKeyBundle.cs",
-                "region": {
-                  "startLine": 136,
-                  "startColumn": 41,
-                  "endLine": 136,
-                  "endColumn": 166
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'LocalPublicKeyBundle.ExtractAndValidateSignedPreKey(PublicKeyBundle)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/PublicKeyBundle.cs",
-                "region": {
-                  "startLine": 142,
-                  "startColumn": 41,
-                  "endLine": 142,
-                  "endColumn": 175
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'LocalPublicKeyBundle.ExtractAndValidateEphemeral(PublicKeyBundle)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/PublicKeyBundle.cs",
-                "region": {
-                  "startLine": 171,
-                  "startColumn": 41,
-                  "endLine": 171,
-                  "endColumn": 162
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'LocalPublicKeyBundle.ExtractAndValidateEphemeral(PublicKeyBundle)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/PublicKeyBundle.cs",
-                "region": {
-                  "startLine": 177,
-                  "startColumn": 41,
-                  "endLine": 177,
-                  "endColumn": 171
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object, object)' could vary based on the current user's locale settings. Replace this call in 'LocalPublicKeyBundle.ExtractAndValidateOneTimePreKeys(PublicKeyBundle)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/PublicKeyBundle.cs",
-                "region": {
-                  "startLine": 195,
-                  "startColumn": 45,
-                  "endLine": 195,
-                  "endColumn": 178
                 }
               }
             }
@@ -2471,6 +2387,90 @@
         {
           "ruleId": "CA1305",
           "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixSystemIdentityKeys.SignSignedPreKey(SodiumSecureMemoryHandle, byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
+                "region": {
+                  "startLine": 462,
+                  "startColumn": 21,
+                  "endLine": 462,
+                  "endColumn": 137
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolSystem.CreateAssociatedData(byte[], byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolSystem.cs",
+                "region": {
+                  "startLine": 787,
+                  "startColumn": 17,
+                  "endLine": 787,
+                  "endColumn": 115
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolChainStep.ValidateDhPrivateKeySize(byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolChainStep.cs",
+                "region": {
+                  "startLine": 728,
+                  "startColumn": 21,
+                  "endLine": 729,
+                  "endColumn": 60
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolChainStep.ValidateDhPublicKeySize(byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolChainStep.cs",
+                "region": {
+                  "startLine": 742,
+                  "startColumn": 54,
+                  "endLine": 743,
+                  "endColumn": 118
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
           "message": "The behavior of 'string.Format(string, object, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolSystem.DecryptFromMaterials(RatchetChainKey, EnvelopeMetadata, byte[], byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
           "locations": [
             {
@@ -2490,164 +2490,17 @@
           }
         },
         {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixSystemIdentityKeys.GenerateX25519SignedPreKey(uint)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 453,
-                  "startColumn": 52,
-                  "endLine": 453,
-                  "endColumn": 143
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixSystemIdentityKeys.SignSignedPreKey(SodiumSecureMemoryHandle, byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 489,
-                  "startColumn": 21,
-                  "endLine": 489,
-                  "endColumn": 137
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S3966",
-          "level": "warning",
-          "message": "Resource 'edSkHandle' has already been disposed explicitly or through a using statement implicitly. Remove the redundant disposal.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 404,
-                  "startColumn": 24,
-                  "endLine": 404,
-                  "endColumn": 34
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S3966",
-          "level": "warning",
-          "message": "Resource 'idXSkHandle' has already been disposed explicitly or through a using statement implicitly. Remove the redundant disposal.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 405,
-                  "startColumn": 25,
-                  "endLine": 405,
-                  "endColumn": 35
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S3966",
-          "level": "warning",
-          "message": "Resource 'spkSkHandle' has already been disposed explicitly or through a using statement implicitly. Remove the redundant disposal.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 406,
-                  "startColumn": 25,
-                  "endLine": 406,
-                  "endColumn": 35
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "S3966",
-          "level": "warning",
-          "message": "Resource 'tempRootHandle' has already been disposed explicitly or through a using statement implicitly. Remove the redundant disposal.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolConnection.cs",
-                "region": {
-                  "startLine": 515,
-                  "startColumn": 21,
-                  "endLine": 515,
-                  "endColumn": 45
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1305",
-          "level": "note",
-          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'EcliptixProtocolConnection.ProcessReceivedMessage(uint)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolConnection.cs",
-                "region": {
-                  "startLine": 652,
-                  "startColumn": 53,
-                  "endLine": 654,
-                  "endColumn": 39
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1
-          }
-        },
-        {
           "ruleId": "S3776",
           "level": "warning",
-          "message": "Refactor this method to reduce its Cognitive Complexity from 31 to the 15 allowed.",
+          "message": "Refactor this method to reduce its Cognitive Complexity from 23 to the 15 allowed.",
           "locations": [
             {
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 617,
+                  "startLine": 590,
                   "startColumn": 72,
-                  "endLine": 617,
+                  "endLine": 590,
                   "endColumn": 94
                 }
               }
@@ -2658,9 +2511,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 626,
+                  "startLine": 599,
                   "startColumn": 13,
-                  "endLine": 626,
+                  "endLine": 599,
                   "endColumn": 15
                 }
               }
@@ -2669,9 +2522,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 633,
+                  "startLine": 606,
                   "startColumn": 13,
-                  "endLine": 633,
+                  "endLine": 606,
                   "endColumn": 15
                 }
               }
@@ -2680,9 +2533,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 639,
+                  "startLine": 612,
                   "startColumn": 13,
-                  "endLine": 639,
+                  "endLine": 612,
                   "endColumn": 15
                 }
               }
@@ -2691,9 +2544,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 645,
+                  "startLine": 618,
                   "startColumn": 13,
-                  "endLine": 645,
+                  "endLine": 618,
                   "endColumn": 15
                 }
               }
@@ -2702,9 +2555,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 667,
+                  "startLine": 640,
                   "startColumn": 21,
-                  "endLine": 667,
+                  "endLine": 640,
                   "endColumn": 23
                 }
               }
@@ -2713,9 +2566,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 678,
+                  "startLine": 651,
                   "startColumn": 21,
-                  "endLine": 678,
+                  "endLine": 651,
                   "endColumn": 23
                 }
               }
@@ -2724,9 +2577,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 726,
+                  "startLine": 699,
                   "startColumn": 25,
-                  "endLine": 726,
+                  "endLine": 699,
                   "endColumn": 27
                 }
               }
@@ -2735,9 +2588,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 726,
+                  "startLine": 699,
                   "startColumn": 36,
-                  "endLine": 726,
+                  "endLine": 699,
                   "endColumn": 38
                 }
               }
@@ -2746,9 +2599,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 737,
+                  "startLine": 710,
                   "startColumn": 33,
-                  "endLine": 737,
+                  "endLine": 710,
                   "endColumn": 35
                 }
               }
@@ -2757,9 +2610,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 746,
+                  "startLine": 719,
                   "startColumn": 25,
-                  "endLine": 746,
+                  "endLine": 719,
                   "endColumn": 27
                 }
               }
@@ -2768,9 +2621,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 751,
+                  "startLine": 724,
                   "startColumn": 25,
-                  "endLine": 751,
+                  "endLine": 724,
                   "endColumn": 27
                 }
               }
@@ -2779,53 +2632,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 756,
-                  "startColumn": 25,
-                  "endLine": 756,
-                  "endColumn": 27
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 761,
-                  "startColumn": 25,
-                  "endLine": 761,
-                  "endColumn": 27
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 766,
-                  "startColumn": 25,
-                  "endLine": 766,
-                  "endColumn": 27
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 792,
-                  "startColumn": 25,
-                  "endLine": 792,
-                  "endColumn": 27
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 800,
+                  "startLine": 737,
                   "startColumn": 21,
-                  "endLine": 800,
+                  "endLine": 737,
                   "endColumn": 23
                 }
               }
@@ -2834,9 +2643,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 808,
+                  "startLine": 743,
                   "startColumn": 21,
-                  "endLine": 808,
+                  "endLine": 743,
                   "endColumn": 23
                 }
               }
@@ -2845,9 +2654,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 819,
+                  "startLine": 754,
                   "startColumn": 9,
-                  "endLine": 819,
+                  "endLine": 754,
                   "endColumn": 14
                 }
               }
@@ -2861,11 +2670,7 @@
               "10": "+2 (incl 1 for nesting)",
               "11": "+2 (incl 1 for nesting)",
               "12": "+2 (incl 1 for nesting)",
-              "13": "+2 (incl 1 for nesting)",
-              "14": "+2 (incl 1 for nesting)",
-              "15": "+2 (incl 1 for nesting)",
-              "16": "+2 (incl 1 for nesting)",
-              "17": "+1",
+              "13": "+1",
               "2": "+1",
               "3": "+1",
               "4": "+2 (incl 1 for nesting)",
@@ -2886,9 +2691,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolConnection.cs",
                 "region": {
-                  "startLine": 1360,
+                  "startLine": 1352,
                   "startColumn": 49,
-                  "endLine": 1360,
+                  "endLine": 1352,
                   "endColumn": 116
                 }
               }
@@ -2907,9 +2712,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolConnection.cs",
                 "region": {
-                  "startLine": 1423,
+                  "startLine": 1406,
                   "startColumn": 21,
-                  "endLine": 1424,
+                  "endLine": 1407,
                   "endColumn": 52
                 }
               }
@@ -2928,9 +2733,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixProtocolConnection.cs",
                 "region": {
-                  "startLine": 1431,
+                  "startLine": 1414,
                   "startColumn": 21,
-                  "endLine": 1432,
+                  "endLine": 1415,
                   "endColumn": 59
                 }
               }
@@ -2943,15 +2748,15 @@
         {
           "ruleId": "S3776",
           "level": "warning",
-          "message": "Refactor this method to reduce its Cognitive Complexity from 41 to the 15 allowed.",
+          "message": "Refactor this method to reduce its Cognitive Complexity from 33 to the 15 allowed.",
           "locations": [
             {
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 832,
+                  "startLine": 767,
                   "startColumn": 70,
-                  "endLine": 832,
+                  "endLine": 767,
                   "endColumn": 102
                 }
               }
@@ -2962,9 +2767,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 842,
+                  "startLine": 777,
                   "startColumn": 13,
-                  "endLine": 842,
+                  "endLine": 777,
                   "endColumn": 15
                 }
               }
@@ -2973,9 +2778,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 850,
+                  "startLine": 785,
                   "startColumn": 13,
-                  "endLine": 850,
+                  "endLine": 785,
                   "endColumn": 15
                 }
               }
@@ -2984,9 +2789,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 856,
+                  "startLine": 791,
                   "startColumn": 13,
-                  "endLine": 856,
+                  "endLine": 791,
                   "endColumn": 15
                 }
               }
@@ -2995,9 +2800,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 860,
+                  "startLine": 795,
                   "startColumn": 17,
-                  "endLine": 860,
+                  "endLine": 795,
                   "endColumn": 19
                 }
               }
@@ -3006,9 +2811,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 872,
+                  "startLine": 807,
                   "startColumn": 91,
-                  "endLine": 872,
+                  "endLine": 807,
                   "endColumn": 92
                 }
               }
@@ -3017,42 +2822,64 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
+                  "startLine": 825,
+                  "startColumn": 21,
+                  "endLine": 825,
+                  "endColumn": 23
+                }
+              }
+            },
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
+                "region": {
+                  "startLine": 837,
+                  "startColumn": 21,
+                  "endLine": 837,
+                  "endColumn": 23
+                }
+              }
+            },
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
+                "region": {
+                  "startLine": 847,
+                  "startColumn": 21,
+                  "endLine": 847,
+                  "endColumn": 23
+                }
+              }
+            },
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
+                "region": {
+                  "startLine": 852,
+                  "startColumn": 25,
+                  "endLine": 852,
+                  "endColumn": 27
+                }
+              }
+            },
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
+                "region": {
+                  "startLine": 875,
+                  "startColumn": 25,
+                  "endLine": 875,
+                  "endColumn": 27
+                }
+              }
+            },
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
+                "region": {
                   "startLine": 890,
-                  "startColumn": 21,
+                  "startColumn": 25,
                   "endLine": 890,
-                  "endColumn": 23
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 902,
-                  "startColumn": 21,
-                  "endLine": 902,
-                  "endColumn": 23
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 912,
-                  "startColumn": 21,
-                  "endLine": 912,
-                  "endColumn": 23
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 917,
-                  "startColumn": 25,
-                  "endLine": 917,
                   "endColumn": 27
                 }
               }
@@ -3061,31 +2888,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 940,
-                  "startColumn": 25,
-                  "endLine": 940,
-                  "endColumn": 27
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 955,
-                  "startColumn": 25,
-                  "endLine": 955,
-                  "endColumn": 27
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 966,
+                  "startLine": 901,
                   "startColumn": 33,
-                  "endLine": 966,
+                  "endLine": 901,
                   "endColumn": 35
                 }
               }
@@ -3094,9 +2899,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 975,
+                  "startLine": 910,
                   "startColumn": 25,
-                  "endLine": 975,
+                  "endLine": 910,
                   "endColumn": 27
                 }
               }
@@ -3105,9 +2910,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 980,
+                  "startLine": 915,
                   "startColumn": 25,
-                  "endLine": 980,
+                  "endLine": 915,
                   "endColumn": 27
                 }
               }
@@ -3116,9 +2921,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 985,
+                  "startLine": 920,
                   "startColumn": 25,
-                  "endLine": 985,
+                  "endLine": 920,
                   "endColumn": 27
                 }
               }
@@ -3127,53 +2932,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 990,
-                  "startColumn": 25,
-                  "endLine": 990,
-                  "endColumn": 27
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 995,
-                  "startColumn": 25,
-                  "endLine": 995,
-                  "endColumn": 27
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 1000,
-                  "startColumn": 25,
-                  "endLine": 1000,
-                  "endColumn": 27
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 1026,
-                  "startColumn": 25,
-                  "endLine": 1026,
-                  "endColumn": 27
-                }
-              }
-            },
-            {
-              "physicalLocation": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 1034,
+                  "startLine": 933,
                   "startColumn": 21,
-                  "endLine": 1034,
+                  "endLine": 933,
                   "endColumn": 23
                 }
               }
@@ -3182,9 +2943,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 1042,
+                  "startLine": 939,
                   "startColumn": 21,
-                  "endLine": 1042,
+                  "endLine": 939,
                   "endColumn": 23
                 }
               }
@@ -3193,9 +2954,9 @@
               "physicalLocation": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 1053,
+                  "startLine": 950,
                   "startColumn": 9,
-                  "endLine": 1053,
+                  "endLine": 950,
                   "endColumn": 14
                 }
               }
@@ -3213,12 +2974,8 @@
               "14": "+2 (incl 1 for nesting)",
               "15": "+2 (incl 1 for nesting)",
               "16": "+2 (incl 1 for nesting)",
-              "17": "+2 (incl 1 for nesting)",
-              "18": "+2 (incl 1 for nesting)",
-              "19": "+2 (incl 1 for nesting)",
+              "17": "+1",
               "2": "+1",
-              "20": "+2 (incl 1 for nesting)",
-              "21": "+1",
               "3": "+2 (incl 1 for nesting)",
               "4": "+1",
               "5": "+2 (incl 1 for nesting)",
@@ -3238,9 +2995,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 1188,
+                  "startLine": 1085,
                   "startColumn": 44,
-                  "endLine": 1188,
+                  "endLine": 1085,
                   "endColumn": 103
                 }
               }
@@ -3248,6 +3005,30 @@
           ],
           "properties": {
             "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1826",
+          "level": "note",
+          "message": "Do not use Enumerable methods on indexable collections. Instead use the collection directly.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
+                "region": {
+                  "startLine": 663,
+                  "startColumn": 35,
+                  "endLine": 663,
+                  "endColumn": 79
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "method": "FirstOrDefault"
+            }
           }
         },
         {
@@ -3259,9 +3040,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 1196,
+                  "startLine": 1093,
                   "startColumn": 13,
-                  "endLine": 1196,
+                  "endLine": 1093,
                   "endColumn": 104
                 }
               }
@@ -3280,9 +3061,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 1193,
+                  "startLine": 1090,
                   "startColumn": 58,
-                  "endLine": 1193,
+                  "endLine": 1090,
                   "endColumn": 149
                 }
               }
@@ -3301,9 +3082,9 @@
               "resultFile": {
                 "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
                 "region": {
-                  "startLine": 1200,
+                  "startLine": 1097,
                   "startColumn": 47,
-                  "endLine": 1200,
+                  "endLine": 1097,
                   "endColumn": 133
                 }
               }
@@ -3311,30 +3092,6 @@
           ],
           "properties": {
             "warningLevel": 1
-          }
-        },
-        {
-          "ruleId": "CA1826",
-          "level": "note",
-          "message": "Do not use Enumerable methods on indexable collections. Instead use the collection directly.",
-          "locations": [
-            {
-              "resultFile": {
-                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Core/EcliptixSystemIdentityKeys.cs",
-                "region": {
-                  "startLine": 690,
-                  "startColumn": 35,
-                  "endLine": 690,
-                  "endColumn": 79
-                }
-              }
-            }
-          ],
-          "properties": {
-            "warningLevel": 1,
-            "customProperties": {
-              "method": "FirstOrDefault"
-            }
           }
         }
       ],
@@ -3512,23 +3269,6 @@
             ]
           }
         },
-        "S125": {
-          "id": "S125",
-          "shortDescription": "Sections of code should not be commented out",
-          "fullDescription": "Commented-out code distracts the focus from the actual executed code. It creates a noise that increases maintenance code. And because it is never executed, it quickly becomes out of date and invalid.",
-          "defaultLevel": "warning",
-          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-125",
-          "properties": {
-            "category": "Major Code Smell",
-            "isEnabledByDefault": true,
-            "tags": [
-              "C#",
-              "MainSourceScope",
-              "TestSourceScope",
-              "SonarWay"
-            ]
-          }
-        },
         "S1751": {
           "id": "S1751",
           "shortDescription": "Loops with at most one iteration should be refactored",
@@ -3537,23 +3277,6 @@
           "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-1751",
           "properties": {
             "category": "Major Bug",
-            "isEnabledByDefault": true,
-            "tags": [
-              "C#",
-              "MainSourceScope",
-              "TestSourceScope",
-              "SonarWay"
-            ]
-          }
-        },
-        "S2589": {
-          "id": "S2589",
-          "shortDescription": "Boolean expressions should not be gratuitous",
-          "fullDescription": "Gratuitous boolean expressions are conditions that do not change the evaluation of a program. This issue can indicate logical errors and affect the correctness of an application, as well as its maintainability.",
-          "defaultLevel": "warning",
-          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-2589",
-          "properties": {
-            "category": "Major Code Smell",
             "isEnabledByDefault": true,
             "tags": [
               "C#",
