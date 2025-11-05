@@ -246,11 +246,7 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
             GrpcErrorClassifier.RequiresHandshakeRecovery(rpcException) ||
             GrpcErrorClassifier.IsAuthFlowMissing(rpcException))
         {
-            return NetworkFailureType.DATA_CENTER_NOT_RESPONDING;
-        }
 
-        if (rpcException.StatusCode == StatusCode.Cancelled)
-        {
         }
 
         return NetworkFailureType.DATA_CENTER_NOT_RESPONDING;

@@ -667,8 +667,6 @@ internal sealed class OpaqueRegistrationService(
         }
         catch (Exception ex)
         {
-            Serilog.Log.Error(ex, "[REGISTRATION] Unexpected error during registration cycle. MembershipId: {MembershipId}",
-                membershipIdentifier);
             HandleRegistrationException(membershipIdentifier, ref registrationResult);
             return CreateAttemptFailure(
                 localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY],
@@ -760,10 +758,8 @@ internal sealed class OpaqueRegistrationService(
             cancellationToken).ConfigureAwait(false);
     }
 
-    private void CleanupTrackedRegistration(ByteString membershipIdentifier)
-    {
+    private void CleanupTrackedRegistration(ByteString membershipIdentifier) =>
         _stateManager.CleanupRegistration(membershipIdentifier);
-    }
 
     private void HandleRegistrationException(ByteString membershipIdentifier,
         ref RegistrationResult? registrationResult)
@@ -904,8 +900,6 @@ internal sealed class OpaqueRegistrationService(
         }
     }
 
-    private async Task<Result<Unit, string>> CleanupStreamAsync(Guid sessionIdentifier)
-    {
-        return await _streamManager.CloseStreamAsync(sessionIdentifier).ConfigureAwait(false);
-    }
+    private async Task<Result<Unit, string>> CleanupStreamAsync(Guid sessionIdentifier) =>
+        await _streamManager.CloseStreamAsync(sessionIdentifier).ConfigureAwait(false);
 }

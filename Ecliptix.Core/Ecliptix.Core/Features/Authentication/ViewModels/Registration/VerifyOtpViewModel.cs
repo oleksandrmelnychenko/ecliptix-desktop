@@ -15,6 +15,7 @@ using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Authentication.Constants;
+using Ecliptix.Core.Services.Core.Localization;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
@@ -695,7 +696,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     {
         string errorMessage = !string.IsNullOrEmpty(message)
             ? message
-            : _localizationService["error.server_unavailable"];
+            : _localizationService[LocalizationKeys.Common.SERVER_UNAVAILABLE];
 
         StartAutoRedirectAsync(5, MembershipViewType.WELCOME_VIEW, errorMessage).ContinueWith(
             task =>
@@ -881,7 +882,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     private bool IsServerUnavailableError(string errorMessage)
     {
-        string serverUnavailableText = _localizationService["error.server_unavailable"];
+        string serverUnavailableText = _localizationService[LocalizationKeys.Common.SERVER_UNAVAILABLE];
         string serviceUnavailableText = _localizationService[ErrorI18NKeys.SERVICE_UNAVAILABLE];
 
         return errorMessage.Contains(serverUnavailableText, StringComparison.OrdinalIgnoreCase) ||

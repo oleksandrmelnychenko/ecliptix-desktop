@@ -7,8 +7,6 @@ using Avalonia.Platform;
 using Serilog;
 using Utilities;
 
-
-
 internal static class IconService
 {
     private static Option<WindowIcon> _cachedIcon = Option<WindowIcon>.None;

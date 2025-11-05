@@ -271,7 +271,7 @@ public sealed class SecureTextBuffer : IDisposable
             return;
         }
 
-        _secureHandle?.Dispose();
+        _secureHandle.Dispose();
         _isDisposed = true;
     }
 }

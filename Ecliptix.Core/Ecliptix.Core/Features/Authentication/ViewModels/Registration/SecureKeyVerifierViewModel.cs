@@ -363,7 +363,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
     {
         string? error = null;
         string recommendations = string.Empty;
-        SecureKeyStrength strength = SecureKeyStrength.Invalid;
+        SecureKeyStrength strength = SecureKeyStrength.INVALID;
 
         _secureKeyBuffer.WithSecureBytes(bytes =>
         {
@@ -414,12 +414,12 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
     {
         string strengthText = strength switch
         {
-            SecureKeyStrength.Invalid => LocalizationService[AuthenticationConstants.SECURE_KEY_STRENGTH_INVALID_KEY],
-            SecureKeyStrength.VeryWeak => LocalizationService[AuthenticationConstants.SECURE_KEY_STRENGTH_VERY_WEAK_KEY],
-            SecureKeyStrength.Weak => LocalizationService[AuthenticationConstants.SECURE_KEY_STRENGTH_WEAK_KEY],
-            SecureKeyStrength.Good => LocalizationService[AuthenticationConstants.SECURE_KEY_STRENGTH_GOOD_KEY],
-            SecureKeyStrength.Strong => LocalizationService[AuthenticationConstants.SECURE_KEY_STRENGTH_STRONG_KEY],
-            SecureKeyStrength.VeryStrong => LocalizationService[AuthenticationConstants.SECURE_KEY_STRENGTH_VERY_STRONG_KEY],
+            SecureKeyStrength.INVALID => LocalizationService[AuthenticationConstants.SECURE_KEY_STRENGTH_INVALID_KEY],
+            SecureKeyStrength.VERY_WEAK => LocalizationService[AuthenticationConstants.SECURE_KEY_STRENGTH_VERY_WEAK_KEY],
+            SecureKeyStrength.WEAK => LocalizationService[AuthenticationConstants.SECURE_KEY_STRENGTH_WEAK_KEY],
+            SecureKeyStrength.GOOD => LocalizationService[AuthenticationConstants.SECURE_KEY_STRENGTH_GOOD_KEY],
+            SecureKeyStrength.STRONG => LocalizationService[AuthenticationConstants.SECURE_KEY_STRENGTH_STRONG_KEY],
+            SecureKeyStrength.VERY_STRONG => LocalizationService[AuthenticationConstants.SECURE_KEY_STRENGTH_VERY_STRONG_KEY],
             _ => LocalizationService[AuthenticationConstants.SECURE_KEY_STRENGTH_INVALID_KEY]
         };
 

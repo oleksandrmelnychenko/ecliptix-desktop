@@ -53,10 +53,7 @@ internal sealed class OpaqueAuthenticationService(
         ByteString MembershipIdentifier,
         Guid MembershipId) : IDisposable
     {
-        public void Dispose()
-        {
-            MasterKeyHandle.Dispose();
-        }
+        public void Dispose() => MasterKeyHandle.Dispose();
     }
 
     public async Task<Result<Unit, AuthenticationFailure>> SignInAsync(string mobileNumber,
@@ -117,12 +114,12 @@ internal sealed class OpaqueAuthenticationService(
         uint connectId,
         CancellationToken cancellationToken)
     {
-        const int MAX_PROTOCOL_RECREATE_ATTEMPTS = 3;
+        const int maxProtocolRecreateAttempts = 3;
         AuthenticationFailure lastError = AuthenticationFailure.NetworkRequestFailed("Protocol recreation failed");
 
         try
         {
-            for (int attempt = 1; attempt <= MAX_PROTOCOL_RECREATE_ATTEMPTS; attempt++)
+            for (int attempt = 1; attempt <= maxProtocolRecreateAttempts; attempt++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -141,15 +138,11 @@ internal sealed class OpaqueAuthenticationService(
 
                 bool isRetryableError = lastError.FailureType == AuthenticationFailureType.NETWORK_REQUEST_FAILED;
 
-                if (!isRetryableError || attempt >= MAX_PROTOCOL_RECREATE_ATTEMPTS)
+                if (!isRetryableError || attempt >= maxProtocolRecreateAttempts)
                 {
                     networkProvider.ExitOutage();
                     return Result<Unit, AuthenticationFailure>.Err(lastError);
                 }
-
-                Serilog.Log.Warning(
-                    "[PROTOCOL-RECREATE-RETRY] Failed to recreate authenticated protocol, retrying. Attempt {Attempt}/{MAX_ATTEMPTS}, MembershipId: {MembershipId}",
-                    attempt + 1, MAX_PROTOCOL_RECREATE_ATTEMPTS, signInFlowResult.MembershipId);
 
                 networkProvider.ClearExhaustedOperations();
             }
@@ -253,16 +246,13 @@ internal sealed class OpaqueAuthenticationService(
                 return Result<SignInFlowResult, AuthenticationFailure>.Err(lastError);
             }
 
-            Serilog.Log.Warning(
-                "[SIGNIN-FLOW-RETRY] Server state lost, restarting sign-in flow. Attempt {Attempt}/{MAX_ATTEMPTS}",
-                attempt + 1, MAX_SIGN_IN_FLOW_ATTEMPTS);
-
             networkProvider.ClearExhaustedOperations();
         }
 
         networkProvider.ExitOutage();
         return Result<SignInFlowResult, AuthenticationFailure>.Err(lastError ??
-            AuthenticationFailure.UnexpectedError("Sign-in flow failed"));
+                                                                   AuthenticationFailure.UnexpectedError(
+                                                                       "Sign-in flow failed"));
     }
 
     private async Task<Result<SignInFlowResult, AuthenticationFailure>> ExecuteSingleSignInAttemptAsync(
@@ -390,10 +380,11 @@ internal sealed class OpaqueAuthenticationService(
 
     private static void CleanupSignInContext(OpaqueSignInContext context)
     {
-        if (context.MasterKeyHandle != null && !context.OwnershipTransferred)
+        if (context is { MasterKeyHandle: not null, OwnershipTransferred: false })
         {
             context.MasterKeyHandle.Dispose();
         }
+
         SecureCleanup(context.SecureKeyCopy, context.Ke2Data, context.Ke3Data);
     }
 
@@ -415,8 +406,7 @@ internal sealed class OpaqueAuthenticationService(
     {
         OpaqueSignInInitRequest initRequest = new()
         {
-            MobileNumber = mobileNumber,
-            PeerOprf = ByteString.CopyFrom(ke1Result.GetKeyExchangeDataCopy()),
+            MobileNumber = mobileNumber, PeerOprf = ByteString.CopyFrom(ke1Result.GetKeyExchangeDataCopy()),
         };
 
         Result<OpaqueSignInInitResponse, NetworkFailure> initResult =
@@ -478,8 +468,7 @@ internal sealed class OpaqueAuthenticationService(
     {
         OpaqueSignInFinalizeRequest finalizeRequest = new()
         {
-            MobileNumber = mobileNumber,
-            ClientMac = ByteString.CopyFrom(ke3Data),
+            MobileNumber = mobileNumber, ClientMac = ByteString.CopyFrom(ke3Data),
         };
 
         Result<SignInResult, NetworkFailure> finalResult =
@@ -553,7 +542,8 @@ internal sealed class OpaqueAuthenticationService(
         return validation.FailureType switch
         {
             ValidationFailureType.SIGN_IN_FAILED => AuthenticationFailure.InvalidCredentials(validation.Message),
-            ValidationFailureType.LOGIN_ATTEMPT_EXCEEDED => AuthenticationFailure.LoginAttemptExceeded(validation.Message),
+            ValidationFailureType.LOGIN_ATTEMPT_EXCEEDED => AuthenticationFailure.LoginAttemptExceeded(validation
+                .Message),
             _ => AuthenticationFailure.UnexpectedError(validation.Message)
         };
     }
@@ -637,7 +627,7 @@ internal sealed class OpaqueAuthenticationService(
 
         SignInResult result = new(
             Option<Ecliptix.Protobuf.Membership.Membership>.From(capturedResponse.Membership),
-            Option<Ecliptix.Protobuf.Account.Account>.From(capturedResponse.ActiveAccount));
+            Option<Protobuf.Account.Account>.From(capturedResponse.ActiveAccount));
         return Result<SignInResult, NetworkFailure>.Ok(result);
     }
 
@@ -735,17 +725,11 @@ internal sealed class OpaqueAuthenticationService(
 
             if (networkFailure.FailureType == NetworkFailureType.CRITICAL_AUTHENTICATION_FAILURE)
             {
-                Serilog.Log.Error(
-                    "[LOGIN-PROTOCOL-RECREATE-CRITICAL] Critical authentication failure - server cannot derive identity keys. MembershipId: {MembershipId}, ERROR: {ERROR}",
-                    membershipId, networkFailure.Message);
                 return Result<Unit, AuthenticationFailure>.Err(
                     AuthenticationFailure.CriticalAuthenticationError(
                         $"Critical server error: {networkFailure.Message}"));
             }
 
-            Serilog.Log.Error(
-                "[LOGIN-PROTOCOL-RECREATE] Failed to recreate authenticated protocol. MembershipId: {MembershipId}, ERROR: {ERROR}",
-                membershipId, networkFailure.Message);
             return Result<Unit, AuthenticationFailure>.Err(
                 AuthenticationFailure.NetworkRequestFailed(
                     $"Failed to establish authenticated protocol: {networkFailure.Message}"));
@@ -762,9 +746,6 @@ internal sealed class OpaqueAuthenticationService(
 
         if (!ValidateMembershipIdentifier(membershipIdentifier))
         {
-            Serilog.Log.Error(
-                "[LOGIN-VALIDATION] Invalid membership identifier. MembershipId: {MembershipId}",
-                membershipId);
             return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
                 AuthenticationFailure.InvalidMembershipIdentifier(
                     localizationService[AuthenticationConstants.INVALID_CREDENTIALS_KEY]));
@@ -796,9 +777,6 @@ internal sealed class OpaqueAuthenticationService(
 
         if (storeResult.IsErr)
         {
-            Serilog.Log.Error(
-                "[LOGIN-IDENTITY-STORE-ERROR] Failed to store/verify master key. MembershipId: {MembershipId}, ERROR: {ERROR}",
-                membershipId, storeResult.UnwrapErr().Message);
             return Result<Unit, AuthenticationFailure>.Err(storeResult.UnwrapErr());
         }
 

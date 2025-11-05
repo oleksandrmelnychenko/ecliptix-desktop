@@ -47,7 +47,7 @@ public sealed class RetryStrategy : IRetryStrategy
         public required string OperationName { get; init; }
         public required uint ConnectId { get; init; }
         public required DateTime StartTime { get; init; }
-        public required int MAX_RETRIES { get; init; }
+        public required int MaxRetries { get; init; }
         public required string UniqueKey { get; init; }
         public required RpcServiceType? ServiceType { get; init; }
 
@@ -56,7 +56,6 @@ public sealed class RetryStrategy : IRetryStrategy
 
         public int CurrentRetryCount
         {
-            get => _currentRetryCount;
             set => Interlocked.Exchange(ref _currentRetryCount, value);
         }
 
@@ -85,16 +84,10 @@ public sealed class RetryStrategy : IRetryStrategy
         {
             _manualRetrySubscription = _connectivityService.OnManualRetryRequested(HandleManualRetryRequestAsync);
         }
-        catch (Exception ex)
+        catch
         {
-            Log.Error(ex, "Failed to subscribe to manual retry events");
             Dispose();
-            throw;
         }
-
-        Log.Information(
-            "SecrecyChannelRetryStrategy initialized with configuration: MAX_RETRIES={MAX_RETRIES}, InitialDelay={InitialDelay}",
-            _strategyConfiguration.MAX_RETRIES, _strategyConfiguration.INITIAL_RETRY_DELAY);
     }
 
     public void SetLazyNetworkProvider(Lazy<NetworkProvider> lazyNetworkProvider)
@@ -129,8 +122,6 @@ public sealed class RetryStrategy : IRetryStrategy
         int? maxRetries = null,
         CancellationToken cancellationToken = default)
     {
-        Log.Information("🔄 MANUAL RETRY: Executing operation '{OperationName}' bypassing exhaustion checks",
-            operationName);
         return await ExecuteSecrecyChannelOperationInternalAsync(
                 operation, operationName, connectId, serviceType, maxRetries, cancellationToken,
                 bypassExhaustionCheck: true)
@@ -209,64 +200,64 @@ public sealed class RetryStrategy : IRetryStrategy
 
     public void MarkConnectionHealthy(uint connectId)
     {
-        if (_isDisposed)
+        if (!_isDisposed)
         {
-            throw new ObjectDisposedException(nameof(RetryStrategy));
-        }
-
-        Task.Run(async () =>
-        {
-            if (_isDisposed)
+            Task.Run(async () =>
             {
-                return;
-            }
+                if (_isDisposed)
+                {
+                    return;
+                }
 
-            try
-            {
-                await _stateLock.WaitAsync().ConfigureAwait(false);
                 try
                 {
-                    int resetCount = 0;
-                    foreach (RetryOperationInfo operation in _activeRetryOperations.Values.ToArray())
+                    await _stateLock.WaitAsync().ConfigureAwait(false);
+                    try
                     {
-                        if (operation.ConnectId == connectId && operation.IsExhausted)
+                        int resetCount = 0;
+                        foreach (RetryOperationInfo operation in _activeRetryOperations.Values.ToArray())
                         {
+                            if (operation.ConnectId != connectId || !operation.IsExhausted)
+                            {
+                                continue;
+                            }
+
                             operation.IsExhausted = false;
                             operation.CurrentRetryCount = 0;
-                            Log.Information(
-                                "🔄 CONNECTION HEALTHY: Marking operation {OperationName} as healthy for ConnectId {ConnectId}",
-                                operation.OperationName, connectId);
-
                             StopTrackingOperation(operation.UniqueKey, "Connection restored");
                             resetCount++;
                         }
-                    }
 
-                    if (resetCount > 0)
+                        if (resetCount > 0)
+                        {
+                            Log.Information(
+                                "🔄 CONNECTION HEALTHY: Reset exhaustion state for ConnectId {ConnectId}, cleaned up {Count} operations",
+                                connectId, resetCount);
+                        }
+                    }
+                    finally
                     {
-                        Log.Information(
-                            "🔄 CONNECTION HEALTHY: Reset exhaustion state for ConnectId {ConnectId}, cleaned up {Count} operations",
-                            connectId, resetCount);
+                        _stateLock.Release();
                     }
                 }
-                finally
+                catch (Exception ex)
                 {
-                    _stateLock.Release();
+                    Log.Error(ex, "Failed to mark connection healthy for ConnectId {ConnectId}", connectId);
                 }
-            }
-            catch (Exception ex)
+            }).ContinueWith(task =>
             {
-                Log.Error(ex, "Failed to mark connection healthy for ConnectId {ConnectId}", connectId);
-            }
-        }).ContinueWith(task =>
+                if (task is { IsFaulted: true, Exception: not null })
+                {
+                    Log.Error(task.Exception.GetBaseException(),
+                        "Unhandled exception in MarkConnectionHealthy background task for ConnectId {ConnectId}",
+                        connectId);
+                }
+            }, TaskContinuationOptions.OnlyOnFaulted);
+        }
+        else
         {
-            if (task.IsFaulted && task.Exception != null)
-            {
-                Log.Error(task.Exception.GetBaseException(),
-                    "Unhandled exception in MarkConnectionHealthy background task for ConnectId {ConnectId}",
-                    connectId);
-            }
-        }, TaskContinuationOptions.OnlyOnFaulted);
+            throw new ObjectDisposedException(nameof(RetryStrategy));
+        }
     }
 
     public void ClearExhaustedOperations()
@@ -280,12 +271,13 @@ public sealed class RetryStrategy : IRetryStrategy
         {
             List<string> exhaustedKeys = [];
             exhaustedKeys.AddRange(from operation in _activeRetryOperations.Values
-                                   where operation.IsExhausted
-                                   select operation.UniqueKey);
+                where operation.IsExhausted
+                select operation.UniqueKey);
 
             foreach (string key in exhaustedKeys)
             {
-                if (_activeRetryOperations.TryRemove(key, out RetryOperationInfo? operation) && Log.IsEnabled(LogEventLevel.Debug))
+                if (_activeRetryOperations.TryRemove(key, out RetryOperationInfo? operation) &&
+                    Log.IsEnabled(LogEventLevel.Debug))
                 {
                     Log.Debug("🔄 CLEARED: Removed exhausted operation {OperationName} for fresh retry",
                         operation.OperationName);
@@ -435,7 +427,7 @@ public sealed class RetryStrategy : IRetryStrategy
             OperationName = operationName,
             ConnectId = connectId,
             StartTime = DateTime.UtcNow,
-            MAX_RETRIES = maxRetries,
+            MaxRetries = maxRetries,
             UniqueKey = operationKey,
             ServiceType = serviceType,
             CurrentRetryCount = 1,
@@ -454,7 +446,7 @@ public sealed class RetryStrategy : IRetryStrategy
         {
             operation.CurrentRetryCount = retryCount;
             Log.Debug("📊 UPDATED TRACKING: Key {OperationKey} - Retry count: {RetryCount}/{MAX_RETRIES}",
-                operationKey, retryCount, operation.MAX_RETRIES);
+                operationKey, retryCount, operation.MaxRetries);
         }
     }
 
@@ -500,7 +492,8 @@ public sealed class RetryStrategy : IRetryStrategy
 
             foreach (string key in abandonedKeys)
             {
-                if (_activeRetryOperations.TryRemove(key, out RetryOperationInfo? operation) && Serilog.Log.IsEnabled(LogEventLevel.Debug))
+                if (_activeRetryOperations.TryRemove(key, out RetryOperationInfo? operation) &&
+                    Serilog.Log.IsEnabled(LogEventLevel.Debug))
                 {
                     Log.Debug("🧹 CLEANUP: Removed abandoned operation {OperationName} after {Minutes} minutes",
                         operation.OperationName, OPERATION_TIMEOUT_MINUTES);
@@ -518,10 +511,7 @@ public sealed class RetryStrategy : IRetryStrategy
         }
     }
 
-    private string CreateDelaysCacheKey(int maxRetries)
-    {
-        return $"delays_{maxRetries}";
-    }
+    private static string CreateDelaysCacheKey(int maxRetries) => $"delays_{maxRetries}";
 
     private TimeSpan[] GetOrCreateRetryDelays(int maxRetries)
     {
@@ -597,7 +587,8 @@ public sealed class RetryStrategy : IRetryStrategy
 
                     LogRetryAttempt(isTimeout, operationName, connectId, retryCount, retryDelays.Length, delay);
 
-                    TrackRetryOperation(retryCount, operationName, connectId, retryDelays.Length, operationKey, serviceType);
+                    TrackRetryOperation(retryCount, operationName, connectId, retryDelays.Length, operationKey,
+                        serviceType);
 
                     NetworkFailure? currentFailure = ExtractCurrentFailure(isTimeout, hasResult, result);
 
@@ -610,11 +601,12 @@ public sealed class RetryStrategy : IRetryStrategy
                     if (retryCount == retryDelays.Length)
                     {
                         await HandleRetriesExhaustedAsync(
-                            operationKey, operationName, connectId, retryCount, retryDelays.Length, currentFailure)
+                                operationKey, operationName, connectId, retryCount, retryDelays.Length, currentFailure)
                             .ConfigureAwait(false);
                     }
 
-                    bool requiresRecovery = DetermineIfRecoveryRequired(isTimeout, hasResult, result, connectionRecoveryDelegate);
+                    bool requiresRecovery =
+                        DetermineIfRecoveryRequired(isTimeout, hasResult, result, connectionRecoveryDelegate);
 
                     if (requiresRecovery && !_isDisposed && !cancellationToken.IsCancellationRequested)
                     {
@@ -622,7 +614,8 @@ public sealed class RetryStrategy : IRetryStrategy
                     }
                 });
 
-        IAsyncPolicy<Result<TResponse, NetworkFailure>> timeoutPolicy = CreateTimeoutPolicy<TResponse>(operationName, connectId);
+        IAsyncPolicy<Result<TResponse, NetworkFailure>> timeoutPolicy =
+            CreateTimeoutPolicy<TResponse>(operationName, connectId);
 
         IAsyncPolicy<Result<TResponse, NetworkFailure>> combinedPolicy =
             Policy.WrapAsync(retryPolicy, timeoutPolicy);
@@ -776,6 +769,7 @@ public sealed class RetryStrategy : IRetryStrategy
                 exhaustedCount++;
             }
         }
+
         return exhaustedCount;
     }
 
@@ -793,7 +787,8 @@ public sealed class RetryStrategy : IRetryStrategy
                     {
                         if (task.IsFaulted && task.Exception != null)
                         {
-                            Log.Error(task.Exception, "Unhandled exception publishing disconnected state (first exhausted)");
+                            Log.Error(task.Exception,
+                                "Unhandled exception publishing disconnected state (first exhausted)");
                         }
                     },
                     TaskScheduler.Default);
@@ -911,27 +906,26 @@ public sealed class RetryStrategy : IRetryStrategy
         {
             throw new InvalidOperationException("NetworkProvider has not been initialized");
         }
+
         return _lazyNetworkProvider.Value;
     }
 
-    private static string CreateOperationKey(string operationName, uint connectId, DateTime startTime)
-    {
-        return $"{operationName}_{connectId}_{startTime.Ticks}_{Guid.NewGuid():N}";
-    }
+    private static string CreateOperationKey(string operationName, uint connectId, DateTime startTime) =>
+        $"{operationName}_{connectId}_{startTime.Ticks}_{Guid.NewGuid():N}";
 
     private static int GetCurrentAttempt(Context ctx) =>
         ctx.TryGetValue(ATTEMPT_KEY, out object? val) && val is int attempt ? attempt : 1;
 
-    private async Task<Result<TResponse, NetworkFailure>> ExecuteOperationWithLogging<TResponse>(
+    private static async Task<Result<TResponse, NetworkFailure>> ExecuteOperationWithLogging<TResponse>(
         Context ctx,
-        CancellationToken ct,
+        CancellationToken cancellationToken,
         Func<int, CancellationToken, Task<Result<TResponse, NetworkFailure>>> operation,
         string operationName)
     {
-        ct.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         int currentAttempt = GetCurrentAttempt(ctx);
         Result<TResponse, NetworkFailure> opResult =
-            await operation(currentAttempt, ct).ConfigureAwait(false);
+            await operation(currentAttempt, cancellationToken).ConfigureAwait(false);
         if (Log.IsEnabled(LogEventLevel.Debug))
         {
             Log.Debug(

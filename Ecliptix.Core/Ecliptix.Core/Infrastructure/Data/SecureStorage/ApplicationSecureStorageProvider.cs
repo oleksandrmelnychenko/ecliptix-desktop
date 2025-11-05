@@ -35,7 +35,7 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
     {
         SecureStoreOptions opts = options.Value;
 
-        _storagePath = opts.ENCRYPTED_STATE_PATH;
+        _storagePath = opts.EncryptedStatePath;
         _protector = dataProtectionProvider.CreateProtector("Ecliptix.SecureStorage.v1");
 
         InitializeStorageDirectory();

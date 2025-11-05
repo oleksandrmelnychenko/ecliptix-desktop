@@ -9,7 +9,6 @@ namespace Ecliptix.Core.Services.Membership;
 
 public static partial class SecureKeyValidator
 {
-
     private static readonly Regex HasUppercaseRegex = HasUppercaseRegexPattern();
     private static readonly Regex HasDigitRegex = HasDigitRegexPattern();
     private static readonly Regex HasLowercaseRegex = HasLowercaseRegexPattern();
@@ -35,7 +34,6 @@ public static partial class SecureKeyValidator
         ILocalizationService localizationService, bool _ = false)
     {
         List<string> recommendations = [];
-        string? error = null;
 
         List<(Func<string, bool> IsInvalid, string ErrorMessageKey, object[]? Args)> hardValidationRules =
         [
@@ -70,22 +68,26 @@ public static partial class SecureKeyValidator
         foreach ((Func<string, bool> isInvalid, string errorMessageKey, object[]? args) in hardValidationRules)
         {
             bool result = isInvalid(secureKey);
-            if (result)
+            if (!result)
             {
-                string message = localizationService[errorMessageKey];
-                error = args != null ? string.Format(message, args) : message;
-                return (error, recommendations);
+                continue;
             }
+
+            string message = localizationService[errorMessageKey];
+            string? error = args != null ? string.Format(message, args) : message;
+            return (error, recommendations);
         }
 
         foreach ((Func<string, bool> isWeak, string errorMessageKey, object[]? args) in recommendationRules)
         {
             bool result = isWeak(secureKey);
-            if (result)
+            if (!result)
             {
-                string message = localizationService[errorMessageKey];
-                recommendations.Add(args != null ? string.Format(message, args) : message);
+                continue;
             }
+
+            string message = localizationService[errorMessageKey];
+            recommendations.Add(args != null ? string.Format(message, args) : message);
         }
 
         return (null, recommendations);
@@ -96,7 +98,7 @@ public static partial class SecureKeyValidator
         (string? error, List<string> recommendations) = Validate(secureKey, localizationService);
         if (error != null)
         {
-            return SecureKeyStrength.Invalid;
+            return SecureKeyStrength.INVALID;
         }
 
         int score = 0;
@@ -129,10 +131,10 @@ public static partial class SecureKeyValidator
 
         SecureKeyStrength strength = score switch
         {
-            <= 2 => SecureKeyStrength.Weak,
-            <= 4 => SecureKeyStrength.Good,
-            <= 6 => SecureKeyStrength.Strong,
-            _ => SecureKeyStrength.VeryStrong
+            <= 2 => SecureKeyStrength.WEAK,
+            <= 4 => SecureKeyStrength.GOOD,
+            <= 6 => SecureKeyStrength.STRONG,
+            _ => SecureKeyStrength.VERY_STRONG
         };
         return strength;
     }

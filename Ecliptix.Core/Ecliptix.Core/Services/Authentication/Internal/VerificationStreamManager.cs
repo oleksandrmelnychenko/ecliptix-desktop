@@ -11,29 +11,19 @@ using Ecliptix.Utilities.Failures.Network;
 
 namespace Ecliptix.Core.Services.Authentication.Internal;
 
-internal sealed class VerificationStreamManager : IDisposable
+internal sealed class VerificationStreamManager(NetworkProvider networkProvider) : IDisposable
 {
-    private readonly NetworkProvider _networkProvider;
     private readonly ConcurrentDictionary<Guid, uint> _activeStreams = new();
     private readonly ConcurrentDictionary<Guid, VerificationPurpose> _activeSessionPurposes = new();
     private readonly CancellationTokenSource _disposalCts = new();
     private readonly List<Task> _backgroundCleanupTasks = new();
     private bool _isDisposed;
 
-    public VerificationStreamManager(NetworkProvider networkProvider)
-    {
-        _networkProvider = networkProvider;
-    }
+    public bool TryGetActiveStream(Guid sessionIdentifier, out uint connectId) =>
+        _activeStreams.TryGetValue(sessionIdentifier, out connectId);
 
-    public bool TryGetActiveStream(Guid sessionIdentifier, out uint connectId)
-    {
-        return _activeStreams.TryGetValue(sessionIdentifier, out connectId);
-    }
-
-    public VerificationPurpose GetSessionPurpose(Guid sessionIdentifier)
-    {
-        return _activeSessionPurposes.GetValueOrDefault(sessionIdentifier, VerificationPurpose.Registration);
-    }
+    public VerificationPurpose GetSessionPurpose(Guid sessionIdentifier) =>
+        _activeSessionPurposes.GetValueOrDefault(sessionIdentifier, VerificationPurpose.Registration);
 
     public void RegisterStream(Guid verificationIdentifier, uint streamConnectId, VerificationPurpose purpose)
     {
@@ -76,16 +66,13 @@ internal sealed class VerificationStreamManager : IDisposable
             return Result<Unit, string>.Ok(Unit.Value);
         }
 
-        Result<Unit, NetworkFailure> result = await _networkProvider
+        Result<Unit, NetworkFailure> result = await networkProvider
             .CleanupStreamProtocolAsync(connectId)
             .ConfigureAwait(false);
 
-        if (result.IsErr)
-        {
-            return Result<Unit, string>.Err(result.UnwrapErr().Message);
-        }
-
-        return Result<Unit, string>.Ok(Unit.Value);
+        return result.IsErr
+            ? Result<Unit, string>.Err(result.UnwrapErr().Message)
+            : Result<Unit, string>.Ok(Unit.Value);
     }
 
     public void Dispose()
@@ -135,7 +122,8 @@ internal sealed class VerificationStreamManager : IDisposable
             }
             catch (Exception ex)
             {
-                Serilog.Log.Error(ex, "[STREAM-CLEANUP] Failed to cleanup stream {VerificationId}", verificationIdentifier);
+                Serilog.Log.Error(ex, "[STREAM-CLEANUP] Failed to cleanup stream {VerificationId}",
+                    verificationIdentifier);
             }
         }, _disposalCts.Token);
 

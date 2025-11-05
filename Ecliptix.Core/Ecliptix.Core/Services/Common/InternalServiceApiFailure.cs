@@ -16,18 +16,12 @@ public class InternalServiceApiFailure
     public string Message { get; }
     public Exception? InnerException { get; }
 
-    public static InternalServiceApiFailure SecureStoreAccessDenied(string details, Exception? inner = null)
-    {
-        return new InternalServiceApiFailure(InternalServiceApiFailureType.SecureStoreAccessDenied, details, inner);
-    }
+    public static InternalServiceApiFailure SecureStoreAccessDenied(string details, Exception? inner = null) =>
+        new(InternalServiceApiFailureType.SECURE_STORE_ACCESS_DENIED, details, inner);
 
-    public static InternalServiceApiFailure SecureStoreKeyNotFound(string details, Exception? inner = null)
-    {
-        return new InternalServiceApiFailure(InternalServiceApiFailureType.SecureStoreKeyNotFound, details, inner);
-    }
+    public static InternalServiceApiFailure SecureStoreKeyNotFound(string details, Exception? inner = null) =>
+        new(InternalServiceApiFailureType.SECURE_STORE_KEY_NOT_FOUND, details, inner);
 
-    public static InternalServiceApiFailure ApiRequestFailed(string details, Exception? inner = null)
-    {
-        return new InternalServiceApiFailure(InternalServiceApiFailureType.ApiRequestFailed, details, inner);
-    }
+    public static InternalServiceApiFailure ApiRequestFailed(string details, Exception? inner = null) =>
+        new(InternalServiceApiFailureType.API_REQUEST_FAILED, details, inner);
 }

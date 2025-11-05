@@ -105,7 +105,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         AvaloniaProperty.Register<HintedTextBox, bool>(nameof(IsSecureKeyStrengthMode));
 
     public static readonly StyledProperty<SecureKeyStrength> SecureKeyStrengthProperty =
-        AvaloniaProperty.Register<HintedTextBox, SecureKeyStrength>(nameof(SecureKeyStrength), SecureKeyStrength.Invalid);
+        AvaloniaProperty.Register<HintedTextBox, SecureKeyStrength>(nameof(SecureKeyStrength), SecureKeyStrength.INVALID);
 
     public static readonly StyledProperty<string> SecureKeyStrengthTextProperty =
         AvaloniaProperty.Register<HintedTextBox, string>(nameof(SecureKeyStrengthText), string.Empty);
@@ -162,7 +162,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private DispatcherTimer? _secureKeyDebounceTimer;
     private bool _lastIsFocused;
     private bool _lastHasError;
-    private SecureKeyStrength _lastSecureKeyStrength = SecureKeyStrength.Invalid;
+    private SecureKeyStrength _lastSecureKeyStrength = SecureKeyStrength.INVALID;
     private bool _lastIsSecureKeyStrengthMode;
     private string _lastProcessedText = string.Empty;
     private IDisposable? _currentTypingAnimation;
@@ -514,22 +514,22 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     {
         return strength switch
         {
-            SecureKeyStrength.Invalid => (GetCachedColor(HintedTextBoxConstants.INVALID_STRENGTH_COLOR_HEX),
+            SecureKeyStrength.INVALID => (GetCachedColor(HintedTextBoxConstants.INVALID_STRENGTH_COLOR_HEX),
                 HintedTextBoxConstants.INVALID_STRENGTH_SHADOW_KEY,
                 GetCachedColor(HintedTextBoxConstants.INVALID_STRENGTH_COLOR_HEX)),
-            SecureKeyStrength.VeryWeak => (GetCachedColor(HintedTextBoxConstants.VERY_WEAK_STRENGTH_COLOR_HEX),
+            SecureKeyStrength.VERY_WEAK => (GetCachedColor(HintedTextBoxConstants.VERY_WEAK_STRENGTH_COLOR_HEX),
                 HintedTextBoxConstants.VERY_WEAK_STRENGTH_SHADOW_KEY,
                 GetCachedColor(HintedTextBoxConstants.VERY_WEAK_STRENGTH_COLOR_HEX)),
-            SecureKeyStrength.Weak => (GetCachedColor(HintedTextBoxConstants.WEAK_STRENGTH_COLOR_HEX),
+            SecureKeyStrength.WEAK => (GetCachedColor(HintedTextBoxConstants.WEAK_STRENGTH_COLOR_HEX),
                 HintedTextBoxConstants.WEAK_STRENGTH_SHADOW_KEY,
                 GetCachedColor(HintedTextBoxConstants.WEAK_STRENGTH_COLOR_HEX)),
-            SecureKeyStrength.Good => (GetCachedColor(HintedTextBoxConstants.GOOD_STRENGTH_COLOR_HEX),
+            SecureKeyStrength.GOOD => (GetCachedColor(HintedTextBoxConstants.GOOD_STRENGTH_COLOR_HEX),
                 HintedTextBoxConstants.GOOD_STRENGTH_SHADOW_KEY,
                 GetCachedColor(HintedTextBoxConstants.GOOD_STRENGTH_COLOR_HEX)),
-            SecureKeyStrength.Strong => (GetCachedColor(HintedTextBoxConstants.STRONG_STRENGTH_COLOR_HEX),
+            SecureKeyStrength.STRONG => (GetCachedColor(HintedTextBoxConstants.STRONG_STRENGTH_COLOR_HEX),
                 HintedTextBoxConstants.STRONG_STRENGTH_SHADOW_KEY,
                 GetCachedColor(HintedTextBoxConstants.STRONG_STRENGTH_COLOR_HEX)),
-            SecureKeyStrength.VeryStrong => (GetCachedColor(HintedTextBoxConstants.VERY_STRONG_STRENGTH_COLOR_HEX),
+            SecureKeyStrength.VERY_STRONG => (GetCachedColor(HintedTextBoxConstants.VERY_STRONG_STRENGTH_COLOR_HEX),
                 HintedTextBoxConstants.VERY_STRONG_STRENGTH_SHADOW_KEY,
                 GetCachedColor(HintedTextBoxConstants.VERY_STRONG_STRENGTH_COLOR_HEX)),
             _ => (GetCachedColor(HintedTextBoxConstants.INVALID_STRENGTH_COLOR_HEX),

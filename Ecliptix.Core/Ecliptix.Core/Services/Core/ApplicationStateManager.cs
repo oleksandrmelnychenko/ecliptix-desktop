@@ -21,7 +21,7 @@ public sealed class ApplicationStateManager : IApplicationStateManager, IDisposa
     public Task TransitionToAnonymousAsync()
     {
         _currentMembershipId = Option<string>.None;
-        _stateSubject.OnNext(ApplicationState.Anonymous);
+        _stateSubject.OnNext(ApplicationState.ANONYMOUS);
         return Task.CompletedTask;
     }
 
@@ -33,7 +33,7 @@ public sealed class ApplicationStateManager : IApplicationStateManager, IDisposa
         }
 
         _currentMembershipId = Option<string>.Some(membershipId);
-        _stateSubject.OnNext(ApplicationState.Authenticated);
+        _stateSubject.OnNext(ApplicationState.AUTHENTICATED);
         return Task.CompletedTask;
     }
 

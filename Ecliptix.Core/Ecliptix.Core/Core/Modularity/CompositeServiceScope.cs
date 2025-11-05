@@ -27,9 +27,9 @@ internal class CompositeServiceScope : IServiceScope
         }
 
         _disposed = true;
-        _serviceProvider?.Dispose();
-        _moduleServiceProvider?.Dispose();
-        _parentScope?.Dispose();
+        _serviceProvider.Dispose();
+        _moduleServiceProvider.Dispose();
+        _parentScope.Dispose();
     }
 }
 

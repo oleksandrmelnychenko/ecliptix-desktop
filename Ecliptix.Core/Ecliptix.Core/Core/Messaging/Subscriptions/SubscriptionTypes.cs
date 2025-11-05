@@ -18,7 +18,7 @@ internal sealed class StrongSubscription<T>(Func<T, bool> filter, Func<T, Task> 
     public bool IsAlive => true;
     public bool IsWeak => false;
 
-    public Task? HandleAsync(object message)
+    public Task HandleAsync(object message)
     {
         if (message is T typedMessage && filter(typedMessage))
         {
@@ -38,7 +38,7 @@ internal sealed class WeakSubscription<T>(Func<T, bool> filter, Func<T, Task> ha
     public bool IsWeak => true;
     public bool IsAlive => _handlerRef.TryGetTarget(out _);
 
-    public Task? HandleAsync(object message)
+    public Task HandleAsync(object message)
     {
         if (message is T typedMessage &&
             filter(typedMessage) &&
@@ -60,7 +60,7 @@ internal sealed class ScopedSubscription<T>(Func<T, bool> filter, Func<T, Task> 
     public bool IsAlive => !_disposed;
     public bool IsWeak => false;
 
-    public Task? HandleAsync(object message)
+    public Task HandleAsync(object message)
     {
         if (!_disposed && message is T typedMessage && filter(typedMessage))
         {
@@ -70,9 +70,4 @@ internal sealed class ScopedSubscription<T>(Func<T, bool> filter, Func<T, Task> 
     }
 
     public void Dispose() => _disposed = true;
-}
-
-public interface IDisposableCollection
-{
-    void Add(IDisposable disposable);
 }

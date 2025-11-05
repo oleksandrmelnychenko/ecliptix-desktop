@@ -295,7 +295,7 @@ public static class Program
                 configuration.GetSection(ApplicationConstants.Configuration.SECURE_STORE_OPTIONS_SECTION);
             SecureStoreOptions options = new()
             {
-                ENCRYPTED_STATE_PATH = ResolvePath(
+                EncryptedStatePath = ResolvePath(
                     GetSectionValue(section, ApplicationConstants.ConfigurationKeys.ENCRYPTED_STATE_PATH,
                         ApplicationConstants.Storage.DEFAULT_STATE_PATH)
                 )

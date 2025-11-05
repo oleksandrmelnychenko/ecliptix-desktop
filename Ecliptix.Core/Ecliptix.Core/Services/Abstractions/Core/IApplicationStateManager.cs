@@ -7,17 +7,13 @@ namespace Ecliptix.Core.Services.Abstractions.Core;
 public enum ApplicationState
 {
     INITIALIZING,
-    Anonymous,
-    Authenticated
+    ANONYMOUS,
+    AUTHENTICATED
 }
 
 public interface IApplicationStateManager
 {
     ApplicationState CurrentState { get; }
-
-    IObservable<ApplicationState> StateChanges { get; }
-
-    Option<string> CurrentMembershipId { get; }
 
     Task TransitionToAnonymousAsync();
 

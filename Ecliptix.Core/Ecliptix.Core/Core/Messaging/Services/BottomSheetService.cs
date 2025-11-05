@@ -220,7 +220,7 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
         }
     }
 
-    private record BottomSheetRequest(
+    private sealed record BottomSheetRequest(
         BottomSheetComponentType ComponentType,
         UserControl? Control,
         bool ShowScrim,

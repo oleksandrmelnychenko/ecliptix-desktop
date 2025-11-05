@@ -15,7 +15,7 @@ public interface IRpcServiceManager
     Task<Result<SecureEnvelope, NetworkFailure>> EstablishSecrecyChannelAsync(
         IConnectivityService connectivityService,
         SecureEnvelope envelope,
-        PubKeyExchangeType? EXCHANGE_TYPE = null,
+        PubKeyExchangeType? exchangeType = null,
         CancellationToken cancellationToken = default);
 
     Task<Result<RestoreChannelResponse, NetworkFailure>> RestoreSecrecyChannelAsync(

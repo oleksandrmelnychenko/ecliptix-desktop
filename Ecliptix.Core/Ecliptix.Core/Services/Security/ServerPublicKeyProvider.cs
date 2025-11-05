@@ -21,6 +21,7 @@ internal sealed class ServerPublicKeyProvider(NetworkProvider networkProvider) :
                 byte[] newKey = SecureByteStringInterop.WithByteStringAsSpan(
                     networkProvider.ApplicationInstanceSettings.ServerPublicKey,
                     span => span.ToArray());
+
                 _cachedKey = Option<byte[]>.Some(newKey);
                 return _cachedKey;
             });

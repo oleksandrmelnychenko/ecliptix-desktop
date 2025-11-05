@@ -8,6 +8,4 @@ public static class NetworkStatusConstants
 
     public const string NO_INTERNET_ICON_URI = "avares://Ecliptix.Core/Assets/Icons/Network/wifi.png";
     public const string SERVER_NOT_RESPONDING_ICON_URI = "avares://Ecliptix.Core/Assets/Icons/Network/ServerShutdownAmber30x30.png";
-
-    public const string MAIN_BORDER_NAME = "MainBorder";
 }

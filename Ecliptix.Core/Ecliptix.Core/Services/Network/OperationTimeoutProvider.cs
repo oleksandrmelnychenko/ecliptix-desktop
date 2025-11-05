@@ -62,11 +62,13 @@ public sealed class OperationTimeoutProvider : IOperationTimeoutProvider
     {
         TimeSpan baseTimeout = ServiceTimeouts.GetValueOrDefault(serviceType, DefaultTimeout);
 
-        if (requestContext is { Attempt: > 1 })
+        if (requestContext is not { Attempt: > 1 })
         {
-            double multiplier = CalculateAdaptiveMultiplier(requestContext.Attempt);
-            baseTimeout = TimeSpan.FromMilliseconds(baseTimeout.TotalMilliseconds * multiplier);
+            return baseTimeout;
         }
+
+        double multiplier = CalculateAdaptiveMultiplier(requestContext.Attempt);
+        baseTimeout = TimeSpan.FromMilliseconds(baseTimeout.TotalMilliseconds * multiplier);
 
         return baseTimeout;
     }

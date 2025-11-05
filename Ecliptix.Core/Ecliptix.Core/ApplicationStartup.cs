@@ -33,7 +33,7 @@ public class ApplicationStartup(
 
         if (success)
         {
-            bool isAuthenticated = stateManager.CurrentState == ApplicationState.Authenticated;
+            bool isAuthenticated = stateManager.CurrentState == ApplicationState.AUTHENTICATED;
 
             await router.TransitionFromSplashAsync(splashScreen, isAuthenticated);
 

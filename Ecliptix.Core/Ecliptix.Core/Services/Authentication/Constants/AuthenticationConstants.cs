@@ -6,7 +6,6 @@ public static class AuthenticationConstants
 {
     public const string MOBILE_NUMBER_REQUIRED_KEY = "ValidationErrors.MobileNumber.REQUIRED";
     public const string MOBILE_NUMBER_IDENTIFIER_REQUIRED_KEY = "ValidationErrors.MobileNumberIdentifier.REQUIRED";
-    public const string DEVICE_IDENTIFIER_REQUIRED_KEY = "ValidationErrors.DeviceIdentifier.REQUIRED";
     public const string SESSION_IDENTIFIER_REQUIRED_KEY = "ValidationErrors.SessionIdentifier.REQUIRED";
     public const string MEMBERSHIP_IDENTIFIER_REQUIRED_KEY = "ValidationErrors.MembershipIdentifier.REQUIRED";
     public const string SECURE_KEY_REQUIRED_KEY = "ValidationErrors.SecureKey.REQUIRED";
@@ -35,10 +34,6 @@ public static class AuthenticationConstants
     public const string REDIRECTING_IN_SECONDS_KEY = "Verification.Info.RedirectingInSeconds";
     public const string NAVIGATION_FAILURE_KEY = "Authentication.ERROR.NavigationFailure";
 
-
-    public const string ACCOUNT_ALREADY_EXISTS_KEY = "ResponseErrors.MobileNumber.AccountAlreadyRegistered";
-    public const string TIMEOUT_EXCEEDED_KEY = "ResponseErrors.Common.TimeoutExceeded";
-
     public const string INITIAL_REMAINING_TIME = "00:30";
     public const string EXPIRED_REMAINING_TIME = "00:00";
 
@@ -46,8 +41,6 @@ public static class AuthenticationConstants
 
     public static class ErrorMessages
     {
-        public const string SESSION_NOT_FOUND = "Session not found";
-        public const string START_OVER = "start over";
         public const string SESSION_EXPIRED_START_OVER = "Session expired. Please start over.";
     }
 

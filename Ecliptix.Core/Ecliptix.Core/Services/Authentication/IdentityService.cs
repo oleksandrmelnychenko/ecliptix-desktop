@@ -30,7 +30,7 @@ internal sealed class IdentityService : IIdentityService
         IdentityContext context = new(membershipId);
 
         Result<byte[], SecureStorageFailure> result =
-            await _storage.LoadStateAsync(context.STORAGE_KEY, context.MembershipBytes).ConfigureAwait(false);
+            await _storage.LoadStateAsync(context.StorageKey, context.MembershipBytes).ConfigureAwait(false);
         bool exists = result.IsOk;
 
         return exists;
@@ -57,8 +57,6 @@ internal sealed class IdentityService : IIdentityService
 
             if (loadResult.IsErr)
             {
-                Log.Error("[CLIENT-IDENTITY-VERIFY-FAIL] Failed to load master key for verification. MembershipId: {MembershipId}, ERROR: {ERROR}",
-                    context.MembershipId, loadResult.UnwrapErr().Message);
                 return Result<Unit, AuthenticationFailure>.Err(
                     AuthenticationFailure.IdentityStorageFailed($"Verification failed - could not load stored master key: {loadResult.UnwrapErr().Message}"));
             }
@@ -68,8 +66,6 @@ internal sealed class IdentityService : IIdentityService
 
             if (loadedReadResult.IsErr)
             {
-                Log.Error("[CLIENT-IDENTITY-VERIFY-FAIL] Failed to read loaded master key. MembershipId: {MembershipId}, ERROR: {ERROR}",
-                    context.MembershipId, loadedReadResult.UnwrapErr().Message);
                 return Result<Unit, AuthenticationFailure>.Err(
                     AuthenticationFailure.IdentityStorageFailed($"Verification failed - could not read loaded master key: {loadedReadResult.UnwrapErr().Message}"));
             }
@@ -78,9 +74,6 @@ internal sealed class IdentityService : IIdentityService
 
             if (!CryptographicOperations.FixedTimeEquals(originalMasterKeyBytes, loadedMasterKeyBytes))
             {
-                Log.Error("[CLIENT-IDENTITY-VERIFY-MISMATCH] Master key verification failed! MembershipId: {MembershipId}",
-                    context.MembershipId);
-
                 CryptographicOperations.ZeroMemory(loadedMasterKeyBytes);
                 return Result<Unit, AuthenticationFailure>.Err(
                     AuthenticationFailure.IdentityStorageFailed("Master key verification failed"));
@@ -91,17 +84,12 @@ internal sealed class IdentityService : IIdentityService
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "[CLIENT-IDENTITY-STORE-ERROR] Exception during master key storage/verification. MembershipId: {MembershipId}",
-                context.MembershipId);
             return Result<Unit, AuthenticationFailure>.Err(
                 AuthenticationFailure.IdentityStorageFailed($"Failed to store/verify master key: {ex.Message}", ex));
         }
     }
 
-    public async Task<Result<SodiumSecureMemoryHandle, AuthenticationFailure>> LoadMasterKeyHandleAsync(string membershipId)
-    {
-        return await LoadMasterKeyAsync(new IdentityContext(membershipId)).ConfigureAwait(false);
-    }
+    public async Task<Result<SodiumSecureMemoryHandle, AuthenticationFailure>> LoadMasterKeyHandleAsync(string membershipId) => await LoadMasterKeyAsync(new IdentityContext(membershipId)).ConfigureAwait(false);
 
     public async Task<Result<Unit, AuthenticationFailure>> ClearAllCacheAsync(string membershipId)
     {
@@ -110,7 +98,7 @@ internal sealed class IdentityService : IIdentityService
         try
         {
             Result<Unit, SecureStorageFailure> deleteStorageResult =
-                await _storage.DeleteStateAsync(context.STORAGE_KEY).ConfigureAwait(false);
+                await _storage.DeleteStateAsync(context.StorageKey).ConfigureAwait(false);
 
             if (deleteStorageResult.IsErr)
             {
@@ -135,7 +123,7 @@ internal sealed class IdentityService : IIdentityService
     private async Task StoreIdentityInternalAsync(SodiumSecureMemoryHandle masterKeyHandle, IdentityContext context)
     {
         byte[]? wrappingKey = null;
-        string storageKey = context.STORAGE_KEY;
+        string storageKey = context.StorageKey;
         bool hardwareAvailable = IsHardwareSecurityAvailable();
 
         try
@@ -147,8 +135,6 @@ internal sealed class IdentityService : IIdentityService
 
             if (saveResult.IsErr)
             {
-                Log.Error("[CLIENT-IDENTITY-STORE-ERROR] Failed to save master key to storage. MembershipId: {MembershipId}, STORAGE_KEY: {STORAGE_KEY}, ERROR: {ERROR}",
-                    context.MembershipId, storageKey, saveResult.UnwrapErr().Message);
                 throw new InvalidOperationException($"Failed to save master key to storage: {saveResult.UnwrapErr().Message}");
             }
 
@@ -169,7 +155,7 @@ internal sealed class IdentityService : IIdentityService
 
     private async Task<Result<SodiumSecureMemoryHandle, AuthenticationFailure>> LoadMasterKeyAsync(IdentityContext context)
     {
-        string storageKey = context.STORAGE_KEY;
+        string storageKey = context.StorageKey;
 
         try
         {
@@ -178,9 +164,6 @@ internal sealed class IdentityService : IIdentityService
 
             if (result.IsErr)
             {
-                Log.Error("[CLIENT-IDENTITY-LOAD-ERROR] Failed to load protected key. MembershipId: {MembershipId}, STORAGE_KEY: {STORAGE_KEY}, ERROR: {ERROR}",
-                    context.MembershipId, storageKey, result.UnwrapErr().Message);
-
                 return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
                     AuthenticationFailure.IdentityStorageFailed($"Failed to load protected key: {result.UnwrapErr().Message}"));
             }
@@ -192,9 +175,6 @@ internal sealed class IdentityService : IIdentityService
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "[CLIENT-IDENTITY-LOAD-EXCEPTION] Exception loading master key. MembershipId: {MembershipId}, STORAGE_KEY: {STORAGE_KEY}",
-                context.MembershipId, storageKey);
-
             return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
                 AuthenticationFailure.IdentityStorageFailed($"Failed to load master key: {ex.Message}", ex));
         }
@@ -246,14 +226,13 @@ internal sealed class IdentityService : IIdentityService
                 }
             }
         }
-        catch (Exception ex)
+        catch
         {
             if (masterKeyBytes == null)
             {
                 throw;
             }
 
-            Log.Warning(ex, "[CLIENT-IDENTITY] Hardware security not available. Falling back to software-only encryption for master key");
             return (masterKeyBytes.AsSpan().ToArray(), null);
         }
         finally
@@ -286,8 +265,6 @@ internal sealed class IdentityService : IIdentityService
 
                 if (wrappingKey == null)
                 {
-                    Log.Warning("[CLIENT-IDENTITY-UNWRAP] Wrapping key not found in keychain, falling back to software protection. KeychainKey: {KeychainKey}",
-                        keychainKey);
                     masterKeyBytes = protectedKey.AsSpan().ToArray();
                 }
                 else
@@ -352,21 +329,16 @@ internal sealed class IdentityService : IIdentityService
         }
     }
 
-    private async Task<byte[]> GenerateWrappingKeyAsync()
-    {
-        return await _platformProvider.GenerateSecureRandomAsync(SecureStorageConstants.Identity.AES_KEY_SIZE).ConfigureAwait(false);
-    }
+    private async Task<byte[]> GenerateWrappingKeyAsync() => await _platformProvider.GenerateSecureRandomAsync(SecureStorageConstants.Identity.AES_KEY_SIZE).ConfigureAwait(false);
 
     private bool IsHardwareSecurityAvailable() => _hardwareSecurityAvailable.Value;
 
     private sealed class IdentityContext(string membershipId)
     {
         private byte[]? _membershipBytes;
-
         public string MembershipId { get; } = membershipId;
-        public string STORAGE_KEY { get; } = GetMasterKeyStorageKey(membershipId);
+        public string StorageKey { get; } = GetMasterKeyStorageKey(membershipId);
         public string KeychainKey { get; } = GetKeychainWrapKey(membershipId);
-
         public byte[] MembershipBytes => _membershipBytes ??= Guid.Parse(MembershipId).ToByteArray();
 
         private static string GetMasterKeyStorageKey(string membershipId) =>
