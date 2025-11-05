@@ -11,7 +11,7 @@ namespace Ecliptix.Protocol.System.Security.Ratcheting;
 
 internal sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IKeyProvider, IDisposable
 {
-    private readonly Dictionary<uint, SodiumSecureMemoryHandle> _skippedMessageKeys = new();
+    private readonly Dictionary<uint, SodiumSecureMemoryHandle> _skippedMessageKeys = [];
     private readonly Lock _lock = new();
     private bool _disposed;
 
@@ -144,14 +144,14 @@ internal sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IKeyProv
         );
 
         Result<Unit, SodiumFailure> writeResult = secureHandle.Write(msgKey.AsSpan());
-        if (writeResult.IsErr)
+        if (!writeResult.IsErr)
         {
-            secureHandle.Dispose();
-            return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(
-                writeResult.UnwrapErr().ToEcliptixProtocolFailure());
+            return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Ok(secureHandle);
         }
 
-        return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Ok(secureHandle);
+        secureHandle.Dispose();
+        return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(
+            writeResult.UnwrapErr().ToEcliptixProtocolFailure());
     }
 
     private static Result<Unit, EcliptixProtocolFailure> AdvanceChainKey(Span<byte> chainKey)
