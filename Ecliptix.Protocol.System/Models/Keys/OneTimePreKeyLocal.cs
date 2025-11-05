@@ -4,7 +4,7 @@ using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Utilities.Failures.Sodium;
 using Sodium;
 
-namespace Ecliptix.Protocol.System.Core;
+namespace Ecliptix.Protocol.System.Models.Keys;
 
 public readonly struct OneTimePreKeyLocal : IDisposable
 {

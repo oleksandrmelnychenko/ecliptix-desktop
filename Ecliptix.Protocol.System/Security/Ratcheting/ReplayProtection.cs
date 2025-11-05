@@ -2,7 +2,9 @@ using System.Collections.Concurrent;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 
-namespace Ecliptix.Protocol.System.Core;
+namespace Ecliptix.Protocol.System.Security.Ratcheting;
+
+using Ecliptix.Protocol.System.Security.ReplayProtection;
 
 internal sealed class ReplayProtection : IDisposable
 {
@@ -207,73 +209,5 @@ internal sealed class ReplayProtection : IDisposable
         _cleanupTimer?.Dispose();
         _processedNonces.Clear();
         _messageWindows.Clear();
-    }
-
-    private sealed class MessageWindow
-    {
-        private readonly SortedSet<ulong> _processedIndices = [];
-        private readonly DateTime _createdAt = DateTime.UtcNow;
-
-        public ulong HighestProcessedIndex { get; private set; }
-
-        public MessageWindow(ulong initialIndex)
-        {
-            HighestProcessedIndex = initialIndex;
-            _processedIndices.Add(initialIndex);
-        }
-
-        public bool IsProcessed(ulong messageIndex)
-        {
-            return _processedIndices.Contains(messageIndex);
-        }
-
-        public void MarkProcessed(ulong messageIndex)
-        {
-            _processedIndices.Add(messageIndex);
-            if (messageIndex > HighestProcessedIndex)
-            {
-                HighestProcessedIndex = messageIndex;
-            }
-        }
-
-        public void CleanupOldEntries(DateTime cutoff)
-        {
-            if (_createdAt < cutoff)
-            {
-                ulong keepFromIndex = HighestProcessedIndex > 1000 ? HighestProcessedIndex - 1000 : 0;
-                _processedIndices.RemoveWhere(idx => idx < keepFromIndex);
-            }
-        }
-    }
-
-    private readonly struct NonceKey : IEquatable<NonceKey>
-    {
-        private readonly byte[] _nonce;
-        private readonly int _hashCode;
-
-        public NonceKey(byte[] nonce)
-        {
-            _nonce = (byte[])nonce.Clone();
-            _hashCode = ComputeHashCode(nonce);
-        }
-
-        private static int ComputeHashCode(ReadOnlySpan<byte> nonce)
-        {
-            HashCode hash = new();
-            hash.AddBytes(nonce);
-            return hash.ToHashCode();
-        }
-
-        public bool Equals(NonceKey other)
-        {
-            return _nonce.AsSpan().SequenceEqual(other._nonce);
-        }
-
-        public override bool Equals(object? obj)
-        {
-            return obj is NonceKey other && Equals(other);
-        }
-
-        public override int GetHashCode() => _hashCode;
     }
 }

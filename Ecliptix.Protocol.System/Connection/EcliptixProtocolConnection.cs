@@ -3,6 +3,15 @@ using System.Security.Cryptography;
 using System.Text;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.ProtocolState;
+using Ecliptix.Protocol.System.Configuration;
+using Ecliptix.Protocol.System.Enums;
+using Ecliptix.Protocol.System.Interfaces;
+using Ecliptix.Protocol.System.Models.Bundles;
+using Ecliptix.Protocol.System.Models.Connection;
+using Ecliptix.Protocol.System.Models.Keys;
+using Ecliptix.Protocol.System.Protocol.ChainStep;
+using Ecliptix.Protocol.System.Security.Ratcheting;
+using Ecliptix.Protocol.System.Security.Validation;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
@@ -12,17 +21,7 @@ using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Sodium;
 
-namespace Ecliptix.Protocol.System.Core;
-
-internal readonly record struct ProtocolConnectionParams(
-    uint Id,
-    bool IsInitiator,
-    SodiumSecureMemoryHandle InitialSendingDh,
-    EcliptixProtocolChainStep SendingStep,
-    SodiumSecureMemoryHandle PersistentDh,
-    byte[] PersistentDhPublic,
-    RatchetConfig RatchetConfig,
-    PubKeyExchangeType ExchangeType);
+namespace Ecliptix.Protocol.System.Connection;
 
 internal sealed class EcliptixProtocolConnection : IDisposable
 {
@@ -172,7 +171,7 @@ internal sealed class EcliptixProtocolConnection : IDisposable
 
             byte[] tempChainKey = new byte[Constants.X_25519_KEY_SIZE];
             Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> stepResult =
-                EcliptixProtocolChainStep.Create(ChainStepType.Sender, tempChainKey,
+                EcliptixProtocolChainStep.Create(ChainStepType.SENDER, tempChainKey,
                     initialSendingDhPrivateKeyBytes, initialSendingDhPublicKey);
             WipeIfNotNull(tempChainKey);
             WipeIfNotNull(initialSendingDhPrivateKeyBytes);
@@ -293,7 +292,7 @@ internal sealed class EcliptixProtocolConnection : IDisposable
         try
         {
             Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> sendingStepResult =
-                EcliptixProtocolChainStep.FromProtoState(ChainStepType.Sender, proto.SendingStep);
+                EcliptixProtocolChainStep.FromProtoState(ChainStepType.SENDER, proto.SendingStep);
             if (sendingStepResult.IsErr)
             {
                 return Result<EcliptixProtocolConnection, EcliptixProtocolFailure>.Err(sendingStepResult.UnwrapErr());
@@ -302,7 +301,7 @@ internal sealed class EcliptixProtocolConnection : IDisposable
             sendingStep = sendingStepResult.Unwrap();
 
             Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> receivingStepResult =
-                EcliptixProtocolChainStep.FromProtoState(ChainStepType.Receiver, proto.ReceivingStep);
+                EcliptixProtocolChainStep.FromProtoState(ChainStepType.RECEIVER, proto.ReceivingStep);
             if (receivingStepResult.IsErr)
             {
                 return Result<EcliptixProtocolConnection, EcliptixProtocolFailure>.Err(receivingStepResult.UnwrapErr());
@@ -689,7 +688,7 @@ internal sealed class EcliptixProtocolConnection : IDisposable
                 }
 
                 Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> createResult =
-                    EcliptixProtocolChainStep.Create(ChainStepType.Receiver,
+                    EcliptixProtocolChainStep.Create(ChainStepType.RECEIVER,
                         receiverChainKey, persistentPrivKeyBytes, _persistentDhPublicKey);
                 if (createResult.IsErr)
                 {
@@ -1436,28 +1435,6 @@ internal sealed class EcliptixProtocolConnection : IDisposable
 
         _receivedNewDhKey = false;
         return Result<bool, EcliptixProtocolFailure>.Ok(true);
-    }
-
-    private sealed class DhRatchetContext : IDisposable
-    {
-        public byte[]? DhSecret;
-        public byte[]? NewRootKey;
-        public byte[]? NewChainKey;
-        public byte[]? NewEphemeralPublicKey;
-        public byte[]? LocalPrivateKeyBytes;
-        public byte[]? NewDhPrivateKeyBytes;
-        public SodiumSecureMemoryHandle? NewEphemeralSkHandle;
-
-        public void Dispose()
-        {
-            WipeIfNotNull(DhSecret);
-            WipeIfNotNull(NewRootKey);
-            WipeIfNotNull(NewChainKey);
-            WipeIfNotNull(NewEphemeralPublicKey);
-            WipeIfNotNull(LocalPrivateKeyBytes);
-            WipeIfNotNull(NewDhPrivateKeyBytes);
-            NewEphemeralSkHandle?.Dispose();
-        }
     }
 
     ~EcliptixProtocolConnection()

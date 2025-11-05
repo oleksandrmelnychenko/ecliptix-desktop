@@ -1,14 +1,9 @@
 using System.Buffers;
+using Ecliptix.Protocol.System.Interfaces;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 
-namespace Ecliptix.Protocol.System.Core;
-
-internal interface IKeyProvider
-{
-    Result<T, EcliptixProtocolFailure> ExecuteWithKey<T>(uint keyIndex, Func<ReadOnlySpan<byte>, Result<T, EcliptixProtocolFailure>> operation);
-}
-
+namespace Ecliptix.Protocol.System.Models.Keys;
 internal sealed class RatchetChainKey : IEquatable<RatchetChainKey>
 {
     private readonly IKeyProvider _keyProvider;

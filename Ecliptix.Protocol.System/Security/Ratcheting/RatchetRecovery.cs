@@ -1,11 +1,13 @@
 using System.Security.Cryptography;
+using Ecliptix.Protocol.System.Interfaces;
+using Ecliptix.Protocol.System.Models.Keys;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Utilities.Failures.Sodium;
 
-namespace Ecliptix.Protocol.System.Core;
+namespace Ecliptix.Protocol.System.Security.Ratcheting;
 
 internal sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IKeyProvider, IDisposable
 {

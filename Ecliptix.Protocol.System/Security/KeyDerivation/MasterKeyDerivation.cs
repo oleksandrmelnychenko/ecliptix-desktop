@@ -8,7 +8,7 @@ using Google.Protobuf;
 using Konscious.Security.Cryptography;
 using Sodium;
 
-namespace Ecliptix.Protocol.System.Core;
+namespace Ecliptix.Protocol.System.Security.KeyDerivation;
 
 internal static class MasterKeyDerivation
 {

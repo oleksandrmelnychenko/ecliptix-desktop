@@ -1,7 +1,7 @@
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 
-namespace Ecliptix.Protocol.System.Core;
+namespace Ecliptix.Protocol.System.Models.Keys;
 
 internal record OneTimePreKeyRecord(uint PreKeyId, byte[] PublicKey)
 {

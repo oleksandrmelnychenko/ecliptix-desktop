@@ -1,7 +1,7 @@
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 
-namespace Ecliptix.Protocol.System.Core;
+namespace Ecliptix.Protocol.System.Security.Validation;
 
 internal static class DhValidator
 {

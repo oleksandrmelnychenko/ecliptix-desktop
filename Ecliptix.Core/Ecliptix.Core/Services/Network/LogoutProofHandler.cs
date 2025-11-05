@@ -7,7 +7,7 @@ using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Protobuf.Membership;
-using Ecliptix.Protocol.System.Core;
+using Ecliptix.Protocol.System.Security.KeyDerivation;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Authentication;

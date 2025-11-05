@@ -1,10 +1,12 @@
 using Ecliptix.Protobuf.Protocol;
+using Ecliptix.Protocol.System.Models.Keys;
+using Ecliptix.Protocol.System.Security.Validation;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Google.Protobuf;
 
-namespace Ecliptix.Protocol.System.Core;
+namespace Ecliptix.Protocol.System.Models.Bundles;
 
 internal record LocalPublicKeyBundle(
     byte[] IdentityEd25519,
@@ -199,16 +201,5 @@ internal record LocalPublicKeyBundle(
         }
 
         return opkRecords;
-    }
-
-    private readonly struct InternalBundleData
-    {
-        public required byte[] IdentityEd25519 { get; init; }
-        public required byte[] IdentityX25519 { get; init; }
-        public required uint SignedPreKeyId { get; init; }
-        public required byte[] SignedPreKeyPublic { get; init; }
-        public required byte[] SignedPreKeySignature { get; init; }
-        public required List<OneTimePreKeyRecord> OneTimePreKeys { get; init; }
-        public required byte[]? EphemeralX25519 { get; init; }
     }
 }

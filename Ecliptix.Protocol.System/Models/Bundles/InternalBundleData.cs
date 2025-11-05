@@ -1,3 +1,5 @@
+using Ecliptix.Protocol.System.Models.Keys;
+
 namespace Ecliptix.Protocol.System.Models.Bundles;
 
 internal readonly struct InternalBundleData

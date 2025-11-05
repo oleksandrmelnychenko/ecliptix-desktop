@@ -5,7 +5,7 @@ using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Sodium;
 using Serilog;
 
-namespace Ecliptix.Protocol.System.Core;
+namespace Ecliptix.Protocol.System.Security.KeyDerivation;
 
 public static class LogoutKeyDerivation
 {

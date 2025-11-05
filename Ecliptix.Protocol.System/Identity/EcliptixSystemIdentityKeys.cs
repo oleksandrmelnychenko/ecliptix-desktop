@@ -1,5 +1,9 @@
 using System.Security.Cryptography;
 using Ecliptix.Protobuf.ProtocolState;
+using Ecliptix.Protocol.System.Models.Bundles;
+using Ecliptix.Protocol.System.Models.KeyMaterials;
+using Ecliptix.Protocol.System.Models.Keys;
+using Ecliptix.Protocol.System.Security.KeyDerivation;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
@@ -8,27 +12,8 @@ using Ecliptix.Utilities.Failures.Sodium;
 using Google.Protobuf;
 using Sodium;
 
-namespace Ecliptix.Protocol.System.Core;
+namespace Ecliptix.Protocol.System.Identity;
 
-internal readonly record struct Ed25519KeyMaterial(
-    SodiumSecureMemoryHandle SecretKeyHandle,
-    byte[] PublicKey);
-
-internal readonly record struct X25519KeyMaterial(
-    SodiumSecureMemoryHandle SecretKeyHandle,
-    byte[] PublicKey);
-
-internal readonly record struct SignedPreKeyMaterial(
-    uint Id,
-    SodiumSecureMemoryHandle SecretKeyHandle,
-    byte[] PublicKey,
-    byte[] Signature);
-
-internal readonly record struct IdentityKeysMaterial(
-    Ed25519KeyMaterial Ed25519,
-    X25519KeyMaterial IdentityX25519,
-    SignedPreKeyMaterial SignedPreKey,
-    List<OneTimePreKeyLocal> OneTimePreKeys);
 
 public sealed class EcliptixSystemIdentityKeys : IDisposable
 {

@@ -1,4 +1,4 @@
-namespace Ecliptix.Protocol.System.Core;
+namespace Ecliptix.Protocol.System.Configuration;
 
 internal sealed class RatchetConfig
 {

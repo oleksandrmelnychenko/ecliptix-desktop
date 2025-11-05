@@ -1,6 +1,13 @@
 using System.Security.Cryptography;
 using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.Protocol;
+using Ecliptix.Protocol.System.Configuration;
+using Ecliptix.Protocol.System.Connection;
+using Ecliptix.Protocol.System.Identity;
+using Ecliptix.Protocol.System.Interfaces;
+using Ecliptix.Protocol.System.Models.Bundles;
+using Ecliptix.Protocol.System.Models.Keys;
+using Ecliptix.Protocol.System.Security.Validation;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
@@ -9,7 +16,7 @@ using Ecliptix.Utilities.Failures.Sodium;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 
-namespace Ecliptix.Protocol.System.Core;
+namespace Ecliptix.Protocol.System.Protocol;
 
 internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIdentityKeys)
     : IDisposable

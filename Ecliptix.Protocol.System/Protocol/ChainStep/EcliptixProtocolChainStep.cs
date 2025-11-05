@@ -1,5 +1,8 @@
 using System.Security.Cryptography;
 using Ecliptix.Protobuf.ProtocolState;
+using Ecliptix.Protocol.System.Enums;
+using Ecliptix.Protocol.System.Interfaces;
+using Ecliptix.Protocol.System.Models.Keys;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
@@ -7,7 +10,7 @@ using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Utilities.Failures.Sodium;
 using Google.Protobuf;
 
-namespace Ecliptix.Protocol.System.Core;
+namespace Ecliptix.Protocol.System.Protocol.ChainStep;
 
 internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
 {
