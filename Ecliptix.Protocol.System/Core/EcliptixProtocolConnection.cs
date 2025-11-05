@@ -452,7 +452,7 @@ internal sealed class EcliptixProtocolConnection : IDisposable
                             "Failed to compute DH shared secret during initial handshake.", ex));
                 }
 
-                SodiumSecureMemoryHandle? tempRootHandle = allocResult.Unwrap();
+                SodiumSecureMemoryHandle tempRootHandle = allocResult.Unwrap();
 
                 try
                 {
@@ -540,7 +540,7 @@ internal sealed class EcliptixProtocolConnection : IDisposable
                         receiverChainKey, persistentPrivKeyBytes, _persistentDhPublicKey);
                 if (createResult.IsErr)
                 {
-                    tempRootHandle?.Dispose();
+                    tempRootHandle.Dispose();
                     WipeIfNotNull(peerDhPublicCopy);
                     return Result<Unit, EcliptixProtocolFailure>.Err(createResult.UnwrapErr());
                 }
@@ -1358,18 +1358,9 @@ internal sealed class EcliptixProtocolConnection : IDisposable
     private Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> EnsureSendingStepInitialized()
     {
         Result<Unit, EcliptixProtocolFailure> disposedCheck = CheckDisposed();
-        if (disposedCheck.IsErr)
-        {
-            return Result<EcliptixProtocolChainStep, EcliptixProtocolFailure>.Err(disposedCheck.UnwrapErr());
-        }
-
-        if (_sendingStep != null)
-        {
-            return Result<EcliptixProtocolChainStep, EcliptixProtocolFailure>.Ok(_sendingStep);
-        }
-
-        return Result<EcliptixProtocolChainStep, EcliptixProtocolFailure>.Err(
-            EcliptixProtocolFailure.Generic(EcliptixProtocolFailureMessages.SENDING_CHAIN_STEP_NOT_INITIALIZED));
+        return disposedCheck.IsErr
+            ? Result<EcliptixProtocolChainStep, EcliptixProtocolFailure>.Err(disposedCheck.UnwrapErr())
+            : Result<EcliptixProtocolChainStep, EcliptixProtocolFailure>.Ok(_sendingStep);
     }
 
     private Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> EnsureReceivingStepInitialized()

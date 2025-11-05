@@ -126,8 +126,7 @@ internal sealed class OpaqueAuthenticationService(
                 Result<Unit, AuthenticationFailure> protocolResult = await RecreateAuthenticatedProtocolAsync(
                     signInFlowResult.MasterKeyHandle,
                     signInFlowResult.MembershipIdentifier,
-                    connectId,
-                    signInFlowResult.MembershipId).ConfigureAwait(false);
+                    connectId).ConfigureAwait(false);
 
                 if (protocolResult.IsOk)
                 {
@@ -712,8 +711,7 @@ internal sealed class OpaqueAuthenticationService(
     private async Task<Result<Unit, AuthenticationFailure>> RecreateAuthenticatedProtocolAsync(
         SodiumSecureMemoryHandle masterKeyHandle,
         ByteString membershipIdentifier,
-        uint connectId,
-        Guid membershipId)
+        uint connectId)
     {
         Result<Unit, NetworkFailure> recreateProtocolResult =
             await networkProvider.RecreateProtocolWithMasterKeyAsync(
@@ -742,8 +740,6 @@ internal sealed class OpaqueAuthenticationService(
         SodiumSecureMemoryHandle masterKeyHandle,
         ByteString membershipIdentifier)
     {
-        Guid membershipId = Helpers.FromByteStringToGuid(membershipIdentifier);
-
         if (!ValidateMembershipIdentifier(membershipIdentifier))
         {
             return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(

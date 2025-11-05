@@ -15,7 +15,7 @@ internal sealed class LanguageDetectionService(IMessageBus messageBus) : ILangua
             return;
         }
 
-        LanguageDetectionDialogEvent evt = LanguageDetectionDialogEvent.Confirm(targetCulture);
+        LanguageDetectionDialogEvent evt = LanguageDetectionDialogEvent.Request(targetCulture);
         await messageBus.PublishAsync(evt);
     }
 

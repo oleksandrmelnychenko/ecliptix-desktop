@@ -50,16 +50,18 @@ internal static unsafe class CertificatePinningNativeLibrary
 
         foreach (string libPath in searchPaths)
         {
-            if (File.Exists(libPath))
+            if (!File.Exists(libPath))
             {
-                try
-                {
-                    return NativeLibrary.Load(libPath);
-                }
-                catch (Exception)
-                {
-                    // Try next library path if this one fails to load
-                }
+                continue;
+            }
+
+            try
+            {
+                return NativeLibrary.Load(libPath);
+            }
+            catch (Exception)
+            {
+                // Try next library path if this one fails to load
             }
         }
 

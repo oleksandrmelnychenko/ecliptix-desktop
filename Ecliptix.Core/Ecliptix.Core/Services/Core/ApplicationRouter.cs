@@ -89,7 +89,8 @@ public sealed class ApplicationRouter(
 
         if (mainViewModel == null)
         {
-            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FAILED_TO_CREATE_MAIN_VIEW_MODEL);
+            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter
+                .FAILED_TO_CREATE_MAIN_VIEW_MODEL);
         }
 
         await mainWindowViewModel.SetMainContentAsync(mainViewModel).ConfigureAwait(false);
@@ -128,7 +129,8 @@ public sealed class ApplicationRouter(
         }
         else
         {
-            Option<IModule> authModuleOption = await moduleManager.LoadModuleAsync("Authentication").ConfigureAwait(false);
+            Option<IModule> authModuleOption =
+                await moduleManager.LoadModuleAsync("Authentication").ConfigureAwait(false);
 
             if (!authModuleOption.IsSome || authModuleOption.Value!.ServiceScope?.ServiceProvider == null)
             {

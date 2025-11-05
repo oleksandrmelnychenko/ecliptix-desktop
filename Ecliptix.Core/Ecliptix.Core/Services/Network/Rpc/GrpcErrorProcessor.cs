@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
 using Ecliptix.Core.Infrastructure.Network.Core.Constants;
 using Ecliptix.Core.Services.Abstractions.Core;
@@ -24,9 +25,11 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
 
         return failureType switch
         {
-            NetworkFailureType.INVALID_REQUEST_TYPE => NetworkFailure.InvalidRequestType(userError.Message, rpcException,
+            NetworkFailureType.INVALID_REQUEST_TYPE => NetworkFailure.InvalidRequestType(userError.Message,
+                rpcException,
                 userError),
-            NetworkFailureType.DATA_CENTER_SHUTDOWN => NetworkFailure.DataCenterShutdown(userError.Message, rpcException,
+            NetworkFailureType.DATA_CENTER_SHUTDOWN => NetworkFailure.DataCenterShutdown(userError.Message,
+                rpcException,
                 userError),
             NetworkFailureType.PROTOCOL_STATE_MISMATCH => NetworkFailure.ProtocolStateMismatch(userError.Message,
                 rpcException, userError),
@@ -162,18 +165,9 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
             : null;
     }
 
-    private static string? GetMetadataValue(Metadata metadata, string key)
-    {
-        foreach (Metadata.Entry entry in metadata)
-        {
-            if (entry.Key.Equals(key, StringComparison.OrdinalIgnoreCase))
-            {
-                return entry.Value;
-            }
-        }
-
-        return null;
-    }
+    private static string? GetMetadataValue(Metadata metadata, string key) => (from entry in metadata
+        where entry.Key.Equals(key, StringComparison.OrdinalIgnoreCase)
+        select entry.Value).FirstOrDefault();
 
     private static bool IsTransientStatus(StatusCode statusCode) =>
         statusCode is StatusCode.Unavailable or StatusCode.DeadlineExceeded or StatusCode.Cancelled;

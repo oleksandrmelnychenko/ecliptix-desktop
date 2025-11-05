@@ -14,7 +14,7 @@ public static class LocalizationKeys
 
         public static class SignUp
         {
-            public static class MobileVerification
+            public static class SignUpMobileVerification
             {
                 public const string TITLE = "Authentication.SignUp.MobileVerification.Title";
                 public const string DESCRIPTION = "Authentication.SignUp.MobileVerification.Description";
@@ -66,7 +66,7 @@ public static class LocalizationKeys
 
         public static class SecureKeyRecovery
         {
-            public static class MobileVerification
+            public static class RecoveryMobileVerification
             {
                 public const string TITLE = "Authentication.SecureKeyRecovery.MobileVerification.Title";
                 public const string DESCRIPTION = "Authentication.SecureKeyRecovery.MobileVerification.Description";
@@ -100,7 +100,7 @@ public static class LocalizationKeys
         }
     }
 
-    public static class MobileVerification
+    public static class MobileVerificationStatus
     {
         public static class Error
         {

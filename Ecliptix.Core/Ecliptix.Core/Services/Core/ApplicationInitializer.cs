@@ -39,8 +39,7 @@ public sealed class ApplicationInitializer(
     ILocalizationService localizationService,
     IIpGeolocationService ipGeolocationService,
     IIdentityService identityService,
-    IApplicationStateManager stateManager,
-    IStateCleanupService stateCleanupService) : IApplicationInitializer
+    IApplicationStateManager stateManager) : IApplicationInitializer
 {
     private const int IP_GEOLOCATION_TIMEOUT_SECONDS = 10;
 
@@ -494,7 +493,7 @@ public sealed class ApplicationInitializer(
                 PubKeyExchangeType.DataCenterEphemeralConnect);
 
             Result<Unit, Exception> cleanupResult =
-                await stateCleanupService.CleanupMembershipStateWithKeysAsync(membershipId, connectId)
+                await identityService.CleanupMembershipStateWithKeysAsync(membershipId, connectId)
                     .ConfigureAwait(false);
 
             if (cleanupResult.IsErr)

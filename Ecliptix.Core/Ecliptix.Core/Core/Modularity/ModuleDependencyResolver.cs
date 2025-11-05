@@ -35,16 +35,17 @@ public class ModuleDependencyResolver
 
     private void ValidateDependencies(List<IModule> modules, Dictionary<string, IModule> moduleMap)
     {
-        foreach (IModule module in modules)
+        (IModule Module, ModuleIdentifier Dependency)? missingDependencyInfo = modules
+            .SelectMany(module => module.Manifest.Dependencies
+                .Where(dependency => !moduleMap.ContainsKey(dependency.ToName()))
+                .Select(dependency => (Module: module, Dependency: dependency)))
+            .Cast<(IModule, ModuleIdentifier)?>()
+            .FirstOrDefault();
+
+        if (missingDependencyInfo != null)
         {
-            foreach (ModuleIdentifier dependency in module.Manifest.Dependencies)
-            {
-                if (!moduleMap.ContainsKey(dependency.ToName()))
-                {
-                    throw new InvalidOperationException(
-                        $"Module '{module.Id.ToName()}' depends on '{dependency.ToName()}', but '{dependency.ToName()}' is not registered");
-                }
-            }
+            throw new InvalidOperationException(
+                $"Module '{missingDependencyInfo.Value.Module.Id.ToName()}' depends on '{missingDependencyInfo.Value.Dependency.ToName()}', but '{missingDependencyInfo.Value.Dependency.ToName()}' is not registered");
         }
 
         DetectCircularDependencies(modules, moduleMap);
@@ -55,13 +56,14 @@ public class ModuleDependencyResolver
         HashSet<string> visited = [];
         HashSet<string> recursionStack = [];
 
-        foreach (IModule module in modules.Where(m => !visited.Contains(m.Id.ToName())))
+        IModule? moduleWithCircularDependency = modules
+            .Where(m => !visited.Contains(m.Id.ToName()))
+            .FirstOrDefault(module => HasCircularDependency(module.Id.ToName(), moduleMap, visited, recursionStack));
+
+        if (moduleWithCircularDependency != null)
         {
-            if (HasCircularDependency(module.Id.ToName(), moduleMap, visited, recursionStack))
-            {
-                throw new InvalidOperationException(
-                    $"Circular dependency detected starting from module '{module.Id.ToName()}'");
-            }
+            throw new InvalidOperationException(
+                $"Circular dependency detected starting from module '{moduleWithCircularDependency.Id.ToName()}'");
         }
     }
 

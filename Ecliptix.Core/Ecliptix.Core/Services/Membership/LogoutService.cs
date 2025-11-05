@@ -29,7 +29,6 @@ internal sealed class LogoutService(
     IMessageBus messageBus,
     IApplicationSecureStorageProvider applicationSecureStorageProvider,
     IApplicationStateManager stateManager,
-    IStateCleanupService stateCleanupService,
     IApplicationRouter router,
     IIdentityService identityService)
     : ILogoutService
@@ -300,7 +299,7 @@ internal sealed class LogoutService(
     private async Task CompleteLogoutWithCleanupAsync(string membershipId, LogoutReason reason, uint connectId,
         bool keepPendingLogout, CancellationToken cancellationToken)
     {
-        await stateCleanupService.CleanupMembershipStateWithKeysAsync(membershipId, connectId)
+        await identityService.CleanupMembershipStateWithKeysAsync(membershipId, connectId)
             .ConfigureAwait(false);
 
         LogoutProofHandler.ClearRevocationProof(applicationSecureStorageProvider, membershipId);

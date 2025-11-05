@@ -61,8 +61,8 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
     private Border? _mainBorder;
     private bool _disposed;
 
-    private static Animation? _sharedAppearAnimation;
-    private static Animation? _sharedDisappearAnimation;
+    private static readonly Lazy<Animation> _sharedAppearAnimation = new(CreateAppearAnimation);
+    private static readonly Lazy<Animation> _sharedDisappearAnimation = new(CreateDisappearAnimation);
 
     private Bitmap? _cachedInternetUnavailableIcon;
     private Bitmap? _cachedServerUnreachableIcon;
@@ -370,52 +370,52 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         _mainBorder.Classes.Remove("Retrying");
     }
 
+    private static Animation CreateAppearAnimation() => new()
+    {
+        Duration = TimeSpan.FromMilliseconds(NetworkStatusConstants.DEFAULT_APPEAR_DURATION_MS),
+        Easing = new QuadraticEaseOut(),
+        FillMode = FillMode.Both,
+        Children =
+        {
+            new KeyFrame
+            {
+                Cue = new Cue(0d),
+                Setters = { new Setter(Visual.OpacityProperty, 0d), new Setter(TranslateTransform.YProperty, -20d) }
+            },
+            new KeyFrame
+            {
+                Cue = new Cue(1d),
+                Setters = { new Setter(Visual.OpacityProperty, 1d), new Setter(TranslateTransform.YProperty, 0d) }
+            }
+        }
+    };
+
+    private static Animation CreateDisappearAnimation() => new()
+    {
+        Duration = TimeSpan.FromMilliseconds(NetworkStatusConstants.DEFAULT_DISAPPEAR_DURATION_MS),
+        Easing = new QuadraticEaseIn(),
+        FillMode = FillMode.Both,
+        Children =
+        {
+            new KeyFrame
+            {
+                Cue = new Cue(0d),
+                Setters = { new Setter(Visual.OpacityProperty, 1d), new Setter(TranslateTransform.YProperty, 0d) }
+            },
+            new KeyFrame
+            {
+                Cue = new Cue(1d),
+                Setters = { new Setter(Visual.OpacityProperty, 0d), new Setter(TranslateTransform.YProperty, -15d) }
+            }
+        }
+    };
+
     private void CreateAnimations()
     {
         if (_view == null)
         {
             return;
         }
-
-        _sharedAppearAnimation ??= new Animation
-        {
-            Duration = AppearDuration,
-            Easing = new QuadraticEaseOut(),
-            FillMode = FillMode.Both,
-            Children =
-            {
-                new KeyFrame
-                {
-                    Cue = new Cue(0d),
-                    Setters = { new Setter(Visual.OpacityProperty, 0d), new Setter(TranslateTransform.YProperty, -20d) }
-                },
-                new KeyFrame
-                {
-                    Cue = new Cue(1d),
-                    Setters = { new Setter(Visual.OpacityProperty, 1d), new Setter(TranslateTransform.YProperty, 0d) }
-                }
-            }
-        };
-
-        _sharedDisappearAnimation ??= new Animation
-        {
-            Duration = DisappearDuration,
-            Easing = new QuadraticEaseIn(),
-            FillMode = FillMode.Both,
-            Children =
-            {
-                new KeyFrame
-                {
-                    Cue = new Cue(0d),
-                    Setters = { new Setter(Visual.OpacityProperty, 1d), new Setter(TranslateTransform.YProperty, 0d) }
-                },
-                new KeyFrame
-                {
-                    Cue = new Cue(1d),
-                    Setters = { new Setter(Visual.OpacityProperty, 0d), new Setter(TranslateTransform.YProperty, -15d) }
-                }
-            }
-        };
 
         _sharedTranslateTransform ??= new TranslateTransform();
     }
@@ -431,11 +431,8 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         {
             _view.IsVisible = true;
             _view.RenderTransform = _sharedTranslateTransform;
-            if (_sharedAppearAnimation == null)
-            {
-                CreateAnimations();
-            }
-            await _sharedAppearAnimation!.RunAsync(_view, token);
+            CreateAnimations();
+            await _sharedAppearAnimation.Value.RunAsync(_view, token);
         }
         catch (OperationCanceledException)
         {
@@ -456,11 +453,8 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
 
         try
         {
-            if (_sharedDisappearAnimation == null)
-            {
-                CreateAnimations();
-            }
-            await _sharedDisappearAnimation!.RunAsync(_view, token);
+            CreateAnimations();
+            await _sharedDisappearAnimation.Value.RunAsync(_view, token);
             _view.IsVisible = false;
         }
         catch (OperationCanceledException)

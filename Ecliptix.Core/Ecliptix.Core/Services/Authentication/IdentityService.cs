@@ -1,9 +1,12 @@
 using System;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using Ecliptix.Core.Infrastructure.Data.Abstractions;
+using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Infrastructure.Security.Abstractions;
 using Ecliptix.Core.Infrastructure.Security.Storage;
 using Ecliptix.Core.Services.Abstractions.Authentication;
+using Ecliptix.Core.Services.Common;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Authentication;
@@ -17,11 +20,19 @@ internal sealed class IdentityService : IIdentityService
     private readonly ISecureProtocolStateStorage _storage;
     private readonly IPlatformSecurityProvider _platformProvider;
     private readonly Lazy<bool> _hardwareSecurityAvailable;
+    private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
+    private readonly NetworkProvider _networkProvider;
 
-    public IdentityService(ISecureProtocolStateStorage storage, IPlatformSecurityProvider platformProvider)
+    public IdentityService(
+        ISecureProtocolStateStorage storage,
+        IPlatformSecurityProvider platformProvider,
+        IApplicationSecureStorageProvider applicationSecureStorageProvider,
+        NetworkProvider networkProvider)
     {
         _storage = storage;
         _platformProvider = platformProvider;
+        _applicationSecureStorageProvider = applicationSecureStorageProvider;
+        _networkProvider = networkProvider;
         _hardwareSecurityAvailable = new Lazy<bool>(() => _platformProvider.IsHardwareSecurityAvailable());
     }
 
@@ -118,6 +129,39 @@ internal sealed class IdentityService : IIdentityService
             return Result<Unit, AuthenticationFailure>.Err(
                 AuthenticationFailure.IdentityStorageFailed($"Failed to clear identity cache: {ex.Message}", ex));
         }
+    }
+
+    public async Task<Result<Unit, Exception>> CleanupMembershipStateWithKeysAsync(string membershipId, uint connectId)
+    {
+        Result<Unit, SecureStorageFailure> deleteResult =
+            await _storage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
+
+        if (deleteResult.IsErr)
+        {
+            Log.Warning("[STATE-CLEANUP-FULL-DELETE] Failed to delete protocol state file for ConnectId: {ConnectId}, ERROR: {ERROR}",
+                connectId, deleteResult.UnwrapErr().Message);
+        }
+
+        Result<Unit, AuthenticationFailure> clearResult =
+            await ClearAllCacheAsync(membershipId).ConfigureAwait(false);
+
+        if (clearResult.IsErr)
+        {
+            Log.Warning("[STATE-CLEANUP-FULL] Identity cache clear failed: {ERROR}",
+                clearResult.UnwrapErr().Message);
+        }
+
+        Result<Unit, InternalServiceApiFailure> membershipClearResult =
+            await _applicationSecureStorageProvider.SetApplicationMembershipAsync(null).ConfigureAwait(false);
+        if (membershipClearResult.IsErr)
+        {
+            Log.Warning("[STATE-CLEANUP-FULL] Failed to clear membership state: {ERROR}",
+                membershipClearResult.UnwrapErr().Message);
+        }
+
+        _networkProvider.ClearConnection(connectId);
+
+        return Result<Unit, Exception>.Ok(Unit.Value);
     }
 
     private async Task StoreIdentityInternalAsync(SodiumSecureMemoryHandle masterKeyHandle, IdentityContext context)

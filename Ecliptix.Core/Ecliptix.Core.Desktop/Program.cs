@@ -349,7 +349,6 @@ public static class Program
         services.AddTransient<ILogoutService, LogoutService>();
 
         services.AddSingleton<IApplicationStateManager, ApplicationStateManager>();
-        services.AddSingleton<IStateCleanupService, StateCleanupService>();
         services.AddSingleton<IApplicationRouter, ApplicationRouter>();
         services.AddTransient<ApplicationStartup>();
     }

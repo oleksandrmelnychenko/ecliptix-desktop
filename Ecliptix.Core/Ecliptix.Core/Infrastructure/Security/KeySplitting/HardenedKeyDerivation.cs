@@ -129,14 +129,15 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
 
             try
             {
-                for (int i = 1; bytesGenerated < outputLength; i++)
+                int iteration = 1;
+                while (bytesGenerated < outputLength)
                 {
                     int offset = 0;
                     previousBlock.CopyTo(dataToHashBuffer, offset);
                     offset += previousBlock.Length;
                     info.CopyTo(dataToHashBuffer.AsSpan(offset));
                     offset += info.Length;
-                    dataToHashBuffer[offset] = (byte)i;
+                    dataToHashBuffer[offset] = (byte)iteration;
                     offset++;
 
                     byte[] currentBlock = expandHmac.ComputeHash(dataToHashBuffer, 0, offset);
@@ -146,6 +147,7 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
 
                     bytesGenerated += bytesToCopy;
                     previousBlock = currentBlock;
+                    iteration++;
                 }
             }
             finally

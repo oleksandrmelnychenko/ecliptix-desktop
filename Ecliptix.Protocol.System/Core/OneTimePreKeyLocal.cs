@@ -25,10 +25,8 @@ public readonly struct OneTimePreKeyLocal : IDisposable
     }
 
     public static OneTimePreKeyLocal CreateFromParts(uint preKeyId, SodiumSecureMemoryHandle privateKeyHandle,
-        byte[] publicKey)
-    {
-        return new OneTimePreKeyLocal(preKeyId, privateKeyHandle, publicKey);
-    }
+        byte[] publicKey) =>
+        new(preKeyId, privateKeyHandle, publicKey);
 
     public static Result<OneTimePreKeyLocal, EcliptixProtocolFailure> Generate(uint preKeyId)
     {
@@ -101,6 +99,7 @@ public readonly struct OneTimePreKeyLocal : IDisposable
             }
 
             OneTimePreKeyLocal opk = new(preKeyId, securePrivateKey, publicKeyBytes);
+            securePrivateKey = null;
             return Result<OneTimePreKeyLocal, EcliptixProtocolFailure>.Ok(opk);
         }
         catch (Exception ex)

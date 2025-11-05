@@ -210,7 +210,7 @@ public sealed class SecureTextBuffer : IDisposable
 
     private static void CleanupInsertBytes(byte[]? insertBytes)
     {
-        if (insertBytes != null && insertBytes.Length > 0)
+        if (insertBytes is { Length: > 0 })
         {
             CryptographicOperations.ZeroMemory(insertBytes);
         }

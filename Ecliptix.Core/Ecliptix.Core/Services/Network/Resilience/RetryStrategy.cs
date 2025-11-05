@@ -56,6 +56,7 @@ public sealed class RetryStrategy : IRetryStrategy
 
         public int CurrentRetryCount
         {
+            get => Interlocked.CompareExchange(ref _currentRetryCount, 0, 0);
             set => Interlocked.Exchange(ref _currentRetryCount, value);
         }
 
@@ -200,63 +201,74 @@ public sealed class RetryStrategy : IRetryStrategy
 
     public void MarkConnectionHealthy(uint connectId)
     {
-        if (!_isDisposed)
-        {
-            Task.Run(async () =>
-            {
-                if (_isDisposed)
-                {
-                    return;
-                }
-
-                try
-                {
-                    await _stateLock.WaitAsync().ConfigureAwait(false);
-                    try
-                    {
-                        int resetCount = 0;
-                        foreach (RetryOperationInfo operation in _activeRetryOperations.Values.ToArray())
-                        {
-                            if (operation.ConnectId != connectId || !operation.IsExhausted)
-                            {
-                                continue;
-                            }
-
-                            operation.IsExhausted = false;
-                            operation.CurrentRetryCount = 0;
-                            StopTrackingOperation(operation.UniqueKey, "Connection restored");
-                            resetCount++;
-                        }
-
-                        if (resetCount > 0)
-                        {
-                            Log.Information(
-                                "🔄 CONNECTION HEALTHY: Reset exhaustion state for ConnectId {ConnectId}, cleaned up {Count} operations",
-                                connectId, resetCount);
-                        }
-                    }
-                    finally
-                    {
-                        _stateLock.Release();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, "Failed to mark connection healthy for ConnectId {ConnectId}", connectId);
-                }
-            }).ContinueWith(task =>
-            {
-                if (task is { IsFaulted: true, Exception: not null })
-                {
-                    Log.Error(task.Exception.GetBaseException(),
-                        "Unhandled exception in MarkConnectionHealthy background task for ConnectId {ConnectId}",
-                        connectId);
-                }
-            }, TaskContinuationOptions.OnlyOnFaulted);
-        }
-        else
+        if (_isDisposed)
         {
             throw new ObjectDisposedException(nameof(RetryStrategy));
+        }
+
+        Task.Run(async () =>
+        {
+            if (_isDisposed)
+            {
+                return;
+            }
+
+            await ResetExhaustedOperationsAsync(connectId).ConfigureAwait(false);
+        }).ContinueWith(task =>
+        {
+            if (task is { IsFaulted: true, Exception: not null })
+            {
+                Log.Error(task.Exception.GetBaseException(),
+                    "Unhandled exception in MarkConnectionHealthy background task for ConnectId {ConnectId}",
+                    connectId);
+            }
+        }, TaskContinuationOptions.OnlyOnFaulted);
+    }
+
+    private async Task ResetExhaustedOperationsAsync(uint connectId)
+    {
+        try
+        {
+            await _stateLock.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                int resetCount = ResetOperationsForConnection(connectId);
+                LogConnectionHealthRestored(connectId, resetCount);
+            }
+            finally
+            {
+                _stateLock.Release();
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to mark connection healthy for ConnectId {ConnectId}", connectId);
+        }
+    }
+
+    private int ResetOperationsForConnection(uint connectId)
+    {
+        int resetCount = 0;
+        foreach (RetryOperationInfo operation in _activeRetryOperations.Values.ToArray())
+        {
+            if (operation.ConnectId == connectId && operation.IsExhausted)
+            {
+                operation.IsExhausted = false;
+                operation.CurrentRetryCount = 0;
+                StopTrackingOperation(operation.UniqueKey, "Connection restored");
+                resetCount++;
+            }
+        }
+        return resetCount;
+    }
+
+    private static void LogConnectionHealthRestored(uint connectId, int resetCount)
+    {
+        if (resetCount > 0)
+        {
+            Log.Information(
+                "🔄 CONNECTION HEALTHY: Reset exhaustion state for ConnectId {ConnectId}, cleaned up {Count} operations",
+                connectId, resetCount);
         }
     }
 
