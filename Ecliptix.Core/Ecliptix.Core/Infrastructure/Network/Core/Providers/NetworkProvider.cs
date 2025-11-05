@@ -399,145 +399,228 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         RpcRequestContext effectiveContext = requestContext ?? RpcRequestContext.CreateNew();
         RetryBehavior retryBehavior = retryPolicyProvider.GetRetryBehavior(serviceType);
 
-        string requestKey;
-        if (serviceType is RpcServiceType.SignInInitRequest or RpcServiceType.SignInCompleteRequest)
-        {
-            requestKey = $"{connectId}_{serviceType}_auth_operation";
-        }
-        else
-        {
-            int bytesToHash = Math.Min(plainBuffer.Length, NetworkConstants.Protocol.REQUEST_KEY_HEX_PREFIX_LENGTH / 2);
-            Span<char> hexBuffer = stackalloc char[NetworkConstants.Protocol.REQUEST_KEY_HEX_PREFIX_LENGTH];
-            bool success = Convert.TryToHexString(plainBuffer.AsSpan(0, bytesToHash), hexBuffer, out int charsWritten);
-            requestKey = success
-                ? $"{connectId}_{serviceType}_{hexBuffer[..charsWritten].ToString()}"
-                : $"{connectId}_{serviceType}_fallback";
-        }
-
+        string requestKey = GenerateRequestKey(connectId, serviceType, plainBuffer);
         bool shouldAllowDuplicates = allowDuplicateRequests || CanServiceTypeBeDuplicated(serviceType);
-        CancellationTokenSource cancellationTokenSource = new();
-        if (!shouldAllowDuplicates && !_pendingRequests.TryAdd(requestKey, cancellationTokenSource))
+
+        Result<Unit, NetworkFailure>? duplicateCheckResult =
+            TryRegisterRequest(requestKey, shouldAllowDuplicates, out CancellationTokenSource requestCts);
+        if (duplicateCheckResult.HasValue)
         {
-            cancellationTokenSource.Dispose();
-            return Result<Unit, NetworkFailure>.Err(
-                NetworkFailure.InvalidRequestType("Duplicate request rejected"));
+            return duplicateCheckResult.Value;
         }
 
-        CancellationTokenRegistration tokenRegistration = default;
-        if (cancellationToken.CanBeCanceled)
-        {
-            tokenRegistration = cancellationToken.Register(() =>
-            {
-                try
-                {
-                    if (!cancellationTokenSource.IsCancellationRequested)
-                    {
-                        cancellationTokenSource.Cancel();
-                    }
-                }
-                catch (ObjectDisposedException)
-                {
-                    // CTS disposed in outer scope - safe to ignore as cancellation is complete
-                }
-            });
-        }
+        using RequestCancellationContext cancellationContext =
+            new(cancellationToken, requestCts, shouldAllowDuplicates, requestKey, _pendingRequests);
 
-        CancellationTokenSource linkedCancellationTokenSource =
-            CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, cancellationTokenSource.Token);
-        CancellationToken operationToken = linkedCancellationTokenSource.Token;
-
-        bool disposedRequestCts = false;
         try
         {
-            await WaitForOutageRecoveryAsync(operationToken, waitForRecovery).ConfigureAwait(false);
-
-            operationToken.ThrowIfCancellationRequested();
-
-            if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
-            {
-                NetworkFailure noConnectionFailure = NetworkFailure.DataCenterNotResponding(
-                    "Connection unavailable - server may be recovering");
-                _ = connectivityService.PublishAsync(
-                    ConnectivityIntent.ServerShutdown(noConnectionFailure)).ContinueWith(
-                    task =>
-                    {
-                        if (task.IsFaulted && task.Exception != null)
-                        {
-                            Log.Error(task.Exception, "[NETWORK-PROVIDER] Unhandled exception publishing server shutdown event");
-                        }
-                    },
-                    TaskScheduler.Default);
-                return Result<Unit, NetworkFailure>.Err(noConnectionFailure);
-            }
-
-            uint logicalOperationId = GenerateLogicalOperationId(connectId, serviceType, plainBuffer);
-
-            try
-            {
-                Result<Unit, NetworkFailure> networkResult = flowType switch
-                {
-                    ServiceFlowType.Single => await SendUnaryRequestAsync(protocolSystem, logicalOperationId,
-                            serviceType, plainBuffer, flowType, onCompleted, connectId, retryBehavior, operationToken)
-                        .ConfigureAwait(false),
-                    ServiceFlowType.ReceiveStream => await SendReceiveStreamRequestAsync(protocolSystem,
-                        logicalOperationId,
-                        serviceType, plainBuffer, flowType, effectiveContext, onCompleted, retryBehavior, connectId,
-                        operationToken).ConfigureAwait(false),
-                    ServiceFlowType.SendStream => await SendSendStreamRequestAsync(protocolSystem, logicalOperationId,
-                            serviceType, plainBuffer, flowType, effectiveContext, operationToken)
-                        .ConfigureAwait(false),
-                    ServiceFlowType.BidirectionalStream => await SendBidirectionalStreamRequestAsync(protocolSystem,
-                            logicalOperationId, serviceType, plainBuffer, flowType, effectiveContext, operationToken)
-                        .ConfigureAwait(false),
-                    _ => Result<Unit, NetworkFailure>.Err(
-                        NetworkFailure.InvalidRequestType($"Unsupported flow type: {flowType}"))
-                };
-
-                if (networkResult.IsOk && Volatile.Read(ref _outageState) == 1)
-                {
-                    ExitOutage();
-                }
-
-                return networkResult;
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                return Result<Unit, NetworkFailure>.Err(
-                    NetworkFailure.OperationCancelled("Request cancelled by caller"));
-            }
-            catch (OperationCanceledException) when (flowType == ServiceFlowType.ReceiveStream)
-            {
-                return Result<Unit, NetworkFailure>.Ok(Unit.Value);
-            }
-            catch (OperationCanceledException)
-            {
-                return Result<Unit, NetworkFailure>.Err(
-                    NetworkFailure.DataCenterNotResponding(
-                        "Request cancelled due to network timeout or connection failure"));
-            }
-            catch (Exception ex)
-            {
-                // Catch all unexpected exceptions and convert to network failure
-                // Exception message is propagated to allow diagnosis of underlying issues
-                return Result<Unit, NetworkFailure>.Err(NetworkFailure.DataCenterNotResponding(ex.Message));
-            }
+            return await ExecuteRequestWithProtocolAsync(
+                connectId, serviceType, plainBuffer, flowType, onCompleted, effectiveContext,
+                retryBehavior, waitForRecovery, cancellationContext.OperationToken).ConfigureAwait(false);
         }
-        finally
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            tokenRegistration.Dispose();
+            return Result<Unit, NetworkFailure>.Err(
+                NetworkFailure.OperationCancelled("Request cancelled by caller"));
+        }
+        catch (OperationCanceledException) when (flowType == ServiceFlowType.ReceiveStream)
+        {
+            return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<Unit, NetworkFailure>.Err(
+                NetworkFailure.DataCenterNotResponding(
+                    "Request cancelled due to network timeout or connection failure"));
+        }
+        catch (Exception ex)
+        {
+            return Result<Unit, NetworkFailure>.Err(NetworkFailure.DataCenterNotResponding(ex.Message));
+        }
+    }
 
-            if (!shouldAllowDuplicates &&
-                _pendingRequests.TryRemove(requestKey, out CancellationTokenSource? pendingCancellation))
+    private static string GenerateRequestKey(uint connectId, RpcServiceType serviceType, byte[] plainBuffer)
+    {
+        if (serviceType is RpcServiceType.SignInInitRequest or RpcServiceType.SignInCompleteRequest)
+        {
+            return $"{connectId}_{serviceType}_auth_operation";
+        }
+
+        int bytesToHash = Math.Min(plainBuffer.Length, NetworkConstants.Protocol.REQUEST_KEY_HEX_PREFIX_LENGTH / 2);
+        Span<char> hexBuffer = stackalloc char[NetworkConstants.Protocol.REQUEST_KEY_HEX_PREFIX_LENGTH];
+        bool success = Convert.TryToHexString(plainBuffer.AsSpan(0, bytesToHash), hexBuffer, out int charsWritten);
+        return success
+            ? $"{connectId}_{serviceType}_{hexBuffer[..charsWritten].ToString()}"
+            : $"{connectId}_{serviceType}_fallback";
+    }
+
+    private Result<Unit, NetworkFailure>? TryRegisterRequest(
+        string requestKey,
+        bool shouldAllowDuplicates,
+        out CancellationTokenSource cancellationTokenSource)
+    {
+        cancellationTokenSource = new CancellationTokenSource();
+
+        if (shouldAllowDuplicates)
+        {
+            return null;
+        }
+
+        if (_pendingRequests.TryAdd(requestKey, cancellationTokenSource))
+        {
+            return null;
+        }
+
+        cancellationTokenSource.Dispose();
+        return Result<Unit, NetworkFailure>.Err(
+            NetworkFailure.InvalidRequestType("Duplicate request rejected"));
+    }
+
+    private async Task<Result<Unit, NetworkFailure>> ExecuteRequestWithProtocolAsync(
+        uint connectId,
+        RpcServiceType serviceType,
+        byte[] plainBuffer,
+        ServiceFlowType flowType,
+        Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
+        RpcRequestContext effectiveContext,
+        RetryBehavior retryBehavior,
+        bool waitForRecovery,
+        CancellationToken operationToken)
+    {
+        await WaitForOutageRecoveryAsync(operationToken, waitForRecovery).ConfigureAwait(false);
+        operationToken.ThrowIfCancellationRequested();
+
+        if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
+        {
+            return HandleMissingConnection();
+        }
+
+        uint logicalOperationId = GenerateLogicalOperationId(connectId, serviceType, plainBuffer);
+
+        Result<Unit, NetworkFailure> networkResult = await ExecuteServiceFlowAsync(
+            protocolSystem, logicalOperationId, serviceType, plainBuffer, flowType,
+            onCompleted, effectiveContext, retryBehavior, connectId, operationToken).ConfigureAwait(false);
+
+        if (networkResult.IsOk && Volatile.Read(ref _outageState) == 1)
+        {
+            ExitOutage();
+        }
+
+        return networkResult;
+    }
+
+    private Result<Unit, NetworkFailure> HandleMissingConnection()
+    {
+        NetworkFailure noConnectionFailure = NetworkFailure.DataCenterNotResponding(
+            "Connection unavailable - server may be recovering");
+
+        _ = connectivityService.PublishAsync(
+            ConnectivityIntent.ServerShutdown(noConnectionFailure)).ContinueWith(
+            task =>
             {
-                pendingCancellation.Dispose();
-                disposedRequestCts = true;
+                if (task.IsFaulted && task.Exception != null)
+                {
+                    Log.Error(task.Exception, "[NETWORK-PROVIDER] Unhandled exception publishing server shutdown event");
+                }
+            },
+            TaskScheduler.Default);
+
+        return Result<Unit, NetworkFailure>.Err(noConnectionFailure);
+    }
+
+    private async Task<Result<Unit, NetworkFailure>> ExecuteServiceFlowAsync(
+        EcliptixProtocolSystem protocolSystem,
+        uint logicalOperationId,
+        RpcServiceType serviceType,
+        byte[] plainBuffer,
+        ServiceFlowType flowType,
+        Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
+        RpcRequestContext effectiveContext,
+        RetryBehavior retryBehavior,
+        uint connectId,
+        CancellationToken operationToken)
+    {
+        return flowType switch
+        {
+            ServiceFlowType.Single => await SendUnaryRequestAsync(protocolSystem, logicalOperationId,
+                    serviceType, plainBuffer, flowType, onCompleted, connectId, retryBehavior, operationToken)
+                .ConfigureAwait(false),
+            ServiceFlowType.ReceiveStream => await SendReceiveStreamRequestAsync(protocolSystem,
+                logicalOperationId,
+                serviceType, plainBuffer, flowType, effectiveContext, onCompleted, retryBehavior, connectId,
+                operationToken).ConfigureAwait(false),
+            ServiceFlowType.SendStream => await SendSendStreamRequestAsync(protocolSystem, logicalOperationId,
+                    serviceType, plainBuffer, flowType, effectiveContext, operationToken)
+                .ConfigureAwait(false),
+            ServiceFlowType.BidirectionalStream => await SendBidirectionalStreamRequestAsync(protocolSystem,
+                    logicalOperationId, serviceType, plainBuffer, flowType, effectiveContext, operationToken)
+                .ConfigureAwait(false),
+            _ => Result<Unit, NetworkFailure>.Err(
+                NetworkFailure.InvalidRequestType($"Unsupported flow type: {flowType}"))
+        };
+    }
+
+    private readonly struct RequestCancellationContext : IDisposable
+    {
+        private readonly CancellationTokenRegistration _tokenRegistration;
+        private readonly CancellationTokenSource _linkedCts;
+        private readonly CancellationTokenSource _requestCts;
+        private readonly bool _shouldAllowDuplicates;
+        private readonly string _requestKey;
+        private readonly ConcurrentDictionary<string, CancellationTokenSource> _pendingRequests;
+
+        public CancellationToken OperationToken { get; }
+
+        public RequestCancellationContext(
+            CancellationToken cancellationToken,
+            CancellationTokenSource requestCts,
+            bool shouldAllowDuplicates,
+            string requestKey,
+            ConcurrentDictionary<string, CancellationTokenSource> pendingRequests)
+        {
+            _requestCts = requestCts;
+            _shouldAllowDuplicates = shouldAllowDuplicates;
+            _requestKey = requestKey;
+            _pendingRequests = pendingRequests;
+
+            _tokenRegistration = cancellationToken.CanBeCanceled
+                ? cancellationToken.Register(() =>
+                {
+                    try
+                    {
+                        if (!requestCts.IsCancellationRequested)
+                        {
+                            requestCts.Cancel();
+                        }
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                    }
+                })
+                : default;
+
+            _linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, requestCts.Token);
+            OperationToken = _linkedCts.Token;
+        }
+
+        public void Dispose()
+        {
+            _tokenRegistration.Dispose();
+            _linkedCts.Dispose();
+
+            if (_shouldAllowDuplicates)
+            {
+                _requestCts.Dispose();
+                return;
             }
 
-            linkedCancellationTokenSource.Dispose();
-
-            if (!disposedRequestCts)
+            if (_pendingRequests.TryRemove(_requestKey, out CancellationTokenSource? pendingCts))
             {
-                cancellationTokenSource.Dispose();
+                pendingCts.Dispose();
+            }
+            else
+            {
+                _requestCts.Dispose();
             }
         }
     }
