@@ -53,14 +53,15 @@ internal sealed class SensitiveBytes : IDisposable
         SodiumSecureMemoryHandle handle = allocResult.Unwrap();
 
         Result<Unit, SodiumFailure> writeResult = handle.Write(source);
-        if (writeResult.IsErr)
+        if (!writeResult.IsErr)
         {
-            handle.Dispose();
-            return Result<SensitiveBytes, SodiumFailure>.Err(writeResult.UnwrapErr());
+            return Result<SensitiveBytes, SodiumFailure>.Ok(
+                new SensitiveBytes(handle, source.Length));
         }
 
-        return Result<SensitiveBytes, SodiumFailure>.Ok(
-            new SensitiveBytes(handle, source.Length));
+        handle.Dispose();
+        return Result<SensitiveBytes, SodiumFailure>.Err(writeResult.UnwrapErr());
+
     }
 
     public Result<TResult, SodiumFailure> WithReadAccess<TResult>(
@@ -92,9 +93,11 @@ internal sealed class SensitiveBytes : IDisposable
 
     private void EnsureNotDisposed()
     {
-        if (_disposed)
+        if (!_disposed)
         {
-            throw new ObjectDisposedException(nameof(SensitiveBytes));
+            return;
         }
+
+        throw new ObjectDisposedException(nameof(SensitiveBytes));
     }
 }

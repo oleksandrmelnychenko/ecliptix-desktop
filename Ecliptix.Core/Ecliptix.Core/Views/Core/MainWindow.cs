@@ -6,7 +6,6 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core.Controls.LanguageSelector;
-using Ecliptix.Core.Controls.Modals.BottomSheetModal;
 using Ecliptix.Core.Services.Core;
 using Ecliptix.Core.ViewModels.Core;
 using ReactiveUI;
@@ -17,7 +16,6 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 {
     private bool _languageSelectorLoaded;
     private readonly Border? _languageSelectorContainer;
-    private readonly BottomSheetControl? _bottomSheetControl;
 
     public MainWindow()
     {
@@ -25,7 +23,6 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         IconService.SetIconForWindow(this);
 
         _languageSelectorContainer = this.FindControl<Border>("LanguageSelectorContainer");
-        _bottomSheetControl = this.FindControl<BottomSheetControl>("BottomSheetControl");
 
         SetupLazyLanguageSelector();
 

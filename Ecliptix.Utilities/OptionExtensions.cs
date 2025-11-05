@@ -1,199 +1,32 @@
 namespace Ecliptix.Utilities;
 
-
 public static class OptionExtensions
 {
-    public static Option<T> ToOption<T>(this T? value) where T : class
-    {
-        return value is not null ? Option<T>.Some(value) : Option<T>.None;
-    }
+    public static Option<T> ToOption<T>(this T? value) where T : class =>
+        value is not null ? Option<T>.Some(value) : Option<T>.None;
 
-    public static Option<T> ToOption<T>(this T? value) where T : struct
-    {
-        return value.HasValue ? Option<T>.Some(value.Value) : Option<T>.None;
-    }
+    public static T? ToNullable<T>(this Option<T> option) where T : class => option.IsSome ? option.Value : null;
 
-    public static T? ToNullable<T>(this Option<T> option) where T : class
-    {
-        return option.IsSome ? option.Value : null;
-    }
+    public static Option<T> Where<T>(this Option<T> option, Func<T, bool> predicate) =>
+        option.IsSome && predicate(option.Value!) ? option : Option<T>.None;
 
-    public static T? ToNullableStruct<T>(this Option<T> option) where T : struct
-    {
-        return option.IsSome ? option.Value : null;
-    }
+    public static Option<TResult> Select<T, TResult>(this Option<T> option, Func<T, TResult> selector) =>
+        option.Map(selector);
 
-    public static Option<T> Where<T>(this Option<T> option, Func<T, bool> predicate)
-    {
-        ArgumentNullException.ThrowIfNull(predicate);
-        return option.IsSome && predicate(option.Value!) ? option : Option<T>.None;
-    }
+    public static Option<TResult> Bind<T, TResult>(this Option<T> option, Func<T, Option<TResult>> binder) =>
+        option.IsSome ? binder(option.Value!) : Option<TResult>.None;
 
-    public static Option<TResult> Select<T, TResult>(this Option<T> option, Func<T, TResult> selector)
-    {
-        ArgumentNullException.ThrowIfNull(selector);
-        return option.Map(selector);
-    }
+    public static T GetValueOrDefault<T>(this Option<T> option, T defaultValue) => option.ValueOr(defaultValue);
 
-    public static Option<TResult> Bind<T, TResult>(this Option<T> option, Func<T, Option<TResult>> binder)
-    {
-        ArgumentNullException.ThrowIfNull(binder);
-        return option.IsSome ? binder(option.Value!) : Option<TResult>.None;
-    }
+    public static T GetValueOrDefault<T>(this Option<T> option, Func<T> defaultFactory) => option.IsSome ? option.Value! : defaultFactory();
 
-    public static Option<TResult> SelectMany<T, TResult>(this Option<T> option, Func<T, Option<TResult>> selector)
+    public static void Do<T>(this Option<T> option, Action<T> action)
     {
-        return option.Bind(selector);
-    }
-
-    public static Option<TResult> SelectMany<T, TIntermediate, TResult>(
-        this Option<T> option,
-        Func<T, Option<TIntermediate>> intermediateSelector,
-        Func<T, TIntermediate, TResult> resultSelector)
-    {
-        ArgumentNullException.ThrowIfNull(intermediateSelector);
-        ArgumentNullException.ThrowIfNull(resultSelector);
-
-        return option.Bind(x =>
-            intermediateSelector(x).Select(y =>
-                resultSelector(x, y)));
-    }
-
-    public static T GetValueOrDefault<T>(this Option<T> option, T defaultValue)
-    {
-        return option.ValueOr(defaultValue);
-    }
-
-    public static T GetValueOrDefault<T>(this Option<T> option, Func<T> defaultFactory)
-    {
-        ArgumentNullException.ThrowIfNull(defaultFactory);
-        return option.IsSome ? option.Value! : defaultFactory();
-    }
-
-    public static Option<T> Do<T>(this Option<T> option, Action<T> action)
-    {
-        ArgumentNullException.ThrowIfNull(action);
         if (option.IsSome)
         {
             action(option.Value!);
         }
-        return option;
     }
 
-    public static Result<T, TError> ToResult<T, TError>(this Option<T> option, TError errorWhenNone) where TError : notnull
-    {
-        ArgumentNullException.ThrowIfNull(errorWhenNone);
-        return option.IsSome
-            ? Result<T, TError>.Ok(option.Value!)
-            : Result<T, TError>.Err(errorWhenNone);
-    }
-
-    public static Result<T, TError> ToResult<T, TError>(this Option<T> option, Func<TError> errorFactory) where TError : notnull
-    {
-        ArgumentNullException.ThrowIfNull(errorFactory);
-        return option.IsSome
-            ? Result<T, TError>.Ok(option.Value!)
-            : Result<T, TError>.Err(errorFactory());
-    }
-
-    public static Option<TResult> Zip<T1, T2, TResult>(
-        this Option<T1> option1,
-        Option<T2> option2,
-        Func<T1, T2, TResult> combiner)
-    {
-        ArgumentNullException.ThrowIfNull(combiner);
-        return option1.IsSome && option2.IsSome
-            ? Option<TResult>.Some(combiner(option1.Value!, option2.Value!))
-            : Option<TResult>.None;
-    }
-
-    public static Option<T> Or<T>(this Option<T> option, Option<T> alternative)
-    {
-        return option.IsSome ? option : alternative;
-    }
-
-    public static Option<T> Or<T>(this Option<T> option, Func<Option<T>> alternativeFactory)
-    {
-        ArgumentNullException.ThrowIfNull(alternativeFactory);
-        return option.IsSome ? option : alternativeFactory();
-    }
-
-    public static Option<T> Flatten<T>(this Option<Option<T>> nestedOption)
-    {
-        return nestedOption.IsSome ? nestedOption.Value! : Option<T>.None;
-    }
-
-    public static Option<IEnumerable<T>> Sequence<T>(this IEnumerable<Option<T>> options)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-
-        List<T> results = new();
-        foreach (Option<T> option in options)
-        {
-            if (!option.IsSome)
-            {
-                return Option<IEnumerable<T>>.None;
-            }
-            results.Add(option.Value!);
-        }
-
-        return Option<IEnumerable<T>>.Some(results);
-    }
-
-    public static IEnumerable<T> Choose<T>(this IEnumerable<Option<T>> options)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-
-        foreach (Option<T> option in options)
-        {
-            if (option.IsSome)
-            {
-                yield return option.Value!;
-            }
-        }
-    }
-
-    public static Option<TValue> TryGetOption<TKey, TValue>(
-        this IDictionary<TKey, TValue> dictionary,
-        TKey key)
-    {
-        ArgumentNullException.ThrowIfNull(dictionary);
-        ArgumentNullException.ThrowIfNull(key);
-
-        return dictionary.TryGetValue(key, out TValue? value)
-            ? Option<TValue>.Some(value)
-            : Option<TValue>.None;
-    }
-
-    public static Option<TValue> TryGetOption<TKey, TValue>(
-        this IReadOnlyDictionary<TKey, TValue> dictionary,
-        TKey key)
-    {
-        ArgumentNullException.ThrowIfNull(dictionary);
-        ArgumentNullException.ThrowIfNull(key);
-
-        return dictionary.TryGetValue(key, out TValue? value)
-            ? Option<TValue>.Some(value)
-            : Option<TValue>.None;
-    }
-
-    public static Option<TValue> TryGetOption<TKey, TValue>(
-        this System.Collections.Concurrent.ConcurrentDictionary<TKey, TValue> dictionary,
-        TKey key) where TKey : notnull
-    {
-        ArgumentNullException.ThrowIfNull(dictionary);
-        ArgumentNullException.ThrowIfNull(key);
-
-        return dictionary.TryGetValue(key, out TValue? value)
-            ? Option<TValue>.Some(value)
-            : Option<TValue>.None;
-    }
-
-    public static System.Threading.CancellationToken ToCancellationToken(
-        this Option<System.Threading.CancellationTokenSource> cancellationTokenSourceOption)
-    {
-        return cancellationTokenSourceOption.Match(
-            onSome: cts => cts.Token,
-            onNone: () => System.Threading.CancellationToken.None);
-    }
+    public static Option<T> Or<T>(this Option<T> option, Func<Option<T>> alternativeFactory) => option.IsSome ? option : alternativeFactory();
 }

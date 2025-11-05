@@ -35,16 +35,17 @@ public class ModuleDependencyResolver
 
     private void ValidateDependencies(List<IModule> modules, Dictionary<string, IModule> moduleMap)
     {
-        foreach (IModule module in modules)
+        (IModule Module, ModuleIdentifier Dependency)? missingDependencyInfo = modules
+            .SelectMany(module => module.Manifest.Dependencies
+                .Where(dependency => !moduleMap.ContainsKey(dependency.ToName()))
+                .Select(dependency => (Module: module, Dependency: dependency)))
+            .Cast<(IModule, ModuleIdentifier)?>()
+            .FirstOrDefault();
+
+        if (missingDependencyInfo != null)
         {
-            foreach (ModuleIdentifier dependency in module.Manifest.Dependencies)
-            {
-                if (!moduleMap.ContainsKey(dependency.ToName()))
-                {
-                    throw new InvalidOperationException(
-                        $"Module '{module.Id.ToName()}' depends on '{dependency.ToName()}', but '{dependency.ToName()}' is not registered");
-                }
-            }
+            throw new InvalidOperationException(
+                $"Module '{missingDependencyInfo.Value.Module.Id.ToName()}' depends on '{missingDependencyInfo.Value.Dependency.ToName()}', but '{missingDependencyInfo.Value.Dependency.ToName()}' is not registered");
         }
 
         DetectCircularDependencies(modules, moduleMap);
@@ -52,18 +53,17 @@ public class ModuleDependencyResolver
 
     private void DetectCircularDependencies(List<IModule> modules, Dictionary<string, IModule> moduleMap)
     {
-        HashSet<string> visited = new();
-        HashSet<string> recursionStack = new();
+        HashSet<string> visited = [];
+        HashSet<string> recursionStack = [];
 
-        foreach (IModule module in modules)
+        IModule? moduleWithCircularDependency = modules
+            .Where(m => !visited.Contains(m.Id.ToName()))
+            .FirstOrDefault(module => HasCircularDependency(module.Id.ToName(), moduleMap, visited, recursionStack));
+
+        if (moduleWithCircularDependency != null)
         {
-            if (!visited.Contains(module.Id.ToName()))
-            {
-                if (HasCircularDependency(module.Id.ToName(), moduleMap, visited, recursionStack))
-                {
-                    throw new InvalidOperationException($"Circular dependency detected starting from module '{module.Id.ToName()}'");
-                }
-            }
+            throw new InvalidOperationException(
+                $"Circular dependency detected starting from module '{moduleWithCircularDependency.Id.ToName()}'");
         }
     }
 
@@ -97,15 +97,14 @@ public class ModuleDependencyResolver
         return false;
     }
 
-    private IEnumerable<IModule> TopologicalSort(List<IModule> modules, Dictionary<string, IModule> moduleMap)
+    private static IEnumerable<IModule> TopologicalSort(List<IModule> modules, Dictionary<string, IModule> moduleMap)
     {
         Dictionary<string, int> inDegree = modules.ToDictionary(m => m.Id.ToName(), _ => 0);
         Dictionary<string, HashSet<string>> dependents = new();
 
-        foreach (IModule module in modules)
+        foreach (string moduleName in modules.Select(module => module.Id.ToName()))
         {
-            string moduleName = module.Id.ToName();
-            dependents[moduleName] = new HashSet<string>();
+            dependents[moduleName] = [];
         }
 
         foreach (IModule module in modules)
@@ -113,11 +112,13 @@ public class ModuleDependencyResolver
             foreach (ModuleIdentifier dependency in module.Manifest.Dependencies)
             {
                 string depName = dependency.ToName();
-                if (dependents.ContainsKey(depName))
+                if (!dependents.ContainsKey(depName))
                 {
-                    dependents[depName].Add(module.Id.ToName());
-                    inDegree[module.Id.ToName()]++;
+                    continue;
                 }
+
+                dependents[depName].Add(module.Id.ToName());
+                inDegree[module.Id.ToName()]++;
             }
         }
 
@@ -139,15 +140,14 @@ public class ModuleDependencyResolver
             }
         }
 
-        if (result.Count != modules.Count)
-        {
-            throw new InvalidOperationException("Unable to resolve module dependencies - circular dependency detected");
-        }
-
-        return result.OrderBy(m => m.Manifest.Priority).ThenBy(m => m.Id.ToName());
+        return result.Count != modules.Count
+            ? throw new InvalidOperationException(
+                "Unable to resolve module dependencies - circular dependency detected")
+            : result.OrderBy(m => m.Manifest.Priority).ThenBy(m => m.Id.ToName());
     }
 
-    private void GetDependenciesRecursive(IModule module, Dictionary<string, IModule> moduleMap, HashSet<string> required)
+    private void GetDependenciesRecursive(IModule module, Dictionary<string, IModule> moduleMap,
+        HashSet<string> required)
     {
         foreach (ModuleIdentifier dependency in module.Manifest.Dependencies)
         {

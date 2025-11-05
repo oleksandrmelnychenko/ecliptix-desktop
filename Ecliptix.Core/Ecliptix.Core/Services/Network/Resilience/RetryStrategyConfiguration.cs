@@ -4,9 +4,9 @@ namespace Ecliptix.Core.Services.Network.Resilience;
 
 public class RetryStrategyConfiguration
 {
-    public TimeSpan InitialRetryDelay { get; init; } = TimeSpan.FromSeconds(5);
-    public TimeSpan MaxRetryDelay { get; init; } = TimeSpan.FromMinutes(2);
-    public int MaxRetries { get; init; } = 10;
-    public bool UseAdaptiveRetry { get; init; } = true;
-    public TimeSpan PerAttemptTimeout { get; init; } = TimeSpan.FromSeconds(30);
+    public TimeSpan INITIAL_RETRY_DELAY { get; init; } = TimeSpan.FromSeconds(5);
+    public TimeSpan MAX_RETRY_DELAY { get; init; } = TimeSpan.FromMinutes(2);
+    public int MAX_RETRIES { get; init; } = 10;
+    public bool USE_ADAPTIVE_RETRY { get; init; } = true;
+    public TimeSpan PER_ATTEMPT_TIMEOUT { get; init; } = TimeSpan.FromSeconds(30);
 }

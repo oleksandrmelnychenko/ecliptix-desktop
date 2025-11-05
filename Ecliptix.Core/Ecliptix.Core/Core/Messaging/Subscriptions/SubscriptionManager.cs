@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -16,7 +15,7 @@ internal sealed class SubscriptionManager : IDisposable
     private readonly Lock _cleanupLock = new();
     private long _totalSubscriptions;
     private long _deadReferencesCleanedUp;
-    private bool _disposed;
+    private volatile bool _disposed;
 
     public SubscriptionManager()
     {
@@ -60,7 +59,7 @@ internal sealed class SubscriptionManager : IDisposable
         });
     }
 
-    public async Task PublishAsync<T>(T message, CancellationToken cancellationToken) where T : class
+    public async Task PublishAsync<T>(T message, CancellationToken _) where T : class
     {
         if (_disposed || message == null)
         {
@@ -99,6 +98,7 @@ internal sealed class SubscriptionManager : IDisposable
             }
             catch (Exception)
             {
+                // Swallow handler invocation exceptions to allow other handlers to run
             }
         }
 
@@ -110,6 +110,7 @@ internal sealed class SubscriptionManager : IDisposable
             }
             catch (Exception)
             {
+                // One or more handlers failed - individual handler exceptions are caught above
             }
         }
     }

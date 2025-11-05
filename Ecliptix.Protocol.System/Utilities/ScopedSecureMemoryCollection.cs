@@ -27,8 +27,10 @@ internal sealed class ScopedSecureMemoryCollection : IDisposable
             {
                 _resources[i].Dispose();
             }
-            catch
+            catch (Exception ex)
             {
+                Serilog.Log.Error(ex, "[SCOPED-SECURE-MEMORY] Failed to dispose resource at index {Index}. Continuing with remaining resources",
+                    i);
             }
         }
 

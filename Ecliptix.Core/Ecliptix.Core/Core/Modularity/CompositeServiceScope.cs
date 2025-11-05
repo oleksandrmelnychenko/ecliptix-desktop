@@ -27,39 +27,17 @@ internal class CompositeServiceScope : IServiceScope
         }
 
         _disposed = true;
-        _serviceProvider?.Dispose();
-        _moduleServiceProvider?.Dispose();
-        _parentScope?.Dispose();
+        _moduleServiceProvider.Dispose();
+        _parentScope.Dispose();
     }
 }
 
-internal class CompositeServiceProvider : IServiceProvider, IDisposable
+internal class CompositeServiceProvider(IServiceProvider moduleProvider, IServiceProvider mainProvider)
+    : IServiceProvider
 {
-    private readonly IServiceProvider _moduleProvider;
-    private readonly IServiceProvider _mainProvider;
-    private bool _disposed;
-
-    public CompositeServiceProvider(IServiceProvider moduleProvider, IServiceProvider mainProvider)
-    {
-        _moduleProvider = moduleProvider;
-        _mainProvider = mainProvider;
-    }
-
     public object? GetService(Type serviceType)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        object? service = _moduleProvider.GetService(serviceType);
-        return service ?? _mainProvider.GetService(serviceType);
-    }
-
-    public void Dispose()
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        _disposed = true;
+        object? service = moduleProvider.GetService(serviceType);
+        return service ?? mainProvider.GetService(serviceType);
     }
 }

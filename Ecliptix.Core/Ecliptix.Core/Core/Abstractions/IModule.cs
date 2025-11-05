@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Ecliptix.Core.Core.Abstractions;
@@ -19,7 +18,7 @@ public interface IModule
     Task SetupMessageHandlersAsync(IModuleMessageBus messageBus);
 }
 
-public interface ITypedModule<TManifest> : IModule where TManifest : IModuleManifest
+public interface ITypedModule<out TManifest> : IModule where TManifest : IModuleManifest
 {
     new TManifest Manifest { get; }
 }

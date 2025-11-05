@@ -22,82 +22,58 @@ internal sealed class PendingLogoutProcessor(
         uint connectId,
         CancellationToken cancellationToken = default)
     {
-        try
+        Result<Option<LogoutRequest>, LogoutFailure> getResult =
+            await pendingLogoutStorage.GetPendingLogoutAsync().ConfigureAwait(false);
+
+        if (getResult.IsErr || !getResult.Unwrap().IsSome)
         {
-            Result<Option<LogoutRequest>, LogoutFailure> getResult =
-                await pendingLogoutStorage.GetPendingLogoutAsync().ConfigureAwait(false);
+            return;
+        }
 
-            if (getResult.IsErr || !getResult.Unwrap().IsSome)
+        LogoutRequest pendingRequest = getResult.Unwrap().Value!;
+
+        TaskCompletionSource<bool> responseCompletionSource =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
+            connectId,
+            RpcServiceType.AnonymousLogout,
+            pendingRequest.ToByteArray(),
+            async responsePayload =>
             {
-                return;
-            }
+                AnonymousLogoutResponse.Parser.ParseFrom(responsePayload);
+                responseCompletionSource.TrySetResult(true);
+                return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
+            },
+            allowDuplicates: false,
+            token: cancellationToken).ConfigureAwait(false);
 
-            LogoutRequest pendingRequest = getResult.Unwrap().Value!;
-
-            TaskCompletionSource<bool> responseCompletionSource =
-                new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
-                connectId,
-                RpcServiceType.AnonymousLogout,
-                pendingRequest.ToByteArray(),
-                async responsePayload =>
+        if (networkResult.IsOk)
+        {
+            await responseCompletionSource.Task.ConfigureAwait(false);
+        }
+        else
+        {
+            _ = Task.Run(async () =>
+            {
+                await EnsureProtocolInBackground();
+            }, cancellationToken).ContinueWith(
+                task =>
                 {
-                    AnonymousLogoutResponse logoutResponse = AnonymousLogoutResponse.Parser.ParseFrom(responsePayload);
-
-                    if (logoutResponse.Result == AnonymousLogoutResponse.Types.Result.Succeeded)
+                    if (task is { IsFaulted: true, Exception: not null })
                     {
-                        responseCompletionSource.TrySetResult(true);
+                        Log.Error(task.Exception, "[PENDING-LOGOUT-RETRY] Unhandled exception ensuring protocol");
                     }
-                    else
-                    {
-                        responseCompletionSource.TrySetResult(true);
-                    }
-
-                    return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                 },
-                allowDuplicates: false,
-                token: cancellationToken).ConfigureAwait(false);
+                TaskScheduler.Default);
+        }
 
-            if (networkResult.IsOk)
-            {
-                await responseCompletionSource.Task.ConfigureAwait(false);
-                pendingLogoutStorage.ClearPendingLogout();
-            }
-            else
-            {
-                Log.Warning("[PENDING-LOGOUT-RETRY] Failed to send pending logout request: {Error}",
-                    networkResult.UnwrapErr().Message);
-                pendingLogoutStorage.ClearPendingLogout();
-                Log.Warning("[PENDING-LOGOUT-RETRY] Deleting corrupted expired pending logout");
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await EnsureProtocolInBackground();
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Warning(ex, "[VERIFY-OTP] Background secrecy channel establishment failed");
-                    }
-                });
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "[PENDING-LOGOUT-RETRY] Unexpected error processing pending logout");
-        }
+        pendingLogoutStorage.ClearPendingLogout();
     }
 
     private async Task EnsureProtocolInBackground()
     {
-        Result<uint, NetworkFailure> ensureResult = await networkProvider.EnsureProtocolForTypeAsync(
+        await networkProvider.EnsureProtocolForTypeAsync(
             PubKeyExchangeType.DataCenterEphemeralConnect);
-
-        if (ensureResult.IsErr)
-        {
-            Log.Error("[VERIFY-OTP] Failed to ensure protocol: {Error}",
-                ensureResult.UnwrapErr().Message);
-        }
     }
 }

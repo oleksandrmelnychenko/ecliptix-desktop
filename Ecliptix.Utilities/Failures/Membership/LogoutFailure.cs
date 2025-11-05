@@ -20,42 +20,42 @@ public record LogoutFailure(
     }
 
     public static LogoutFailure NetworkRequestFailed(string details, Exception? inner = null) =>
-        new(LogoutFailureType.NetworkRequestFailed, details, inner);
+        new(LogoutFailureType.NETWORK_REQUEST_FAILED, details, inner);
 
     public static LogoutFailure AlreadyLoggedOut(string details, Exception? inner = null) =>
-        new(LogoutFailureType.AlreadyLoggedOut, details, inner);
+        new(LogoutFailureType.ALREADY_LOGGED_OUT, details, inner);
 
-    public static LogoutFailure SessionNotFound(string details, Exception? inner = null) =>
-        new(LogoutFailureType.SessionNotFound, details, inner);
+    public static LogoutFailure SESSION_NOT_FOUND(string details, Exception? inner = null) =>
+        new(LogoutFailureType.SESSION_NOT_FOUND, details, inner);
 
     public static LogoutFailure InvalidMembershipIdentifier(string details, Exception? inner = null) =>
-        new(LogoutFailureType.InvalidMembershipIdentifier, details, inner);
+        new(LogoutFailureType.INVALID_MEMBERSHIP_IDENTIFIER, details, inner);
 
     public static LogoutFailure CryptographicOperationFailed(string details, Exception? inner = null) =>
-        new(LogoutFailureType.CryptographicOperationFailed, details, inner);
+        new(LogoutFailureType.CRYPTOGRAPHIC_OPERATION_FAILED, details, inner);
 
     public static LogoutFailure InvalidRevocationProof(string details, Exception? inner = null) =>
-        new(LogoutFailureType.InvalidRevocationProof, details, inner);
+        new(LogoutFailureType.INVALID_REVOCATION_PROOF, details, inner);
 
     public static LogoutFailure UnexpectedError(string details, Exception? inner = null) =>
-        new(LogoutFailureType.UnexpectedError, details, inner);
+        new(LogoutFailureType.UNEXPECTED_ERROR, details, inner);
 
     public override GrpcErrorDescriptor ToGrpcDescriptor() =>
         FailureType switch
         {
-            LogoutFailureType.NetworkRequestFailed => new GrpcErrorDescriptor(
-                ErrorCode.ServiceUnavailable, StatusCode.Unavailable, ErrorI18nKeys.ServiceUnavailable, Retryable: true),
-            LogoutFailureType.AlreadyLoggedOut => new GrpcErrorDescriptor(
-                ErrorCode.PreconditionFailed, StatusCode.FailedPrecondition, ErrorI18nKeys.PreconditionFailed),
-            LogoutFailureType.SessionNotFound => new GrpcErrorDescriptor(
-                ErrorCode.NotFound, StatusCode.NotFound, ErrorI18nKeys.NotFound),
-            LogoutFailureType.InvalidMembershipIdentifier => new GrpcErrorDescriptor(
-                ErrorCode.ValidationFailed, StatusCode.InvalidArgument, ErrorI18nKeys.Validation),
-            LogoutFailureType.CryptographicOperationFailed => new GrpcErrorDescriptor(
-                ErrorCode.InternalError, StatusCode.Internal, ErrorI18nKeys.Internal),
-            LogoutFailureType.InvalidRevocationProof => new GrpcErrorDescriptor(
-                ErrorCode.ValidationFailed, StatusCode.InvalidArgument, ErrorI18nKeys.Validation),
+            LogoutFailureType.NETWORK_REQUEST_FAILED => new GrpcErrorDescriptor(
+                ErrorCode.SERVICE_UNAVAILABLE, StatusCode.Unavailable, ErrorI18NKeys.SERVICE_UNAVAILABLE, Retryable: true),
+            LogoutFailureType.ALREADY_LOGGED_OUT => new GrpcErrorDescriptor(
+                ErrorCode.PRECONDITION_FAILED, StatusCode.FailedPrecondition, ErrorI18NKeys.PRECONDITION_FAILED),
+            LogoutFailureType.SESSION_NOT_FOUND => new GrpcErrorDescriptor(
+                ErrorCode.NOT_FOUND, StatusCode.NotFound, ErrorI18NKeys.NOT_FOUND),
+            LogoutFailureType.INVALID_MEMBERSHIP_IDENTIFIER => new GrpcErrorDescriptor(
+                ErrorCode.VALIDATION_FAILED, StatusCode.InvalidArgument, ErrorI18NKeys.VALIDATION),
+            LogoutFailureType.CRYPTOGRAPHIC_OPERATION_FAILED => new GrpcErrorDescriptor(
+                ErrorCode.INTERNAL_ERROR, StatusCode.Internal, ErrorI18NKeys.INTERNAL),
+            LogoutFailureType.INVALID_REVOCATION_PROOF => new GrpcErrorDescriptor(
+                ErrorCode.VALIDATION_FAILED, StatusCode.InvalidArgument, ErrorI18NKeys.VALIDATION),
             _ => new GrpcErrorDescriptor(
-                ErrorCode.InternalError, StatusCode.Internal, ErrorI18nKeys.Internal)
+                ErrorCode.INTERNAL_ERROR, StatusCode.Internal, ErrorI18NKeys.INTERNAL)
         };
 }

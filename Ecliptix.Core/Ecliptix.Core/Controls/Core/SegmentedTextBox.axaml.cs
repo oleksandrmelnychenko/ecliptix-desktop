@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -19,15 +20,14 @@ public partial class SegmentedTextBox : UserControl
 {
     public static readonly StyledProperty<int> SegmentCountProperty =
         AvaloniaProperty.Register<SegmentedTextBox, int>(nameof(SegmentCount),
-            SegmentedTextBoxConstants.DefaultSegmentCount, validate: value => value > 0);
+            SegmentedTextBoxConstants.DEFAULT_SEGMENT_COUNT, validate: value => value > 0);
 
     public static readonly StyledProperty<bool> AllowOnlyNumbersProperty =
-        AvaloniaProperty.Register<SegmentedTextBox, bool>(nameof(AllowOnlyNumbers),
-            SegmentedTextBoxConstants.DefaultAllowOnlyNumbers);
+        AvaloniaProperty.Register<SegmentedTextBox, bool>(nameof(AllowOnlyNumbers));
 
     public static readonly StyledProperty<bool> IsPointerInteractionEnabledProperty =
         AvaloniaProperty.Register<SegmentedTextBox, bool>(nameof(IsPointerInteractionEnabled),
-            SegmentedTextBoxConstants.IsPointerInteractionEnabled);
+            SegmentedTextBoxConstants.IS_POINTER_INTERACTION_ENABLED);
 
     public static readonly StyledProperty<IBrush> SegmentBackgroundProperty =
         AvaloniaProperty.Register<SegmentedTextBox, IBrush>(nameof(SegmentBackground), Brushes.Transparent);
@@ -40,16 +40,16 @@ public partial class SegmentedTextBox : UserControl
             defaultBindingMode: Avalonia.Data.BindingMode.TwoWay);
 
     public static readonly StyledProperty<bool> IsCompleteProperty =
-        AvaloniaProperty.Register<SegmentedTextBox, bool>(nameof(IsComplete), false,
+        AvaloniaProperty.Register<SegmentedTextBox, bool>(nameof(IsComplete),
             defaultBindingMode: Avalonia.Data.BindingMode.OneWayToSource);
 
     public static readonly StyledProperty<double> SegmentSpacingProperty =
         AvaloniaProperty.Register<SegmentedTextBox, double>(nameof(SegmentSpacing),
-            SegmentedTextBoxConstants.DefaultSegmentSpacing);
+            SegmentedTextBoxConstants.DEFAULT_SEGMENT_SPACING);
 
     public static readonly StyledProperty<double> SegmentWidthProperty =
         AvaloniaProperty.Register<SegmentedTextBox, double>(nameof(SegmentWidth),
-            SegmentedTextBoxConstants.DefaultSegmentWidth);
+            SegmentedTextBoxConstants.DEFAULT_SEGMENT_WIDTH);
 
     public static readonly StyledProperty<int> BaseTabIndexProperty =
         AvaloniaProperty.Register<SegmentedTextBox, int>(nameof(BaseTabIndex), int.MaxValue);
@@ -58,9 +58,8 @@ public partial class SegmentedTextBox : UserControl
 
     private readonly List<TextBox> _segments = [];
 
-    private bool _lastIsComplete;
     private int _currentActiveIndex;
-    private bool _isInternalUpdate = false;
+    private bool _isInternalUpdate;
 
     static SegmentedTextBox()
     {
@@ -233,7 +232,7 @@ public partial class SegmentedTextBox : UserControl
         return string.Concat(_segments.Select(tb => tb.Text ?? ""));
     }
 
-    private void ProcessTextInput(TextBox textBox, int index)
+    private void ProcessTextInput(TextBox textBox)
     {
         if (AllowOnlyNumbers)
         {
@@ -251,7 +250,7 @@ public partial class SegmentedTextBox : UserControl
         }
     }
 
-    private void UpdateTextBoxText(TextBox textBox, string newText)
+    private static void UpdateTextBoxText(TextBox textBox, string newText)
     {
         int selectionStart = textBox.SelectionStart;
         textBox.Text = newText;
@@ -277,7 +276,7 @@ public partial class SegmentedTextBox : UserControl
             TextBox tb = new()
             {
                 TabIndex = i == 0 ? 0 : -1,
-                Classes = { SegmentedTextBoxConstants.SegmentStyleClass },
+                Classes = { SegmentedTextBoxConstants.SEGMENT_STYLE_CLASS },
                 Width = SegmentWidth,
             };
 
@@ -343,7 +342,7 @@ public partial class SegmentedTextBox : UserControl
     {
         foreach (TextBox tb in _segments)
         {
-            tb.Classes.Remove(SegmentedTextBoxConstants.ActiveStyleClass);
+            tb.Classes.Remove(SegmentedTextBoxConstants.ACTIVE_STYLE_CLASS);
         }
     }
 
@@ -374,9 +373,7 @@ public partial class SegmentedTextBox : UserControl
             return;
         }
 
-        int index = _segments.IndexOf(tb);
-
-        ProcessTextInput(tb, index);
+        ProcessTextInput(tb);
         OnSegmentChanged();
     }
 
@@ -391,28 +388,31 @@ public partial class SegmentedTextBox : UserControl
 
         if (e is { Key: Key.V, KeyModifiers: KeyModifiers.Control })
         {
-            HandlePasteAsync();
+            HandlePasteAsync().ContinueWith(
+                task =>
+                {
+                    if (task is { IsFaulted: true, Exception: not null })
+                    {
+                        Log.Error(task.Exception, "[SEGMENTED-TEXTBOX] Unhandled exception during paste operation");
+                    }
+                },
+                TaskScheduler.Default);
             e.Handled = true;
             return;
         }
 
-        if (e.Key == Key.Back)
+        switch (e.Key)
         {
-            HandleBackspaceKey(index);
-            e.Handled = true;
-            OnSegmentChanged();
-            return;
-        }
-
-        if (e.Key is Key.Right or Key.Left)
-        {
-            e.Handled = true;
-            return;
-        }
-
-        if (e.Key == Key.Tab)
-        {
-            return;
+            case Key.Back:
+                HandleBackspaceKey(index);
+                e.Handled = true;
+                OnSegmentChanged();
+                return;
+            case Key.Right or Key.Left:
+                e.Handled = true;
+                return;
+            case Key.Tab:
+                return;
         }
 
         if (!IsPointerInteractionEnabled && index != _currentActiveIndex)
@@ -424,7 +424,7 @@ public partial class SegmentedTextBox : UserControl
         OnSegmentChanged();
     }
 
-    private async void HandlePasteAsync()
+    private async Task HandlePasteAsync()
     {
         try
         {
@@ -442,9 +442,9 @@ public partial class SegmentedTextBox : UserControl
 
             ProcessPastedText(clipboardText);
         }
-        catch
+        catch (Exception ex)
         {
-            Log.Warning("Failed to access clipboard for pasting.");
+            Log.Warning(ex, "Failed to access clipboard for pasting");
         }
     }
 
@@ -461,13 +461,11 @@ public partial class SegmentedTextBox : UserControl
 
         if (AllowOnlyNumbers && !validText.All(char.IsDigit))
         {
-            Log.Warning("Pasted text contains non-numeric characters when only numbers are allowed.");
             return;
         }
 
         if (validText.Length != _segments.Count)
         {
-            Log.Warning($"Pasted text length ({validText.Length}) does not match segment count ({_segments.Count}).");
             return;
         }
 
@@ -505,7 +503,7 @@ public partial class SegmentedTextBox : UserControl
         for (int i = 0; i < _segments.Count; i++)
         {
             TextBox tb = _segments[i];
-            tb.Classes.Set(SegmentedTextBoxConstants.ActiveStyleClass, i == _currentActiveIndex);
+            tb.Classes.Set(SegmentedTextBoxConstants.ACTIVE_STYLE_CLASS, i == _currentActiveIndex);
         }
 
         FocusCurrentSegment();
@@ -556,8 +554,6 @@ public partial class SegmentedTextBox : UserControl
         {
             SetValue(IsCompleteProperty, newIsComplete);
         }
-
-        _lastIsComplete = newIsComplete;
     }
 
     private void UpdateTabIndexes()

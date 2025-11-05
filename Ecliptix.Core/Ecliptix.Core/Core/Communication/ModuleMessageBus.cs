@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Channels;
@@ -13,7 +12,7 @@ namespace Ecliptix.Core.Core.Communication;
 
 public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
 {
-    private const int MaxProcessingTimesSamples = 1000;
+    private const int MAX_PROCESSING_TIMES_SAMPLES = 1000;
 
     private readonly ConcurrentDictionary<Type, ConcurrentBag<IMessageSubscription>> _subscriptions = new();
     private readonly ConcurrentDictionary<string, TaskCompletionSource<IModuleMessage>> _pendingRequests = new();
@@ -152,8 +151,10 @@ public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
             {
                 await ProcessSingleMessageAsync(message);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Serilog.Log.Error(ex, "[MODULE-MESSAGE-BUS] Failed to process message. Type: {MessageType}",
+                    message?.GetType().Name ?? "Unknown");
             }
             finally
             {
@@ -165,13 +166,12 @@ public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
 
     private async Task ProcessSingleMessageAsync(IModuleMessage message)
     {
-        if (message is ModuleResponse response && !string.IsNullOrEmpty(response.CorrelationId))
+        if (message is ModuleResponse response &&
+            !string.IsNullOrEmpty(response.CORRELATION_ID) &&
+            _pendingRequests.TryGetValue(response.CORRELATION_ID, out TaskCompletionSource<IModuleMessage>? tcs))
         {
-            if (_pendingRequests.TryGetValue(response.CorrelationId, out TaskCompletionSource<IModuleMessage>? tcs))
-            {
-                tcs.SetResult(response);
-                return;
-            }
+            tcs.SetResult(response);
+            return;
         }
 
         Type messageType = typeof(IModuleMessage);
@@ -186,8 +186,10 @@ public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
                     Task handlerTask = subscription.HandleAsync(message);
                     handlerTasks.Add(handlerTask);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Serilog.Log.Error(ex, "[MODULE-MESSAGE-BUS] Handler threw exception during registration. MessageType: {MessageType}",
+                        messageType.Name);
                 }
             }
         }
@@ -202,7 +204,7 @@ public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
     {
         _processingTimes.Enqueue(processingTimeMs);
 
-        while (_processingTimes.Count > MaxProcessingTimesSamples)
+        while (_processingTimes.Count > MAX_PROCESSING_TIMES_SAMPLES)
         {
             _processingTimes.TryDequeue(out _);
         }
@@ -217,8 +219,17 @@ public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
         {
             _messageProcessingTask.Wait(TimeSpan.FromSeconds(5));
         }
-        catch (Exception)
+        catch (TimeoutException ex)
         {
+            Serilog.Log.Warning(ex, "[MODULE-MESSAGE-BUS] Message processing task did not complete within timeout during disposal");
+        }
+        catch (AggregateException ex) when (ex.InnerException is OperationCanceledException)
+        {
+            // Expected during cancellation
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "[MODULE-MESSAGE-BUS] Unexpected exception during disposal wait");
         }
 
         _cancellationTokenSource.Dispose();

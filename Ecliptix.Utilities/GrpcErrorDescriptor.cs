@@ -5,7 +5,7 @@ namespace Ecliptix.Utilities;
 public sealed record GrpcErrorDescriptor(
     ErrorCode ErrorCode,
     StatusCode StatusCode,
-    string I18nKey,
+    string I18NKey,
     bool Retryable = false,
     int? RetryAfterMilliseconds = null)
 {

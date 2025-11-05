@@ -29,7 +29,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     public static readonly StyledProperty<char> SecureKeyMaskCharProperty =
         AvaloniaProperty.Register<HintedTextBox, char>(nameof(SecureKeyMaskChar),
-            HintedTextBoxConstants.DefaultMaskChar);
+            HintedTextBoxConstants.DEFAULT_MASK_CHAR);
 
     public static readonly StyledProperty<string> TextProperty =
         AvaloniaProperty.Register<HintedTextBox, string>(nameof(Text), string.Empty,
@@ -43,7 +43,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     public static readonly StyledProperty<IBrush> FocusBorderBrushProperty =
         AvaloniaProperty.Register<HintedTextBox, IBrush>(
-            nameof(FocusBorderBrush), new SolidColorBrush(Color.Parse(HintedTextBoxConstants.FocusColorHex)));
+            nameof(FocusBorderBrush), new SolidColorBrush(Color.Parse(HintedTextBoxConstants.FOCUS_COLOR_HEX)));
 
     public static readonly StyledProperty<IBrush> TextForegroundProperty =
         AvaloniaProperty.Register<HintedTextBox, IBrush>(
@@ -92,11 +92,11 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             nameof(Background), new SolidColorBrush(Colors.White));
 
     public new static readonly StyledProperty<double> FontSizeProperty =
-        AvaloniaProperty.Register<HintedTextBox, double>(nameof(FontSize), HintedTextBoxConstants.DefaultFontSize);
+        AvaloniaProperty.Register<HintedTextBox, double>(nameof(FontSize), HintedTextBoxConstants.DEFAULT_FONT_SIZE);
 
     public static readonly StyledProperty<double> WatermarkFontSizeProperty =
         AvaloniaProperty.Register<HintedTextBox, double>(nameof(WatermarkFontSize),
-            HintedTextBoxConstants.DefaultWatermarkFontSize);
+            HintedTextBoxConstants.DEFAULT_WATERMARK_FONT_SIZE);
 
     public new static readonly StyledProperty<FontWeight> FontWeightProperty =
         AvaloniaProperty.Register<HintedTextBox, FontWeight>(nameof(FontWeight), FontWeight.Normal);
@@ -105,7 +105,8 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         AvaloniaProperty.Register<HintedTextBox, bool>(nameof(IsSecureKeyStrengthMode));
 
     public static readonly StyledProperty<SecureKeyStrength> SecureKeyStrengthProperty =
-        AvaloniaProperty.Register<HintedTextBox, SecureKeyStrength>(nameof(SecureKeyStrength), SecureKeyStrength.Invalid);
+        AvaloniaProperty.Register<HintedTextBox, SecureKeyStrength>(nameof(SecureKeyStrength),
+            SecureKeyStrength.INVALID);
 
     public static readonly StyledProperty<string> SecureKeyStrengthTextProperty =
         AvaloniaProperty.Register<HintedTextBox, string>(nameof(SecureKeyStrengthText), string.Empty);
@@ -126,10 +127,11 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     public static readonly StyledProperty<int> WarningDisplayDurationMsProperty =
         AvaloniaProperty.Register<HintedTextBox, int>(nameof(WarningDisplayDurationMs),
-            HintedTextBoxConstants.DefaultWarningDisplayDurationMs);
+            HintedTextBoxConstants.DEFAULT_WARNING_DISPLAY_DURATION_MS);
 
     public static readonly RoutedEvent<CharacterRejectedEventArgs> CharacterRejectedEvent =
-        RoutedEvent.Register<HintedTextBox, CharacterRejectedEventArgs>(nameof(CharacterRejected), RoutingStrategies.Bubble);
+        RoutedEvent.Register<HintedTextBox, CharacterRejectedEventArgs>(nameof(CharacterRejected),
+            RoutingStrategies.Bubble);
 
     public static readonly RoutedEvent<SecureKeyCharactersAddedEventArgs> SecureKeyCharactersAddedEvent =
         RoutedEvent.Register<HintedTextBox, SecureKeyCharactersAddedEventArgs>(nameof(SecureKeyCharactersAdded),
@@ -143,10 +145,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private static readonly Dictionary<string, Color> ColorCache = new();
     private static readonly Dictionary<string, BoxShadows> ResourceCache = new();
     private static readonly Dictionary<string, int> TextElementCountCache = new(StringComparer.Ordinal);
-    private const int MaxTextElementCacheSize = 1000;
+    private const int MAX_TEXT_ELEMENT_CACHE_SIZE = 1000;
 
-    private const int InputDebounceDelayMs = HintedTextBoxConstants.InputDebounceDelayMs;
-    private const int SecureKeyDebounceDelayMs = 50;
+    private const int INPUT_DEBOUNCE_DELAY_MS = HintedTextBoxConstants.INPUT_DEBOUNCE_DELAY_MS;
+    private const int SECURE_KEY_DEBOUNCE_DELAY_MS = 50;
 
     private readonly CompositeDisposable _disposables = new();
 
@@ -162,7 +164,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private DispatcherTimer? _secureKeyDebounceTimer;
     private bool _lastIsFocused;
     private bool _lastHasError;
-    private SecureKeyStrength _lastSecureKeyStrength = SecureKeyStrength.Invalid;
+    private SecureKeyStrength _lastSecureKeyStrength = SecureKeyStrength.INVALID;
     private bool _lastIsSecureKeyStrengthMode;
     private string _lastProcessedText = string.Empty;
     private IDisposable? _currentTypingAnimation;
@@ -402,7 +404,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             ? new string(SecureKeyMaskChar, newSecureKeyLength)
             : string.Empty;
 
-        _mainTextBox.PasswordChar = HintedTextBoxConstants.NoSecureKeyChar;
+        _mainTextBox.PasswordChar = HintedTextBoxConstants.NO_SECURE_KEY_CHAR;
 
         int caretPosition = Math.Clamp(_intendedCaretPosition, 0, newSecureKeyLength);
         UpdateTextBox(maskText, caretPosition);
@@ -457,7 +459,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error disposing subscriptions: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"ERROR disposing subscriptions: {ex.Message}");
             }
 
             _mainTextBox = null;
@@ -475,7 +477,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error in Dispose: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"ERROR in Dispose: {ex.Message}");
         }
     }
 
@@ -514,27 +516,27 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     {
         return strength switch
         {
-            SecureKeyStrength.Invalid => (GetCachedColor(HintedTextBoxConstants.InvalidStrengthColorHex),
-                HintedTextBoxConstants.InvalidStrengthShadowKey,
-                GetCachedColor(HintedTextBoxConstants.InvalidStrengthColorHex)),
-            SecureKeyStrength.VeryWeak => (GetCachedColor(HintedTextBoxConstants.VeryWeakStrengthColorHex),
-                HintedTextBoxConstants.VeryWeakStrengthShadowKey,
-                GetCachedColor(HintedTextBoxConstants.VeryWeakStrengthColorHex)),
-            SecureKeyStrength.Weak => (GetCachedColor(HintedTextBoxConstants.WeakStrengthColorHex),
-                HintedTextBoxConstants.WeakStrengthShadowKey,
-                GetCachedColor(HintedTextBoxConstants.WeakStrengthColorHex)),
-            SecureKeyStrength.Good => (GetCachedColor(HintedTextBoxConstants.GoodStrengthColorHex),
-                HintedTextBoxConstants.GoodStrengthShadowKey,
-                GetCachedColor(HintedTextBoxConstants.GoodStrengthColorHex)),
-            SecureKeyStrength.Strong => (GetCachedColor(HintedTextBoxConstants.StrongStrengthColorHex),
-                HintedTextBoxConstants.StrongStrengthShadowKey,
-                GetCachedColor(HintedTextBoxConstants.StrongStrengthColorHex)),
-            SecureKeyStrength.VeryStrong => (GetCachedColor(HintedTextBoxConstants.VeryStrongStrengthColorHex),
-                HintedTextBoxConstants.VeryStrongStrengthShadowKey,
-                GetCachedColor(HintedTextBoxConstants.VeryStrongStrengthColorHex)),
-            _ => (GetCachedColor(HintedTextBoxConstants.InvalidStrengthColorHex),
-                HintedTextBoxConstants.InvalidStrengthShadowKey,
-                GetCachedColor(HintedTextBoxConstants.InvalidStrengthColorHex))
+            SecureKeyStrength.INVALID => (GetCachedColor(HintedTextBoxConstants.INVALID_STRENGTH_COLOR_HEX),
+                HintedTextBoxConstants.INVALID_STRENGTH_SHADOW_KEY,
+                GetCachedColor(HintedTextBoxConstants.INVALID_STRENGTH_COLOR_HEX)),
+            SecureKeyStrength.VERY_WEAK => (GetCachedColor(HintedTextBoxConstants.VERY_WEAK_STRENGTH_COLOR_HEX),
+                HintedTextBoxConstants.VERY_WEAK_STRENGTH_SHADOW_KEY,
+                GetCachedColor(HintedTextBoxConstants.VERY_WEAK_STRENGTH_COLOR_HEX)),
+            SecureKeyStrength.WEAK => (GetCachedColor(HintedTextBoxConstants.WEAK_STRENGTH_COLOR_HEX),
+                HintedTextBoxConstants.WEAK_STRENGTH_SHADOW_KEY,
+                GetCachedColor(HintedTextBoxConstants.WEAK_STRENGTH_COLOR_HEX)),
+            SecureKeyStrength.GOOD => (GetCachedColor(HintedTextBoxConstants.GOOD_STRENGTH_COLOR_HEX),
+                HintedTextBoxConstants.GOOD_STRENGTH_SHADOW_KEY,
+                GetCachedColor(HintedTextBoxConstants.GOOD_STRENGTH_COLOR_HEX)),
+            SecureKeyStrength.STRONG => (GetCachedColor(HintedTextBoxConstants.STRONG_STRENGTH_COLOR_HEX),
+                HintedTextBoxConstants.STRONG_STRENGTH_SHADOW_KEY,
+                GetCachedColor(HintedTextBoxConstants.STRONG_STRENGTH_COLOR_HEX)),
+            SecureKeyStrength.VERY_STRONG => (GetCachedColor(HintedTextBoxConstants.VERY_STRONG_STRENGTH_COLOR_HEX),
+                HintedTextBoxConstants.VERY_STRONG_STRENGTH_SHADOW_KEY,
+                GetCachedColor(HintedTextBoxConstants.VERY_STRONG_STRENGTH_COLOR_HEX)),
+            _ => (GetCachedColor(HintedTextBoxConstants.INVALID_STRENGTH_COLOR_HEX),
+                HintedTextBoxConstants.INVALID_STRENGTH_SHADOW_KEY,
+                GetCachedColor(HintedTextBoxConstants.INVALID_STRENGTH_COLOR_HEX))
         };
     }
 
@@ -557,10 +559,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
             switch (TextElementCountCache.Count)
             {
-                case < MaxTextElementCacheSize:
+                case < MAX_TEXT_ELEMENT_CACHE_SIZE:
                     TextElementCountCache[text] = count;
                     break;
-                case > MaxTextElementCacheSize:
+                case > MAX_TEXT_ELEMENT_CACHE_SIZE:
                     TextElementCountCache.Clear();
                     TextElementCountCache[text] = count;
                     break;
@@ -568,10 +570,12 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
             return count;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine(
+                $"[HINTED-TEXTBOX] Failed to get text element count, using fallback: {ex.Message}");
             int fallbackCount = text.Length;
-            if (TextElementCountCache.Count < MaxTextElementCacheSize)
+            if (TextElementCountCache.Count < MAX_TEXT_ELEMENT_CACHE_SIZE)
             {
                 TextElementCountCache[text] = fallbackCount;
             }
@@ -600,16 +604,20 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             int actualLength = Math.Min(length, textElementCount - startIndex);
             return actualLength <= 0 ? string.Empty : stringInfo.SubstringByTextElements(startIndex, actualLength);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine(
+                $"[HINTED-TEXTBOX] Failed to substring by text elements, using character fallback: {ex.Message}");
             try
             {
                 int safeStart = Math.Min(startIndex, text.Length);
                 int safeLength = Math.Min(length, text.Length - safeStart);
                 return safeLength > 0 ? text.Substring(safeStart, safeLength) : string.Empty;
             }
-            catch (Exception)
+            catch (Exception ex2)
             {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[HINTED-TEXTBOX] Failed to substring, returning empty: {ex2.Message}");
                 return string.Empty;
             }
         }
@@ -640,8 +648,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
             return SafeSubstring(currentText, insertPos, addedCount);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine(
+                $"[HINTED-TEXTBOX] Failed to get added text elements, using character fallback: {ex.Message}");
             int addedCount = currentText.Length - lastText.Length;
             if (addedCount <= 0)
             {
@@ -659,6 +669,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         {
             return color;
         }
+
         color = Color.Parse(colorHex);
         ColorCache[colorHex] = color;
 
@@ -672,6 +683,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         {
             return brush;
         }
+
         brush = new SolidColorBrush(color);
         BrushCache[key] = brush;
 
@@ -684,6 +696,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         {
             return;
         }
+
         Initialize();
     }
 
@@ -750,6 +763,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         {
             return;
         }
+
         e.Handled = true;
         if (_mainTextBox != null)
         {
@@ -764,6 +778,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         {
             return;
         }
+
         e.Handled = true;
 
         _mainTextBox.SelectionStart = 0;
@@ -783,6 +798,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         {
             return;
         }
+
         e.Handled = true;
         if (_mainTextBox != null)
         {
@@ -796,42 +812,33 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         {
             return;
         }
+
         e.Handled = true;
     }
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
     {
-        if (!IsSecureKeyMode || _mainTextBox == null)
+        if (!IsSecureKeyMode)
         {
             return;
         }
+
         e.Handled = true;
     }
 
-    private void OnDragEnter(object? sender, DragEventArgs e)
+    private void OnDragEnter(object? sender, DragEventArgs e) => HandleSecureKeyDragEvent(e);
+
+    private void OnDragOver(object? sender, DragEventArgs e) => HandleSecureKeyDragEvent(e);
+
+    private void OnDrop(object? sender, DragEventArgs e) => HandleSecureKeyDragEvent(e);
+
+    private void HandleSecureKeyDragEvent(DragEventArgs e)
     {
         if (!IsSecureKeyMode)
         {
             return;
         }
-        e.Handled = true;
-    }
 
-    private void OnDragOver(object? sender, DragEventArgs e)
-    {
-        if (!IsSecureKeyMode)
-        {
-            return;
-        }
-        e.Handled = true;
-    }
-
-    private void OnDrop(object? sender, DragEventArgs e)
-    {
-        if (!IsSecureKeyMode)
-        {
-            return;
-        }
         e.Handled = true;
     }
 
@@ -880,6 +887,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             {
                 _mainTextBox.CaretIndex = _mainTextBox.Text?.Length ?? 0;
             }
+
             return;
         }
 
@@ -912,10 +920,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     {
         if (_warningTimer == null)
         {
-            _warningTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(WarningDisplayDurationMs)
-            };
+            _warningTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(WarningDisplayDurationMs) };
             _warningTimer.Tick += OnWarningTimerTick;
         }
         else
@@ -940,79 +945,115 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             return;
         }
 
-        if (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta))
+        if (HandleClipboardShortcuts(e))
         {
-            switch (e.Key)
-            {
-                case Key.V:
-                case Key.C:
-                case Key.X:
-                case Key.Z:
-                case Key.Y:
-                    e.Handled = true;
-                    return;
-            }
-        }
-        if (e.Key == Key.Insert && (e.KeyModifiers.HasFlag(KeyModifiers.Shift) || e.KeyModifiers.HasFlag(KeyModifiers.Control)))
-        {
-            e.Handled = true;
-        }
-
-        if (_mainTextBox != null)
-        {
-            switch (e.Key)
-            {
-                case Key.Back:
-                case Key.Delete:
-                case Key.End:
-                case Key.Home:
-                    return;
-
-                case Key.Left:
-                case Key.Right:
-                case Key.Up:
-                case Key.Down:
-                    e.Handled = true;
-                    return;
-            }
-        }
-
-        if (e.Key == Key.Back)
-        {
-            e.Handled = true;
-            if (_mainTextBox != null && !string.IsNullOrEmpty(_mainTextBox.Text))
-            {
-                string currentText = _mainTextBox.Text;
-                string newText = currentText.Length > 0 ? currentText.Substring(0, currentText.Length - 1) : string.Empty;
-
-                _isUpdatingFromCode = true;
-                _mainTextBox.Text = newText;
-                _mainTextBox.CaretIndex = newText.Length;
-                _isUpdatingFromCode = false;
-
-                _intendedCaretPosition = newText.Length;
-            }
             return;
         }
 
-        if (e.Key == Key.Delete)
+        if (HandleNavigationKeys(e))
         {
-            e.Handled = true;
-            if (_mainTextBox != null && !string.IsNullOrEmpty(_mainTextBox.Text))
-            {
-                string currentText = _mainTextBox.Text;
-                string newText = currentText.Length > 0 ? currentText.Substring(0, currentText.Length - 1) : string.Empty;
-
-                _isUpdatingFromCode = true;
-                _mainTextBox.Text = newText;
-                _mainTextBox.CaretIndex = newText.Length;
-                _isUpdatingFromCode = false;
-
-                _intendedCaretPosition = newText.Length;
-            }
             return;
         }
 
+        if (HandleBackspaceKey(e))
+        {
+            return;
+        }
+
+        if (HandleDeleteKey(e))
+        {
+            return;
+        }
+
+        ResetCaretToEnd();
+    }
+
+    private static bool HandleClipboardShortcuts(KeyEventArgs e)
+    {
+        if ((e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta)) &&
+            IsClipboardKey(e.Key))
+        {
+            e.Handled = true;
+            return true;
+        }
+
+        if (e.Key == Key.Insert &&
+            (e.KeyModifiers.HasFlag(KeyModifiers.Shift) || e.KeyModifiers.HasFlag(KeyModifiers.Control)))
+        {
+            e.Handled = true;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsClipboardKey(Key key) => key is Key.V or Key.C or Key.X or Key.Z or Key.Y;
+
+    private bool HandleNavigationKeys(KeyEventArgs e)
+    {
+        if (_mainTextBox == null)
+        {
+            return false;
+        }
+
+        return e.Key switch
+        {
+            Key.Back or Key.Delete or Key.End or Key.Home => false,
+            Key.Left or Key.Right or Key.Up or Key.Down => HandleArrowKey(e),
+            _ => false
+        };
+    }
+
+    private static bool HandleArrowKey(KeyEventArgs e)
+    {
+        e.Handled = true;
+        return true;
+    }
+
+    private bool HandleBackspaceKey(KeyEventArgs e)
+    {
+        if (e.Key != Key.Back)
+        {
+            return false;
+        }
+
+        e.Handled = true;
+        RemoveLastCharacter();
+        return true;
+    }
+
+    private bool HandleDeleteKey(KeyEventArgs e)
+    {
+        if (e.Key != Key.Delete)
+        {
+            return false;
+        }
+
+        e.Handled = true;
+        RemoveLastCharacter();
+        return true;
+    }
+
+    private void RemoveLastCharacter()
+    {
+        if (_mainTextBox == null || string.IsNullOrEmpty(_mainTextBox.Text))
+        {
+            return;
+        }
+
+        string currentText = _mainTextBox.Text;
+        string newText = currentText.Length > 0 ? currentText.Substring(0, currentText.Length - 1) : string.Empty;
+
+        _isUpdatingFromCode = true;
+        _mainTextBox.Text = newText;
+        _mainTextBox.CaretIndex = newText.Length;
+        _isUpdatingFromCode = false;
+
+        _intendedCaretPosition = newText.Length;
+    }
+
+    private void ResetCaretToEnd()
+    {
         if (_mainTextBox != null)
         {
             _mainTextBox.CaretIndex = _mainTextBox.Text?.Length ?? 0;
@@ -1045,10 +1086,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
         if (_inputDebounceTimer == null)
         {
-            _inputDebounceTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(InputDebounceDelayMs)
-            };
+            _inputDebounceTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(INPUT_DEBOUNCE_DELAY_MS) };
             _inputDebounceTimer.Tick += OnDebounceTimerTick;
         }
 
@@ -1063,7 +1101,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         {
             _secureKeyDebounceTimer = new DispatcherTimer
             {
-                Interval = TimeSpan.FromMilliseconds(SecureKeyDebounceDelayMs)
+                Interval = TimeSpan.FromMilliseconds(SECURE_KEY_DEBOUNCE_DELAY_MS)
             };
             _secureKeyDebounceTimer.Tick += OnSecureKeyDebounceTimerTick;
         }
@@ -1073,35 +1111,21 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private void OnSecureKeyDebounceTimerTick(object? sender, System.EventArgs e)
     {
-        try
-        {
-            _secureKeyDebounceTimer?.Stop();
+        _secureKeyDebounceTimer?.Stop();
 
-            if (!_isDisposed)
-            {
-                ProcessSecureKeyChange();
-            }
-        }
-        catch (Exception ex)
+        if (!_isDisposed)
         {
-            System.Diagnostics.Debug.WriteLine($"Error in OnSecureKeyDebounceTimerTick: {ex.Message}");
+            ProcessSecureKeyChange();
         }
     }
 
     private void OnDebounceTimerTick(object? sender, System.EventArgs e)
     {
-        try
-        {
-            _inputDebounceTimer?.Stop();
+        _inputDebounceTimer?.Stop();
 
-            if (!_isDisposed)
-            {
-                ProcessTextChange();
-            }
-        }
-        catch (Exception ex)
+        if (!_isDisposed)
         {
-            System.Diagnostics.Debug.WriteLine($"Error in OnDebounceTimerTick: {ex.Message}");
+            ProcessTextChange();
         }
     }
 
@@ -1123,72 +1147,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 return;
             }
 
-            try
-            {
-                int currentElementCount = GetTextElementCount(currentText);
-                int lastElementCount = _lastProcessedTextElementCount > 0
-                    ? _lastProcessedTextElementCount
-                    : GetTextElementCount(lastText);
-
-                if (currentElementCount > lastElementCount)
-                {
-                    int addedCount = currentElementCount - lastElementCount;
-                    string addedChars = GetAddedTextElements(currentText, lastText, _mainTextBox.CaretIndex);
-
-                    int insertPos = Math.Max(HintedTextBoxConstants.InitialCaretIndex, _mainTextBox.CaretIndex - addedCount);
-
-                    _intendedCaretPosition = insertPos + addedCount;
-
-                    if (!string.IsNullOrEmpty(addedChars))
-                    {
-                        RaiseEvent(new SecureKeyCharactersAddedEventArgs(SecureKeyCharactersAddedEvent, insertPos,
-                            addedChars));
-                        TriggerTypingAnimation();
-                    }
-                }
-                else if (currentElementCount < lastElementCount)
-                {
-                    int removedCount = lastElementCount - currentElementCount;
-                    int removePos = currentElementCount;
-
-                    _intendedCaretPosition = removePos;
-
-                    RaiseEvent(
-                        new SecureKeyCharactersRemovedEventArgs(SecureKeyCharactersRemovedEvent, removePos,
-                            removedCount));
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error in ProcessSecureKeyChange: {ex.Message}");
-
-                if (currentText.Length > lastText.Length)
-                {
-                    int addedCount = currentText.Length - lastText.Length;
-                    int insertPos = Math.Max(HintedTextBoxConstants.InitialCaretIndex, _mainTextBox.CaretIndex - addedCount);
-                    string addedChars = SafeSubstring(currentText, insertPos, addedCount);
-
-                    _intendedCaretPosition = insertPos + addedCount;
-
-                    if (!string.IsNullOrEmpty(addedChars))
-                    {
-                        RaiseEvent(new SecureKeyCharactersAddedEventArgs(SecureKeyCharactersAddedEvent, insertPos,
-                            addedChars));
-                        TriggerTypingAnimation();
-                    }
-                }
-                else if (currentText.Length < lastText.Length)
-                {
-                    int removedCount = lastText.Length - currentText.Length;
-                    int removePos = _mainTextBox.CaretIndex;
-
-                    _intendedCaretPosition = removePos;
-
-                    RaiseEvent(
-                        new SecureKeyCharactersRemovedEventArgs(SecureKeyCharactersRemovedEvent, removePos,
-                            removedCount));
-                }
-            }
+            ProcessTextDifference(currentText, lastText);
 
             _lastProcessedText = currentText;
             _lastProcessedTextElementCount = GetTextElementCount(currentText);
@@ -1196,19 +1155,112 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         finally
         {
-            Dispatcher.UIThread.Post(() =>
-            {
-                if (_mainTextBox != null && !_isDisposed)
-                {
-                    int textLength = _mainTextBox.Text?.Length ?? 0;
-                    if (_mainTextBox.CaretIndex != textLength)
-                    {
-                        _mainTextBox.CaretIndex = textLength;
-                    }
-                }
-            });
+            ResetCaretPosition();
             _isProcessingSecureKeyChange = false;
         }
+    }
+
+    private void ProcessTextDifference(string currentText, string lastText)
+    {
+        try
+        {
+            ProcessTextDifferenceByElements(currentText, lastText);
+        }
+        catch
+        {
+            ProcessTextDifferenceByLength(currentText, lastText);
+        }
+    }
+
+    private void ProcessTextDifferenceByElements(string currentText, string lastText)
+    {
+        int currentElementCount = GetTextElementCount(currentText);
+        int lastElementCount = _lastProcessedTextElementCount > 0
+            ? _lastProcessedTextElementCount
+            : GetTextElementCount(lastText);
+
+        if (currentElementCount > lastElementCount)
+        {
+            HandleCharactersAdded(currentText, lastText, currentElementCount, lastElementCount);
+        }
+        else if (currentElementCount < lastElementCount)
+        {
+            HandleCharactersRemoved(currentElementCount, lastElementCount);
+        }
+    }
+
+    private void ProcessTextDifferenceByLength(string currentText, string lastText)
+    {
+        if (currentText.Length > lastText.Length)
+        {
+            int addedCount = currentText.Length - lastText.Length;
+            int insertPos = Math.Max(HintedTextBoxConstants.INITIAL_CARET_INDEX, _mainTextBox!.CaretIndex - addedCount);
+            string addedChars = SafeSubstring(currentText, insertPos, addedCount);
+
+            _intendedCaretPosition = insertPos + addedCount;
+
+            if (string.IsNullOrEmpty(addedChars))
+            {
+                return;
+            }
+
+            RaiseEvent(new SecureKeyCharactersAddedEventArgs(SecureKeyCharactersAddedEvent, insertPos, addedChars));
+            TriggerTypingAnimation();
+        }
+        else if (currentText.Length < lastText.Length)
+        {
+            int removedCount = lastText.Length - currentText.Length;
+            int removePos = _mainTextBox!.CaretIndex;
+
+            _intendedCaretPosition = removePos;
+
+            RaiseEvent(
+                new SecureKeyCharactersRemovedEventArgs(SecureKeyCharactersRemovedEvent, removePos, removedCount));
+        }
+    }
+
+    private void HandleCharactersAdded(string currentText, string lastText, int currentElementCount,
+        int lastElementCount)
+    {
+        int addedCount = currentElementCount - lastElementCount;
+        string addedChars = GetAddedTextElements(currentText, lastText, _mainTextBox!.CaretIndex);
+
+        int insertPos = Math.Max(HintedTextBoxConstants.INITIAL_CARET_INDEX, _mainTextBox.CaretIndex - addedCount);
+
+        _intendedCaretPosition = insertPos + addedCount;
+
+        if (string.IsNullOrEmpty(addedChars))
+        {
+            return;
+        }
+
+        RaiseEvent(new SecureKeyCharactersAddedEventArgs(SecureKeyCharactersAddedEvent, insertPos, addedChars));
+        TriggerTypingAnimation();
+    }
+
+    private void HandleCharactersRemoved(int currentElementCount, int lastElementCount)
+    {
+        int removedCount = lastElementCount - currentElementCount;
+
+        _intendedCaretPosition = currentElementCount;
+
+        RaiseEvent(new SecureKeyCharactersRemovedEventArgs(SecureKeyCharactersRemovedEvent, currentElementCount,
+            removedCount));
+    }
+
+    private void ResetCaretPosition()
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_mainTextBox != null && !_isDisposed)
+            {
+                int textLength = _mainTextBox.Text?.Length ?? 0;
+                if (_mainTextBox.CaretIndex != textLength)
+                {
+                    _mainTextBox.CaretIndex = textLength;
+                }
+            }
+        });
     }
 
     private void ProcessTextChange()
@@ -1217,6 +1269,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         {
             return;
         }
+
         ProcessStandardChange();
     }
 
@@ -1241,7 +1294,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         UpdateRemainingCharacters();
 
         if (!IsSecureKeyMode && GetTextElementCount(input) > GetTextElementCount(Text) -
-            HintedTextBoxConstants.TypingAnimationThreshold)
+            HintedTextBoxConstants.TYPING_ANIMATION_THRESHOLD)
         {
             TriggerTypingAnimation();
         }
@@ -1257,7 +1310,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         text ??= string.Empty;
         _isUpdatingFromCode = true;
         _mainTextBox.Text = text;
-        _mainTextBox.CaretIndex = Math.Clamp(caretIndex, HintedTextBoxConstants.InitialCaretIndex, text.Length);
+        _mainTextBox.CaretIndex = Math.Clamp(caretIndex, HintedTextBoxConstants.INITIAL_CARET_INDEX, text.Length);
         _isUpdatingFromCode = false;
     }
 
@@ -1278,6 +1331,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             {
                 return;
             }
+
             if (_mainTextBox == null || _focusBorder == null || _mainBorder == null || _shadowBorder == null)
             {
                 return;
@@ -1297,11 +1351,13 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             _lastSecureKeyStrength = currentSecureKeyStrength;
             _lastIsSecureKeyStrengthMode = currentIsSecureKeyStrengthMode;
 
-            UpdateBorderStateInternal(isFocused, currentHasError, currentSecureKeyStrength, currentIsSecureKeyStrengthMode);
+            UpdateBorderStateInternal(isFocused, currentHasError, currentSecureKeyStrength,
+                currentIsSecureKeyStrengthMode);
         }, DispatcherPriority.Render);
     }
 
-    private void UpdateBorderStateInternal(bool isFocused, bool hasError, SecureKeyStrength secureKeyStrength, bool isSecureKeyStrengthMode)
+    private void UpdateBorderStateInternal(bool isFocused, bool hasError, SecureKeyStrength secureKeyStrength,
+        bool isSecureKeyStrengthMode)
     {
         if (_focusBorder == null || _mainBorder == null || _shadowBorder == null)
         {
@@ -1313,7 +1369,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             (Color borderColor, string shadowKey, Color iconColor) = GetSecureKeyStrengthColors(secureKeyStrength);
 
             _focusBorder.BorderBrush = GetCachedBrush(borderColor);
-            _focusBorder.Opacity = HintedTextBoxConstants.FullOpacity;
+            _focusBorder.Opacity = HintedTextBoxConstants.FULL_OPACITY;
             _mainBorder.BorderBrush = GetCachedBrush(Colors.Transparent);
             _shadowBorder.BoxShadow = GetCachedResource(shadowKey);
 
@@ -1322,23 +1378,23 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         else if (hasError)
         {
-            _focusBorder.BorderBrush = GetCachedBrush(GetCachedColor(HintedTextBoxConstants.ErrorColorHex));
-            _focusBorder.Opacity = HintedTextBoxConstants.FullOpacity;
+            _focusBorder.BorderBrush = GetCachedBrush(GetCachedColor(HintedTextBoxConstants.ERROR_COLOR_HEX));
+            _focusBorder.Opacity = HintedTextBoxConstants.FULL_OPACITY;
             _mainBorder.BorderBrush = GetCachedBrush(Colors.Transparent);
-            _shadowBorder.BoxShadow = GetCachedResource(HintedTextBoxConstants.ErrorShadowKey);
+            _shadowBorder.BoxShadow = GetCachedResource(HintedTextBoxConstants.ERROR_SHADOW_KEY);
         }
         else if (isFocused)
         {
             _focusBorder.BorderBrush = FocusBorderBrush;
-            _focusBorder.Opacity = HintedTextBoxConstants.FullOpacity;
+            _focusBorder.Opacity = HintedTextBoxConstants.FULL_OPACITY;
             _mainBorder.BorderBrush = GetCachedBrush(Colors.Transparent);
-            _shadowBorder.BoxShadow = GetCachedResource(HintedTextBoxConstants.FocusShadowKey);
+            _shadowBorder.BoxShadow = GetCachedResource(HintedTextBoxConstants.FOCUS_SHADOW_KEY);
         }
         else
         {
-            _focusBorder.Opacity = HintedTextBoxConstants.ZeroOpacity;
+            _focusBorder.Opacity = HintedTextBoxConstants.ZERO_OPACITY;
             _mainBorder.BorderBrush = MainBorderBrush;
-            _shadowBorder.BoxShadow = GetCachedResource(HintedTextBoxConstants.DefaultShadowKey);
+            _shadowBorder.BoxShadow = GetCachedResource(HintedTextBoxConstants.DEFAULT_SHADOW_KEY);
         }
     }
 
@@ -1348,6 +1404,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         {
             return;
         }
+
         _mainTextBox.TextChanged -= OnTextChanged;
         _mainTextBox.GotFocus -= OnGotFocus;
         _mainTextBox.LostFocus -= OnLostFocus;
@@ -1366,10 +1423,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private void FindControls()
     {
-        _mainTextBox = this.FindControl<TextBox>(HintedTextBoxConstants.MainTextBoxName);
-        _focusBorder = this.FindControl<Border>(HintedTextBoxConstants.FocusBorderName);
-        _mainBorder = this.FindControl<Border>(HintedTextBoxConstants.MainBorderName);
-        _shadowBorder = this.FindControl<Border>(HintedTextBoxConstants.ShadowBorderName);
+        _mainTextBox = this.FindControl<TextBox>(HintedTextBoxConstants.MAIN_TEXT_BOX_NAME);
+        _focusBorder = this.FindControl<Border>(HintedTextBoxConstants.FOCUS_BORDER_NAME);
+        _mainBorder = this.FindControl<Border>(HintedTextBoxConstants.MAIN_BORDER_NAME);
+        _shadowBorder = this.FindControl<Border>(HintedTextBoxConstants.SHADOW_BORDER_NAME);
     }
 
     private void OnGotFocus(object? sender, GotFocusEventArgs e)
@@ -1383,7 +1440,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error in OnGotFocus: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"ERROR in OnGotFocus: {ex.Message}");
         }
     }
 
@@ -1398,7 +1455,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error in OnLostFocus: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"ERROR in OnLostFocus: {ex.Message}");
         }
     }
 
@@ -1408,82 +1465,56 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 x => x.HasError,
                 x => x.SecureKeyStrength,
                 x => x.IsSecureKeyStrengthMode,
-                (hasError, secureKeyStrength, isSecureKeyStrengthMode) => (hasError, secureKeyStrength, isSecureKeyStrengthMode))
+                (hasError, secureKeyStrength, isSecureKeyStrengthMode) =>
+                    (hasError, secureKeyStrength, isSecureKeyStrengthMode))
             .DistinctUntilChanged()
-            .Subscribe(_ =>
-            {
-                try
-                {
-                    if (!_isDisposed)
-                    {
-                        UpdateBorderState();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error in UpdateBorderState subscription: {ex.Message}");
-                }
-            })
+            .Subscribe(_ => SafeExecute(UpdateBorderState, "UpdateBorderState subscription"))
             .DisposeWith(_disposables);
-
 
         this.WhenAnyValue(x => x.ErrorText)
             .DistinctUntilChanged()
             .Scan(string.Empty, (previous, current) =>
                 string.IsNullOrEmpty(current) && !string.IsNullOrEmpty(previous) ? previous : current)
-            .Subscribe(accumulatedError =>
+            .Subscribe(accumulatedError => SafeExecute(() =>
             {
-                try
+                if (!string.IsNullOrEmpty(accumulatedError))
                 {
-                    if (!_isDisposed && !string.IsNullOrEmpty(accumulatedError))
-                    {
-                        SetValue(ErrorTextProperty, accumulatedError);
-                    }
+                    SetValue(ErrorTextProperty, accumulatedError);
                 }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error in ErrorText subscription: {ex.Message}");
-                }
-            })
+            }, "ErrorText subscription"))
             .DisposeWith(_disposables);
 
         this.WhenAnyValue(x => x.Text)
             .Where(text => !IsSecureKeyMode && _mainTextBox != null && _mainTextBox.Text != text)
-            .Subscribe(text =>
-            {
-                try
-                {
-                    if (!_isDisposed)
-                    {
-                        UpdateTextBox(text, (text).Length);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error in Text subscription: {ex.Message}");
-                }
-            })
+            .Subscribe(text => SafeExecute(() => UpdateTextBox(text, text.Length), "Text subscription"))
             .DisposeWith(_disposables);
 
         this.WhenAnyValue(x => x.HasError)
             .DistinctUntilChanged()
-            .Subscribe(hasError =>
+            .Subscribe(hasError => SafeExecute(() =>
             {
-                try
-                {
-                    if (!_isDisposed)
-                    {
-                        EllipseOpacity = hasError
-                            ? HintedTextBoxConstants.DefaultEllipseOpacityVisible
-                            : HintedTextBoxConstants.DefaultEllipseOpacityHidden;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error in HasError subscription: {ex.Message}");
-                }
-            })
+                EllipseOpacity = hasError
+                    ? HintedTextBoxConstants.DEFAULT_ELLIPSE_OPACITY_VISIBLE
+                    : HintedTextBoxConstants.DEFAULT_ELLIPSE_OPACITY_HIDDEN;
+            }, "HasError subscription"))
             .DisposeWith(_disposables);
+    }
+
+    private void SafeExecute(Action action, string context)
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        try
+        {
+            action();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"ERROR in {context}: {ex.Message}");
+        }
     }
 
     private void UpdateRemainingCharacters()
@@ -1501,7 +1532,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             return;
         }
 
-        _mainTextBox.PasswordChar = HintedTextBoxConstants.NoSecureKeyChar;
+        _mainTextBox.PasswordChar = HintedTextBoxConstants.NO_SECURE_KEY_CHAR;
 
         if (isSecureKeyMode)
         {
@@ -1548,40 +1579,41 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         {
             _currentTypingAnimation?.Dispose();
 
-            if (!(_focusBorder.Opacity > HintedTextBoxConstants.ZeroOpacity))
+            if (_focusBorder.Opacity <= HintedTextBoxConstants.ZERO_OPACITY)
             {
                 return;
             }
+
             Animation pulseAnimation = new()
             {
-                Duration = TimeSpan.FromMilliseconds(HintedTextBoxConstants.TypingAnimationDurationMs),
+                Duration = TimeSpan.FromMilliseconds(HintedTextBoxConstants.TYPING_ANIMATION_DURATION_MS),
                 FillMode = FillMode.None,
                 Easing = new CubicEaseOut()
             };
 
             KeyFrame startFrame = new()
             {
-                Cue = Cue.Parse(HintedTextBoxConstants.AnimationStartPercent, CultureInfo.InvariantCulture),
+                Cue = Cue.Parse(HintedTextBoxConstants.ANIMATION_START_PERCENT, CultureInfo.InvariantCulture),
                 Setters = { new Setter { Property = OpacityProperty, Value = _focusBorder.Opacity } }
             };
 
             KeyFrame brightFrame = new()
             {
-                Cue = Cue.Parse(HintedTextBoxConstants.AnimationPeakPercent, CultureInfo.InvariantCulture),
+                Cue = Cue.Parse(HintedTextBoxConstants.ANIMATION_PEAK_PERCENT, CultureInfo.InvariantCulture),
                 Setters =
                 {
                     new Setter
                     {
                         Property = OpacityProperty,
-                        Value = Math.Min(HintedTextBoxConstants.FullOpacity,
-                            _focusBorder.Opacity + HintedTextBoxConstants.AnimationOpacityBoost)
+                        Value = Math.Min(HintedTextBoxConstants.FULL_OPACITY,
+                            _focusBorder.Opacity + HintedTextBoxConstants.ANIMATION_OPACITY_BOOST)
                     }
                 }
             };
 
             KeyFrame endFrame = new()
             {
-                Cue = Cue.Parse(HintedTextBoxConstants.AnimationEndPercent, CultureInfo.InvariantCulture),
+                Cue = Cue.Parse(HintedTextBoxConstants.ANIMATION_END_PERCENT, CultureInfo.InvariantCulture),
                 Setters = { new Setter { Property = OpacityProperty, Value = _focusBorder.Opacity } }
             };
 
@@ -1593,7 +1625,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error in TriggerTypingAnimation: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"ERROR in TriggerTypingAnimation: {ex.Message}");
         }
     }
 
@@ -1603,6 +1635,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         {
             return shadow;
         }
+
         shadow = this.FindResource(resourceKey) is BoxShadows foundShadow ? foundShadow : default;
         ResourceCache[resourceKey] = shadow;
 

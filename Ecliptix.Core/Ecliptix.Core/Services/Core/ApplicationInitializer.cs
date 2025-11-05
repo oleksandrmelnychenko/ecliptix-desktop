@@ -39,20 +39,13 @@ public sealed class ApplicationInitializer(
     ILocalizationService localizationService,
     IIpGeolocationService ipGeolocationService,
     IIdentityService identityService,
-    IApplicationStateManager stateManager,
-    IStateCleanupService stateCleanupService) : IApplicationInitializer
+    IApplicationStateManager stateManager) : IApplicationInitializer
 {
-    #region Constants & Fields
-
-    private const int IpGeolocationTimeoutSeconds = 10;
+    private const int IP_GEOLOCATION_TIMEOUT_SECONDS = 10;
 
     private readonly PendingLogoutProcessor _pendingLogoutProcessor = new(
         networkProvider,
         new PendingLogoutRequestStorage(applicationSecureStorageProvider));
-
-    #endregion
-
-    #region Public API
 
     public async Task<bool> InitializeAsync(DefaultSystemSettings defaultSystemSettings)
     {
@@ -73,13 +66,22 @@ public sealed class ApplicationInitializer(
         });
 
         string culture = string.IsNullOrEmpty(settings.Culture)
-            ? AppCultureSettingsConstants.DefaultCultureCode
+            ? AppCultureSettingsConstants.DEFAULT_CULTURE_CODE
             : settings.Culture;
         localizationService.SetCulture(culture);
 
         if (isNewInstance)
         {
-            _ = FetchIpGeolocationInBackgroundAsync();
+            _ = FetchIpGeolocationInBackgroundAsync().ContinueWith(
+                task =>
+                {
+                    if (task is { IsFaulted: true, Exception: not null })
+                    {
+                        Log.Error(task.Exception,
+                            "[APPLICATION-INITIALIZER] Unhandled exception fetching IP geolocation");
+                    }
+                },
+                TaskScheduler.Default);
         }
 
         Result<uint, NetworkFailure> connectIdResult =
@@ -95,7 +97,7 @@ public sealed class ApplicationInitializer(
             await RegisterDeviceAsync(connectId, settings).ConfigureAwait(false);
         if (registrationResult.IsErr)
         {
-            Log.Error("[CLIENT-REGISTER] RegisterDevice failed. ConnectId: {ConnectId}, Error: {Error}",
+            Log.Error("[CLIENT-REGISTER] RegisterDevice failed. ConnectId: {ConnectId}, ERROR: {ERROR}",
                 connectId, registrationResult.UnwrapErr().Message);
             return false;
         }
@@ -105,26 +107,13 @@ public sealed class ApplicationInitializer(
         return true;
     }
 
-    #endregion
-
-    #region Background Tasks
-
-    private async Task ProcessPendingLogoutRequestsAsync(uint connectId)
-    {
-        try
-        {
-            await _pendingLogoutProcessor.ProcessPendingLogoutAsync(connectId).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "[INIT-PENDING-LOGOUT] Failed to process pending logout requests");
-        }
-    }
+    private async Task ProcessPendingLogoutRequestsAsync(uint connectId) =>
+        await _pendingLogoutProcessor.ProcessPendingLogoutAsync(connectId).ConfigureAwait(false);
 
     private Task FetchIpGeolocationInBackgroundAsync() =>
         Task.Run(async () =>
         {
-            using CancellationTokenSource cts = new(TimeSpan.FromSeconds(IpGeolocationTimeoutSeconds));
+            using CancellationTokenSource cts = new(TimeSpan.FromSeconds(IP_GEOLOCATION_TIMEOUT_SECONDS));
             Result<IpCountry, InternalServiceApiFailure> countryResult =
                 await ipGeolocationService.GetIpCountryAsync(cts.Token).ConfigureAwait(false);
 
@@ -136,10 +125,6 @@ public sealed class ApplicationInitializer(
             }
         });
 
-    #endregion
-
-    #region Protocol & Channel Establishment
-
     private async Task<Result<uint, NetworkFailure>> EnsureSecrecyChannelAsync(
         ApplicationInstanceSettings applicationInstanceSettings, bool isNewInstance)
     {
@@ -147,94 +132,172 @@ public sealed class ApplicationInitializer(
             NetworkProvider.ComputeUniqueConnectId(applicationInstanceSettings,
                 PubKeyExchangeType.DataCenterEphemeralConnect);
 
-        string? membershipId = applicationInstanceSettings.Membership?.UniqueIdentifier?.IsEmpty == false
-            ? Helpers.FromByteStringToGuid(applicationInstanceSettings.Membership.UniqueIdentifier).ToString()
-            : null;
+        Option<string> membershipId = ExtractMembershipId(applicationInstanceSettings);
 
         if (!isNewInstance)
         {
-            Result<bool, NetworkFailure> restoreResult =
-                await TryRestoreSessionStateAsync(connectId, applicationInstanceSettings).ConfigureAwait(false);
+            Result<uint, NetworkFailure>? restoreResult =
+                await TryRestoreExistingSessionAsync(connectId, applicationInstanceSettings, membershipId)
+                    .ConfigureAwait(false);
 
-            if (restoreResult.IsErr)
+            if (restoreResult.HasValue)
             {
-                return Result<uint, NetworkFailure>.Err(restoreResult.UnwrapErr());
-            }
-
-            if (restoreResult.Unwrap())
-            {
-                if (!string.IsNullOrEmpty(membershipId) &&
-                    await identityService.HasStoredIdentityAsync(membershipId).ConfigureAwait(false))
-                {
-                    await stateManager.TransitionToAuthenticatedAsync(membershipId).ConfigureAwait(false);
-                }
-
-                return Result<uint, NetworkFailure>.Ok(connectId);
+                return restoreResult.Value;
             }
         }
 
-        bool shouldUseAuthenticatedProtocol = false;
-        Option<SodiumSecureMemoryHandle> masterKeyHandle = Option<SodiumSecureMemoryHandle>.None;
+        return await EstablishNewSecrecyChannelAsync(applicationInstanceSettings, connectId, membershipId)
+            .ConfigureAwait(false);
+    }
 
-        bool hasStoredIdentity = !string.IsNullOrEmpty(membershipId) &&
-                                 await identityService.HasStoredIdentityAsync(membershipId).ConfigureAwait(false);
-        if (hasStoredIdentity)
+    private static Option<string> ExtractMembershipId(ApplicationInstanceSettings applicationInstanceSettings) =>
+        applicationInstanceSettings.Membership?.UniqueIdentifier is { IsEmpty: false }
+            ? Option<string>.Some(Helpers.FromByteStringToGuid(applicationInstanceSettings.Membership.UniqueIdentifier)
+                .ToString())
+            : Option<string>.None;
+
+    private async Task<Result<uint, NetworkFailure>?> TryRestoreExistingSessionAsync(
+        uint connectId,
+        ApplicationInstanceSettings applicationInstanceSettings,
+        Option<string> membershipId)
+    {
+        Result<bool, NetworkFailure> restoreResult =
+            await TryRestoreSessionStateAsync(connectId, applicationInstanceSettings).ConfigureAwait(false);
+
+        if (restoreResult.IsErr)
         {
-            masterKeyHandle = await TryReconstructMasterKeyAsync(membershipId!, applicationInstanceSettings)
-                .ConfigureAwait(false);
+            return Result<uint, NetworkFailure>.Err(restoreResult.UnwrapErr());
+        }
 
-            if (masterKeyHandle.IsSome)
+        if (!restoreResult.Unwrap())
+        {
+            return null;
+        }
+
+        if (membershipId.IsSome)
+        {
+            string membershipIdValue = membershipId.Value!;
+            if (await identityService.HasStoredIdentityAsync(membershipIdValue).ConfigureAwait(false))
             {
-                shouldUseAuthenticatedProtocol = true;
+                await stateManager.TransitionToAuthenticatedAsync(membershipIdValue).ConfigureAwait(false);
             }
         }
+
+        return Result<uint, NetworkFailure>.Ok(connectId);
+    }
+
+    private async Task<Result<uint, NetworkFailure>> EstablishNewSecrecyChannelAsync(
+        ApplicationInstanceSettings applicationInstanceSettings,
+        uint connectId,
+        Option<string> membershipId)
+    {
+        Option<SodiumSecureMemoryHandle> masterKeyHandle =
+            await PrepareMasterKeyHandleAsync(membershipId, applicationInstanceSettings)
+                .ConfigureAwait(false);
 
         try
         {
-            if (shouldUseAuthenticatedProtocol && masterKeyHandle.IsSome)
+            bool shouldUseAuthenticatedProtocol = masterKeyHandle.IsSome;
+
+            if (shouldUseAuthenticatedProtocol)
             {
-                ByteString membershipByteString = applicationInstanceSettings.Membership!.UniqueIdentifier!;
-
-                Result<Unit, NetworkFailure> recreateResult =
-                    await networkProvider.RecreateProtocolWithMasterKeyAsync(
-                        masterKeyHandle.Value!, membershipByteString, connectId).ConfigureAwait(false);
-
-                if (recreateResult.IsErr)
-                {
-                    NetworkFailure failure = recreateResult.UnwrapErr();
-
-                    if (failure.FailureType == NetworkFailureType.CriticalAuthenticationFailure)
-                    {
-                        await CleanupCorruptedIdentityDataAsync(membershipId!, applicationInstanceSettings)
-                            .ConfigureAwait(false);
-                    }
-
-                    await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId)
+                Result<uint, NetworkFailure>? authenticatedResult =
+                    await TryUseAuthenticatedProtocolAsync(
+                            applicationInstanceSettings,
+                            connectId,
+                            membershipId.Value!,
+                            masterKeyHandle.Value!)
                         .ConfigureAwait(false);
-                }
-                else
+
+                if (authenticatedResult.HasValue)
                 {
-                    await stateManager.TransitionToAuthenticatedAsync(membershipId!).ConfigureAwait(false);
-                    return Result<uint, NetworkFailure>.Ok(connectId);
+                    return authenticatedResult.Value;
                 }
             }
-            else
-            {
-                await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId)
-                    .ConfigureAwait(false);
-            }
+
+            await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId)
+                .ConfigureAwait(false);
+
+            Option<byte[]> membershipIdBytes = applicationInstanceSettings.Membership?.UniqueIdentifier?.ToByteArray() is { } bytes
+                ? Option<byte[]>.Some(bytes)
+                : Option<byte[]>.None;
+            return await EstablishAndSaveSecrecyChannelAsync(connectId, membershipIdBytes).ConfigureAwait(false);
         }
         finally
         {
             masterKeyHandle.Do(handle => handle.Dispose());
         }
+    }
 
-        byte[]? membershipIdBytes = applicationInstanceSettings.Membership?.UniqueIdentifier?.ToByteArray();
-        return await EstablishAndSaveSecrecyChannelAsync(connectId, membershipIdBytes).ConfigureAwait(false);
+    private async Task<Option<SodiumSecureMemoryHandle>> PrepareMasterKeyHandleAsync(
+        Option<string> membershipId,
+        ApplicationInstanceSettings applicationInstanceSettings)
+    {
+        if (!membershipId.IsSome)
+        {
+            return Option<SodiumSecureMemoryHandle>.None;
+        }
+
+        string membershipIdValue = membershipId.Value!;
+        bool hasStoredIdentity = await identityService.HasStoredIdentityAsync(membershipIdValue).ConfigureAwait(false);
+        if (!hasStoredIdentity)
+        {
+            return Option<SodiumSecureMemoryHandle>.None;
+        }
+
+        return await TryReconstructMasterKeyAsync(membershipIdValue, applicationInstanceSettings)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<Result<uint, NetworkFailure>?> TryUseAuthenticatedProtocolAsync(
+        ApplicationInstanceSettings applicationInstanceSettings,
+        uint connectId,
+        string membershipId,
+        SodiumSecureMemoryHandle masterKeyHandle)
+    {
+        if (applicationInstanceSettings.Membership?.UniqueIdentifier == null)
+        {
+            return Result<uint, NetworkFailure>.Err(
+                NetworkFailure.InvalidRequestType(
+                    "Membership information is missing for authenticated protocol"));
+        }
+
+        ByteString membershipByteString = applicationInstanceSettings.Membership.UniqueIdentifier;
+
+        Result<Unit, NetworkFailure> recreateResult =
+            await networkProvider.RecreateProtocolWithMasterKeyAsync(
+                masterKeyHandle, membershipByteString, connectId).ConfigureAwait(false);
+
+        if (recreateResult.IsErr)
+        {
+            await HandleAuthenticatedProtocolFailureAsync(recreateResult.UnwrapErr(), membershipId,
+                    applicationInstanceSettings, connectId)
+                .ConfigureAwait(false);
+            return null;
+        }
+
+        await stateManager.TransitionToAuthenticatedAsync(membershipId).ConfigureAwait(false);
+        return Result<uint, NetworkFailure>.Ok(connectId);
+    }
+
+    private async Task HandleAuthenticatedProtocolFailureAsync(
+        NetworkFailure failure,
+        string membershipId,
+        ApplicationInstanceSettings applicationInstanceSettings,
+        uint connectId)
+    {
+        if (failure.FailureType == NetworkFailureType.CRITICAL_AUTHENTICATION_FAILURE)
+        {
+            await CleanupCorruptedIdentityDataAsync(membershipId, applicationInstanceSettings)
+                .ConfigureAwait(false);
+        }
+
+        await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId)
+            .ConfigureAwait(false);
     }
 
     private async Task<Result<uint, NetworkFailure>> EstablishAndSaveSecrecyChannelAsync(uint connectId,
-        byte[]? membershipId)
+        Option<byte[]> membershipId)
     {
         Result<EcliptixSessionState, NetworkFailure> establishResult =
             await networkProvider.EstablishSecrecyChannelAsync(connectId).ConfigureAwait(false);
@@ -246,12 +309,12 @@ public sealed class ApplicationInitializer(
 
         EcliptixSessionState secrecyChannelState = establishResult.Unwrap();
 
-        if (membershipId != null)
+        if (membershipId.IsSome)
         {
             await SecureByteStringInterop.WithByteStringAsSpan(
                     secrecyChannelState.ToByteString(),
                     span => secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString(),
-                        membershipId))
+                        membershipId.Value!))
                 .ConfigureAwait(false);
         }
 
@@ -274,10 +337,6 @@ public sealed class ApplicationInitializer(
         networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
     }
 
-    #endregion
-
-    #region Session State Management
-
     private async Task<Result<bool, NetworkFailure>> TryRestoreSessionStateAsync(
         uint connectId,
         ApplicationInstanceSettings applicationInstanceSettings)
@@ -298,23 +357,28 @@ public sealed class ApplicationInitializer(
 
         byte[] stateBytes = loadResult.Unwrap();
 
-        EcliptixSessionState? state;
+        Option<EcliptixSessionState> state;
         try
         {
-            state = EcliptixSessionState.Parser.ParseFrom(stateBytes);
+            state = Option<EcliptixSessionState>.Some(EcliptixSessionState.Parser.ParseFrom(stateBytes));
         }
-        catch (InvalidProtocolBufferException)
+        catch (InvalidProtocolBufferException ex)
         {
             networkProvider.ClearConnection(connectId);
             Result<Unit, SecureStorageFailure> deleteSecureStateResult =
                 await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
             if (deleteSecureStateResult.IsErr)
             {
-                Log.Warning(
+                Log.Warning(ex,
                     "[CLIENT-RESTORE-CLEANUP] Failed to delete corrupted state. ConnectId: {ConnectId}, Error: {Error}",
                     connectId, deleteSecureStateResult.UnwrapErr().Message);
             }
 
+            return Result<bool, NetworkFailure>.Ok(false);
+        }
+
+        if (!state.IsSome)
+        {
             return Result<bool, NetworkFailure>.Ok(false);
         }
 
@@ -335,7 +399,7 @@ public sealed class ApplicationInitializer(
         }
 
         Result<bool, NetworkFailure> restoreResult =
-            await networkProvider.RestoreSecrecyChannelAsync(state, applicationInstanceSettings).ConfigureAwait(false);
+            await networkProvider.RestoreSecrecyChannelAsync(state.Value!, applicationInstanceSettings).ConfigureAwait(false);
 
         if (restoreResult.IsErr)
         {
@@ -355,10 +419,6 @@ public sealed class ApplicationInitializer(
 
         return Result<bool, NetworkFailure>.Ok(false);
     }
-
-    #endregion
-
-    #region Identity & Master Key Management
 
     private async Task<Option<SodiumSecureMemoryHandle>> TryLoadMasterKeyFromStorageAsync(string membershipId)
     {
@@ -402,10 +462,6 @@ public sealed class ApplicationInitializer(
         return Option<SodiumSecureMemoryHandle>.None;
     }
 
-    #endregion
-
-    #region Device Registration
-
     private async Task<Result<Unit, NetworkFailure>> RegisterDeviceAsync(uint connectId,
         ApplicationInstanceSettings settings)
     {
@@ -433,37 +489,23 @@ public sealed class ApplicationInitializer(
             }, false, CancellationToken.None).ConfigureAwait(false);
     }
 
-    #endregion
-
-    #region Cleanup & Recovery
-
     private async Task CleanupCorruptedIdentityDataAsync(
         string membershipId,
         ApplicationInstanceSettings applicationInstanceSettings)
     {
-        try
+        uint connectId = NetworkProvider.ComputeUniqueConnectId(
+            applicationInstanceSettings,
+            PubKeyExchangeType.DataCenterEphemeralConnect);
+
+        Result<Unit, Exception> cleanupResult =
+            await identityService.CleanupMembershipStateWithKeysAsync(membershipId, connectId)
+                .ConfigureAwait(false);
+
+        if (cleanupResult.IsErr)
         {
-            uint connectId = NetworkProvider.ComputeUniqueConnectId(
-                applicationInstanceSettings,
-                PubKeyExchangeType.DataCenterEphemeralConnect);
-
-            Result<Unit, Exception> cleanupResult =
-                await stateCleanupService.CleanupMembershipStateWithKeysAsync(membershipId, connectId)
-                    .ConfigureAwait(false);
-
-            if (cleanupResult.IsErr)
-            {
-                return;
-            }
-
-            await stateManager.TransitionToAnonymousAsync().ConfigureAwait(false);
+            return;
         }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "[CLIENT-RECOVERY] Failed to cleanup corrupted identity data. MembershipId: {MembershipId}",
-                membershipId);
-        }
+
+        await stateManager.TransitionToAnonymousAsync().ConfigureAwait(false);
     }
-
-    #endregion
 }

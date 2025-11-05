@@ -39,16 +39,41 @@ public class App : Application
         {
             Locator.CurrentMutable.RegisterConstant(desktop, typeof(IClassicDesktopStyleApplicationLifetime));
 
-            _ = Task.Run(async () =>
+            Task.Run(async () =>
             {
-                await InitializeModulesAsync();
-
-                Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
+                try
                 {
-                    ApplicationStartup applicationStartup = Locator.Current.GetService<ApplicationStartup>()!;
-                    await applicationStartup.RunAsync(defaultSystemSettings);
-                });
-            });
+                    await InitializeModulesAsync();
+
+                    Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
+                    {
+                        try
+                        {
+                            ApplicationStartup applicationStartup = Locator.Current.GetService<ApplicationStartup>()!;
+                            await applicationStartup.RunAsync(defaultSystemSettings);
+                        }
+                        catch (Exception ex)
+                        {
+                            Serilog.Log.Fatal(ex, "[APP-STARTUP] Critical failure during application startup execution");
+                            Environment.Exit(1);
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Serilog.Log.Fatal(ex, "[APP-STARTUP] Critical failure during module initialization");
+                    Environment.Exit(1);
+                }
+            }).ContinueWith(
+                task =>
+                {
+                    if (task.IsFaulted && task.Exception != null)
+                    {
+                        Serilog.Log.Fatal(task.Exception, "[APP-STARTUP] Unhandled exception in application initialization");
+                        Environment.Exit(1);
+                    }
+                },
+                TaskScheduler.Default);
         }
 
         base.OnFrameworkInitializationCompleted();

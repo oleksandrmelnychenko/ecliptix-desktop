@@ -11,26 +11,25 @@ using Ecliptix.Core.Infrastructure.Security.Abstractions;
 using Ecliptix.Core.Infrastructure.Security.Storage;
 using Ecliptix.Utilities;
 using Serilog;
-using Serilog.Events;
 
 namespace Ecliptix.Core.Infrastructure.Security.Platform;
 
 internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 {
-    private const int AesKeySize = 32;
-    private const int AesIvSize = 16;
-    private const int HmacKeySize = 64;
-    private const int Pbkdf2Iterations = 100000;
-    private const int SecureOverwriteSize = 1024;
-    private const string MachineKeySalt = "EcliptixMachineKey";
-    private const string HmacKeyIdentifier = "ecliptix_hmac_key";
-    private const string MachineKeyFilename = ".machine.key";
-    private const string KeychainFolder = ".keychain";
-    private const string TpmRegistryPath = @"SYSTEM\CurrentControlSet\Services\TPM\";
-    private const string LinuxMachineIdPath = "/etc/machine-id";
-    private const string LinuxTpmPath = "/dev/tpm0";
-    private const string LinuxTpmrmPath = "/dev/tpmrm0";
-    private const string MacosUuidPattern = @"IOPlatformUUID""\s*=\s*""([^""]+)""";
+    private const int AES_KEY_SIZE = 32;
+    private const int AES_IV_SIZE = 16;
+    private const int HMAC_KEY_SIZE = 64;
+    private const int PBKDF_2_ITERATIONS = 100000;
+    private const int SECURE_OVERWRITE_SIZE = 1024;
+    private const string MACHINE_KEY_SALT = "EcliptixMachineKey";
+    private const string HMAC_KEY_IDENTIFIER = "ecliptix_hmac_key";
+    private const string MACHINE_KEY_FILENAME = ".machine.key";
+    private const string KEYCHAIN_FOLDER = ".keychain";
+    private const string TPM_REGISTRY_PATH = @"SYSTEM\CurrentControlSet\Services\TPM\";
+    private const string LINUX_MACHINE_ID_PATH = "/etc/machine-id";
+    private const string LINUX_TPM_PATH = "/dev/tpm0";
+    private const string LINUX_TPMRM_PATH = "/dev/tpmrm0";
+    private const string MACOS_UUID_PATTERN = @"IOPlatformUUID""\s*=\s*""([^""]+)""";
 
     private readonly string _keychainPath;
     private readonly Lock _lockObject = new();
@@ -40,7 +39,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 
     public CrossPlatformSecurityProvider(string appDataPath)
     {
-        _keychainPath = Path.Combine(appDataPath, KeychainFolder);
+        _keychainPath = Path.Combine(appDataPath, KEYCHAIN_FOLDER);
         InitializeKeychain();
     }
 
@@ -93,22 +92,45 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
                     Result<Unit, SecureStorageFailure> result = GetPlatformStore(identifier, key);
                     if (result.IsErr)
                     {
-                        StoreInEncryptedFile(identifier, key);
+                        Log.Warning("[KEYCHAIN-STORE-PLATFORM] Platform store failed: {Error}, falling back to encrypted file", result.UnwrapErr().Message);
+                        Result<Unit, SecureStorageFailure> fileResult = StoreInEncryptedFile(identifier, key);
+                        if (fileResult.IsErr)
+                        {
+                            Log.Error("[KEYCHAIN-STORE-FILE] Encrypted file store FAILED: {Error}", fileResult.UnwrapErr().Message);
+                            throw new InvalidOperationException($"Failed to store key: {fileResult.UnwrapErr().Message}");
+                        }
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    StoreInEncryptedFile(identifier, key);
+                    Log.Error(ex, "[KEYCHAIN-STORE-EXCEPTION] Exception during store, attempting encrypted file fallback");
+                    Result<Unit, SecureStorageFailure> fileResult = StoreInEncryptedFile(identifier, key);
+                    if (fileResult.IsErr)
+                    {
+                        Log.Error("[KEYCHAIN-STORE-FILE] Encrypted file store FAILED: {Error}", fileResult.UnwrapErr().Message);
+                        throw new InvalidOperationException($"Failed to store key: {fileResult.UnwrapErr().Message}", ex);
+                    }
                 }
             }
         });
     }
 
-    private Result<Unit, SecureStorageFailure> GetPlatformStore(string identifier, byte[] key) =>
-        RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StoreInWindowsCredentialManager(identifier, key) :
-        RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? StoreInMacOsKeychain(identifier, key) :
-        RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? StoreInLinuxSecretService(identifier, key) :
-        StoreInEncryptedFile(identifier, key);
+    private Result<Unit, SecureStorageFailure> GetPlatformStore(string identifier, byte[] key)
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return StoreInWindowsCredentialManager(identifier, key);
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            return StoreInMacOsKeychain(identifier, key);
+        }
+
+        return RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+            ? StoreInLinuxSecretService(identifier, key)
+            : StoreInEncryptedFile(identifier, key);
+    }
 
     public async Task<byte[]?> GetKeyFromKeychainAsync(string identifier)
     {
@@ -119,13 +141,13 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
                 try
                 {
                     Result<byte[], SecureStorageFailure> result = GetPlatformRetrieve(identifier);
-                    if (result.IsErr)
+                    if (!result.IsErr)
                     {
-                        Result<byte[], SecureStorageFailure> fileResult = GetFromEncryptedFile(identifier);
-                        return fileResult.IsOk ? fileResult.Unwrap() : null;
+                        return result.IsOk ? result.Unwrap() : null;
                     }
 
-                    return result.IsOk ? result.Unwrap() : null;
+                    Result<byte[], SecureStorageFailure> fileResult = GetFromEncryptedFile(identifier);
+                    return fileResult.IsOk ? fileResult.Unwrap() : null;
                 }
                 catch (Exception)
                 {
@@ -136,11 +158,22 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         });
     }
 
-    private Result<byte[], SecureStorageFailure> GetPlatformRetrieve(string identifier) =>
-        RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? GetFromWindowsCredentialManager(identifier) :
-        RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? GetFromMacOsKeychain(identifier) :
-        RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? GetFromLinuxSecretService(identifier) :
-        GetFromEncryptedFile(identifier);
+    private Result<byte[], SecureStorageFailure> GetPlatformRetrieve(string identifier)
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return GetFromWindowsCredentialManager(identifier);
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            return GetFromMacOsKeychain(identifier);
+        }
+
+        return RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+            ? GetFromLinuxSecretService(identifier)
+            : GetFromEncryptedFile(identifier);
+    }
 
     public async Task DeleteKeyFromKeychainAsync(string identifier)
     {
@@ -148,16 +181,16 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         {
             lock (_lockObject)
             {
+                string keyFile = GetKeyFilePath(identifier);
                 try
                 {
-                    string keyFile = GetKeyFilePath(identifier);
                     if (!File.Exists(keyFile))
                     {
                         return;
                     }
 
 
-                    byte[] randomData = RandomNumberGenerator.GetBytes(SecureOverwriteSize);
+                    byte[] randomData = RandomNumberGenerator.GetBytes(SECURE_OVERWRITE_SIZE);
 
                     using (FileStream fs = File.OpenWrite(keyFile))
                     {
@@ -167,8 +200,10 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 
                     File.Delete(keyFile);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Log.Debug(ex, "[KEYCHAIN-CLEANUP] Could not delete old key file during rotation: {KeyFile}",
+                        keyFile);
                 }
             }
         });
@@ -181,12 +216,12 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             return _cachedHmacKey;
         }
 
-        byte[]? hmacKey = await GetKeyFromKeychainAsync(HmacKeyIdentifier);
+        byte[]? hmacKey = await GetKeyFromKeychainAsync(HMAC_KEY_IDENTIFIER);
 
         if (hmacKey == null)
         {
-            byte[] newKey = await GenerateSecureRandomAsync(HmacKeySize);
-            await StoreKeyInKeychainAsync(HmacKeyIdentifier, newKey);
+            byte[] newKey = await GenerateSecureRandomAsync(HMAC_KEY_SIZE);
+            await StoreKeyInKeychainAsync(HMAC_KEY_IDENTIFIER, newKey);
 
             _cachedHmacKey = newKey;
             return newKey;
@@ -196,45 +231,62 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         return hmacKey;
     }
 
-    public bool IsHardwareSecurityAvailable() =>
-        RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? CheckWindowsTpm() :
-        RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? CheckMacOsSecureEnclave() :
-        RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && CheckLinuxTpm();
+    public bool IsHardwareSecurityAvailable()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return CheckWindowsTpm();
+        }
 
-    public async Task<byte[]> HardwareEncryptAsync(byte[] data)
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            return CheckMacOsSecureEnclave();
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            return CheckLinuxTpm();
+        }
+
+        return false;
+    }
+
+    public async Task<Option<byte[]>> HardwareEncryptAsync(byte[] data)
     {
         byte[] key = await GetOrCreateHmacKeyAsync();
 
         try
         {
             using Aes aes = Aes.Create();
-            Span<byte> keySpan = key.AsSpan(0, AesKeySize);
+            Span<byte> keySpan = key.AsSpan(0, AES_KEY_SIZE);
             aes.Key = keySpan.ToArray();
             aes.GenerateIV();
 
             using MemoryStream ms = new();
-            ms.Write(aes.IV, 0, AesIvSize);
+            await ms.WriteAsync(aes.IV.AsMemory(0, AES_IV_SIZE));
 
-            await using (CryptoStream cs = new(ms, aes.CreateEncryptor(), CryptoStreamMode.Write))
+            await using (CryptoStream cryptoStream = new(ms, aes.CreateEncryptor(), CryptoStreamMode.Write))
             {
-                cs.Write(data, 0, data.Length);
-                await cs.FlushFinalBlockAsync();
+                await cryptoStream.WriteAsync(data);
+                await cryptoStream.FlushFinalBlockAsync();
             }
 
-            return ms.ToArray();
+            return Option<byte[]>.Some(ms.ToArray());
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Hardware encryption failed");
-            throw;
+            return Option<byte[]>.None;
         }
     }
 
-    public async Task<byte[]> HardwareDecryptAsync(byte[] data)
+    public async Task<Option<byte[]>> HardwareDecryptAsync(byte[] data)
     {
-        if (data.Length < AesIvSize)
+        if (data.Length < AES_IV_SIZE)
         {
-            throw new ArgumentException("Invalid encrypted data format");
+            Log.Error("[HARDWARE-DECRYPT-ERROR] Invalid encrypted data format - data too small. Length: {Length}, MinSize: {MinSize}",
+                data.Length, AES_IV_SIZE);
+            return Option<byte[]>.None;
         }
 
         byte[] key = await GetOrCreateHmacKeyAsync();
@@ -242,24 +294,24 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         try
         {
             using Aes aes = Aes.Create();
-            Span<byte> keySpan = key.AsSpan(0, AesKeySize);
+            Span<byte> keySpan = key.AsSpan(0, AES_KEY_SIZE);
             aes.Key = keySpan.ToArray();
 
-            byte[] iv = new byte[AesIvSize];
-            Array.Copy(data, 0, iv, 0, AesIvSize);
+            byte[] iv = new byte[AES_IV_SIZE];
+            Array.Copy(data, 0, iv, 0, AES_IV_SIZE);
             aes.IV = iv;
 
-            using MemoryStream ms = new(data, AesIvSize, data.Length - AesIvSize);
+            using MemoryStream ms = new(data, AES_IV_SIZE, data.Length - AES_IV_SIZE);
             await using CryptoStream cs = new(ms, aes.CreateDecryptor(), CryptoStreamMode.Read);
             using MemoryStream result = new();
 
             await cs.CopyToAsync(result);
-            return result.ToArray();
+            return Option<byte[]>.Some(result.ToArray());
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Hardware decryption failed");
-            throw;
+            Log.Error(ex, "[HARDWARE-DECRYPT-ERROR] Hardware decryption failed: {ERROR}", ex.Message);
+            return Option<byte[]>.None;
         }
     }
 
@@ -286,29 +338,37 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         try
         {
             string keyFile = GetKeyFilePath(identifier);
-            byte[] machineKey = GetMachineKey();
+
+            Option<byte[]> machineKeyOpt = GetMachineKey();
+            if (!machineKeyOpt.IsSome)
+            {
+                return Result<Unit, SecureStorageFailure>.Err(
+                    new SecureStorageFailure("Failed to get machine key"));
+            }
+            byte[] machineKey = machineKeyOpt.Value!;
 
             using Aes aes = Aes.Create();
             aes.Key = machineKey;
             aes.GenerateIV();
 
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(AesIvSize + key.Length + 16);
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(AES_IV_SIZE + key.Length + 16);
             try
             {
                 aes.IV.CopyTo(buffer, 0);
 
                 using ICryptoTransform encryptor = aes.CreateEncryptor();
-                int encryptedLength = encryptor.TransformBlock(key, 0, key.Length, buffer, AesIvSize);
+                int encryptedLength = encryptor.TransformBlock(key, 0, key.Length, buffer, AES_IV_SIZE);
                 byte[] finalBlock = encryptor.TransformFinalBlock(key, 0, 0);
 
                 if (finalBlock.Length > 0)
                 {
-                    finalBlock.CopyTo(buffer, AesIvSize + encryptedLength);
+                    finalBlock.CopyTo(buffer, AES_IV_SIZE + encryptedLength);
                     encryptedLength += finalBlock.Length;
                 }
 
                 using FileStream fs = File.Create(keyFile);
-                fs.Write(buffer, 0, AesIvSize + encryptedLength);
+                fs.Write(buffer, 0, AES_IV_SIZE + encryptedLength);
+                fs.Flush(true);
 
                 if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
@@ -332,64 +392,54 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
     private Result<byte[], SecureStorageFailure> GetFromEncryptedFile(string identifier)
     {
         string keyFile = GetKeyFilePath(identifier);
+
         if (!File.Exists(keyFile))
         {
-            Log.Debug("[KEYCHAIN-FILE] Key file not found. Identifier: {Identifier}, Path: {Path}",
-                identifier, keyFile);
             return Result<byte[], SecureStorageFailure>.Err(
                 new SecureStorageFailure("Key file not found"));
         }
 
-        FileInfo fileInfo = new(keyFile);
-
         try
         {
             byte[] encrypted = File.ReadAllBytes(keyFile);
-            if (encrypted.Length < AesIvSize)
+            if (encrypted.Length < AES_IV_SIZE)
             {
-                Log.Error("[KEYCHAIN-FILE-ERROR] Invalid encrypted file format (too small). Identifier: {Identifier}, Size: {Size}, MinSize: {MinSize}",
-                    identifier, encrypted.Length, AesIvSize);
+                Log.Error(
+                    "[KEYCHAIN-FILE-ERROR] Invalid encrypted file format (too small). Identifier: {Identifier}, Size: {Size}, MinSize: {MinSize}",
+                    identifier, encrypted.Length, AES_IV_SIZE);
                 return Result<byte[], SecureStorageFailure>.Err(
                     new SecureStorageFailure("Invalid encrypted file format"));
             }
 
-            byte[] machineKey = GetMachineKey();
+            Option<byte[]> machineKeyOpt = GetMachineKey();
+            if (!machineKeyOpt.IsSome)
+            {
+                return Result<byte[], SecureStorageFailure>.Err(
+                    new SecureStorageFailure("Failed to get machine key"));
+            }
+            byte[] machineKey = machineKeyOpt.Value!;
 
             using Aes aes = Aes.Create();
             aes.Key = machineKey;
 
-            Span<byte> iv = encrypted.AsSpan(0, AesIvSize);
+            Span<byte> iv = encrypted.AsSpan(0, AES_IV_SIZE);
             aes.IV = iv.ToArray();
 
-            if (Serilog.Log.IsEnabled(LogEventLevel.Debug))
-            {
-                string machineKeyFingerprint = Convert.ToHexString(SHA256.HashData(machineKey))[..16];
-                Log.Debug("[KEYCHAIN-FILE] Decrypting with machine key. Identifier: {Identifier}, MachineKeyFingerprint: {MachineKeyFingerprint}, EncryptedSize: {Size}",
-                    identifier, machineKeyFingerprint, encrypted.Length);
-            }
-
             using ICryptoTransform decryptor = aes.CreateDecryptor();
-            byte[] decrypted = decryptor.TransformFinalBlock(encrypted, AesIvSize, encrypted.Length - AesIvSize);
+            byte[] decrypted = decryptor.TransformFinalBlock(encrypted, AES_IV_SIZE, encrypted.Length - AES_IV_SIZE);
 
             return Result<byte[], SecureStorageFailure>.Ok(decrypted);
         }
-        catch (CryptographicException cryptoEx)
+        catch (CryptographicException)
         {
-            byte[] machineKey = GetMachineKey();
-            string machineKeyFingerprint = Convert.ToHexString(SHA256.HashData(machineKey))[..16];
-
-            Log.Error("[KEYCHAIN-FILE-DECRYPT-FAILED] Decryption failed - likely machine key mismatch or file corruption. Identifier: {Identifier}, Path: {Path}, Size: {Size}, MachineKeyFingerprint: {MachineKeyFingerprint}, Error: {Error}, LastModified: {LastModified}",
-                identifier, keyFile, fileInfo.Length, machineKeyFingerprint, cryptoEx.Message, fileInfo.LastWriteTimeUtc);
-
             try
             {
                 File.Delete(keyFile);
-                Log.Warning("[KEYCHAIN-FILE-DELETED] Corrupted key file deleted. Identifier: {Identifier}, Path: {Path}",
-                    identifier, keyFile);
             }
             catch (Exception deleteEx)
             {
-                Log.Error("[KEYCHAIN-FILE-DELETE-ERROR] Failed to delete corrupted key file. Identifier: {Identifier}, Path: {Path}, Error: {Error}",
+                Log.Error(deleteEx,
+                    "[KEYCHAIN-FILE-DELETE-ERROR] Failed to delete corrupted key file. Identifier: {Identifier}, Path: {Path}, ERROR: {ERROR}",
                     identifier, keyFile, deleteEx.Message);
             }
 
@@ -398,7 +448,8 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         }
         catch (Exception ex)
         {
-            Log.Error("[KEYCHAIN-FILE-ERROR] Failed to read encrypted file. Identifier: {Identifier}, Path: {Path}, Error: {Error}",
+            Log.Error(ex,
+                "[KEYCHAIN-FILE-ERROR] Failed to read encrypted file. Identifier: {Identifier}, Path: {Path}, ERROR: {ERROR}",
                 identifier, keyFile, ex.Message);
             return Result<byte[], SecureStorageFailure>.Err(
                 new SecureStorageFailure($"Failed to read encrypted file: {ex.Message}"));
@@ -418,15 +469,14 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         return Path.Combine(_keychainPath, $"{safeIdentifier}.key");
     }
 
-    private byte[] GetMachineKey()
+    private Option<byte[]> GetMachineKey()
     {
         if (_cachedMachineKey != null)
         {
-            Log.Debug("[MACHINE-KEY] Using cached machine key");
-            return _cachedMachineKey;
+            return Option<byte[]>.Some(_cachedMachineKey);
         }
 
-        string machineKeyFile = Path.Combine(_keychainPath, MachineKeyFilename);
+        string machineKeyFile = Path.Combine(_keychainPath, MACHINE_KEY_FILENAME);
         string machineId = BuildMachineIdentifier();
 
         if (File.Exists(machineKeyFile))
@@ -434,34 +484,87 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             try
             {
                 _cachedMachineKey = File.ReadAllBytes(machineKeyFile);
-                if (_cachedMachineKey.Length == AesKeySize)
+
+                if (_cachedMachineKey.Length != AES_KEY_SIZE)
                 {
-                    string storedKeyFingerprint = Convert.ToHexString(SHA256.HashData(_cachedMachineKey))[..16];
+                    Log.Error("[MACHINE-KEY] Invalid machine key size: {ActualSize}, expected: {ExpectedSize}",
+                        _cachedMachineKey.Length, AES_KEY_SIZE);
+                    _cachedMachineKey = null;
+                    return Option<byte[]>.None;
+                }
 
-                    byte[] derivedKey = DeriveKeyFromMachineId(machineId);
-                    string derivedKeyFingerprint = Convert.ToHexString(SHA256.HashData(derivedKey))[..16];
+                byte[] derivedKey = DeriveKeyFromMachineId(machineId);
 
-                    if (!derivedKey.AsSpan().SequenceEqual(_cachedMachineKey))
-                    {
-                        Log.Warning("[MACHINE-KEY-MISMATCH] Machine identifier changed! StoredKey: {StoredKey}, DerivedKey: {DerivedKey}. This will cause decryption failures for all encrypted files!",
-                            storedKeyFingerprint, derivedKeyFingerprint);
-                    }
-
+                if (!CryptographicOperations.FixedTimeEquals(derivedKey, _cachedMachineKey))
+                {
+                    Log.Warning("[MACHINE-KEY] Machine key verification failed - regenerating from current machine ID");
                     CryptographicOperations.ZeroMemory(derivedKey);
-                    return _cachedMachineKey;
+                    _cachedMachineKey = null;
+
+                    try
+                    {
+                        File.Delete(machineKeyFile);
+
+                        try
+                        {
+                            string[] existingKeyFiles = Directory.GetFiles(_keychainPath, "*.key");
+                            if (existingKeyFiles.Length > 0)
+                            {
+                                Log.Warning("[MACHINE-KEY] Deleting {Count} obsolete encrypted key files", existingKeyFiles.Length);
+                                foreach (string keyFile in existingKeyFiles)
+                                {
+                                    try
+                                    {
+                                        File.Delete(keyFile);
+                                    }
+                                    catch (Exception fileEx)
+                                    {
+                                        Log.Warning(fileEx, "[MACHINE-KEY] Failed to delete obsolete key file: {File}", Path.GetFileName(keyFile));
+                                    }
+                                }
+                            }
+                        }
+                        catch (Exception cleanupEx)
+                        {
+                            Log.Warning(cleanupEx, "[MACHINE-KEY] Failed to cleanup obsolete key files: {ERROR}", cleanupEx.Message);
+                        }
+
+                        _cachedMachineKey = DeriveKeyFromMachineId(machineId);
+
+                        try
+                        {
+                            File.WriteAllBytes(machineKeyFile, _cachedMachineKey);
+                            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                            {
+                                File.SetUnixFileMode(machineKeyFile, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+                            }
+                        }
+                        catch (Exception writeEx)
+                        {
+                            Log.Error(writeEx, "[MACHINE-KEY-ERROR] Failed to write regenerated machine key file: {ERROR}", writeEx.Message);
+                        }
+
+                        return Option<byte[]>.Some(_cachedMachineKey);
+                    }
+                    catch (Exception deleteEx)
+                    {
+                        Log.Error(deleteEx, "[MACHINE-KEY-ERROR] Failed to delete corrupted machine key file: {ERROR}", deleteEx.Message);
+                        return Option<byte[]>.None;
+                    }
                 }
-                else
-                {
-                    Log.Warning("[MACHINE-KEY] Existing machine key file has invalid size: {Size} bytes (expected {Expected})",
-                        _cachedMachineKey.Length, AesKeySize);
-                }
+
+                CryptographicOperations.ZeroMemory(derivedKey);
+                return Option<byte[]>.Some(_cachedMachineKey);
             }
             catch (Exception ex)
             {
-                Log.Error("[MACHINE-KEY-ERROR] Failed to read existing machine key file: {Error}",
+                Log.Error(ex, "[MACHINE-KEY-ERROR] Failed to read existing machine key file: {ERROR}",
                     ex.Message);
+                _cachedMachineKey = null;
+                return Option<byte[]>.None;
             }
         }
+
         _cachedMachineKey = DeriveKeyFromMachineId(machineId);
 
         try
@@ -474,11 +577,11 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         }
         catch (Exception ex)
         {
-            Log.Error("[MACHINE-KEY-ERROR] Failed to write machine key file: {Error}",
+            Log.Error(ex, "[MACHINE-KEY-ERROR] Failed to write machine key file: {ERROR}",
                 ex.Message);
         }
 
-        return _cachedMachineKey;
+        return Option<byte[]>.Some(_cachedMachineKey);
     }
 
     private static void TryEnhanceWithHardwareRandom(Span<byte> bytes)
@@ -487,18 +590,21 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         {
             using FileStream hwRandom = File.OpenRead("/dev/random");
             int bytesRead = hwRandom.Read(bytes);
-            if (bytesRead < bytes.Length)
+            if (bytesRead >= bytes.Length)
             {
-                Span<byte> tempBuffer = stackalloc byte[bytes.Length];
-                RandomNumberGenerator.Fill(tempBuffer);
-                for (int i = 0; i < bytes.Length; i++)
-                {
-                    bytes[i] ^= tempBuffer[i];
-                }
+                return;
+            }
+
+            Span<byte> tempBuffer = stackalloc byte[bytes.Length];
+            RandomNumberGenerator.Fill(tempBuffer);
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                bytes[i] ^= tempBuffer[i];
             }
         }
-        catch
+        catch (Exception)
         {
+            // Hardware random enhancement is best-effort - fallback to software RNG is acceptable
         }
     }
 
@@ -523,7 +629,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
     {
         try
         {
-            string id = File.ReadAllText(LinuxMachineIdPath).Trim();
+            string id = File.ReadAllText(LINUX_MACHINE_ID_PATH).Trim();
             machineId.Append(id);
         }
         catch
@@ -550,9 +656,15 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 
             process.Start();
             string output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
 
-            Match match = Regex.Match(output, MacosUuidPattern);
+            if (!process.WaitForExit(5000))
+            {
+                process.Kill();
+                machineId.Append("NoUUID-Timeout");
+                return;
+            }
+
+            Match match = Regex.Match(output, MACOS_UUID_PATTERN, RegexOptions.None, TimeSpan.FromSeconds(1));
             machineId.Append(match.Success ? match.Groups[1].Value : "NoUUID");
         }
         catch
@@ -563,19 +675,19 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 
     private static byte[] DeriveKeyFromMachineId(string machineId)
     {
-        ReadOnlySpan<byte> salt = SHA256.HashData(Encoding.UTF8.GetBytes(MachineKeySalt));
+        ReadOnlySpan<byte> salt = SHA256.HashData(Encoding.UTF8.GetBytes(MACHINE_KEY_SALT));
 
         using Rfc2898DeriveBytes pbkdf2 = new(
             machineId,
             salt.ToArray(),
-            Pbkdf2Iterations,
+            PBKDF_2_ITERATIONS,
             HashAlgorithmName.SHA256);
 
-        return pbkdf2.GetBytes(AesKeySize);
+        return pbkdf2.GetBytes(AES_KEY_SIZE);
     }
 
     private static bool CheckLinuxTpm() =>
-        File.Exists(LinuxTpmPath) || File.Exists(LinuxTpmrmPath);
+        File.Exists(LINUX_TPM_PATH) || File.Exists(LINUX_TPMRM_PATH);
 
     private static bool CheckWindowsTpm()
     {
@@ -587,7 +699,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         try
         {
             using Microsoft.Win32.RegistryKey? key =
-                Microsoft.Win32.Registry.LocalMachine.OpenSubKey(TpmRegistryPath);
+                Microsoft.Win32.Registry.LocalMachine.OpenSubKey(TPM_REGISTRY_PATH);
             return key != null;
         }
         catch
@@ -600,21 +712,24 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
     {
         try
         {
-            using System.Diagnostics.Process process = new()
+            using System.Diagnostics.Process process = new();
+            process.StartInfo = new System.Diagnostics.ProcessStartInfo
             {
-                StartInfo = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "sysctl",
-                    Arguments = "-n hw.optional.arm64",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                }
+                FileName = "sysctl",
+                Arguments = "-n hw.optional.arm64",
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
             };
 
             process.Start();
             string output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
+
+            if (!process.WaitForExit(5000))
+            {
+                process.Kill();
+                return false;
+            }
 
             return output.Trim() == "1";
         }

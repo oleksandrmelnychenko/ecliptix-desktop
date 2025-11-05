@@ -2,6 +2,6 @@ namespace Ecliptix.Utilities.Failures.RpcMetaData;
 
 public enum MetaDataSystemFailureType
 {
-    RequiredComponentNotFound,
-    Optional
+    REQUIRED_COMPONENT_NOT_FOUND,
+    OPTIONAL
 }

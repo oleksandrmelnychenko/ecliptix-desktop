@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using Avalonia.Controls;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Utilities;
-using Microsoft.Extensions.Logging;
-using Serilog;
 
 namespace Ecliptix.Core.Core.MVVM;
 

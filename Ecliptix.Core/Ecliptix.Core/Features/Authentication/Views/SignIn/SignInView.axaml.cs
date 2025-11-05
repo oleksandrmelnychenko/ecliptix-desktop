@@ -1,9 +1,9 @@
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
-using Ecliptix.Core.Controls.Common;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Controls.EventArgs;
 using Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
@@ -12,7 +12,7 @@ namespace Ecliptix.Core.Features.Authentication.Views.SignIn;
 
 public partial class SignInView : ReactiveUserControl<SignInViewModel>
 {
-    private const string SecureKeyTextBoxControlName = "SecureKeyTextBox";
+    private const string SECURE_KEY_TEXT_BOX_CONTROL_NAME = "SecureKeyTextBox";
 
     private bool _handlersAttached;
 
@@ -40,7 +40,7 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
             return;
         }
 
-        if (this.FindControl<HintedTextBox>(SecureKeyTextBoxControlName) is { } secureKeyBox)
+        if (this.FindControl<HintedTextBox>(SECURE_KEY_TEXT_BOX_CONTROL_NAME) is { } secureKeyBox)
         {
             secureKeyBox.SecureKeyCharactersAdded += OnSecureKeyCharactersAdded;
             secureKeyBox.SecureKeyCharactersRemoved += OnSecureKeyCharactersRemoved;
@@ -57,7 +57,7 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
             return;
         }
 
-        if (this.FindControl<HintedTextBox>(SecureKeyTextBoxControlName) is { } secureKeyBox)
+        if (this.FindControl<HintedTextBox>(SECURE_KEY_TEXT_BOX_CONTROL_NAME) is { } secureKeyBox)
         {
             secureKeyBox.SecureKeyCharactersAdded -= OnSecureKeyCharactersAdded;
             secureKeyBox.SecureKeyCharactersRemoved -= OnSecureKeyCharactersRemoved;
@@ -115,7 +115,15 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
             return;
         }
 
-        _ = vm.HandleEnterKeyPressAsync();
+        vm.HandleEnterKeyPressAsync().ContinueWith(
+            task =>
+            {
+                if (task is { IsFaulted: true, Exception: not null })
+                {
+                    Serilog.Log.Error(task.Exception, "[SIGNIN-VIEW] Unhandled exception in HandleEnterKeyPressAsync");
+                }
+            },
+            TaskScheduler.Default);
         e.Handled = true;
     }
 }

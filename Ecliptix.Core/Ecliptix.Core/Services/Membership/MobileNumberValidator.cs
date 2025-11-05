@@ -12,16 +12,16 @@ public static partial class MobileNumberValidator
     {
         List<(Func<string, bool> IsInvalid, string ErrorMessageKey, object[]? Args)> validationRules =
         [
-            (string.IsNullOrWhiteSpace, MobileNumberValidatorConstants.LocalizationKeys.CannotBeEmpty, null),
-            (s => !s.StartsWith(MobileNumberValidatorConstants.ValidationRules.CountryCodePrefix),
-                MobileNumberValidatorConstants.LocalizationKeys.MustStartWithCountryCode, null),
+            (string.IsNullOrWhiteSpace, MobileNumberValidatorConstants.LocalizationKeys.CANNOT_BE_EMPTY, null),
+            (s => !s.StartsWith(MobileNumberValidatorConstants.ValidationRules.COUNTRY_CODE_PREFIX),
+                MobileNumberValidatorConstants.LocalizationKeys.MUST_START_WITH_COUNTRY_CODE, null),
             (s => s.Length > 1 && ContainsNonDigitsRegex().IsMatch(s[1..]),
-                MobileNumberValidatorConstants.LocalizationKeys.ContainsNonDigits, null),
-            (s => s.Length is < MobileNumberValidatorConstants.ValidationRules.MinDigits + 1
-                or > MobileNumberValidatorConstants.ValidationRules.MaxDigits + 1,
-                MobileNumberValidatorConstants.LocalizationKeys.IncorrectLength,
-                [MobileNumberValidatorConstants.ValidationRules.MinDigits,
-                 MobileNumberValidatorConstants.ValidationRules.MaxDigits])
+                MobileNumberValidatorConstants.LocalizationKeys.CONTAINS_NON_DIGITS, null),
+            (s => s.Length is < MobileNumberValidatorConstants.ValidationRules.MIN_DIGITS + 1
+                or > MobileNumberValidatorConstants.ValidationRules.MAX_DIGITS + 1,
+                MobileNumberValidatorConstants.LocalizationKeys.INCORRECT_LENGTH,
+                [MobileNumberValidatorConstants.ValidationRules.MIN_DIGITS,
+                 MobileNumberValidatorConstants.ValidationRules.MAX_DIGITS])
         ];
 
         foreach ((Func<string, bool> isInvalid, string errorMessageKey, object[]? args) in validationRules)

@@ -14,103 +14,103 @@ internal static class ProtocolSystemConstants
 
     public static class MemoryPool
     {
-        public const int DefaultBufferSize = 4096;
-        public const int MaxPoolSize = 100;
-        public const int SecureWipeChunkSize = 1024;
-        public const int SecureStringBuilderDefaultChunkSize = 256;
+        public const int DEFAULT_BUFFER_SIZE = 4096;
+        public const int MAX_POOL_SIZE = 100;
+        public const int SECURE_WIPE_CHUNK_SIZE = 1024;
+        public const int SECURE_STRING_BUILDER_DEFAULT_CHUNK_SIZE = 256;
     }
 
     public static class ErrorMessages
     {
-        public const string FailedToAllocateSecureMemory = "Failed to allocate secure memory: ";
-        public const string RequestedSizeExceedsAllocated = "Requested size {0} exceeds allocated size {1}";
-        public const string FailedToReadSecureMemory = "Failed to read secure memory: ";
-        public const string BufferDisposed = "Buffer is disposed";
-        public const string HandleDisposed = "Handle disposed";
-        public const string DataExceedsBuffer = "Data ({0}) > buffer ({1})";
-        public const string RefCountFailed = "Ref count failed";
-        public const string UnexpectedWriteError = "Unexpected write error";
-        public const string BufferSizePositive = "Buffer size must be positive";
-        public const string MaxPoolSizePositive = "Max pool size must be positive";
-        public const string SizePositive = "Size must be positive";
-        public const string ChunkSizePositive = "Chunk size must be positive";
-        public const string LibSodiumConstantTimeComparisonFailed = "libsodium constant-time comparison failed.";
+        public const string FAILED_TO_ALLOCATE_SECURE_MEMORY = "Failed to allocate secure memory: ";
+        public const string REQUESTED_SIZE_EXCEEDS_ALLOCATED = "Requested size {0} exceeds allocated size {1}";
+        public const string FAILED_TO_READ_SECURE_MEMORY = "Failed to read secure memory: ";
+        public const string BUFFER_DISPOSED = "Buffer is disposed";
+        public const string HANDLE_DISPOSED = "Handle disposed";
+        public const string DATA_EXCEEDS_BUFFER = "Data ({0}) > buffer ({1})";
+        public const string REF_COUNT_FAILED = "Ref count failed";
+        public const string UNEXPECTED_WRITE_ERROR = "Unexpected write error";
+        public const string BUFFER_SIZE_POSITIVE = "Buffer size must be positive";
+        public const string MAX_POOL_SIZE_POSITIVE = "Max pool size must be positive";
+        public const string SIZE_POSITIVE = "Size must be positive";
+        public const string CHUNK_SIZE_POSITIVE = "Chunk size must be positive";
+        public const string LIB_SODIUM_CONSTANT_TIME_COMPARISON_FAILED = "libsodium constant-time comparison failed.";
 
-        public const string PersonalParameterInvalidSize = "Personal parameter (membershipId) must be exactly {0} bytes, got {1}";
-        public const string FailedToDeriveMasterKey = "Failed to derive master key: {0}";
-        public const string MarshalPtrToStringFailed = "Failed to marshal pointer to string";
-        public const string HashAlgorithmNotSupported = "Hash algorithm {0} not supported";
-        public const string SecureStringHandlerDisposed = "SecureStringHandler is disposed";
-        public const string SecureStringBuilderDisposed = "Builder is disposed";
-        public const string SecureStringBuilderNoData = "No data to build";
+        public const string PERSONAL_PARAMETER_INVALID_SIZE = "Personal parameter (membershipId) must be exactly {0} bytes, got {1}";
+        public const string FAILED_TO_DERIVE_MASTER_KEY = "Failed to derive master key: {0}";
+        public const string MARSHAL_PTR_TO_STRING_FAILED = "Failed to marshal pointer to string";
+        public const string HASH_ALGORITHM_NOT_SUPPORTED = "Hash algorithm {0} not supported";
+        public const string SECURE_STRING_HANDLER_DISPOSED = "SecureStringHandler is disposed";
+        public const string SECURE_STRING_BUILDER_DISPOSED = "Builder is disposed";
+        public const string SECURE_STRING_BUILDER_NO_DATA = "No data to build";
     }
 
     public static class Numeric
     {
-        public const int PerformanceDecimalPlaces = 3;
-        public const int JsonEscapeBufferExtra = 16;
-        public const int DllImportSuccess = 0;
-        public const int ZeroValue = 0;
+        public const int PERFORMANCE_DECIMAL_PLACES = 3;
+        public const int JSON_ESCAPE_BUFFER_EXTRA = 16;
+        public const int DLL_IMPORT_SUCCESS = 0;
+        public const int ZERO_VALUE = 0;
     }
 
     public static class Protocol
     {
-        public const string InitialSenderChainInfo = "ShieldInitSend";
-        public const string InitialReceiverChainInfo = "ShieldInitRecv";
-        public const string DhRatchetInfo = "ShieldDhRatchet";
+        public const string INITIAL_SENDER_CHAIN_INFO = "ShieldInitSend";
+        public const string INITIAL_RECEIVER_CHAIN_INFO = "ShieldInitRecv";
+        public const string DH_RATCHET_INFO = "ShieldDhRatchet";
 
-        public const long InitialNonceCounter = 0;
-        public const long MaxNonceCounter = 10_000_000;
-        public const int RandomNoncePrefixSize = 8;
-        public const uint DefaultChainIndex = 0;
-        public const uint DefaultMessageIndex = 0;
-        public const int HkdfOutputBufferMultiplier = 2;
+        public const long INITIAL_NONCE_COUNTER = 0;
+        public const long MAX_NONCE_COUNTER = 10_000_000;
+        public const int RANDOM_NONCE_PREFIX_SIZE = 8;
+        public const uint DEFAULT_CHAIN_INDEX = 0;
+        public const uint DEFAULT_MESSAGE_INDEX = 0;
+        public const int HKDF_OUTPUT_BUFFER_MULTIPLIER = 2;
     }
 
     public static class RatchetRecovery
     {
-        public const uint CleanupThreshold = 100;
-        public const uint IndexOverflowBuffer = 10000;
+        public const uint CLEANUP_THRESHOLD = 100;
+        public const uint INDEX_OVERFLOW_BUFFER = 10000;
     }
 
     public static class ChainStep
     {
-        public const uint DefaultCacheWindowSize = 1000;
-        public const uint InitialIndex = 0;
-        public const uint IndexIncrement = 1;
-        public const uint ResetIndex = 0;
-        public const uint MinIndexToKeepOffset = 1;
-        public const uint ValidatorArrayEmptyThreshold = 0;
+        public const uint DEFAULT_CACHE_WINDOW_SIZE = 1000;
+        public const uint INITIAL_INDEX = 0;
+        public const uint INDEX_INCREMENT = 1;
+        public const uint RESET_INDEX = 0;
+        public const uint MIN_INDEX_TO_KEEP_OFFSET = 1;
+        public const uint VALIDATOR_ARRAY_EMPTY_THRESHOLD = 0;
     }
 
     public static class ProtocolSystem
     {
-        public const int EmptyArrayLength = 0;
-        public const int MaxIdentityKeyLength = 1024;
-        public const int MaxPayloadSize = 10 * 1024 * 1024;
-        public const int IntegerOverflowDivisor = 2;
-        public const int BufferCopyStartOffset = 0;
-        public const int CipherLengthMinimumThreshold = 0;
+        public const int EMPTY_ARRAY_LENGTH = 0;
+        public const int MAX_IDENTITY_KEY_LENGTH = 1024;
+        public const int MAX_PAYLOAD_SIZE = 10 * 1024 * 1024;
+        public const int INTEGER_OVERFLOW_DIVISOR = 2;
+        public const int BUFFER_COPY_START_OFFSET = 0;
+        public const int CIPHER_LENGTH_MINIMUM_THRESHOLD = 0;
 
-        public const string DhPublicKeyNullMessage = "DH public key is null";
-        public const string NoConnectionMessage = "No connection";
-        public const string ReflectionAttackMessage = "Potential reflection attack detected - peer echoed our DH key";
-        public const string ParseProtobufFailedMessage = "Failed to parse peer public key bundle from protobuf.";
-        public const string SignedPreKeyFailedMessage = "Signed pre-key signature verification failed";
-        public const string ProtocolConnectionNotInitializedMessage = "Protocol connection not initialized";
-        public const string IdentityKeysTooLargeMessage = "Identity keys too large (max {0} bytes each)";
-        public const string IntegerOverflowMessage = "Combined identity keys would cause integer overflow";
-        public const string AesGcmEncryptOperationName = "AES-GCM-Encrypt";
-        public const string AesGcmDecryptOperationName = "AES-GCM-Decrypt";
-        public const string AesGcmEncryptionFailedMessage = "AES-GCM encryption failed.";
-        public const string CiphertextTooSmallMessage = "Received ciphertext length ({0}) is smaller than the GCM tag size ({1}).";
-        public const string AesGcmDecryptionFailedMessage = "AES-GCM decryption failed (authentication tag mismatch).";
+        public const string DH_PUBLIC_KEY_NULL_MESSAGE = "DH public key is null";
+        public const string NO_CONNECTION_MESSAGE = "No connection";
+        public const string REFLECTION_ATTACK_MESSAGE = "Potential reflection attack detected - peer echoed our DH key";
+        public const string PARSE_PROTOBUF_FAILED_MESSAGE = "Failed to parse peer public key bundle from protobuf.";
+        public const string SIGNED_PRE_KEY_FAILED_MESSAGE = "Signed pre-key signature verification failed";
+        public const string PROTOCOL_CONNECTION_NOT_INITIALIZED_MESSAGE = "Protocol connection not initialized";
+        public const string IDENTITY_KEYS_TOO_LARGE_MESSAGE = "Identity keys too large (max {0} bytes each)";
+        public const string INTEGER_OVERFLOW_MESSAGE = "Combined identity keys would cause integer overflow";
+        public const string AES_GCM_ENCRYPT_OPERATION_NAME = "AES-GCM-Encrypt";
+        public const string AES_GCM_DECRYPT_OPERATION_NAME = "AES-GCM-Decrypt";
+        public const string AES_GCM_ENCRYPTION_FAILED_MESSAGE = "AES-GCM encryption failed.";
+        public const string CIPHERTEXT_TOO_SMALL_MESSAGE = "Received ciphertext length ({0}) is smaller than the GCM tag size ({1}).";
+        public const string AES_GCM_DECRYPTION_FAILED_MESSAGE = "AES-GCM decryption failed (authentication tag mismatch).";
     }
 
     public static class Libraries
     {
-        public const string LibSodium = "libsodium";
-        public const string Kernel32 = "kernel32.dll";
-        public const string LibC = "libc";
+        public const string LIB_SODIUM = "libsodium";
+        public const string KERNEL_32 = "kernel32.dll";
+        public const string LIB_C = "libc";
     }
 }

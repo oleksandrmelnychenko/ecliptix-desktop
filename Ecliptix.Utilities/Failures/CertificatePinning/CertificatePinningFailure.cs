@@ -19,120 +19,66 @@ public record CertificatePinningFailure(
         };
     }
 
-    public static CertificatePinningFailure ServiceNotInitialized() =>
-        new(CertificatePinningFailureType.ServiceNotInitialized, CertificatePinningFailureMessages.ServiceNotInitialized);
+    public static CertificatePinningFailure SERVICE_NOT_INITIALIZED() =>
+        new(CertificatePinningFailureType.SERVICE_NOT_INITIALIZED, CertificatePinningFailureMessages.SERVICE_NOT_INITIALIZED);
 
-    public static CertificatePinningFailure ServiceDisposed() =>
-        new(CertificatePinningFailureType.ServiceDisposed, CertificatePinningFailureMessages.ServiceDisposed);
+    public static CertificatePinningFailure SERVICE_DISPOSED() =>
+        new(CertificatePinningFailureType.SERVICE_DISPOSED, CertificatePinningFailureMessages.SERVICE_DISPOSED);
 
-    public static CertificatePinningFailure LibraryInitializationFailed(string details) =>
-        new(CertificatePinningFailureType.LibraryInitializationFailed, $"{CertificatePinningFailureMessages.LibraryInitializationFailed}: {details}");
+    public static CertificatePinningFailure LIBRARY_INITIALIZATION_FAILED(string details) =>
+        new(CertificatePinningFailureType.LIBRARY_INITIALIZATION_FAILED, $"{CertificatePinningFailureMessages.LIBRARY_INITIALIZATION_FAILED}: {details}");
 
-    public static CertificatePinningFailure InitializationException(Exception ex) =>
-        new(CertificatePinningFailureType.InitializationException, $"{CertificatePinningFailureMessages.InitializationException}: {ex.Message}", ex);
+    public static CertificatePinningFailure INITIALIZATION_EXCEPTION(Exception ex) =>
+        new(CertificatePinningFailureType.INITIALIZATION_EXCEPTION, $"{CertificatePinningFailureMessages.INITIALIZATION_EXCEPTION}: {ex.Message}", ex);
 
-    public static CertificatePinningFailure CertificateDataRequired() =>
-        new(CertificatePinningFailureType.CertificateDataRequired, CertificatePinningFailureMessages.CertificateDataRequired);
+    public static CertificatePinningFailure CERTIFICATE_DATA_REQUIRED() =>
+        new(CertificatePinningFailureType.CERTIFICATE_DATA_REQUIRED, CertificatePinningFailureMessages.CERTIFICATE_DATA_REQUIRED);
 
-    public static CertificatePinningFailure HostnameRequired() =>
-        new(CertificatePinningFailureType.HostnameRequired, CertificatePinningFailureMessages.HostnameRequired);
+    public static CertificatePinningFailure HOSTNAME_REQUIRED() =>
+        new(CertificatePinningFailureType.HOSTNAME_REQUIRED, CertificatePinningFailureMessages.HOSTNAME_REQUIRED);
 
-    public static CertificatePinningFailure CertificateValidationFailed(string details) =>
-        new(CertificatePinningFailureType.CertificateValidationFailed, $"{CertificatePinningFailureMessages.CertificateValidationFailed}: {details}");
+    public static CertificatePinningFailure CERTIFICATE_VALIDATION_FAILED(string details) =>
+        new(CertificatePinningFailureType.CERTIFICATE_VALIDATION_FAILED, $"{CertificatePinningFailureMessages.CERTIFICATE_VALIDATION_FAILED}: {details}");
 
-    public static CertificatePinningFailure CertificateValidationException(Exception ex) =>
-        new(CertificatePinningFailureType.CertificateValidationException, $"{CertificatePinningFailureMessages.CertificateValidationException}: {ex.Message}", ex);
+    public static CertificatePinningFailure CERTIFICATE_VALIDATION_EXCEPTION(Exception ex) =>
+        new(CertificatePinningFailureType.CERTIFICATE_VALIDATION_EXCEPTION, $"{CertificatePinningFailureMessages.CERTIFICATE_VALIDATION_EXCEPTION}: {ex.Message}", ex);
 
-    public static CertificatePinningFailure PlaintextRequired() =>
-        new(CertificatePinningFailureType.PlaintextRequired, CertificatePinningFailureMessages.PlaintextRequired);
+    public static CertificatePinningFailure PLAINTEXT_REQUIRED() =>
+        new(CertificatePinningFailureType.PLAINTEXT_REQUIRED, CertificatePinningFailureMessages.PLAINTEXT_REQUIRED);
 
-    public static CertificatePinningFailure PlaintextTooLarge() =>
-        new(CertificatePinningFailureType.PlaintextTooLarge, CertificatePinningFailureMessages.PlaintextTooLarge);
+    public static CertificatePinningFailure RSA_ENCRYPTION_FAILED(string details) =>
+        new(CertificatePinningFailureType.RSA_ENCRYPTION_FAILED, $"{CertificatePinningFailureMessages.RSA_ENCRYPTION_FAILED}: {details}");
 
-    public static CertificatePinningFailure RsaEncryptionFailed(string details) =>
-        new(CertificatePinningFailureType.RsaEncryptionFailed, $"{CertificatePinningFailureMessages.RsaEncryptionFailed}: {details}");
+    public static CertificatePinningFailure RSA_ENCRYPTION_EXCEPTION(Exception ex) =>
+        new(CertificatePinningFailureType.RSA_ENCRYPTION_EXCEPTION, $"{CertificatePinningFailureMessages.RSA_ENCRYPTION_EXCEPTION}: {ex.Message}", ex);
 
-    public static CertificatePinningFailure RsaEncryptionException(Exception ex) =>
-        new(CertificatePinningFailureType.RsaEncryptionException, $"{CertificatePinningFailureMessages.RsaEncryptionException}: {ex.Message}", ex);
+    public static CertificatePinningFailure CIPHERTEXT_REQUIRED() =>
+        new(CertificatePinningFailureType.CIPHERTEXT_REQUIRED, CertificatePinningFailureMessages.CIPHERTEXT_REQUIRED);
 
-    public static CertificatePinningFailure CiphertextRequired() =>
-        new(CertificatePinningFailureType.CiphertextRequired, CertificatePinningFailureMessages.CiphertextRequired);
+    public static CertificatePinningFailure RSA_DECRYPTION_FAILED(string details) =>
+        new(CertificatePinningFailureType.RSA_DECRYPTION_FAILED, $"{CertificatePinningFailureMessages.RSA_DECRYPTION_FAILED}: {details}");
 
-    public static CertificatePinningFailure PrivateKeyRequired() =>
-        new(CertificatePinningFailureType.PrivateKeyRequired, CertificatePinningFailureMessages.PrivateKeyRequired);
+    public static CertificatePinningFailure RSA_DECRYPTION_EXCEPTION(Exception ex) =>
+        new(CertificatePinningFailureType.RSA_DECRYPTION_EXCEPTION, $"{CertificatePinningFailureMessages.RSA_DECRYPTION_EXCEPTION}: {ex.Message}", ex);
 
-    public static CertificatePinningFailure RsaDecryptionFailed(string details) =>
-        new(CertificatePinningFailureType.RsaDecryptionFailed, $"{CertificatePinningFailureMessages.RsaDecryptionFailed}: {details}");
+    public static CertificatePinningFailure MESSAGE_REQUIRED() =>
+        new(CertificatePinningFailureType.MESSAGE_REQUIRED, CertificatePinningFailureMessages.MESSAGE_REQUIRED);
 
-    public static CertificatePinningFailure RsaDecryptionException(Exception ex) =>
-        new(CertificatePinningFailureType.RsaDecryptionException, $"{CertificatePinningFailureMessages.RsaDecryptionException}: {ex.Message}", ex);
+    public static CertificatePinningFailure INVALID_SIGNATURE_SIZE(int expectedSize) =>
+        new(CertificatePinningFailureType.INVALID_SIGNATURE_SIZE, $"Signature must be {expectedSize} bytes");
 
-    public static CertificatePinningFailure InvalidCiphertextSize() =>
-        new(CertificatePinningFailureType.InvalidCiphertextSize, CertificatePinningFailureMessages.InvalidCiphertextSize);
+    public static CertificatePinningFailure ED_25519_VERIFICATION_ERROR(string details) =>
+        new(CertificatePinningFailureType.ED_25519_VERIFICATION_ERROR, $"{CertificatePinningFailureMessages.ED_25519_VERIFICATION_ERROR}: {details}");
 
-    public static CertificatePinningFailure InvalidKeySize(int expectedSize) =>
-        new(CertificatePinningFailureType.InvalidKeySize, $"Key must be {expectedSize} bytes");
+    public static CertificatePinningFailure ED_25519_VERIFICATION_EXCEPTION(Exception ex) =>
+        new(CertificatePinningFailureType.ED_25519_VERIFICATION_EXCEPTION, $"{CertificatePinningFailureMessages.ED_25519_VERIFICATION_EXCEPTION}: {ex.Message}", ex);
 
-    public static CertificatePinningFailure AesGcmDecryptionFailed(string details) =>
-        new(CertificatePinningFailureType.AesGcmDecryptionFailed, $"{CertificatePinningFailureMessages.AesGcmDecryptionFailed}: {details}");
+    public static CertificatePinningFailure SERVICE_INITIALIZING() =>
+        new(CertificatePinningFailureType.SERVICE_INITIALIZING, CertificatePinningFailureMessages.SERVICE_INITIALIZING);
 
-    public static CertificatePinningFailure AesGcmDecryptionException(Exception ex) =>
-        new(CertificatePinningFailureType.AesGcmDecryptionException, $"{CertificatePinningFailureMessages.AesGcmDecryptionException}: {ex.Message}", ex);
-
-    public static CertificatePinningFailure MessageRequired() =>
-        new(CertificatePinningFailureType.MessageRequired, CertificatePinningFailureMessages.MessageRequired);
-
-    public static CertificatePinningFailure InvalidPrivateKeySize(int expectedSize) =>
-        new(CertificatePinningFailureType.InvalidPrivateKeySize, $"Private key must be {expectedSize} bytes");
-
-    public static CertificatePinningFailure Ed25519SigningFailed(string details) =>
-        new(CertificatePinningFailureType.Ed25519SigningFailed, $"{CertificatePinningFailureMessages.Ed25519SigningFailed}: {details}");
-
-    public static CertificatePinningFailure Ed25519SigningException(Exception ex) =>
-        new(CertificatePinningFailureType.Ed25519SigningException, $"{CertificatePinningFailureMessages.Ed25519SigningException}: {ex.Message}", ex);
-
-    public static CertificatePinningFailure InvalidSignatureSize(int expectedSize) =>
-        new(CertificatePinningFailureType.InvalidSignatureSize, $"Signature must be {expectedSize} bytes");
-
-    public static CertificatePinningFailure Ed25519VerificationError(string details) =>
-        new(CertificatePinningFailureType.Ed25519VerificationError, $"{CertificatePinningFailureMessages.Ed25519VerificationError}: {details}");
-
-    public static CertificatePinningFailure Ed25519VerificationException(Exception ex) =>
-        new(CertificatePinningFailureType.Ed25519VerificationException, $"{CertificatePinningFailureMessages.Ed25519VerificationException}: {ex.Message}", ex);
-
-    public static CertificatePinningFailure InvalidNonceSize() =>
-        new(CertificatePinningFailureType.InvalidNonceSize, CertificatePinningFailureMessages.InvalidNonceSize);
-
-    public static CertificatePinningFailure RandomBytesGenerationFailed(string details) =>
-        new(CertificatePinningFailureType.RandomBytesGenerationFailed, $"{CertificatePinningFailureMessages.RandomBytesGenerationFailed}: {details}");
-
-    public static CertificatePinningFailure RandomBytesGenerationException(Exception ex) =>
-        new(CertificatePinningFailureType.RandomBytesGenerationException, $"{CertificatePinningFailureMessages.RandomBytesGenerationException}: {ex.Message}", ex);
-
-    public static CertificatePinningFailure LibraryCleanupError(Exception ex) =>
-        new(CertificatePinningFailureType.LibraryCleanupError, $"{CertificatePinningFailureMessages.LibraryCleanupError}: {ex.Message}", ex);
-
-    public static CertificatePinningFailure SecureMemoryAllocationFailed(string details) =>
-        new(CertificatePinningFailureType.SecureMemoryAllocationFailed, $"{CertificatePinningFailureMessages.SecureMemoryAllocationFailed}: {details}");
-
-    public static CertificatePinningFailure SecureMemoryWriteFailed(string details) =>
-        new(CertificatePinningFailureType.SecureMemoryWriteFailed, $"{CertificatePinningFailureMessages.SecureMemoryWriteFailed}: {details}");
-
-    public static CertificatePinningFailure SecureMemoryReadFailed(string details) =>
-        new(CertificatePinningFailureType.SecureMemoryReadFailed, $"{CertificatePinningFailureMessages.SecureMemoryReadFailed}: {details}");
-
-    public static CertificatePinningFailure NativeLibraryNotFound(string operationName, Exception ex) =>
-        new(CertificatePinningFailureType.NativeLibraryNotFound, $"{CertificatePinningFailureMessages.NativeLibraryNotFound} during {operationName}: {ex.Message}", ex);
-
-    public static CertificatePinningFailure NativeOperationFailed(string operationName, Exception ex) =>
-        new(CertificatePinningFailureType.NativeOperationFailed, $"{CertificatePinningFailureMessages.NativeOperationFailed} during {operationName}: {ex.Message}", ex);
-
-    public static CertificatePinningFailure ServiceInitializing() =>
-        new(CertificatePinningFailureType.ServiceInitializing, CertificatePinningFailureMessages.ServiceInitializing);
-
-    public static CertificatePinningFailure ServiceInvalidState() =>
-        new(CertificatePinningFailureType.ServiceInvalidState, CertificatePinningFailureMessages.ServiceInvalidState);
+    public static CertificatePinningFailure SERVICE_INVALID_STATE() =>
+        new(CertificatePinningFailureType.SERVICE_INVALID_STATE, CertificatePinningFailureMessages.SERVICE_INVALID_STATE);
 
     public override GrpcErrorDescriptor ToGrpcDescriptor() =>
-        new(ErrorCode.InternalError, StatusCode.Internal, ErrorI18nKeys.Internal);
+        new(ErrorCode.INTERNAL_ERROR, StatusCode.Internal, ErrorI18NKeys.INTERNAL);
 }

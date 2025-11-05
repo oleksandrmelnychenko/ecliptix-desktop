@@ -4,6 +4,6 @@ internal static class CertificatePinningConstants
 {
     internal static class LibraryNames
     {
-        internal const string SslPinning = "libsslpinning";
+        internal const string SSL_PINNING = "libsslpinning";
     }
 }

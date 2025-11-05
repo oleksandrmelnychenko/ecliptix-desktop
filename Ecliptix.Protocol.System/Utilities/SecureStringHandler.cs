@@ -1,6 +1,3 @@
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security;
 using System.Security.Cryptography;
 using System.Text;
 using Ecliptix.Protocol.System.Sodium;
@@ -34,7 +31,8 @@ internal sealed class SecureStringHandler : IDisposable
         {
             bytes = Encoding.UTF8.GetBytes(input);
 
-            Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult = SodiumSecureMemoryHandle.Allocate(bytes.Length);
+            Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult =
+                SodiumSecureMemoryHandle.Allocate(bytes.Length);
             if (allocResult.IsErr)
             {
                 return Result<SecureStringHandler, SodiumFailure>.Err(allocResult.UnwrapErr());
@@ -50,7 +48,6 @@ internal sealed class SecureStringHandler : IDisposable
 
             handle.Dispose();
             return Result<SecureStringHandler, SodiumFailure>.Err(writeResult.UnwrapErr());
-
         }
         finally
         {
@@ -58,105 +55,6 @@ internal sealed class SecureStringHandler : IDisposable
             {
                 CryptographicOperations.ZeroMemory(bytes);
             }
-        }
-    }
-
-    public static Result<SecureStringHandler, SodiumFailure> FromSecureString(SecureString? secureString)
-    {
-        if (secureString == null || secureString.Length == 0)
-        {
-            return Result<SecureStringHandler, SodiumFailure>.Err(
-                SodiumFailure.InvalidBufferSize("SecureString cannot be null or empty"));
-        }
-
-        IntPtr ptr = IntPtr.Zero;
-        byte[]? bytes = null;
-
-        try
-        {
-            ptr = Marshal.SecureStringToGlobalAllocUnicode(secureString);
-            int byteCount = Encoding.UTF8.GetByteCount(
-                Marshal.PtrToStringUni(ptr) ?? throw new InvalidOperationException(ProtocolSystemConstants.ErrorMessages.MarshalPtrToStringFailed));
-
-            bytes = new byte[byteCount];
-            unsafe
-            {
-                fixed (byte* bytesPtr = bytes)
-                {
-                    Encoding.UTF8.GetBytes((char*)ptr.ToPointer(), secureString.Length,
-                        bytesPtr, byteCount);
-                }
-            }
-
-            Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult = SodiumSecureMemoryHandle.Allocate(bytes.Length);
-            if (allocResult.IsErr)
-            {
-                return Result<SecureStringHandler, SodiumFailure>.Err(allocResult.UnwrapErr());
-            }
-
-            SodiumSecureMemoryHandle handle = allocResult.Unwrap();
-            Result<Unit, SodiumFailure> writeResult = handle.Write(bytes);
-            if (writeResult.IsErr)
-            {
-                handle.Dispose();
-                return Result<SecureStringHandler, SodiumFailure>.Err(writeResult.UnwrapErr());
-            }
-
-            return Result<SecureStringHandler, SodiumFailure>.Ok(
-                new SecureStringHandler(handle, bytes.Length));
-        }
-        finally
-        {
-            if (ptr != IntPtr.Zero)
-            {
-                Marshal.ZeroFreeGlobalAllocUnicode(ptr);
-            }
-
-            if (bytes != null)
-            {
-                CryptographicOperations.ZeroMemory(bytes);
-            }
-        }
-    }
-
-    public static Result<SecureStringHandler, SodiumFailure> FromChars(char[]? chars)
-    {
-        if (chars == null || chars.Length == 0)
-        {
-            return Result<SecureStringHandler, SodiumFailure>.Err(
-                SodiumFailure.InvalidBufferSize("Char array cannot be null or empty"));
-        }
-
-        byte[]? bytes = null;
-        try
-        {
-            bytes = Encoding.UTF8.GetBytes(chars);
-
-            Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult = SodiumSecureMemoryHandle.Allocate(bytes.Length);
-            if (allocResult.IsErr)
-            {
-                return Result<SecureStringHandler, SodiumFailure>.Err(allocResult.UnwrapErr());
-            }
-
-            SodiumSecureMemoryHandle handle = allocResult.Unwrap();
-            Result<Unit, SodiumFailure> writeResult = handle.Write(bytes);
-            if (writeResult.IsErr)
-            {
-                handle.Dispose();
-                return Result<SecureStringHandler, SodiumFailure>.Err(writeResult.UnwrapErr());
-            }
-
-            return Result<SecureStringHandler, SodiumFailure>.Ok(
-                new SecureStringHandler(handle, bytes.Length));
-        }
-        finally
-        {
-            if (bytes != null)
-            {
-                CryptographicOperations.ZeroMemory(bytes);
-            }
-
-            Array.Clear(chars, 0, chars.Length);
         }
     }
 
@@ -165,7 +63,7 @@ internal sealed class SecureStringHandler : IDisposable
         if (_disposed)
         {
             return Result<T, SodiumFailure>.Err(
-                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.SecureStringHandlerDisposed));
+                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.SECURE_STRING_HANDLER_DISPOSED));
         }
 
         byte[]? tempBytes = null;
@@ -183,82 +81,8 @@ internal sealed class SecureStringHandler : IDisposable
         }
         finally
         {
-            if (tempBytes != null)
-            {
-                CryptographicOperations.ZeroMemory(tempBytes);
-            }
+            CryptographicOperations.ZeroMemory(tempBytes);
         }
-    }
-
-    public Result<T, SodiumFailure> UseString<T>(Func<string, T> operation)
-    {
-        return UseBytes(bytes =>
-        {
-            string str = Encoding.UTF8.GetString(bytes);
-            try
-            {
-                return operation(str);
-            }
-            finally
-            {
-            }
-        });
-    }
-
-    public Result<T, SodiumFailure> ValidateBytes<T>(Func<ReadOnlySpan<byte>, T> validationOperation)
-    {
-        return UseBytes(validationOperation);
-    }
-
-    public Result<bool, SodiumFailure> Equals(SecureStringHandler other)
-    {
-        if (_disposed || other._disposed)
-        {
-            return Result<bool, SodiumFailure>.Err(
-                SodiumFailure.NullPointer("One or both handlers are disposed"));
-        }
-
-        if (_length != other._length)
-        {
-            return Result<bool, SodiumFailure>.Ok(false);
-        }
-
-        return UseBytes(thisBytes =>
-        {
-            byte[] thisBytesCopy = thisBytes.ToArray();
-            try
-            {
-                return other.UseBytes(otherBytes =>
-                    SecureMemoryUtils.ConstantTimeEquals(thisBytesCopy, otherBytes)).UnwrapOr(false);
-            }
-            finally
-            {
-                CryptographicOperations.ZeroMemory(thisBytesCopy);
-            }
-        });
-    }
-
-    public Result<byte[], SodiumFailure> ComputeHash(HashAlgorithmName algorithm)
-    {
-        return UseBytes(bytes =>
-        {
-            HashAlgorithm hasher = algorithm.Name switch
-            {
-                "SHA256" => SHA256.Create(),
-                "SHA384" => SHA384.Create(),
-                "SHA512" => SHA512.Create(),
-                _ => throw new NotSupportedException(string.Format(ProtocolSystemConstants.ErrorMessages.HashAlgorithmNotSupported, algorithm.Name))
-            };
-
-            try
-            {
-                return hasher.ComputeHash(bytes.ToArray());
-            }
-            finally
-            {
-                hasher.Dispose();
-            }
-        });
     }
 
     public int ByteLength => _length;
@@ -284,11 +108,12 @@ internal sealed class SecureStringBuilder : IDisposable
     private int _totalLength;
     private bool _disposed;
 
-    public SecureStringBuilder(int chunkSize = ProtocolSystemConstants.MemoryPool.SecureStringBuilderDefaultChunkSize)
+    public SecureStringBuilder(
+        int chunkSize = ProtocolSystemConstants.MemoryPool.SECURE_STRING_BUILDER_DEFAULT_CHUNK_SIZE)
     {
         if (chunkSize <= 0)
         {
-            throw new ArgumentException(ProtocolSystemConstants.ErrorMessages.ChunkSizePositive, nameof(chunkSize));
+            throw new ArgumentException(ProtocolSystemConstants.ErrorMessages.CHUNK_SIZE_POSITIVE, nameof(chunkSize));
         }
 
         _chunks = new List<SodiumSecureMemoryHandle>();
@@ -302,7 +127,7 @@ internal sealed class SecureStringBuilder : IDisposable
         if (_disposed)
         {
             return Result<Unit, SodiumFailure>.Err(
-                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.SecureStringBuilderDisposed));
+                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.SECURE_STRING_BUILDER_DISPOSED));
         }
 
         Span<byte> bytes = stackalloc byte[4];
@@ -316,7 +141,7 @@ internal sealed class SecureStringBuilder : IDisposable
         if (_disposed)
         {
             return Result<Unit, SodiumFailure>.Err(
-                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.SecureStringBuilderDisposed));
+                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.SECURE_STRING_BUILDER_DISPOSED));
         }
 
         if (string.IsNullOrEmpty(str))
@@ -347,7 +172,8 @@ internal sealed class SecureStringBuilder : IDisposable
         {
             if (_currentChunk == null || _currentPosition >= _chunkSize)
             {
-                Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult = SodiumSecureMemoryHandle.Allocate(_chunkSize);
+                Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult =
+                    SodiumSecureMemoryHandle.Allocate(_chunkSize);
                 if (allocResult.IsErr)
                 {
                     return Result<Unit, SodiumFailure>.Err(allocResult.UnwrapErr());
@@ -377,13 +203,13 @@ internal sealed class SecureStringBuilder : IDisposable
         if (_disposed)
         {
             return Result<SecureStringHandler, SodiumFailure>.Err(
-                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.SecureStringBuilderDisposed));
+                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.SECURE_STRING_BUILDER_DISPOSED));
         }
 
         if (_totalLength == 0)
         {
             return Result<SecureStringHandler, SodiumFailure>.Err(
-                SodiumFailure.InvalidBufferSize(ProtocolSystemConstants.ErrorMessages.SecureStringBuilderNoData));
+                SodiumFailure.InvalidBufferSize(ProtocolSystemConstants.ErrorMessages.SECURE_STRING_BUILDER_NO_DATA));
         }
 
         Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult = SodiumSecureMemoryHandle.Allocate(_totalLength);
@@ -403,8 +229,7 @@ internal sealed class SecureStringBuilder : IDisposable
             for (int i = 0; i < _chunks.Count; i++)
             {
                 SodiumSecureMemoryHandle chunk = _chunks[i];
-                int bytesToRead = (i == _chunks.Count - 1) ?
-                    _currentPosition : _chunkSize;
+                int bytesToRead = (i == _chunks.Count - 1) ? _currentPosition : _chunkSize;
 
                 Result<byte[], SodiumFailure> readResult = chunk.ReadBytes(bytesToRead);
                 if (readResult.IsErr)
@@ -431,14 +256,11 @@ internal sealed class SecureStringBuilder : IDisposable
         }
         finally
         {
-            if (tempBuffer != null)
-            {
-                CryptographicOperations.ZeroMemory(tempBuffer);
-            }
+            CryptographicOperations.ZeroMemory(tempBuffer);
         }
     }
 
-    public void Clear()
+    private void Clear()
     {
         foreach (SodiumSecureMemoryHandle chunk in _chunks)
         {

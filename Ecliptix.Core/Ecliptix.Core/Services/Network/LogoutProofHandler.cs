@@ -7,7 +7,7 @@ using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Protobuf.Membership;
-using Ecliptix.Protocol.System.Core;
+using Ecliptix.Protocol.System.Security.KeyDerivation;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Authentication;
@@ -24,155 +24,226 @@ public class LogoutProofHandler(IIdentityService identityService, IApplicationSe
     public async Task<Result<Unit, LogoutFailure>> VerifyRevocationProofAsync(
         LogoutResponse response,
         string membershipId,
+        uint connectId) =>
+        await VerifyRevocationProofInternalAsync(
+            identityService,
+            applicationSecureStorageProvider,
+            response,
+            membershipId,
+            connectId);
+
+    private static async Task<Result<Unit, LogoutFailure>> VerifyRevocationProofInternalAsync(
+        IIdentityService identityService,
+        IApplicationSecureStorageProvider applicationSecureStorageProvider,
+        LogoutResponse response,
+        string membershipId,
         uint connectId)
+    {
+        Result<byte[], LogoutFailure> proofValidation = ValidateRevocationProofFormat(response);
+        if (proofValidation.IsErr)
+        {
+            return Result<Unit, LogoutFailure>.Err(proofValidation.UnwrapErr());
+        }
+
+        byte[] revocationProof = proofValidation.Unwrap();
+
+        Result<ParsedProof, LogoutFailure> parseResult = ParseRevocationProof(revocationProof);
+        if (parseResult.IsErr)
+        {
+            return Result<Unit, LogoutFailure>.Err(parseResult.UnwrapErr());
+        }
+
+        ParsedProof parsed = parseResult.Unwrap();
+
+        return await VerifyAndStoreProofAsync(
+            identityService,
+            applicationSecureStorageProvider,
+            membershipId,
+            connectId,
+            response.ServerTimestamp,
+            parsed,
+            revocationProof);
+    }
+
+    private static Result<byte[], LogoutFailure> ValidateRevocationProofFormat(LogoutResponse response)
     {
         if (response.RevocationProof == null || response.RevocationProof.IsEmpty)
         {
             Log.Warning("[LOGOUT-PROOF] Missing revocation proof from server");
-            return Result<Unit, LogoutFailure>.Err(
+            return Result<byte[], LogoutFailure>.Err(
                 LogoutFailure.InvalidRevocationProof("Server did not provide revocation proof"));
         }
 
         byte[] revocationProof = response.RevocationProof.ToByteArray();
-        const byte proofVersionHmac = 1;
-        const int nonceSize = 16;
-        const int hmacSize = 32;
-        const int maxFingerprintSize = 64;
+        const int NONCE_SIZE = 16;
+        const int HMAC_SIZE = 32;
+        int minSize = 1 + sizeof(int) * 2 + NONCE_SIZE + HMAC_SIZE;
 
-        if (revocationProof.Length < 1 + sizeof(int) * 2 + nonceSize + hmacSize)
+        if (revocationProof.Length < minSize)
         {
             Log.Warning("[LOGOUT-PROOF] Revocation proof is too small: {Size} bytes", revocationProof.Length);
-            return Result<Unit, LogoutFailure>.Err(
+            return Result<byte[], LogoutFailure>.Err(
                 LogoutFailure.InvalidRevocationProof($"Revocation proof too small: {revocationProof.Length} bytes"));
         }
 
-        byte[] nonce;
-        int fingerprintLength;
-        byte[] fingerprint;
-        byte[] hmacProof;
+        return Result<byte[], LogoutFailure>.Ok(revocationProof);
+    }
+
+    private readonly record struct ParsedProof(byte[] Nonce, int FingerprintLength, byte[] Fingerprint, byte[] HmacProof);
+
+    private static Result<ParsedProof, LogoutFailure> ParseRevocationProof(byte[] revocationProof)
+    {
+        const byte PROOF_VERSION_HMAC = 1;
+        const int NONCE_SIZE = 16;
+        const int HMAC_SIZE = 32;
+        const int MAX_FINGERPRINT_SIZE = 64;
 
         try
         {
             using MemoryStream proofStream = new(revocationProof, writable: false);
             using BinaryReader reader = new(proofStream);
 
-            byte version = reader.ReadByte();
-            if (version != proofVersionHmac)
+            Result<Unit, LogoutFailure> versionCheck = ValidateProofVersion(reader, PROOF_VERSION_HMAC);
+            if (versionCheck.IsErr)
             {
-                Log.Warning("[LOGOUT-PROOF] Unsupported revocation proof version: {Version}", version);
-                return Result<Unit, LogoutFailure>.Err(
-                    LogoutFailure.InvalidRevocationProof($"Unsupported revocation proof version: {version}"));
+                return Result<ParsedProof, LogoutFailure>.Err(versionCheck.UnwrapErr());
             }
 
-            int nonceLength = reader.ReadInt32();
-            if (nonceLength != nonceSize)
+            Result<byte[], LogoutFailure> nonceResult = ReadNonce(reader, NONCE_SIZE);
+            if (nonceResult.IsErr)
             {
-                Log.Warning("[LOGOUT-PROOF] Invalid nonce length: {Length} (expected {Expected})", nonceLength,
-                    nonceSize);
-                return Result<Unit, LogoutFailure>.Err(
-                    LogoutFailure.InvalidRevocationProof($"Invalid nonce length {nonceLength}"));
+                return Result<ParsedProof, LogoutFailure>.Err(nonceResult.UnwrapErr());
             }
 
-            nonce = reader.ReadBytes(nonceLength);
-            if (nonce.Length != nonceLength)
+            byte[] nonce = nonceResult.Unwrap();
+
+            Result<FingerprintData, LogoutFailure> fingerprintResult = ReadFingerprint(reader, MAX_FINGERPRINT_SIZE);
+            if (fingerprintResult.IsErr)
             {
-                Log.Warning("[LOGOUT-PROOF] Unable to read nonce - expected {Expected} bytes, got {Actual}",
-                    nonceLength, nonce.Length);
-                return Result<Unit, LogoutFailure>.Err(
-                    LogoutFailure.InvalidRevocationProof("Revocation proof truncated while reading nonce"));
+                return Result<ParsedProof, LogoutFailure>.Err(fingerprintResult.UnwrapErr());
             }
 
-            fingerprintLength = reader.ReadInt32();
-            if (fingerprintLength < 0 || fingerprintLength > maxFingerprintSize)
+            FingerprintData fingerprintData = fingerprintResult.Unwrap();
+
+            Result<byte[], LogoutFailure> hmacResult = ReadHmac(reader, revocationProof.Length, HMAC_SIZE);
+            if (hmacResult.IsErr)
             {
-                Log.Warning("[LOGOUT-PROOF] Invalid ratchet fingerprint length: {Length}", fingerprintLength);
-                return Result<Unit, LogoutFailure>.Err(
-                    LogoutFailure.InvalidRevocationProof($"Invalid fingerprint length {fingerprintLength}"));
+                return Result<ParsedProof, LogoutFailure>.Err(hmacResult.UnwrapErr());
             }
 
-            fingerprint = fingerprintLength > 0 ? reader.ReadBytes(fingerprintLength) : Array.Empty<byte>();
-            if (fingerprint.Length != fingerprintLength)
-            {
-                Log.Warning("[LOGOUT-PROOF] Unable to read fingerprint - expected {Expected} bytes, got {Actual}",
-                    fingerprintLength, fingerprint.Length);
-                return Result<Unit, LogoutFailure>.Err(
-                    LogoutFailure.InvalidRevocationProof("Revocation proof truncated while reading fingerprint"));
-            }
+            byte[] hmacProof = hmacResult.Unwrap();
 
-            int remainingBytes = (int)(revocationProof.Length - reader.BaseStream.Position);
-            if (remainingBytes != hmacSize)
-            {
-                Log.Warning("[LOGOUT-PROOF] Unexpected HMAC length: {Length}", remainingBytes);
-                return Result<Unit, LogoutFailure>.Err(
-                    LogoutFailure.InvalidRevocationProof($"Invalid HMAC length {remainingBytes}"));
-            }
-
-            hmacProof = reader.ReadBytes(hmacSize);
-            if (hmacProof.Length != hmacSize)
-            {
-                Log.Warning("[LOGOUT-PROOF] Unable to read HMAC - expected {Expected} bytes, got {Actual}",
-                    hmacSize, hmacProof.Length);
-                return Result<Unit, LogoutFailure>.Err(
-                    LogoutFailure.InvalidRevocationProof("Revocation proof truncated while reading HMAC"));
-            }
+            return Result<ParsedProof, LogoutFailure>.Ok(new ParsedProof(nonce, fingerprintData.Length, fingerprintData.Data, hmacProof));
         }
-        catch (EndOfStreamException)
+        catch (EndOfStreamException ex)
         {
-            Log.Warning("[LOGOUT-PROOF] Revocation proof truncated during parsing");
-            return Result<Unit, LogoutFailure>.Err(
+            Log.Warning(ex, "[LOGOUT-PROOF] Revocation proof truncated during parsing");
+            return Result<ParsedProof, LogoutFailure>.Err(
                 LogoutFailure.InvalidRevocationProof("Revocation proof truncated during parsing"));
         }
+    }
 
-        SodiumSecureMemoryHandle? masterKeyHandle = null;
+    private static Result<Unit, LogoutFailure> ValidateProofVersion(BinaryReader reader, byte expectedVersion)
+    {
+        byte version = reader.ReadByte();
+        if (version != expectedVersion)
+        {
+            Log.Warning("[LOGOUT-PROOF] Unsupported revocation proof version: {Version}", version);
+            return Result<Unit, LogoutFailure>.Err(
+                LogoutFailure.InvalidRevocationProof($"Unsupported revocation proof version: {version}"));
+        }
+        return Result<Unit, LogoutFailure>.Ok(Unit.Value);
+    }
+
+    private static Result<byte[], LogoutFailure> ReadNonce(BinaryReader reader, int expectedSize)
+    {
+        int nonceLength = reader.ReadInt32();
+        if (nonceLength != expectedSize)
+        {
+            Log.Warning("[LOGOUT-PROOF] Invalid nonce length: {Length} (expected {Expected})", nonceLength, expectedSize);
+            return Result<byte[], LogoutFailure>.Err(
+                LogoutFailure.InvalidRevocationProof($"Invalid nonce length {nonceLength}"));
+        }
+
+        byte[] nonce = reader.ReadBytes(nonceLength);
+        if (nonce.Length != nonceLength)
+        {
+            Log.Warning("[LOGOUT-PROOF] Unable to read nonce - expected {Expected} bytes, got {Actual}", nonceLength, nonce.Length);
+            return Result<byte[], LogoutFailure>.Err(
+                LogoutFailure.InvalidRevocationProof("Revocation proof truncated while reading nonce"));
+        }
+
+        return Result<byte[], LogoutFailure>.Ok(nonce);
+    }
+
+    private readonly record struct FingerprintData(int Length, byte[] Data);
+
+    private static Result<FingerprintData, LogoutFailure> ReadFingerprint(BinaryReader reader, int maxSize)
+    {
+        int fingerprintLength = reader.ReadInt32();
+        if (fingerprintLength < 0 || fingerprintLength > maxSize)
+        {
+            Log.Warning("[LOGOUT-PROOF] Invalid ratchet fingerprint length: {Length}", fingerprintLength);
+            return Result<FingerprintData, LogoutFailure>.Err(
+                LogoutFailure.InvalidRevocationProof($"Invalid fingerprint length {fingerprintLength}"));
+        }
+
+        byte[] fingerprint = fingerprintLength > 0 ? reader.ReadBytes(fingerprintLength) : Array.Empty<byte>();
+        if (fingerprint.Length != fingerprintLength)
+        {
+            Log.Warning("[LOGOUT-PROOF] Unable to read fingerprint - expected {Expected} bytes, got {Actual}", fingerprintLength, fingerprint.Length);
+            return Result<FingerprintData, LogoutFailure>.Err(
+                LogoutFailure.InvalidRevocationProof("Revocation proof truncated while reading fingerprint"));
+        }
+
+        return Result<FingerprintData, LogoutFailure>.Ok(new FingerprintData(fingerprintLength, fingerprint));
+    }
+
+    private static Result<byte[], LogoutFailure> ReadHmac(BinaryReader reader, int totalProofLength, int expectedHmacSize)
+    {
+        int remainingBytes = (int)(totalProofLength - reader.BaseStream.Position);
+        if (remainingBytes != expectedHmacSize)
+        {
+            Log.Warning("[LOGOUT-PROOF] Unexpected HMAC length: {Length}", remainingBytes);
+            return Result<byte[], LogoutFailure>.Err(
+                LogoutFailure.InvalidRevocationProof($"Invalid HMAC length {remainingBytes}"));
+        }
+
+        byte[] hmacProof = reader.ReadBytes(expectedHmacSize);
+        if (hmacProof.Length != expectedHmacSize)
+        {
+            Log.Warning("[LOGOUT-PROOF] Unable to read HMAC - expected {Expected} bytes, got {Actual}", expectedHmacSize, hmacProof.Length);
+            return Result<byte[], LogoutFailure>.Err(
+                LogoutFailure.InvalidRevocationProof("Revocation proof truncated while reading HMAC"));
+        }
+
+        return Result<byte[], LogoutFailure>.Ok(hmacProof);
+    }
+
+    private static async Task<Result<Unit, LogoutFailure>> VerifyAndStoreProofAsync(
+        IIdentityService identityService,
+        IApplicationSecureStorageProvider applicationSecureStorageProvider,
+        string membershipId,
+        uint connectId,
+        long serverTimestamp,
+        ParsedProof parsed,
+        byte[] revocationProof)
+    {
         byte[]? proofKey = null;
 
         try
         {
-            Result<SodiumSecureMemoryHandle, AuthenticationFailure> handleResult =
-                await identityService.LoadMasterKeyHandleAsync(membershipId).ConfigureAwait(false);
-
-            if (handleResult.IsErr)
-            {
-                Log.Error("[LOGOUT-PROOF] Failed to load master key handle for proof verification");
-                return Result<Unit, LogoutFailure>.Err(
-                    LogoutFailure.CryptographicOperationFailed(
-                        $"Master key retrieval failed: {handleResult.UnwrapErr().Message}"));
-            }
-
-            masterKeyHandle = handleResult.Unwrap();
-
-            Result<byte[], SodiumFailure> proofKeyResult =
-                LogoutKeyDerivation.DeriveLogoutProofKey(masterKeyHandle);
-
+            Result<byte[], LogoutFailure> proofKeyResult = await LoadProofKeyAsync(identityService, membershipId);
             if (proofKeyResult.IsErr)
             {
-                Log.Error("[LOGOUT-PROOF] Failed to derive logout proof key");
-                return Result<Unit, LogoutFailure>.Err(
-                    LogoutFailure.CryptographicOperationFailed(
-                        $"Proof key derivation failed: {proofKeyResult.UnwrapErr().Message}"));
+                return Result<Unit, LogoutFailure>.Err(proofKeyResult.UnwrapErr());
             }
 
             proofKey = proofKeyResult.Unwrap();
 
-            using MemoryStream ms = new();
-            await using BinaryWriter writer = new(ms);
+            byte[] canonicalData = BuildCanonicalData(membershipId, connectId, serverTimestamp, parsed);
 
-            writer.Write(Guid.Parse(membershipId).ToByteArray());
-            writer.Write(connectId);
-            writer.Write(response.ServerTimestamp);
-            writer.Write(fingerprintLength);
-            if (fingerprintLength > 0)
-            {
-                writer.Write(fingerprint);
-            }
-
-            writer.Write(nonce);
-
-            writer.Flush();
-            byte[] canonicalData = ms.ToArray();
-
-            bool isValid = LogoutKeyDerivation.VerifyHmac(proofKey, canonicalData, hmacProof);
-
+            bool isValid = LogoutKeyDerivation.VerifyHmac(proofKey, canonicalData, parsed.HmacProof);
             if (!isValid)
             {
                 Log.Warning("[LOGOUT-PROOF] HMAC verification failed - server proof is invalid");
@@ -180,20 +251,16 @@ public class LogoutProofHandler(IIdentityService identityService, IApplicationSe
                     LogoutFailure.InvalidRevocationProof("Server revocation proof HMAC verification failed"));
             }
 
-            Result<Unit, LogoutFailure> storeResult =
-                await StoreRevocationProofAsync(membershipId, revocationProof);
-
+            Result<Unit, LogoutFailure> storeResult = await StoreRevocationProofAsync(applicationSecureStorageProvider, membershipId, revocationProof);
             if (storeResult.IsErr)
             {
-                Log.Warning("[LOGOUT-PROOF] Failed to store revocation proof: {Error}",
-                    storeResult.UnwrapErr().Message);
+                Log.Warning("[LOGOUT-PROOF] Failed to store revocation proof: {ERROR}", storeResult.UnwrapErr().Message);
             }
 
             return Result<Unit, LogoutFailure>.Ok(Unit.Value);
         }
         finally
         {
-            masterKeyHandle?.Dispose();
             if (proofKey != null)
             {
                 CryptographicOperations.ZeroMemory(proofKey);
@@ -201,94 +268,114 @@ public class LogoutProofHandler(IIdentityService identityService, IApplicationSe
         }
     }
 
-    private async Task<Result<Unit, LogoutFailure>> StoreRevocationProofAsync(
+    private static async Task<Result<byte[], LogoutFailure>> LoadProofKeyAsync(
+        IIdentityService identityService,
+        string membershipId)
+    {
+        Result<SodiumSecureMemoryHandle, AuthenticationFailure> handleResult =
+            await identityService.LoadMasterKeyHandleAsync(membershipId).ConfigureAwait(false);
+
+        if (handleResult.IsErr)
+        {
+            Log.Error("[LOGOUT-PROOF] Failed to load master key handle for proof verification");
+            return Result<byte[], LogoutFailure>.Err(
+                LogoutFailure.CryptographicOperationFailed(
+                    $"Master key retrieval failed: {handleResult.UnwrapErr().Message}"));
+        }
+
+        using SodiumSecureMemoryHandle masterKeyHandle = handleResult.Unwrap();
+
+        Result<byte[], SodiumFailure> proofKeyResult = LogoutKeyDerivation.DeriveLogoutProofKey(masterKeyHandle);
+        if (proofKeyResult.IsErr)
+        {
+            Log.Error("[LOGOUT-PROOF] Failed to derive logout proof key");
+            return Result<byte[], LogoutFailure>.Err(
+                LogoutFailure.CryptographicOperationFailed(
+                    $"Proof key derivation failed: {proofKeyResult.UnwrapErr().Message}"));
+        }
+
+        return Result<byte[], LogoutFailure>.Ok(proofKeyResult.Unwrap());
+    }
+
+    private static byte[] BuildCanonicalData(string membershipId, uint connectId, long serverTimestamp, ParsedProof parsed)
+    {
+        using MemoryStream ms = new();
+        using BinaryWriter writer = new(ms);
+
+        writer.Write(Guid.Parse(membershipId).ToByteArray());
+        writer.Write(connectId);
+        writer.Write(serverTimestamp);
+        writer.Write(parsed.FingerprintLength);
+        if (parsed.FingerprintLength > 0)
+        {
+            writer.Write(parsed.Fingerprint);
+        }
+        writer.Write(parsed.Nonce);
+        writer.Flush();
+
+        return ms.ToArray();
+    }
+
+    private static async Task<Result<Unit, LogoutFailure>> StoreRevocationProofAsync(
+        IApplicationSecureStorageProvider applicationSecureStorageProvider,
         string membershipId,
         byte[] revocationProof)
     {
-        try
+        string storageKey = GetRevocationProofStorageKey(membershipId);
+
+        Result<Unit, InternalServiceApiFailure> storeResult =
+            await applicationSecureStorageProvider.StoreAsync(storageKey, revocationProof)
+                .ConfigureAwait(false);
+
+        if (storeResult.IsErr)
         {
-            string storageKey = GetRevocationProofStorageKey(membershipId);
-
-            Result<Unit, InternalServiceApiFailure> storeResult =
-                await applicationSecureStorageProvider.StoreAsync(storageKey, revocationProof)
-                    .ConfigureAwait(false);
-
-            if (storeResult.IsErr)
-            {
-                Log.Error("[LOGOUT-PROOF-STORE] Failed to store revocation proof for MembershipId: {MembershipId}",
-                    membershipId);
-                return Result<Unit, LogoutFailure>.Err(
-                    LogoutFailure.UnexpectedError(
-                        $"Revocation proof storage failed: {storeResult.UnwrapErr().Message}"));
-            }
-
-            return Result<Unit, LogoutFailure>.Ok(Unit.Value);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "[LOGOUT-PROOF-STORE] Unexpected error storing revocation proof");
+            Log.Error("[LOGOUT-PROOF-STORE] Failed to store revocation proof for MembershipId: {MembershipId}",
+                membershipId);
             return Result<Unit, LogoutFailure>.Err(
-                LogoutFailure.UnexpectedError($"Unexpected error: {ex.Message}", ex));
+                LogoutFailure.UnexpectedError(
+                    $"Revocation proof storage failed: {storeResult.UnwrapErr().Message}"));
         }
+
+        return Result<Unit, LogoutFailure>.Ok(Unit.Value);
     }
 
     public static async Task<bool> HasRevocationProofAsync(
         IApplicationSecureStorageProvider storageProvider,
         string membershipId)
     {
-        try
+        string storageKey = GetRevocationProofStorageKey(membershipId);
+
+        Result<Option<byte[]>, InternalServiceApiFailure> getResult =
+            await storageProvider.TryGetByKeyAsync(storageKey).ConfigureAwait(false);
+
+        if (getResult.IsErr)
         {
-            string storageKey = GetRevocationProofStorageKey(membershipId);
-
-            Result<Option<byte[]>, InternalServiceApiFailure> getResult =
-                await storageProvider.TryGetByKeyAsync(storageKey).ConfigureAwait(false);
-
-            if (getResult.IsErr)
-            {
-                Log.Warning("[LOGOUT-PROOF-CHECK] Failed to check revocation proof for MembershipId: {MembershipId}",
-                    membershipId);
-                return false;
-            }
-
-            Option<byte[]> proofOption = getResult.Unwrap();
-
-            if (proofOption.IsSome)
-            {
-                return true;
-            }
-
+            Log.Warning("[LOGOUT-PROOF-CHECK] Failed to check revocation proof for MembershipId: {MembershipId}",
+                membershipId);
             return false;
         }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "[LOGOUT-PROOF-CHECK] Unexpected error checking revocation proof");
-            return false;
-        }
+
+        Option<byte[]> proofOption = getResult.Unwrap();
+
+        return proofOption.IsSome;
     }
 
     public static void ClearRevocationProof(
         IApplicationSecureStorageProvider storageProvider,
         string membershipId)
     {
-        try
-        {
-            string storageKey = GetRevocationProofStorageKey(membershipId);
-            Result<Unit, InternalServiceApiFailure> deleteResult = storageProvider.Delete(storageKey);
+        string storageKey = GetRevocationProofStorageKey(membershipId);
+        Result<Unit, InternalServiceApiFailure> deleteResult = storageProvider.Delete(storageKey);
 
-            if (deleteResult.IsErr)
-            {
-                Log.Warning("[LOGOUT-PROOF-CLEAR] Failed to clear revocation proof for MembershipId: {MembershipId}",
-                    membershipId);
-            }
-        }
-        catch (Exception ex)
+        if (deleteResult.IsErr)
         {
-            Log.Error(ex, "[LOGOUT-PROOF-CLEAR] Unexpected error clearing revocation proof");
+            Log.Warning("[LOGOUT-PROOF-CLEAR] Failed to clear revocation proof for MembershipId: {MembershipId}",
+                membershipId);
         }
     }
 
     private static string GetRevocationProofStorageKey(string membershipId) =>
-        $"{SecureStorageConstants.Identity.RevocationProofPrefix}{membershipId}";
+        $"{SecureStorageConstants.Identity.REVOCATION_PROOF_PREFIX}{membershipId}";
 
     public async Task<Result<Unit, LogoutFailure>> GenerateLogoutHmacProofAsync(
         LogoutRequest request,

@@ -14,28 +14,28 @@ namespace Ecliptix.Core.Services.External.IpGeolocation;
 
 internal sealed class IpGeolocationService(HttpClient http) : IIpGeolocationService
 {
-    private const string BaseUrl = "https://api.country.is";
+    private const string BASE_URL = "https://api.country.is";
 
     public async Task<Result<IpCountry, InternalServiceApiFailure>> GetIpCountryAsync(
-        CancellationToken ct = default)
+        CancellationToken cancellationToken = default)
     {
-        using HttpRequestMessage req = new(HttpMethod.Get, BaseUrl);
+        using HttpRequestMessage req = new(HttpMethod.Get, BASE_URL);
         req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         try
         {
-            using HttpResponseMessage res = await http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+            using HttpResponseMessage res = await http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
 
             if (!res.IsSuccessStatusCode)
             {
-                string error = await SafeReadAsStringAsync(res.Content, ct).ConfigureAwait(false);
+                string error = await SafeReadAsStringAsync(res.Content, cancellationToken).ConfigureAwait(false);
                 return Result<IpCountry, InternalServiceApiFailure>.Err(
                     InternalServiceApiFailure.ApiRequestFailed(
                         $"Geo API failed with {(int)res.StatusCode} {res.ReasonPhrase}: {Trim(error, 1000)}"));
             }
 
-            await using Stream stream = await res.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-            using JsonDocument doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct).ConfigureAwait(false);
+            await using Stream stream = await res.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            using JsonDocument doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
             JsonElement root = doc.RootElement;
 
             string ipParsed = TryGetAnyCaseInsensitive(root, "ip", "ipAddress", "query") ?? "unknown";
@@ -51,12 +51,12 @@ internal sealed class IpGeolocationService(HttpClient http) : IIpGeolocationServ
 
             return Result<IpCountry, InternalServiceApiFailure>.Ok(new IpCountry(ipParsed, country));
         }
-        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             return Result<IpCountry, InternalServiceApiFailure>.Err(
                 InternalServiceApiFailure.ApiRequestFailed("Geo API request timed out."));
         }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return Result<IpCountry, InternalServiceApiFailure>.Err(
                 InternalServiceApiFailure.ApiRequestFailed("Geo API request canceled by caller."));

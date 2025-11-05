@@ -1,4 +1,4 @@
-using System;
+using System.Security.Cryptography;
 using Ecliptix.Opaque.Protocol.NativeLibraries;
 using Ecliptix.Utilities;
 
@@ -13,14 +13,14 @@ public sealed class OpaqueClient : IDisposable
     {
         if (serverPublicKey?.Length != OpaqueConstants.PUBLIC_KEY_LENGTH)
         {
-            throw new ArgumentException(string.Format(OpaqueErrorMessages.ServerPublicKeyInvalidSize, OpaqueConstants.PUBLIC_KEY_LENGTH));
+            throw new ArgumentException(string.Format(OpaqueErrorMessages.SERVER_PUBLIC_KEY_INVALID_SIZE, OpaqueConstants.PUBLIC_KEY_LENGTH));
         }
 
         int result =
             OpaqueNative.opaque_client_create(serverPublicKey, (UIntPtr)serverPublicKey.Length, out _clientHandle);
-        if (result != (int)OpaqueResult.Success || _clientHandle == IntPtr.Zero)
+        if (result != (int)OpaqueResult.SUCCESS || _clientHandle == IntPtr.Zero)
         {
-            throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FailedToCreateOpaqueClient, (OpaqueResult)result));
+            throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FAILED_TO_CREATE_OPAQUE_CLIENT, (OpaqueResult)result));
         }
     }
 
@@ -29,7 +29,7 @@ public sealed class OpaqueClient : IDisposable
         ThrowIfDisposed();
         if (secureKey == null || secureKey.Length == 0)
         {
-            throw new ArgumentException(OpaqueErrorMessages.SecureKeyNullOrEmpty);
+            throw new ArgumentException(OpaqueErrorMessages.SECURE_KEY_NULL_OR_EMPTY);
         }
 
         try
@@ -37,18 +37,18 @@ public sealed class OpaqueClient : IDisposable
             byte[] request = new byte[OpaqueConstants.REGISTRATION_REQUEST_LENGTH];
 
             int stateResult = OpaqueNative.opaque_client_state_create(out IntPtr state);
-            if (stateResult != (int)OpaqueResult.Success)
+            if (stateResult != (int)OpaqueResult.SUCCESS)
             {
-                throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FailedToCreateState, (OpaqueResult)stateResult));
+                throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FAILED_TO_CREATE_STATE, (OpaqueResult)stateResult));
             }
 
             int result = OpaqueNative.opaque_client_create_registration_request(
                 _clientHandle, secureKey, (UIntPtr)secureKey.Length, state, request, (UIntPtr)request.Length);
 
-            if (result != (int)OpaqueResult.Success)
+            if (result != (int)OpaqueResult.SUCCESS)
             {
                 OpaqueNative.opaque_client_state_destroy(state);
-                throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FailedToCreateRegistrationRequest, (OpaqueResult)result));
+                throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FAILED_TO_CREATE_REGISTRATION_REQUEST, (OpaqueResult)result));
             }
 
             return new RegistrationResult(request, state);
@@ -65,7 +65,7 @@ public sealed class OpaqueClient : IDisposable
         if (serverResponse?.Length != OpaqueConstants.REGISTRATION_RESPONSE_LENGTH)
         {
             throw new ArgumentException(
-                string.Format(OpaqueErrorMessages.ServerResponseInvalidSize, OpaqueConstants.REGISTRATION_RESPONSE_LENGTH));
+                string.Format(OpaqueErrorMessages.SERVER_RESPONSE_INVALID_SIZE, OpaqueConstants.REGISTRATION_RESPONSE_LENGTH));
         }
 
         byte[] masterKey = new byte[OpaqueConstants.MASTER_KEY_LENGTH];
@@ -78,9 +78,9 @@ public sealed class OpaqueClient : IDisposable
             masterKey, (UIntPtr)masterKey.Length,
             registrationState.StateHandle, record, (UIntPtr)record.Length);
 
-        if (result != (int)OpaqueResult.Success)
+        if (result != (int)OpaqueResult.SUCCESS)
         {
-            throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FailedToFinalizeRegistration, (OpaqueResult)result));
+            throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FAILED_TO_FINALIZE_REGISTRATION, (OpaqueResult)result));
         }
 
         return (record, masterKey);
@@ -91,7 +91,7 @@ public sealed class OpaqueClient : IDisposable
         ThrowIfDisposed();
         if (secureKey == null || secureKey.Length == 0)
         {
-            throw new ArgumentException(OpaqueErrorMessages.SecureKeyNullOrEmpty);
+            throw new ArgumentException(OpaqueErrorMessages.SECURE_KEY_NULL_OR_EMPTY);
         }
 
         try
@@ -99,18 +99,18 @@ public sealed class OpaqueClient : IDisposable
             byte[] ke1 = new byte[OpaqueConstants.KE1_LENGTH];
 
             int stateResult = OpaqueNative.opaque_client_state_create(out IntPtr state);
-            if (stateResult != (int)OpaqueResult.Success)
+            if (stateResult != (int)OpaqueResult.SUCCESS)
             {
-                throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FailedToCreateState, (OpaqueResult)stateResult));
+                throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FAILED_TO_CREATE_STATE, (OpaqueResult)stateResult));
             }
 
             int result = OpaqueNative.opaque_client_generate_ke1(
                 _clientHandle, secureKey, (UIntPtr)secureKey.Length, state, ke1, (UIntPtr)ke1.Length);
 
-            if (result != (int)OpaqueResult.Success)
+            if (result != (int)OpaqueResult.SUCCESS)
             {
                 OpaqueNative.opaque_client_state_destroy(state);
-                throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FailedToGenerateKE1, (OpaqueResult)result));
+                throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FAILED_TO_GENERATE_KE1, (OpaqueResult)result));
             }
 
             return new KeyExchangeResult(ke1, state);
@@ -126,7 +126,7 @@ public sealed class OpaqueClient : IDisposable
         ThrowIfDisposed();
         if (ke2?.Length != OpaqueConstants.KE2_LENGTH)
         {
-            return Result<byte[], OpaqueResult>.Err(OpaqueResult.InvalidInput);
+            return Result<byte[], OpaqueResult>.Err(OpaqueResult.INVALID_INPUT);
         }
 
         byte[] ke3 = new byte[OpaqueConstants.KE3_LENGTH];
@@ -134,7 +134,7 @@ public sealed class OpaqueClient : IDisposable
         int result = OpaqueNative.opaque_client_generate_ke3(
             _clientHandle, ke2, (UIntPtr)ke2.Length, keyExchangeState.StateHandle, ke3, (UIntPtr)ke3.Length);
 
-        return result != (int)OpaqueResult.Success
+        return result != (int)OpaqueResult.SUCCESS
             ? Result<byte[], OpaqueResult>.Err((OpaqueResult)result)
             : Result<byte[], OpaqueResult>.Ok(ke3);
     }
@@ -151,9 +151,9 @@ public sealed class OpaqueClient : IDisposable
             sessionKey, (UIntPtr)sessionKey.Length,
             masterKey, (UIntPtr)masterKey.Length);
 
-        if (result != (int)OpaqueResult.Success)
+        if (result != (int)OpaqueResult.SUCCESS)
         {
-            throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FailedToDeriveSessionKey, (OpaqueResult)result));
+            throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FAILED_TO_DERIVE_SESSION_KEY, (OpaqueResult)result));
         }
 
         return (sessionKey, masterKey);
@@ -169,7 +169,7 @@ public sealed class OpaqueClient : IDisposable
 
     private static void ClearSecureKey(byte[] secureKey)
     {
-        Array.Clear(secureKey, 0, secureKey.Length);
+        CryptographicOperations.ZeroMemory(secureKey);
     }
 
     public void Dispose()

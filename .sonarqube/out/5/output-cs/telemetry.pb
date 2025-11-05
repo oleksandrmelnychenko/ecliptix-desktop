@@ -1,0 +1,1 @@
+ÅRk/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Ecliptix.Core.csproj¢net9.0ÚCSharp13

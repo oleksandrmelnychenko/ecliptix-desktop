@@ -3,13 +3,12 @@ using System.Reactive.Subjects;
 using System.Threading.Tasks;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Utilities;
-using Serilog;
 
 namespace Ecliptix.Core.Services.Core;
 
 public sealed class ApplicationStateManager : IApplicationStateManager, IDisposable
 {
-    private readonly BehaviorSubject<ApplicationState> _stateSubject = new(ApplicationState.Initializing);
+    private readonly BehaviorSubject<ApplicationState> _stateSubject = new(ApplicationState.INITIALIZING);
     private Option<string> _currentMembershipId = Option<string>.None;
     private bool _disposed;
 
@@ -22,7 +21,7 @@ public sealed class ApplicationStateManager : IApplicationStateManager, IDisposa
     public Task TransitionToAnonymousAsync()
     {
         _currentMembershipId = Option<string>.None;
-        _stateSubject.OnNext(ApplicationState.Anonymous);
+        _stateSubject.OnNext(ApplicationState.ANONYMOUS);
         return Task.CompletedTask;
     }
 
@@ -34,7 +33,7 @@ public sealed class ApplicationStateManager : IApplicationStateManager, IDisposa
         }
 
         _currentMembershipId = Option<string>.Some(membershipId);
-        _stateSubject.OnNext(ApplicationState.Authenticated);
+        _stateSubject.OnNext(ApplicationState.AUTHENTICATED);
         return Task.CompletedTask;
     }
 

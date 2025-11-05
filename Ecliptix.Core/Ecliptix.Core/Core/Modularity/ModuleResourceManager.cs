@@ -54,7 +54,7 @@ internal class ModuleResourceManager(IServiceProvider serviceProvider) : IDispos
         return moduleScope;
     }
 
-    private void AutoForwardCoreServices(IServiceCollection moduleServices, ModuleServiceContext context)
+    private static void AutoForwardCoreServices(IServiceCollection moduleServices, ModuleServiceContext context)
     {
         moduleServices.AddSingleton(context.GetParentService<Core.Messaging.Services.IConnectivityService>());
         moduleServices.AddSingleton(context.GetParentService<Core.Messaging.Services.IBottomSheetService>());
@@ -88,25 +88,34 @@ internal class ModuleResourceManager(IServiceProvider serviceProvider) : IDispos
 
     public void Dispose()
     {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
         if (_disposed)
         {
             return;
         }
 
-        _disposed = true;
-
-        foreach (KeyValuePair<string, IModuleScope> kvp in _moduleScopes)
+        if (disposing)
         {
-            try
+            foreach (KeyValuePair<string, IModuleScope> kvp in _moduleScopes)
             {
-                kvp.Value.Dispose();
+                try
+                {
+                    kvp.Value.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "ERROR disposing module scope for {ModuleName}", kvp.Key);
+                }
             }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Error disposing module scope for {ModuleName}", kvp.Key);
-            }
+
+            _moduleScopes.Clear();
         }
 
-        _moduleScopes.Clear();
+        _disposed = true;
     }
 }

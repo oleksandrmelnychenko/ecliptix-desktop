@@ -29,17 +29,18 @@ internal sealed class LogoutService(
     IMessageBus messageBus,
     IApplicationSecureStorageProvider applicationSecureStorageProvider,
     IApplicationStateManager stateManager,
-    IStateCleanupService stateCleanupService,
     IApplicationRouter router,
     IIdentityService identityService)
     : ILogoutService
 {
     private readonly PendingLogoutRequestStorage _pendingLogoutRequestStorage = new(applicationSecureStorageProvider);
     private readonly LogoutProofHandler _logoutProofHandler = new(identityService, applicationSecureStorageProvider);
-    private readonly PendingLogoutProcessor _pendingLogoutProcessor = new(networkProvider, new PendingLogoutRequestStorage(applicationSecureStorageProvider));
 
-    private const bool KeepPendingLogout = true;
-    private const bool ClearPendingLogout = false;
+    private readonly PendingLogoutProcessor _pendingLogoutProcessor =
+        new(networkProvider, new PendingLogoutRequestStorage(applicationSecureStorageProvider));
+
+    private const bool KEEP_PENDING_LOGOUT = true;
+    private const bool CLEAR_PENDING_LOGOUT = false;
 
     public async Task<Result<Unit, LogoutFailure>> LogoutAsync(LogoutReason reason,
         CancellationToken cancellationToken = default)
@@ -68,7 +69,7 @@ internal sealed class LogoutService(
         if (logoutResult.IsErr)
         {
             return await HandleFailedLogoutAsync(logoutRequest, membershipId, reason, connectId,
-                "Logout failed", cancellationToken).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
         }
 
         LogoutResponse response = logoutResult.Unwrap();
@@ -78,34 +79,22 @@ internal sealed class LogoutService(
     }
 
     public static async Task<bool> HasRevocationProofAsync(IApplicationSecureStorageProvider storageProvider,
-        string membershipId)
-    {
-        return await LogoutProofHandler.HasRevocationProofAsync(storageProvider, membershipId);
-    }
+        string membershipId) =>
+        await LogoutProofHandler.HasRevocationProofAsync(storageProvider, membershipId);
 
-    private async Task TryStorePendingLogoutAsync(LogoutRequest request)
-    {
-        Result<Unit, LogoutFailure> storeResult =
-            await _pendingLogoutRequestStorage.StorePendingLogoutAsync(request).ConfigureAwait(false);
-
-        if (storeResult.IsErr)
-        {
-            Log.Warning("[LOGOUT] Failed to store pending logout request: {Error}",
-                storeResult.UnwrapErr().Message);
-        }
-    }
+    private async Task TryStorePendingLogoutAsync(LogoutRequest request) =>
+        await _pendingLogoutRequestStorage.StorePendingLogoutAsync(request).ConfigureAwait(false);
 
     private async Task<Result<Unit, LogoutFailure>> HandleFailedLogoutAsync(
         LogoutRequest logoutRequest,
         string membershipId,
         LogoutReason reason,
         uint connectId,
-        string failureContext,
         CancellationToken cancellationToken)
     {
         await TryStorePendingLogoutAsync(logoutRequest).ConfigureAwait(false);
 
-        await CompleteLogoutWithCleanupAsync(membershipId, reason, connectId, KeepPendingLogout, cancellationToken)
+        await CompleteLogoutWithCleanupAsync(membershipId, reason, connectId, KEEP_PENDING_LOGOUT, cancellationToken)
             .ConfigureAwait(false);
 
         return Result<Unit, LogoutFailure>.Ok(Unit.Value);
@@ -167,7 +156,6 @@ internal sealed class LogoutService(
 
         if (hmacResult.IsErr)
         {
-            Log.Warning("[LOGOUT] Failed to generate HMAC proof: {Error}", hmacResult.UnwrapErr().Message);
             return Result<(LogoutRequest, uint), LogoutFailure>.Err(hmacResult.UnwrapErr());
         }
 
@@ -209,7 +197,6 @@ internal sealed class LogoutService(
         if (networkResult.IsErr)
         {
             NetworkFailure failure = networkResult.UnwrapErr();
-            Log.Warning("[LOGOUT] Network request failed: {Error}", failure.Message);
             return Result<LogoutResponse, LogoutFailure>.Err(
                 LogoutFailure.NetworkRequestFailed("Network request failed", new Exception(failure.Message)));
         }
@@ -217,14 +204,13 @@ internal sealed class LogoutService(
         Result<LogoutResponse, LogoutFailure> responseResult =
             await responseCompletionSource.Task.ConfigureAwait(false);
 
-        if (responseResult.IsErr)
+        if (!responseResult.IsErr)
         {
-            LogoutFailure serverFailure = responseResult.UnwrapErr();
-            Log.Warning("[LOGOUT] Server returned error: {Error}", serverFailure.Message);
-            return Result<LogoutResponse, LogoutFailure>.Err(serverFailure);
+            return Result<LogoutResponse, LogoutFailure>.Ok(responseResult.Unwrap());
         }
 
-        return Result<LogoutResponse, LogoutFailure>.Ok(responseResult.Unwrap());
+        LogoutFailure serverFailure = responseResult.UnwrapErr();
+        return Result<LogoutResponse, LogoutFailure>.Err(serverFailure);
     }
 
     private async Task<Result<Unit, LogoutFailure>> ProcessSuccessfulLogoutAsync(
@@ -243,13 +229,14 @@ internal sealed class LogoutService(
                 membershipId);
         }
 
-        await CompleteLogoutWithCleanupAsync(membershipId, reason, connectId, ClearPendingLogout, cancellationToken)
+        await CompleteLogoutWithCleanupAsync(membershipId, reason, connectId, CLEAR_PENDING_LOGOUT, cancellationToken)
             .ConfigureAwait(false);
 
         return Result<Unit, LogoutFailure>.Ok(Unit.Value);
     }
 
-    private async Task FinalizeLogoutAsync(string membershipId, LogoutReason reason, bool shouldRetryPendingLogout, CancellationToken cancellationToken)
+    private async Task FinalizeLogoutAsync(string membershipId, LogoutReason reason, bool shouldRetryPendingLogout,
+        CancellationToken cancellationToken)
     {
         await stateManager.TransitionToAnonymousAsync().ConfigureAwait(false);
 
@@ -262,30 +249,30 @@ internal sealed class LogoutService(
         {
             _ = Task.Run(async () =>
             {
-                try
-                {
-                    Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
-                        await applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync().ConfigureAwait(false);
+                Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
+                    await applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync()
+                        .ConfigureAwait(false);
 
-                    if (settingsResult.IsOk)
-                    {
-                        ApplicationInstanceSettings settings = settingsResult.Unwrap();
-                        uint anonymousConnectId = NetworkProvider.ComputeUniqueConnectId(
-                            settings,
-                            PubKeyExchangeType.DataCenterEphemeralConnect);
-
-                        await _pendingLogoutProcessor.ProcessPendingLogoutAsync(anonymousConnectId).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        Log.Warning("[LOGOUT-RETRY] Failed to get settings for immediate retry: {Error}, will retry on next startup", settingsResult.UnwrapErr().Message);
-                    }
-                }
-                catch (Exception ex)
+                if (settingsResult.IsOk)
                 {
-                    Log.Warning(ex, "[LOGOUT-RETRY] Immediate pending logout retry failed, will retry on next startup");
+                    ApplicationInstanceSettings settings = settingsResult.Unwrap();
+                    uint anonymousConnectId = NetworkProvider.ComputeUniqueConnectId(
+                        settings,
+                        PubKeyExchangeType.DataCenterEphemeralConnect);
+
+                    await _pendingLogoutProcessor.ProcessPendingLogoutAsync(anonymousConnectId)
+                        .ConfigureAwait(false);
                 }
-            });
+            }).ContinueWith(
+                task =>
+                {
+                    if (task.IsFaulted && task.Exception != null)
+                    {
+                        Log.Warning(task.Exception,
+                            "[LOGOUT-RETRY] Immediate pending logout retry failed, will retry on next startup");
+                    }
+                },
+                TaskScheduler.Default);
         }
     }
 
@@ -297,7 +284,7 @@ internal sealed class LogoutService(
             LogoutResponse.Types.Result.AlreadyLoggedOut => Result<LogoutResponse, LogoutFailure>.Err(
                 LogoutFailure.AlreadyLoggedOut("Session is already logged out on the server")),
             LogoutResponse.Types.Result.SessionNotFound => Result<LogoutResponse, LogoutFailure>.Err(
-                LogoutFailure.SessionNotFound("Active session was not found on the server")),
+                LogoutFailure.SESSION_NOT_FOUND("Active session was not found on the server")),
             LogoutResponse.Types.Result.InvalidTimestamp => Result<LogoutResponse, LogoutFailure>.Err(
                 LogoutFailure.UnexpectedError("Server rejected logout due to timestamp mismatch")),
             LogoutResponse.Types.Result.InvalidHmac => Result<LogoutResponse, LogoutFailure>.Err(
@@ -312,14 +299,8 @@ internal sealed class LogoutService(
     private async Task CompleteLogoutWithCleanupAsync(string membershipId, LogoutReason reason, uint connectId,
         bool keepPendingLogout, CancellationToken cancellationToken)
     {
-        Result<Unit, Exception> cleanupResult =
-            await stateCleanupService.CleanupMembershipStateWithKeysAsync(membershipId, connectId)
-                .ConfigureAwait(false);
-        if (cleanupResult.IsErr)
-        {
-            Log.Warning("[LOGOUT-CLEANUP] State cleanup with keys failed. MembershipId: {MembershipId}, Error: {Error}",
-                membershipId, cleanupResult.UnwrapErr().Message);
-        }
+        await identityService.CleanupMembershipStateWithKeysAsync(membershipId, connectId)
+            .ConfigureAwait(false);
 
         LogoutProofHandler.ClearRevocationProof(applicationSecureStorageProvider, membershipId);
 

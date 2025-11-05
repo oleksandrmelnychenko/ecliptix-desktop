@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -59,6 +60,7 @@ public partial class VerificationCodeEntryView : ReactiveUserControl<VerifyOtpVi
         {
             segmentedTextBox.KeyDown -= OnSegmentedTextBoxKeyDown;
         }
+
         _handlersAttached = false;
     }
 
@@ -74,7 +76,16 @@ public partial class VerificationCodeEntryView : ReactiveUserControl<VerifyOtpVi
             return;
         }
 
-        _ = vm.HandleEnterKeyPressAsync();
+        vm.HandleEnterKeyPressAsync().ContinueWith(
+            task =>
+            {
+                if (task is { IsFaulted: true, Exception: not null })
+                {
+                    Serilog.Log.Error(task.Exception,
+                        "[VERIFICATION-CODE-ENTRY-VIEW] Unhandled exception in HandleEnterKeyPressAsync");
+                }
+            },
+            TaskScheduler.Default);
         e.Handled = true;
     }
 }

@@ -24,7 +24,7 @@ namespace Ecliptix.Core.Core.MVVM;
 public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableViewModel
 {
     private bool _disposedValue;
-    private IDisposable? _connectivitySubscription;
+    private ObservableAsPropertyHelper<bool>? _connectivitySubscription;
 
     protected ViewModelBase(NetworkProvider networkProvider,
         ILocalizationService localizationService,
@@ -103,14 +103,29 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         UserRequestErrorViewModel errorViewModel = new(errorMessage, LocalizationService);
         UserRequestErrorView errorView = new() { DataContext = errorViewModel };
 
-        _ = Task.Run(async () =>
+        Task.Run(async () =>
         {
-            await hostWindow.ShowBottomSheet(
-                BottomSheetComponentType.UserRequestError,
-                errorView,
-                showScrim: false,
-                isDismissable: true);
-        });
+            try
+            {
+                await hostWindow.ShowBottomSheet(
+                    BottomSheetComponentType.UserRequestError,
+                    errorView,
+                    showScrim: false,
+                    isDismissable: true);
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "[VIEWMODEL-BASE] Exception showing user request error bottom sheet");
+            }
+        }).ContinueWith(
+            task =>
+            {
+                if (task.IsFaulted && task.Exception != null)
+                {
+                    Serilog.Log.Error(task.Exception, "[VIEWMODEL-BASE] Unhandled exception in ShowServerErrorNotification background task");
+                }
+            },
+            TaskScheduler.Default);
     }
 
     protected void ShowRedirectNotification(AuthenticationViewModel hostWindow, string message, int seconds,
@@ -125,18 +140,35 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         RedirectNotificationViewModel redirectViewModel = new(message, seconds, onComplete, LocalizationService);
         RedirectNotificationView redirectView = new() { DataContext = redirectViewModel };
 
-        _ = Task.Run(async () =>
+        Task.Run(async () =>
         {
-            if (!_disposedValue)
+            try
             {
-                await hostWindow.ShowBottomSheet(BottomSheetComponentType.RedirectNotification, redirectView,
-                    showScrim: true, isDismissable: false);
+                if (!_disposedValue)
+                {
+                    await hostWindow.ShowBottomSheet(BottomSheetComponentType.RedirectNotification, redirectView,
+                        showScrim: true, isDismissable: false);
+                }
+                else
+                {
+                    onComplete();
+                }
             }
-            else
+            catch (Exception ex)
             {
+                Serilog.Log.Error(ex, "[VIEWMODEL-BASE] Exception showing redirect notification bottom sheet");
                 onComplete();
             }
-        });
+        }).ContinueWith(
+            task =>
+            {
+                if (task.IsFaulted && task.Exception != null)
+                {
+                    Serilog.Log.Error(task.Exception, "[VIEWMODEL-BASE] Unhandled exception in ShowRedirectNotification background task");
+                    onComplete();
+                }
+            },
+            TaskScheduler.Default);
     }
 
     protected static void CleanupAndNavigate(AuthenticationViewModel membershipHostWindow, MembershipViewType targetView)
@@ -144,16 +176,31 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         membershipHostWindow.ClearNavigationStack();
         membershipHostWindow.Navigate.Execute(targetView).Subscribe();
 
-        _ = Task.Run(async () =>
+        Task.Run(async () =>
         {
-            await membershipHostWindow.HideBottomSheetAsync();
-        });
+            try
+            {
+                await membershipHostWindow.HideBottomSheetAsync();
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "[VIEWMODEL-BASE] Exception hiding bottom sheet during cleanup");
+            }
+        }).ContinueWith(
+            task =>
+            {
+                if (task.IsFaulted && task.Exception != null)
+                {
+                    Serilog.Log.Error(task.Exception, "[VIEWMODEL-BASE] Unhandled exception in CleanupAndNavigate background task");
+                }
+            },
+            TaskScheduler.Default);
     }
 
     protected string GetSecureKeyLocalization(AuthenticationFlowContext flowContext, string registrationKey, string recoveryKey) => flowContext switch
     {
-        AuthenticationFlowContext.Registration => LocalizationService[registrationKey],
-        AuthenticationFlowContext.SecureKeyRecovery => LocalizationService[recoveryKey],
+        AuthenticationFlowContext.REGISTRATION => LocalizationService[registrationKey],
+        AuthenticationFlowContext.SECURE_KEY_RECOVERY => LocalizationService[recoveryKey],
         _ => LocalizationService[registrationKey]
     };
 
@@ -164,14 +211,15 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
             or ConnectivityStatus.RetriesExhausted
             or ConnectivityStatus.Unavailable;
 
-    protected CancellationTokenSource RecreateCancellationToken(ref CancellationTokenSource? cts)
+    protected static CancellationTokenSource RecreateCancellationToken(ref CancellationTokenSource? cts)
     {
         try
         {
             cts?.Cancel();
         }
-        catch (ObjectDisposedException)
+        catch (ObjectDisposedException ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[VIEWMODEL-BASE] CTS already disposed during recreation: {ex.Message}");
         }
 
         cts?.Dispose();
@@ -179,7 +227,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         return cts;
     }
 
-    protected CancellationTokenSource RecreateCancellationToken(ref Option<CancellationTokenSource> ctsOption)
+    protected static CancellationTokenSource RecreateCancellationToken(ref Option<CancellationTokenSource> ctsOption)
     {
         ctsOption.Do(cts =>
         {
@@ -187,8 +235,9 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
             {
                 cts.Cancel();
             }
-            catch (ObjectDisposedException)
+            catch (ObjectDisposedException ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[VIEWMODEL-BASE] CTS already disposed during recreation (Option): {ex.Message}");
             }
             cts.Dispose();
         });
@@ -200,20 +249,23 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
 
     protected virtual void Dispose(bool disposing)
     {
-        if (!_disposedValue)
+        if (_disposedValue)
         {
-            if (disposing)
-            {
-                _connectivitySubscription?.Dispose();
-                _connectivitySubscription = null;
-            }
-
-            _disposedValue = true;
+            return;
         }
+
+        if (disposing)
+        {
+            _connectivitySubscription?.Dispose();
+            _connectivitySubscription = null;
+        }
+
+        _disposedValue = true;
     }
 
     public void Dispose()
     {
         Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 }

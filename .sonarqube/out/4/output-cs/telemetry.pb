@@ -1,0 +1,1 @@
+§Rç/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Ecliptix.Security.Certificate.Pinning.csproj¢net9.0ÚCSharp13

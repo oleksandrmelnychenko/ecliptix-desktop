@@ -1,4 +1,3 @@
-using System;
 using Ecliptix.Protobuf.Common;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
@@ -22,11 +21,9 @@ internal static class EnvelopeBuilder
             EnvelopeId = requestId.ToString(),
             Nonce = nonce,
             RatchetIndex = ratchetIndex,
-            EnvelopeType = envelopeType
+            EnvelopeType = envelopeType,
+            ChannelKeyId = channelKeyId is { Length: > 0 } ? ByteString.CopyFrom(channelKeyId) : GenerateChannelKeyId()
         };
-
-        metadata.ChannelKeyId =
-            channelKeyId is { Length: > 0 } ? ByteString.CopyFrom(channelKeyId) : GenerateChannelKeyId();
 
         if (!string.IsNullOrEmpty(correlationId))
         {
@@ -69,65 +66,6 @@ internal static class EnvelopeBuilder
         return envelope;
     }
 
-    public static Result<EnvelopeMetadata, EcliptixProtocolFailure> ParseEnvelopeMetadata(ByteString metaDataBytes)
-    {
-        try
-        {
-            SecureByteStringInterop.SecureCopyWithCleanup(metaDataBytes, out byte[] metaDataArray);
-            try
-            {
-                EnvelopeMetadata metadata = EnvelopeMetadata.Parser.ParseFrom(metaDataArray);
-                return Result<EnvelopeMetadata, EcliptixProtocolFailure>.Ok(metadata);
-            }
-            finally
-            {
-                Array.Clear(metaDataArray);
-            }
-        }
-        catch (Exception ex)
-        {
-            return Result<EnvelopeMetadata, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.Decode($"Failed to parse EnvelopeMetadata: {ex.Message}", ex));
-        }
-    }
-
-    public static Result<EnvelopeResultCode, EcliptixProtocolFailure> ParseResultCode(ByteString resultCodeBytes)
-    {
-        try
-        {
-            if (resultCodeBytes.Length != sizeof(int))
-            {
-                return Result<EnvelopeResultCode, EcliptixProtocolFailure>.Err(
-                    EcliptixProtocolFailure.Decode("Invalid result code length"));
-            }
-
-            int resultCodeValue = BitConverter.ToInt32(resultCodeBytes.Span);
-            if (!global::System.Enum.IsDefined(typeof(EnvelopeResultCode), resultCodeValue))
-            {
-                return Result<EnvelopeResultCode, EcliptixProtocolFailure>.Err(
-                    EcliptixProtocolFailure.Decode($"Unknown result code value: {resultCodeValue}"));
-            }
-
-            EnvelopeResultCode resultCode = (EnvelopeResultCode)resultCodeValue;
-            return Result<EnvelopeResultCode, EcliptixProtocolFailure>.Ok(resultCode);
-        }
-        catch (Exception ex)
-        {
-            return Result<EnvelopeResultCode, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.Decode($"Failed to parse result code: {ex.Message}", ex));
-        }
-    }
-
-    public static uint ExtractRequestIdFromEnvelopeId(string envelopeId)
-    {
-        if (uint.TryParse(envelopeId, out uint requestId))
-        {
-            return requestId;
-        }
-
-        return Helpers.GenerateRandomUInt32(true);
-    }
-
     private static ByteString GenerateChannelKeyId()
     {
         byte[] keyId = new byte[16];
@@ -149,10 +87,10 @@ internal static class EnvelopeBuilder
             metadataBytes = metadata.ToByteArray();
 
             ciphertext = new byte[metadataBytes.Length];
-            tag = new byte[Constants.AesGcmTagSize];
+            tag = new byte[Constants.AES_GCM_TAG_SIZE];
 
             using (global::System.Security.Cryptography.AesGcm aesGcm =
-                new(headerEncryptionKey, Constants.AesGcmTagSize))
+                new(headerEncryptionKey, Constants.AES_GCM_TAG_SIZE))
             {
                 aesGcm.Encrypt(headerNonce, metadataBytes, ciphertext, tag, associatedData);
             }
@@ -196,11 +134,11 @@ internal static class EnvelopeBuilder
         byte[]? plaintext = null;
         try
         {
-            int cipherLength = encryptedMetadata.Length - Constants.AesGcmTagSize;
+            int cipherLength = encryptedMetadata.Length - Constants.AES_GCM_TAG_SIZE;
             if (cipherLength < 0)
             {
                 return Result<EnvelopeMetadata, EcliptixProtocolFailure>.Err(
-                    EcliptixProtocolFailure.BufferTooSmall("Encrypted metadata too small"));
+                    EcliptixProtocolFailure.BUFFER_TOO_SMALL("Encrypted metadata too small"));
             }
 
             ReadOnlySpan<byte> ciphertextSpan = encryptedMetadata.AsSpan(0, cipherLength);
@@ -209,7 +147,7 @@ internal static class EnvelopeBuilder
             plaintext = new byte[cipherLength];
 
             using (global::System.Security.Cryptography.AesGcm aesGcm =
-                new(headerEncryptionKey, Constants.AesGcmTagSize))
+                new(headerEncryptionKey, Constants.AES_GCM_TAG_SIZE))
             {
                 aesGcm.Decrypt(headerNonce, ciphertextSpan, tagSpan, plaintext, associatedData);
             }

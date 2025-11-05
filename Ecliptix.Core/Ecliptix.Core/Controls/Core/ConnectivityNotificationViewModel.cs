@@ -61,8 +61,8 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
     private Border? _mainBorder;
     private bool _disposed;
 
-    private static Animation? _sharedAppearAnimation;
-    private static Animation? _sharedDisappearAnimation;
+    private static readonly Lazy<Animation> _sharedAppearAnimation = new(CreateAppearAnimation);
+    private static readonly Lazy<Animation> _sharedDisappearAnimation = new(CreateDisappearAnimation);
 
     private Bitmap? _cachedInternetUnavailableIcon;
     private Bitmap? _cachedServerUnreachableIcon;
@@ -70,10 +70,10 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
     private TranslateTransform? _sharedTranslateTransform;
 
     public TimeSpan AppearDuration { get; set; } =
-        TimeSpan.FromMilliseconds(NetworkStatusConstants.DefaultAppearDurationMs);
+        TimeSpan.FromMilliseconds(NetworkStatusConstants.DEFAULT_APPEAR_DURATION_MS);
 
     public TimeSpan DisappearDuration { get; set; } =
-        TimeSpan.FromMilliseconds(NetworkStatusConstants.DefaultDisappearDurationMs);
+        TimeSpan.FromMilliseconds(NetworkStatusConstants.DEFAULT_DISAPPEAR_DURATION_MS);
 
     private readonly ObservableAsPropertyHelper<string> _retryButtonText;
     public string RetryButtonText => _retryButtonText.Value;
@@ -118,6 +118,52 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
     {
         LocalizationService = localizationService;
 
+        IObservable<Unit> languageTrigger = CreateLanguageTrigger();
+        ConnectivityObservables connectivityObservables = CreateConnectivityObservables(connectivityService);
+        StatusObservables statusObservables =
+            CreateStatusObservables(languageTrigger, connectivityObservables, connectivityService.CurrentSnapshot);
+        VisibilityObservables visibilityObservables =
+            CreateVisibilityObservables(connectivityObservables.Snapshots, connectivityObservables.ManualRetryEvents);
+
+        _issueCategory = statusObservables.IssueCategory.ToProperty(this, x => x.IssueCategory).DisposeWith(_disposables);
+        _detailedStatus = statusObservables.DetailedStatus.ToProperty(this, x => x.DetailedStatus).DisposeWith(_disposables);
+        _statusText = statusObservables.StatusText.ToProperty(this, x => x.StatusText).DisposeWith(_disposables);
+        _statusDescription = statusObservables.StatusDescription.ToProperty(this, x => x.StatusDescription)
+            .DisposeWith(_disposables);
+        _statusIconSource = statusObservables.StatusIcon.ToProperty(this, x => x.StatusIconSource).DisposeWith(_disposables);
+        _showRetryButton = visibilityObservables.ShowRetryButton.ToProperty(this, x => x.ShowRetryButton).DisposeWith(_disposables);
+        _isVisible = visibilityObservables.IsVisible.ToProperty(this, x => x.IsVisible).DisposeWith(_disposables);
+        _isAnimating = Observable.Return(false).ToProperty(this, x => x.IsAnimating).DisposeWith(_disposables);
+        _retryButtonText = statusObservables.RetryButtonText.ToProperty(this, x => x.RetryButtonText).DisposeWith(_disposables);
+
+        RetryCommand = CreateRetryCommand(
+            connectivityService, pendingRequestManager, visibilityObservables.ShowRetryButton);
+
+        SetupConnectivitySubscriptions(connectivityObservables.Snapshots, visibilityObservables.IsVisible);
+    }
+
+    private void SetupConnectivitySubscriptions(
+        IObservable<ConnectivitySnapshot> connectivitySnapshots,
+        IObservable<bool> isVisibleObservable)
+    {
+        connectivitySnapshots
+            .ObserveOn(RxApp.TaskpoolScheduler)
+            .Subscribe(snapshot =>
+            {
+                LogNetworkEvent(snapshot);
+                HandleConnectivityVisualEffects(snapshot);
+            })
+            .DisposeWith(_disposables);
+
+        isVisibleObservable
+            .DistinctUntilChanged()
+            .ObserveOn(RxApp.TaskpoolScheduler)
+            .Subscribe(visible => { HandleVisibilityChangeAsync(visible).ConfigureAwait(false); })
+            .DisposeWith(_disposables);
+    }
+
+    private IObservable<Unit> CreateLanguageTrigger()
+    {
         IObservable<Unit> languageTrigger = Observable.FromEvent(
                 handler => LocalizationService.LanguageChanged += handler,
                 handler => LocalizationService.LanguageChanged -= handler)
@@ -129,9 +175,12 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
             .Subscribe(_ => ClearStringCache())
             .DisposeWith(_disposables);
 
-        ConnectivitySnapshot initialSnapshot = connectivityService.CurrentSnapshot;
+        return languageTrigger;
+    }
 
-        IObservable<ConnectivitySnapshot> connectivitySnapshots = connectivityService.ConnectivityStream
+    private static ConnectivityObservables CreateConnectivityObservables(IConnectivityService connectivityService)
+    {
+        IObservable<ConnectivitySnapshot> snapshots = connectivityService.ConnectivityStream
             .Publish()
             .RefCount();
 
@@ -147,26 +196,59 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
                     SubscriptionLifetime.Scoped);
             });
 
-        IObservable<ConnectivitySnapshot> internetSnapshots = connectivitySnapshots
+        IObservable<ConnectivitySnapshot> internetSnapshots = snapshots
             .Where(snapshot => snapshot.Source == ConnectivitySource.InternetProbe);
 
-        IObservable<ConnectivitySnapshot> serverSnapshots = connectivitySnapshots
+        IObservable<ConnectivitySnapshot> serverSnapshots = snapshots
             .Where(snapshot => snapshot.Source == ConnectivitySource.DataCenter);
 
-        IObservable<DetailedConnectivityStatus?> internetStatusObservable = internetSnapshots
+        return new ConnectivityObservables(snapshots, manualRetryEvents, internetSnapshots, serverSnapshots);
+    }
+
+    private StatusObservables CreateStatusObservables(
+        IObservable<Unit> languageTrigger,
+        ConnectivityObservables connectivityObservables,
+        ConnectivitySnapshot initialSnapshot)
+    {
+        IObservable<DetailedConnectivityStatus?> internetStatus = connectivityObservables.InternetSnapshots
             .Select(MapInternetStatus)
             .StartWith(initialSnapshot.Source == ConnectivitySource.InternetProbe
                 ? MapInternetStatus(initialSnapshot)
                 : null);
 
-        IObservable<DetailedConnectivityStatus?> serverStatusObservable = serverSnapshots
+        IObservable<DetailedConnectivityStatus?> serverStatus = connectivityObservables.ServerSnapshots
             .Select(MapServerStatus)
             .StartWith(initialSnapshot.Source == ConnectivitySource.DataCenter
                 ? MapServerStatus(initialSnapshot)
                 : null);
 
-        IObservable<DetailedConnectivityStatus> detailedStatusObservable = internetStatusObservable
-            .CombineLatest(serverStatusObservable, (internet, server) =>
+        IObservable<DetailedConnectivityStatus> detailedStatus = CombineInternetAndServerStatus(internetStatus, serverStatus);
+
+        IObservable<ConnectivityIssueCategory> issueCategory = detailedStatus
+            .Select(MapToIssueCategory)
+            .DistinctUntilChanged();
+
+        IObservable<string> retryButtonText = languageTrigger
+            .Select(_ => GetCachedRetryButtonText());
+
+        IObservable<string> statusText = detailedStatus
+            .CombineLatest(languageTrigger, (status, _) => GetStatusText(status));
+
+        IObservable<string> statusDescription = detailedStatus
+            .CombineLatest(languageTrigger, (status, _) => GetStatusDescription(status));
+
+        IObservable<Bitmap?> statusIcon = issueCategory.Select(LoadCachedBitmap);
+
+        return new StatusObservables(
+            issueCategory, detailedStatus, statusText, statusDescription, statusIcon, retryButtonText);
+    }
+
+    private static IObservable<DetailedConnectivityStatus> CombineInternetAndServerStatus(
+        IObservable<DetailedConnectivityStatus?> internetStatus,
+        IObservable<DetailedConnectivityStatus?> serverStatus)
+    {
+        return internetStatus
+            .CombineLatest(serverStatus, (internet, server) =>
             {
                 if (internet == DetailedConnectivityStatus.NoInternetConnection ||
                     internet == DetailedConnectivityStatus.CheckingInternetConnection)
@@ -182,80 +264,72 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
                 return DetailedConnectivityStatus.NoInternetConnection;
             })
             .DistinctUntilChanged();
+    }
 
-        IObservable<ConnectivityIssueCategory> issueCategoryObservable = detailedStatusObservable
-            .Select(status => status switch
-            {
-                DetailedConnectivityStatus.NoInternetConnection or
-                DetailedConnectivityStatus.CheckingInternetConnection or
-                DetailedConnectivityStatus.InternetRestored => ConnectivityIssueCategory.InternetUnavailable,
-                _ => ConnectivityIssueCategory.ServerUnreachable
-            })
-            .DistinctUntilChanged();
+    private static ConnectivityIssueCategory MapToIssueCategory(DetailedConnectivityStatus status) =>
+        status switch
+        {
+            DetailedConnectivityStatus.NoInternetConnection or
+            DetailedConnectivityStatus.CheckingInternetConnection or
+            DetailedConnectivityStatus.InternetRestored => ConnectivityIssueCategory.InternetUnavailable,
+            _ => ConnectivityIssueCategory.ServerUnreachable
+        };
 
-        IObservable<string> retryButtonTextObservable = languageTrigger
-            .Select(_ => GetCachedRetryButtonText());
-
-        IObservable<string> statusTextObservable = detailedStatusObservable
-            .CombineLatest(languageTrigger, (status, _) => GetStatusText(status));
-
-        IObservable<string> statusDescriptionObservable = detailedStatusObservable
-            .CombineLatest(languageTrigger, (status, _) => GetStatusDescription(status));
-
-        IObservable<Bitmap?> statusIconObservable = issueCategoryObservable
-            .Select(LoadCachedBitmap);
-
-        IObservable<bool> showRetryButtonObservable = Observable.Merge(
-                connectivitySnapshots
+    private static VisibilityObservables CreateVisibilityObservables(
+        IObservable<ConnectivitySnapshot> snapshots,
+        IObservable<ManualRetryRequestedEvent> manualRetryEvents)
+    {
+        IObservable<bool> showRetryButton = Observable.Merge(
+                snapshots
                     .Where(snapshot => snapshot.Status == ConnectivityStatus.RetriesExhausted)
                     .Do(_ => LogRetryButtonShow())
                     .Select(_ => true),
                 manualRetryEvents
                     .Do(_ => LogRetryButtonManualHide())
                     .Select(_ => false),
-                connectivitySnapshots
+                snapshots
                     .Where(snapshot => snapshot.Status == ConnectivityStatus.Connected)
                     .Do(LogRetryButtonConnectionHide)
                     .Select(_ => false)
             )
             .StartWith(false);
 
-        IObservable<bool> isVisibleObservable = connectivitySnapshots
-            .Select(snapshot => snapshot.Status switch
-            {
-                ConnectivityStatus.Connected when snapshot.Source == ConnectivitySource.InternetProbe => Observable
-                    .Return(false),
-                ConnectivityStatus.Connected => Observable.Return(true)
-                    .Delay(TimeSpan.FromMilliseconds(NetworkStatusConstants.AutoHideDelayMs))
-                    .Select(_ => false),
-                ConnectivityStatus.RetriesExhausted or
-                    ConnectivityStatus.Disconnected or
-                    ConnectivityStatus.ShuttingDown or
-                    ConnectivityStatus.Recovering => Observable.Return(true),
-                ConnectivityStatus.Unavailable => Observable.Return(true),
-                ConnectivityStatus.Connecting when snapshot.Source == ConnectivitySource.InternetProbe
-                                                   && snapshot.Reason == ConnectivityReason.InternetRecovered =>
-                    Observable.Return(false),
-                ConnectivityStatus.Connecting when snapshot.Source == ConnectivitySource.InternetProbe => Observable
-                    .Return(true),
-                ConnectivityStatus.Connecting => Observable.Empty<bool>(),
-                _ => Observable.Return(false)
-            })
+        IObservable<bool> isVisible = snapshots
+            .Select(MapSnapshotToVisibility)
             .Switch()
             .StartWith(false);
 
-        _issueCategory = issueCategoryObservable.ToProperty(this, x => x.IssueCategory).DisposeWith(_disposables);
-        _detailedStatus = detailedStatusObservable.ToProperty(this, x => x.DetailedStatus).DisposeWith(_disposables);
-        _statusText = statusTextObservable.ToProperty(this, x => x.StatusText).DisposeWith(_disposables);
-        _statusDescription = statusDescriptionObservable.ToProperty(this, x => x.StatusDescription)
-            .DisposeWith(_disposables);
-        _statusIconSource = statusIconObservable.ToProperty(this, x => x.StatusIconSource).DisposeWith(_disposables);
-        _showRetryButton = showRetryButtonObservable.ToProperty(this, x => x.ShowRetryButton).DisposeWith(_disposables);
-        _isVisible = isVisibleObservable.ToProperty(this, x => x.IsVisible).DisposeWith(_disposables);
-        _isAnimating = Observable.Return(false).ToProperty(this, x => x.IsAnimating).DisposeWith(_disposables);
-        _retryButtonText = retryButtonTextObservable.ToProperty(this, x => x.RetryButtonText).DisposeWith(_disposables);
+        return new VisibilityObservables(showRetryButton, isVisible);
+    }
 
-        RetryCommand = ReactiveCommand.CreateFromTask(
+    private static IObservable<bool> MapSnapshotToVisibility(ConnectivitySnapshot snapshot) =>
+        snapshot.Status switch
+        {
+            ConnectivityStatus.Connected when snapshot.Source == ConnectivitySource.InternetProbe =>
+                Observable.Return(false),
+            ConnectivityStatus.Connected => Observable.Return(true)
+                .Delay(TimeSpan.FromMilliseconds(NetworkStatusConstants.AUTO_HIDE_DELAY_MS))
+                .Select(_ => false),
+            ConnectivityStatus.RetriesExhausted or
+                ConnectivityStatus.Disconnected or
+                ConnectivityStatus.ShuttingDown or
+                ConnectivityStatus.Recovering or
+                ConnectivityStatus.Unavailable => Observable.Return(true),
+            ConnectivityStatus.Connecting when snapshot.Source == ConnectivitySource.InternetProbe
+                                               && snapshot.Reason == ConnectivityReason.InternetRecovered =>
+                Observable.Return(false),
+            ConnectivityStatus.Connecting when snapshot.Source == ConnectivitySource.InternetProbe =>
+                Observable.Return(true),
+            ConnectivityStatus.Connecting => Observable.Empty<bool>(),
+            _ => Observable.Return(false)
+        };
+
+    private ReactiveCommand<Unit, Unit> CreateRetryCommand(
+        IConnectivityService connectivityService,
+        IPendingRequestManager pendingRequestManager,
+        IObservable<bool> canExecuteObservable)
+    {
+        ReactiveCommand<Unit, Unit> command = ReactiveCommand.CreateFromTask(
             async ct =>
             {
                 try
@@ -269,26 +343,13 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
                 }
                 catch (Exception ex)
                 {
-                    Log.Error(ex, "Error during manual retry operation");
+                    Log.Error(ex, "ERROR during manual retry operation");
                 }
             },
-            showRetryButtonObservable
-        ).DisposeWith(_disposables);
+            canExecuteObservable);
 
-        connectivitySnapshots
-            .ObserveOn(RxApp.TaskpoolScheduler)
-            .Subscribe(snapshot =>
-            {
-                LogNetworkEvent(snapshot);
-                HandleConnectivityVisualEffects(snapshot);
-            })
-            .DisposeWith(_disposables);
-
-        isVisibleObservable
-            .DistinctUntilChanged()
-            .ObserveOn(RxApp.TaskpoolScheduler)
-            .Subscribe(visible => { HandleVisibilityChangeAsync(visible).ConfigureAwait(false); })
-            .DisposeWith(_disposables);
+        command.DisposeWith(_disposables);
+        return command;
     }
 
     private CancellationTokenSource? _visibilityOperationTokenSource;
@@ -328,7 +389,7 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Error changing notification visibility");
+                Log.Error(ex, "ERROR changing notification visibility");
             }
             finally
             {
@@ -370,52 +431,52 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         _mainBorder.Classes.Remove("Retrying");
     }
 
+    private static Animation CreateAppearAnimation() => new()
+    {
+        Duration = TimeSpan.FromMilliseconds(NetworkStatusConstants.DEFAULT_APPEAR_DURATION_MS),
+        Easing = new QuadraticEaseOut(),
+        FillMode = FillMode.Both,
+        Children =
+        {
+            new KeyFrame
+            {
+                Cue = new Cue(0d),
+                Setters = { new Setter(Visual.OpacityProperty, 0d), new Setter(TranslateTransform.YProperty, -20d) }
+            },
+            new KeyFrame
+            {
+                Cue = new Cue(1d),
+                Setters = { new Setter(Visual.OpacityProperty, 1d), new Setter(TranslateTransform.YProperty, 0d) }
+            }
+        }
+    };
+
+    private static Animation CreateDisappearAnimation() => new()
+    {
+        Duration = TimeSpan.FromMilliseconds(NetworkStatusConstants.DEFAULT_DISAPPEAR_DURATION_MS),
+        Easing = new QuadraticEaseIn(),
+        FillMode = FillMode.Both,
+        Children =
+        {
+            new KeyFrame
+            {
+                Cue = new Cue(0d),
+                Setters = { new Setter(Visual.OpacityProperty, 1d), new Setter(TranslateTransform.YProperty, 0d) }
+            },
+            new KeyFrame
+            {
+                Cue = new Cue(1d),
+                Setters = { new Setter(Visual.OpacityProperty, 0d), new Setter(TranslateTransform.YProperty, -15d) }
+            }
+        }
+    };
+
     private void CreateAnimations()
     {
         if (_view == null)
         {
             return;
         }
-
-        _sharedAppearAnimation ??= new Animation
-        {
-            Duration = AppearDuration,
-            Easing = new QuadraticEaseOut(),
-            FillMode = FillMode.Both,
-            Children =
-            {
-                new KeyFrame
-                {
-                    Cue = new Cue(0d),
-                    Setters = { new Setter(Visual.OpacityProperty, 0d), new Setter(TranslateTransform.YProperty, -20d) }
-                },
-                new KeyFrame
-                {
-                    Cue = new Cue(1d),
-                    Setters = { new Setter(Visual.OpacityProperty, 1d), new Setter(TranslateTransform.YProperty, 0d) }
-                }
-            }
-        };
-
-        _sharedDisappearAnimation ??= new Animation
-        {
-            Duration = DisappearDuration,
-            Easing = new QuadraticEaseIn(),
-            FillMode = FillMode.Both,
-            Children =
-            {
-                new KeyFrame
-                {
-                    Cue = new Cue(0d),
-                    Setters = { new Setter(Visual.OpacityProperty, 1d), new Setter(TranslateTransform.YProperty, 0d) }
-                },
-                new KeyFrame
-                {
-                    Cue = new Cue(1d),
-                    Setters = { new Setter(Visual.OpacityProperty, 0d), new Setter(TranslateTransform.YProperty, -15d) }
-                }
-            }
-        };
 
         _sharedTranslateTransform ??= new TranslateTransform();
     }
@@ -431,18 +492,16 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         {
             _view.IsVisible = true;
             _view.RenderTransform = _sharedTranslateTransform;
-            if (_sharedAppearAnimation == null)
-            {
-                CreateAnimations();
-            }
-            await _sharedAppearAnimation!.RunAsync(_view, token);
+            CreateAnimations();
+            await _sharedAppearAnimation.Value.RunAsync(_view, token);
         }
         catch (OperationCanceledException)
         {
+            // Animation cancelled - expected during rapid state changes
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "Error showing notification popup");
+            Log.Warning(ex, "ERROR showing notification popup");
         }
     }
 
@@ -455,19 +514,17 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
 
         try
         {
-            if (_sharedDisappearAnimation == null)
-            {
-                CreateAnimations();
-            }
-            await _sharedDisappearAnimation!.RunAsync(_view, token);
+            CreateAnimations();
+            await _sharedDisappearAnimation.Value.RunAsync(_view, token);
             _view.IsVisible = false;
         }
         catch (OperationCanceledException)
         {
+            // Animation cancelled - expected during rapid state changes
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "Error hiding notification popup");
+            Log.Warning(ex, "ERROR hiding notification popup");
         }
     }
 
@@ -478,9 +535,9 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
             return category switch
             {
                 ConnectivityIssueCategory.ServerUnreachable => _cachedServerUnreachableIcon ??=
-                    LoadBitmapFromUri(NetworkStatusConstants.ServerNotRespondingIconUri),
+                    LoadBitmapFromUri(NetworkStatusConstants.SERVER_NOT_RESPONDING_ICON_URI),
                 _ => _cachedInternetUnavailableIcon ??=
-                    LoadBitmapFromUri(NetworkStatusConstants.NoInternetIconUri)
+                    LoadBitmapFromUri(NetworkStatusConstants.NO_INTERNET_ICON_URI)
             };
         }
         catch (Exception ex)
@@ -599,6 +656,7 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         }
         catch (ObjectDisposedException)
         {
+            // Token source already disposed - safe to ignore during cleanup
         }
         finally
         {
@@ -618,7 +676,6 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         _cachedStatusDescriptions.Clear();
 
         _disposed = true;
-        GC.SuppressFinalize(this);
     }
 
     private static void LogRetryButtonShow()
@@ -675,4 +732,22 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
             Log.Debug("🪟 NOTIFICATION VISIBILITY: Operation was cancelled");
         }
     }
+
+    private readonly record struct ConnectivityObservables(
+        IObservable<ConnectivitySnapshot> Snapshots,
+        IObservable<ManualRetryRequestedEvent> ManualRetryEvents,
+        IObservable<ConnectivitySnapshot> InternetSnapshots,
+        IObservable<ConnectivitySnapshot> ServerSnapshots);
+
+    private readonly record struct StatusObservables(
+        IObservable<ConnectivityIssueCategory> IssueCategory,
+        IObservable<DetailedConnectivityStatus> DetailedStatus,
+        IObservable<string> StatusText,
+        IObservable<string> StatusDescription,
+        IObservable<Bitmap?> StatusIcon,
+        IObservable<string> RetryButtonText);
+
+    private readonly record struct VisibilityObservables(
+        IObservable<bool> ShowRetryButton,
+        IObservable<bool> IsVisible);
 }

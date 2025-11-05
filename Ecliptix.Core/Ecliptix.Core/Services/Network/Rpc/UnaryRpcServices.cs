@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging.Connectivity;
-using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Services.Abstractions.Network;
 using Ecliptix.Protobuf.Common;
@@ -353,7 +352,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         {
             NetworkFailure failure = await _errorProcessor.ProcessAsync(rpcEx).ConfigureAwait(false);
 
-            if (failure.FailureType != NetworkFailureType.ProtocolStateMismatch)
+            if (failure.FailureType != NetworkFailureType.PROTOCOL_STATE_MISMATCH)
             {
                 await connectivityService.PublishAsync(
                         ConnectivityIntent.Disconnected(failure))

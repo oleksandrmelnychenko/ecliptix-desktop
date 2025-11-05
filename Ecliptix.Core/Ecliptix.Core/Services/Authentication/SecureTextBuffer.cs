@@ -70,119 +70,149 @@ public sealed class SecureTextBuffer : IDisposable
 
         try
         {
-            if (string.IsNullOrEmpty(insertChars))
+            insertBytes = PrepareInsertBytes(insertChars);
+            if (insertBytes == null)
             {
-                insertBytes = [];
-            }
-            else
-            {
-                Result<SecureStringHandler, SodiumFailure> handlerResult = SecureStringHandler.FromString(insertChars);
-                if (handlerResult.IsErr)
-                {
-                    return;
-                }
-
-                using SecureStringHandler insertHandler = handlerResult.Unwrap();
-
-                SecurePooledArray<byte> tempBytes = SecureArrayPool.Rent<byte>(insertHandler.ByteLength);
-                try
-                {
-                    Result<Unit, SodiumFailure> readResult = insertHandler.UseBytes(bytes =>
-                    {
-                        bytes.CopyTo(tempBytes.AsSpan());
-                        return Unit.Value;
-                    });
-
-                    if (readResult.IsErr)
-                    {
-                        return;
-                    }
-
-                    insertBytes = new byte[insertHandler.ByteLength];
-                    tempBytes.AsSpan()[..insertHandler.ByteLength].CopyTo(insertBytes);
-                }
-                finally
-                {
-                    tempBytes.Dispose();
-                }
+                return;
             }
 
             int oldByteLength = _secureHandle.Length;
-
-            int currentTextElementCount = 0;
-            if (oldByteLength > 0)
-            {
-                using SecurePooledArray<byte> oldBytes = SecureArrayPool.Rent<byte>(oldByteLength);
-                _secureHandle.Read(oldBytes.AsSpan()).Unwrap();
-                string currentText = Encoding.UTF8.GetString(oldBytes.AsSpan());
-                currentTextElementCount = GetTextElementCount(currentText);
-            }
+            int currentTextElementCount = GetCurrentTextElementCount(oldByteLength);
 
             charIndex = Math.Clamp(charIndex, 0, currentTextElementCount);
             removeCharCount = Math.Clamp(removeCharCount, 0, currentTextElementCount - charIndex);
 
-            int startByteIndex = 0;
-            int endByteIndex = oldByteLength;
-
-            if (oldByteLength > 0 && (charIndex > 0 || removeCharCount > 0))
-            {
-                using SecurePooledArray<byte> oldBytes = SecureArrayPool.Rent<byte>(oldByteLength);
-                _secureHandle.Read(oldBytes.AsSpan()).Unwrap();
-                string currentText = Encoding.UTF8.GetString(oldBytes.AsSpan());
-
-                startByteIndex = GetByteIndexFromTextElementIndex(currentText, charIndex);
-                endByteIndex = GetByteIndexFromTextElementIndex(currentText, charIndex + removeCharCount);
-            }
-
-            int removedByteCount = endByteIndex - startByteIndex;
+            ByteIndexRange byteRange = CalculateByteIndices(oldByteLength, charIndex, removeCharCount);
+            int removedByteCount = byteRange.End - byteRange.Start;
             int newByteLength = oldByteLength - removedByteCount + insertBytes.Length;
 
-            if (newByteLength > 0)
-            {
-                using SecurePooledArray<byte> newBytes = SecureArrayPool.Rent<byte>(newByteLength);
-                Span<byte> newSpan = newBytes.AsSpan();
+            newHandle = AssembleNewBuffer(oldByteLength, byteRange.Start, byteRange.End, insertBytes, newByteLength);
 
-                if (oldByteLength > 0)
-                {
-                    using SecurePooledArray<byte> oldBytesForCopy = SecureArrayPool.Rent<byte>(oldByteLength);
-                    _secureHandle.Read(oldBytesForCopy.AsSpan()).Unwrap();
-                    Span<byte> oldSpan = oldBytesForCopy.AsSpan();
-
-                    oldSpan[..startByteIndex].CopyTo(newSpan);
-
-                    insertBytes.CopyTo(newSpan[startByteIndex..]);
-
-                    oldSpan[endByteIndex..].CopyTo(newSpan[(startByteIndex + insertBytes.Length)..]);
-                }
-                else
-                {
-                    insertBytes.CopyTo(newSpan);
-                }
-
-                newHandle = SodiumSecureMemoryHandle.Allocate(newByteLength).Unwrap();
-                newHandle.Write(newSpan).Unwrap();
-            }
-            else
-            {
-                newHandle = SodiumSecureMemoryHandle.Allocate(0).Unwrap();
-            }
-
-            _secureHandle.Dispose();
-            _secureHandle = newHandle;
-            string insertText = insertBytes.Length > 0 ? Encoding.UTF8.GetString(insertBytes) : string.Empty;
-            Length = currentTextElementCount - removeCharCount + GetTextElementCount(insertText);
+            UpdateHandleAndLength(newHandle, currentTextElementCount, removeCharCount, insertBytes);
             success = true;
         }
         finally
         {
-            if (insertBytes != null && insertBytes != Array.Empty<byte>())
-            {
-                CryptographicOperations.ZeroMemory(insertBytes);
-            }
+            CleanupInsertBytes(insertBytes);
             if (!success)
             {
                 newHandle?.Dispose();
             }
+        }
+    }
+
+    private static byte[]? PrepareInsertBytes(string insertChars)
+    {
+        if (string.IsNullOrEmpty(insertChars))
+        {
+            return [];
+        }
+
+        Result<SecureStringHandler, SodiumFailure> handlerResult = SecureStringHandler.FromString(insertChars);
+        if (handlerResult.IsErr)
+        {
+            return null;
+        }
+
+        using SecureStringHandler insertHandler = handlerResult.Unwrap();
+        using SecurePooledArray<byte> tempBytes = SecureArrayPool.Rent<byte>(insertHandler.ByteLength);
+
+        Result<Unit, SodiumFailure> readResult = insertHandler.UseBytes(bytes =>
+        {
+            bytes.CopyTo(tempBytes.AsSpan());
+            return Unit.Value;
+        });
+
+        if (readResult.IsErr)
+        {
+            return null;
+        }
+
+        byte[] insertBytes = new byte[insertHandler.ByteLength];
+        tempBytes.AsSpan()[..insertHandler.ByteLength].CopyTo(insertBytes);
+        return insertBytes;
+    }
+
+    private int GetCurrentTextElementCount(int byteLength)
+    {
+        if (byteLength == 0)
+        {
+            return 0;
+        }
+
+        using SecurePooledArray<byte> oldBytes = SecureArrayPool.Rent<byte>(byteLength);
+        _secureHandle.Read(oldBytes.AsSpan()).Unwrap();
+        string currentText = Encoding.UTF8.GetString(oldBytes.AsSpan());
+        return GetTextElementCount(currentText);
+    }
+
+    private readonly record struct ByteIndexRange(int Start, int End);
+
+    private ByteIndexRange CalculateByteIndices(int oldByteLength, int charIndex, int removeCharCount)
+    {
+        if (oldByteLength == 0 || (charIndex == 0 && removeCharCount == 0))
+        {
+            return new ByteIndexRange(0, oldByteLength);
+        }
+
+        using SecurePooledArray<byte> oldBytes = SecureArrayPool.Rent<byte>(oldByteLength);
+        _secureHandle.Read(oldBytes.AsSpan()).Unwrap();
+        string currentText = Encoding.UTF8.GetString(oldBytes.AsSpan());
+
+        int startByteIndex = GetByteIndexFromTextElementIndex(currentText, charIndex);
+        int endByteIndex = GetByteIndexFromTextElementIndex(currentText, charIndex + removeCharCount);
+
+        return new ByteIndexRange(startByteIndex, endByteIndex);
+    }
+
+    private SodiumSecureMemoryHandle AssembleNewBuffer(int oldByteLength, int startByteIndex, int endByteIndex, byte[] insertBytes, int newByteLength)
+    {
+        if (newByteLength == 0)
+        {
+            return SodiumSecureMemoryHandle.Allocate(0).Unwrap();
+        }
+
+        using SecurePooledArray<byte> newBytes = SecureArrayPool.Rent<byte>(newByteLength);
+        Span<byte> newSpan = newBytes.AsSpan();
+
+        if (oldByteLength > 0)
+        {
+            CopyBufferSegments(oldByteLength, startByteIndex, endByteIndex, insertBytes, newSpan);
+        }
+        else
+        {
+            insertBytes.CopyTo(newSpan);
+        }
+
+        SodiumSecureMemoryHandle newHandle = SodiumSecureMemoryHandle.Allocate(newByteLength).Unwrap();
+        newHandle.Write(newSpan).Unwrap();
+        return newHandle;
+    }
+
+    private void CopyBufferSegments(int oldByteLength, int startByteIndex, int endByteIndex, byte[] insertBytes, Span<byte> newSpan)
+    {
+        using SecurePooledArray<byte> oldBytesForCopy = SecureArrayPool.Rent<byte>(oldByteLength);
+        _secureHandle.Read(oldBytesForCopy.AsSpan()).Unwrap();
+        Span<byte> oldSpan = oldBytesForCopy.AsSpan();
+
+        oldSpan[..startByteIndex].CopyTo(newSpan);
+        insertBytes.CopyTo(newSpan[startByteIndex..]);
+        oldSpan[endByteIndex..].CopyTo(newSpan[(startByteIndex + insertBytes.Length)..]);
+    }
+
+    private void UpdateHandleAndLength(SodiumSecureMemoryHandle newHandle, int currentTextElementCount, int removeCharCount, byte[] insertBytes)
+    {
+        _secureHandle.Dispose();
+        _secureHandle = newHandle;
+        string insertText = insertBytes.Length > 0 ? Encoding.UTF8.GetString(insertBytes) : string.Empty;
+        Length = currentTextElementCount - removeCharCount + GetTextElementCount(insertText);
+    }
+
+    private static void CleanupInsertBytes(byte[]? insertBytes)
+    {
+        if (insertBytes is { Length: > 0 })
+        {
+            CryptographicOperations.ZeroMemory(insertBytes);
         }
     }
 
@@ -206,8 +236,10 @@ public sealed class SecureTextBuffer : IDisposable
             string substring = stringInfo.SubstringByTextElements(0, textElementIndex);
             return Encoding.UTF8.GetByteCount(substring);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Serilog.Log.Warning(ex, "[SECURE-TEXT-BUFFER] Failed to calculate byte index for text element. TextElementIndex: {Index}, Fallback used",
+                textElementIndex);
             return Math.Min(textElementIndex, Encoding.UTF8.GetByteCount(text));
         }
     }
@@ -224,8 +256,10 @@ public sealed class SecureTextBuffer : IDisposable
             StringInfo stringInfo = new(text);
             return stringInfo.LengthInTextElements;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Serilog.Log.Warning(ex, "[SECURE-TEXT-BUFFER] Failed to get text element count. TextLength: {Length}, Fallback used",
+                text.Length);
             return text.Length;
         }
     }
@@ -237,7 +271,7 @@ public sealed class SecureTextBuffer : IDisposable
             return;
         }
 
-        _secureHandle?.Dispose();
+        _secureHandle.Dispose();
         _isDisposed = true;
     }
 }

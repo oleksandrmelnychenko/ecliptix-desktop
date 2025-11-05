@@ -4,7 +4,6 @@ using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Reactive;
 using System.Reactive.Concurrency;
-using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
@@ -15,14 +14,13 @@ namespace Ecliptix.Core.Infrastructure.Network.Core.Connectivity;
 
 internal sealed class InternetConnectivityObserver : IInternetConnectivityObserver
 {
-    public const string HttpClientName = "InternetConnectivityProbeClient";
-    private const int NetworkChangeThrottleMs = 500;
-    private const int FailurePollingSeconds = 1;
+    public const string HTTP_CLIENT_NAME = "InternetConnectivityProbeClient";
+    private const int NETWORK_CHANGE_THROTTLE_MS = 500;
+    private const int FAILURE_POLLING_SECONDS = 1;
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IObservable<bool> _connectivityObservable;
-    private readonly CompositeDisposable _disposables = new();
-    private readonly CancellationTokenSource _probeCancellationCts = new();
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly Subject<Unit> _manualProbeTrigger = new();
     private readonly InternetConnectivityObserverOptions _options;
 
@@ -51,7 +49,7 @@ internal sealed class InternetConnectivityObserver : IInternetConnectivityObserv
                 handler => (sender, e) => handler(new EventPattern<EventArgs>(sender, e)),
                 h => NetworkChange.NetworkAddressChanged += new NetworkAddressChangedEventHandler((s, e) => h(s, e)),
                 h => NetworkChange.NetworkAddressChanged -= new NetworkAddressChangedEventHandler((s, e) => h(s, e)))
-            .Throttle(TimeSpan.FromMilliseconds(NetworkChangeThrottleMs))
+            .Throttle(TimeSpan.FromMilliseconds(NETWORK_CHANGE_THROTTLE_MS))
             .Select(_ => Unit.Default);
 
         IObservable<bool> probeObservable = pollingIntervalSubject
@@ -61,7 +59,7 @@ internal sealed class InternetConnectivityObserver : IInternetConnectivityObserv
             .Select(_ => Unit.Default)
             .Merge(_manualProbeTrigger)
             .Merge(networkChangeObservable)
-            .SelectMany(_ => ProbeConnectivityAsync(_options, _probeCancellationCts.Token));
+            .SelectMany(_ => ProbeConnectivityAsync(_options, _cancellationTokenSource.Token));
 
         _connectivityObservable = probeObservable
             .Scan(
@@ -74,7 +72,7 @@ internal sealed class InternetConnectivityObserver : IInternetConnectivityObserv
             {
                 TimeSpan currentInterval = pollingIntervalSubject.Value;
                 TimeSpan desiredInterval = !acc.state
-                    ? TimeSpan.FromSeconds(FailurePollingSeconds)
+                    ? TimeSpan.FromSeconds(FAILURE_POLLING_SECONDS)
                     : currentOptions.PollingInterval;
 
                 if (currentInterval != desiredInterval)
@@ -99,7 +97,7 @@ internal sealed class InternetConnectivityObserver : IInternetConnectivityObserv
         InternetConnectivityObserverOptions options,
         CancellationToken ct)
     {
-        HttpClient httpClient = _httpClientFactory.CreateClient(HttpClientName);
+        HttpClient httpClient = _httpClientFactory.CreateClient(HTTP_CLIENT_NAME);
 
         foreach (string url in options.ProbeUrls)
         {
@@ -114,15 +112,17 @@ internal sealed class InternetConnectivityObserver : IInternetConnectivityObserv
                 linkedCts.CancelAfter(options.ProbeTimeout);
 
                 using HttpRequestMessage request = new(HttpMethod.Head, url);
-                HttpResponseMessage response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
+                HttpResponseMessage response = await httpClient.SendAsync(request,
+                    HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
 
                 if (response.IsSuccessStatusCode)
                 {
                     return true;
                 }
             }
-            catch
+            catch (Exception)
             {
+                // Network connectivity check failed - return false to indicate no connection
             }
         }
 
@@ -134,19 +134,12 @@ internal sealed class InternetConnectivityObserver : IInternetConnectivityObserv
 
     public void Dispose()
     {
-        if (!_probeCancellationCts.IsCancellationRequested)
+        if (!_cancellationTokenSource.IsCancellationRequested)
         {
-            try
-            {
-                _probeCancellationCts.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-            }
+            _cancellationTokenSource.Cancel();
         }
 
-        _probeCancellationCts.Dispose();
+        _cancellationTokenSource.Dispose();
         _manualProbeTrigger.Dispose();
-        _disposables.Dispose();
     }
 }

@@ -14,14 +14,14 @@ namespace Ecliptix.Core.Features.Authentication.ViewModels.Welcome;
 
 public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
 {
-    private const string CreateAccountKey = "CreateAccount";
-    private const string SignInKey = "SignIn";
+    private const string CREATE_ACCOUNT_KEY = "CreateAccount";
+    private const string SIGN_IN_KEY = "SignIn";
 
     private static readonly FrozenDictionary<string, MembershipViewType> NavigationCache =
         new Dictionary<string, MembershipViewType>
         {
-            [CreateAccountKey] = MembershipViewType.MobileVerification,
-            [SignInKey] = MembershipViewType.SignIn
+            [CREATE_ACCOUNT_KEY] = MembershipViewType.MOBILE_VERIFICATION_VIEW,
+            [SIGN_IN_KEY] = MembershipViewType.SIGN_IN_VIEW
         }.ToFrozenDictionary();
 
     private readonly CompositeDisposable _disposables = new();
@@ -35,16 +35,16 @@ public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewMod
         NavToCreateAccountCommand = ReactiveCommand.CreateFromObservable(() =>
         {
             AuthenticationViewModel hostWindow = (AuthenticationViewModel)HostScreen;
-            ((AuthenticationViewModel)HostScreen).CurrentFlowContext = AuthenticationFlowContext.Registration;
-            MembershipViewType viewType = NavigationCache[CreateAccountKey];
+            ((AuthenticationViewModel)HostScreen).CurrentFlowContext = AuthenticationFlowContext.REGISTRATION;
+            MembershipViewType viewType = NavigationCache[CREATE_ACCOUNT_KEY];
             return hostWindow.Navigate.Execute(viewType);
         });
 
         NavToSignInCommand = ReactiveCommand.CreateFromObservable(() =>
         {
             AuthenticationViewModel hostWindow = (AuthenticationViewModel)HostScreen;
-            ((AuthenticationViewModel)HostScreen).CurrentFlowContext = AuthenticationFlowContext.SecureKeyRecovery;
-            MembershipViewType viewType = NavigationCache[SignInKey];
+            ((AuthenticationViewModel)HostScreen).CurrentFlowContext = AuthenticationFlowContext.SECURE_KEY_RECOVERY;
+            MembershipViewType viewType = NavigationCache[SIGN_IN_KEY];
             return hostWindow.Navigate.Execute(viewType);
         });
 

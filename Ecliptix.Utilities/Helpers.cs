@@ -1,6 +1,5 @@
 using System.Buffers.Binary;
 using System.Security.Cryptography;
-using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.Protocol;
 using Google.Protobuf;
 
@@ -12,7 +11,7 @@ internal static class Helpers
 
     public static uint GenerateRandomUInt32(bool excludeZero = false)
     {
-        byte[] buffer = new byte[UtilityConstants.Cryptography.UInt32SizeBytes];
+        byte[] buffer = new byte[UtilityConstants.Cryptography.U_INT_32_SIZE_BYTES];
         uint value;
         int attempts = 0;
         do
@@ -20,9 +19,9 @@ internal static class Helpers
             Rng.GetBytes(buffer);
             value = BitConverter.ToUInt32(buffer, 0);
 
-            if (++attempts > UtilityConstants.Cryptography.MaxEntropyCheckAttempts && IsLowEntropy(buffer))
+            if (++attempts > UtilityConstants.Cryptography.MAX_ENTROPY_CHECK_ATTEMPTS && IsLowEntropy(buffer))
             {
-                throw new InvalidOperationException(UtilityConstants.ErrorMessages.InsufficientEntropy);
+                throw new InvalidOperationException(UtilityConstants.ErrorMessages.INSUFFICIENT_ENTROPY);
             }
         } while (excludeZero && value == 0);
 
@@ -31,7 +30,7 @@ internal static class Helpers
 
     private static bool IsLowEntropy(byte[] data)
     {
-        if (data.All(b => b == UtilityConstants.Cryptography.MinByteValue) || data.All(b => b == UtilityConstants.Cryptography.MaxByteValue))
+        if (data.All(b => b == UtilityConstants.Cryptography.MIN_BYTE_VALUE) || data.All(b => b == UtilityConstants.Cryptography.MAX_BYTE_VALUE))
         {
             return true;
         }
@@ -73,7 +72,7 @@ internal static class Helpers
         Array.Reverse(bytes, 4, 2);
         Array.Reverse(bytes, 6, 2);
 
-        Guid result = new Guid(bytes);
+        Guid result = new(bytes);
 
         return result;
     }
@@ -81,7 +80,7 @@ internal static class Helpers
     public static uint GenerateRandomUInt32InRange(uint min, uint max)
     {
         using RandomNumberGenerator rng = RandomNumberGenerator.Create();
-        byte[] bytes = new byte[UtilityConstants.Cryptography.UInt32SizeBytes];
+        byte[] bytes = new byte[UtilityConstants.Cryptography.U_INT_32_SIZE_BYTES];
         rng.GetBytes(bytes);
         uint value = BitConverter.ToUInt32(bytes, 0);
         return min + value % (max - min + 1);
@@ -102,10 +101,10 @@ internal static class Helpers
         int totalLength = appInstanceId.Length + appDeviceId.Length + sizeof(uint);
         if (operationContextId.HasValue)
         {
-            totalLength += UtilityConstants.Cryptography.GuidSizeBytes;
+            totalLength += UtilityConstants.Cryptography.GUID_SIZE_BYTES;
         }
 
-        Span<byte> buffer = totalLength <= UtilityConstants.Cryptography.StackAllocThreshold ? stackalloc byte[totalLength] : new byte[totalLength];
+        Span<byte> buffer = totalLength <= UtilityConstants.Cryptography.STACK_ALLOC_THRESHOLD ? stackalloc byte[totalLength] : new byte[totalLength];
 
         int offset = 0;
 
@@ -119,10 +118,10 @@ internal static class Helpers
         offset += sizeof(uint);
 
         operationContextId?.TryWriteBytes(buffer[offset..]);
-        Span<byte> hash = stackalloc byte[UtilityConstants.Cryptography.Sha256OutputSize];
+        Span<byte> hash = stackalloc byte[UtilityConstants.Cryptography.SHA_256_OUTPUT_SIZE];
         SHA256.TryHashData(buffer, hash, out _);
 
-        return BinaryPrimitives.ReadUInt32BigEndian(hash[..UtilityConstants.Cryptography.HashBytesToRead]);
+        return BinaryPrimitives.ReadUInt32BigEndian(hash[..UtilityConstants.Cryptography.HASH_BYTES_TO_READ]);
     }
 
     public static uint ComputeUniqueConnectId(
@@ -133,16 +132,16 @@ internal static class Helpers
     {
         if (!Guid.TryParse(appInstanceIdString, out Guid appInstanceGuid))
         {
-            throw new ArgumentException($"{UtilityConstants.ErrorMessages.InvalidAppInstanceIdFormat}{appInstanceIdString}");
+            throw new ArgumentException($"{UtilityConstants.ErrorMessages.INVALID_APP_INSTANCE_ID_FORMAT}{appInstanceIdString}");
         }
 
         if (!Guid.TryParse(appDeviceIdString, out Guid appDeviceGuid))
         {
-            throw new ArgumentException($"{UtilityConstants.ErrorMessages.InvalidAppDeviceIdFormat}{appDeviceIdString}");
+            throw new ArgumentException($"{UtilityConstants.ErrorMessages.INVALID_APP_DEVICE_ID_FORMAT}{appDeviceIdString}");
         }
 
-        Span<byte> appInstanceBytes = stackalloc byte[UtilityConstants.Cryptography.GuidSizeBytes];
-        Span<byte> appDeviceBytes = stackalloc byte[UtilityConstants.Cryptography.GuidSizeBytes];
+        Span<byte> appInstanceBytes = stackalloc byte[UtilityConstants.Cryptography.GUID_SIZE_BYTES];
+        Span<byte> appDeviceBytes = stackalloc byte[UtilityConstants.Cryptography.GUID_SIZE_BYTES];
 
         appInstanceGuid.TryWriteBytes(appInstanceBytes);
         appDeviceGuid.TryWriteBytes(appDeviceBytes);

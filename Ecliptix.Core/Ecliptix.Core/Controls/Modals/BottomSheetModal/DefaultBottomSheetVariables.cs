@@ -5,16 +5,16 @@ namespace Ecliptix.Core.Controls.Modals.BottomSheetModal;
 
 public static class DefaultBottomSheetVariables
 {
-    public const double MinHeight = 10.0;
-    public const double MaxHeight = 600.0;
-    public const double DefaultWidth = 400.0;
+    public const double MIN_HEIGHT = 10.0;
+    public const double MAX_HEIGHT = 600.0;
+    public const double DEFAULT_WIDTH = 400.0;
 
-    private const double ContentDelayMs = 40.0;
+    private const double CONTENT_DELAY_MS = 40.0;
 
-    public const double DefaultScrimOpacity = 0.15;
+    public const double DEFAULT_SCRIM_OPACITY = 0.15;
 
     public static readonly SolidColorBrush ScrimBrush = new(Color.Parse("#000000"));
-    public static readonly TimeSpan ContentDelay = TimeSpan.FromMilliseconds(ContentDelayMs);
+    public static readonly TimeSpan ContentDelay = TimeSpan.FromMilliseconds(CONTENT_DELAY_MS);
 
-    public const bool DefaultIsDismissableOnScrimClick = true;
+    public const bool DEFAULT_IS_DISMISSABLE_ON_SCRIM_CLICK = true;
 }

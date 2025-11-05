@@ -8,22 +8,22 @@ public static class SodiumFailureExtensions
     {
         return sodiumFailure.Type switch
         {
-            SodiumFailureType.InitializationFailed => EcliptixProtocolFailure.Generic(sodiumFailure.Message,
+            SodiumFailureType.INITIALIZATION_FAILED => EcliptixProtocolFailure.Generic(sodiumFailure.Message,
                 sodiumFailure.InnerException),
-            SodiumFailureType.LibraryNotFound => EcliptixProtocolFailure.Generic(sodiumFailure.Message,
+            SodiumFailureType.LIBRARY_NOT_FOUND => EcliptixProtocolFailure.Generic(sodiumFailure.Message,
                 sodiumFailure.InnerException),
-            SodiumFailureType.AllocationFailed => EcliptixProtocolFailure.AllocationFailed(sodiumFailure.Message,
+            SodiumFailureType.ALLOCATION_FAILED => EcliptixProtocolFailure.ALLOCATION_FAILED(sodiumFailure.Message,
                 sodiumFailure.InnerException),
-            SodiumFailureType.MemoryPinningFailed => EcliptixProtocolFailure.PinningFailure(sodiumFailure.Message,
+            SodiumFailureType.MEMORY_PINNING_FAILED => EcliptixProtocolFailure.PinningFailure(sodiumFailure.Message,
                 sodiumFailure.InnerException),
-            SodiumFailureType.SecureWipeFailed => EcliptixProtocolFailure.MemoryBufferError(sodiumFailure.Message,
+            SodiumFailureType.SECURE_WIPE_FAILED => EcliptixProtocolFailure.MemoryBufferError(sodiumFailure.Message,
                 sodiumFailure.InnerException),
-            SodiumFailureType.MemoryProtectionFailed => EcliptixProtocolFailure.MemoryBufferError(sodiumFailure.Message,
+            SodiumFailureType.MEMORY_PROTECTION_FAILED => EcliptixProtocolFailure.MemoryBufferError(sodiumFailure.Message,
                 sodiumFailure.InnerException),
-            SodiumFailureType.NullPointer => EcliptixProtocolFailure.ObjectDisposed(sodiumFailure.Message),
-            SodiumFailureType.InvalidBufferSize => EcliptixProtocolFailure.InvalidInput(sodiumFailure.Message),
-            SodiumFailureType.BufferTooSmall => EcliptixProtocolFailure.BufferTooSmall(sodiumFailure.Message),
-            SodiumFailureType.BufferTooLarge => EcliptixProtocolFailure.DataTooLarge(sodiumFailure.Message),
+            SodiumFailureType.NULL_POINTER => EcliptixProtocolFailure.OBJECT_DISPOSED(sodiumFailure.Message),
+            SodiumFailureType.INVALID_BUFFER_SIZE => EcliptixProtocolFailure.InvalidInput(sodiumFailure.Message),
+            SodiumFailureType.BUFFER_TOO_SMALL => EcliptixProtocolFailure.BUFFER_TOO_SMALL(sodiumFailure.Message),
+            SodiumFailureType.BUFFER_TOO_LARGE => EcliptixProtocolFailure.DATA_TOO_LARGE(sodiumFailure.Message),
             _ => EcliptixProtocolFailure.Generic(sodiumFailure.Message, sodiumFailure.InnerException)
         };
     }

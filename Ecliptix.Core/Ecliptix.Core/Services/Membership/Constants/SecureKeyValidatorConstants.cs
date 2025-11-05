@@ -7,29 +7,29 @@ public static class SecureKeyValidatorConstants
 {
     public static class LocalizationKeys
     {
-        public const string NonEnglishLetters = "ValidationErrors.SecureKey.NonEnglishLetters";
-        public const string Required = "ValidationErrors.SecureKey.Required";
-        public const string MinLength = "ValidationErrors.SecureKey.MinLength";
-        public const string NoUppercase = "ValidationErrors.SecureKey.NoUppercase";
-        public const string NoLowercase = "ValidationErrors.SecureKey.NoLowercase";
-        public const string NoSpecialChar = "ValidationErrors.SecureKey.NoSpecialChar";
-        public const string NoDigit = "ValidationErrors.SecureKey.NoDigit";
-        public const string MaxLength = "ValidationErrors.SecureKey.MaxLength";
-        public const string NoSpaces = "ValidationErrors.SecureKey.NoSpaces";
-        public const string TooSimple = "ValidationErrors.SecureKey.TooSimple";
-        public const string TooCommon = "ValidationErrors.SecureKey.TooCommon";
-        public const string SequentialPattern = "ValidationErrors.SecureKey.SequentialPattern";
-        public const string RepeatedChars = "ValidationErrors.SecureKey.RepeatedChars";
-        public const string LacksDiversity = "ValidationErrors.SecureKey.LacksDiversity";
-        public const string ContainsAppName = "ValidationErrors.SecureKey.ContainsAppName";
+        public const string NON_ENGLISH_LETTERS = "ValidationErrors.SecureKey.NON_ENGLISH_LETTERS";
+        public const string REQUIRED = "ValidationErrors.SecureKey.REQUIRED";
+        public const string MIN_LENGTH = "ValidationErrors.SecureKey.MIN_LENGTH";
+        public const string NO_UPPERCASE = "ValidationErrors.SecureKey.NO_UPPERCASE";
+        public const string NO_LOWERCASE = "ValidationErrors.SecureKey.NO_LOWERCASE";
+        public const string NO_SPECIAL_CHAR = "ValidationErrors.SecureKey.NO_SPECIAL_CHAR";
+        public const string NO_DIGIT = "ValidationErrors.SecureKey.NO_DIGIT";
+        public const string MAX_LENGTH = "ValidationErrors.SecureKey.MAX_LENGTH";
+        public const string NO_SPACES = "ValidationErrors.SecureKey.NO_SPACES";
+        public const string TOO_SIMPLE = "ValidationErrors.SecureKey.TOO_SIMPLE";
+        public const string TOO_COMMON = "ValidationErrors.SecureKey.TOO_COMMON";
+        public const string SEQUENTIAL_PATTERN = "ValidationErrors.SecureKey.SEQUENTIAL_PATTERN";
+        public const string REPEATED_CHARS = "ValidationErrors.SecureKey.REPEATED_CHARS";
+        public const string LACKS_DIVERSITY = "ValidationErrors.SecureKey.LACKS_DIVERSITY";
+        public const string CONTAINS_APP_NAME = "ValidationErrors.SecureKey.CONTAINS_APP_NAME";
     }
 
     public static class ValidationRules
     {
-        public const int MinLength = 6;
-        public const int MaxLength = 21;
-        public const int MinCharClasses = 2;
-        public const double MinTotalEntropyBits = 30;
+        public const int MIN_LENGTH = 6;
+        public const int MAX_LENGTH = 21;
+        public const int MIN_CHAR_CLASSES = 2;
+        public const double MIN_TOTAL_ENTROPY_BITS = 30;
     }
 
     public static readonly FrozenSet<string> KeyboardRows = FrozenSet.ToFrozenSet(

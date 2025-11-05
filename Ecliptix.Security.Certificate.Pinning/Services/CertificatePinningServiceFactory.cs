@@ -45,7 +45,7 @@ public sealed class CertificatePinningServiceFactory : ICertificatePinningServic
             return _service;
         }
 
-        Task.Run(async () => await service.DisposeAsync()).Wait();
+        service.DisposeAsync().AsTask().GetAwaiter().GetResult();
         return Option<CertificatePinningService>.None;
     }
 
@@ -55,8 +55,9 @@ public sealed class CertificatePinningServiceFactory : ICertificatePinningServic
         {
             await DisposeAsync();
         }
-        catch
+        catch (Exception)
         {
+            // Finalizer should not throw - swallow disposal exceptions
         }
     }
 
@@ -88,8 +89,9 @@ public sealed class CertificatePinningServiceFactory : ICertificatePinningServic
                     await serviceToDispose.Value!.DisposeAsync().ConfigureAwait(false);
                 }
             }
-            catch
+            catch (Exception)
             {
+                // Disposal errors should not prevent cleanup completion
             }
         }
         finally

@@ -6,93 +6,58 @@ using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Membership;
 using Google.Protobuf;
-using Serilog;
 
 namespace Ecliptix.Core.Infrastructure.Data;
 
-internal sealed class PendingLogoutRequestStorage
+internal sealed class PendingLogoutRequestStorage(IApplicationSecureStorageProvider storageProvider)
 {
-    private const string StorageKey = "PendingLogout";
-    private readonly IApplicationSecureStorageProvider _storageProvider;
-
-    public PendingLogoutRequestStorage(IApplicationSecureStorageProvider storageProvider)
-    {
-        _storageProvider = storageProvider;
-    }
+    private const string STORAGE_KEY = "PendingLogout";
 
     public async Task<Result<Unit, LogoutFailure>> StorePendingLogoutAsync(LogoutRequest request)
     {
-        try
+        byte[] requestData = request.ToByteArray();
+
+        Result<Unit, InternalServiceApiFailure> storeResult =
+            await storageProvider.StoreAsync(STORAGE_KEY, requestData).ConfigureAwait(false);
+
+        if (storeResult.IsErr)
         {
-            byte[] requestData = request.ToByteArray();
-
-            Result<Unit, InternalServiceApiFailure> storeResult =
-                await _storageProvider.StoreAsync(StorageKey, requestData).ConfigureAwait(false);
-
-            if (storeResult.IsErr)
-            {
-                Log.Warning("[PENDING-LOGOUT] Failed to store pending logout request");
-                return Result<Unit, LogoutFailure>.Err(
-                    LogoutFailure.UnexpectedError($"Storage failed: {storeResult.UnwrapErr().Message}"));
-            }
-
-            return Result<Unit, LogoutFailure>.Ok(Unit.Value);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "[PENDING-LOGOUT] Unexpected error storing pending logout request");
             return Result<Unit, LogoutFailure>.Err(
-                LogoutFailure.UnexpectedError($"Unexpected error: {ex.Message}", ex));
+                LogoutFailure.UnexpectedError($"Storage failed: {storeResult.UnwrapErr().Message}"));
         }
+
+        return Result<Unit, LogoutFailure>.Ok(Unit.Value);
     }
 
     public async Task<Result<Option<LogoutRequest>, LogoutFailure>> GetPendingLogoutAsync()
     {
+        Result<Option<byte[]>, InternalServiceApiFailure> getResult =
+            await storageProvider.TryGetByKeyAsync(STORAGE_KEY).ConfigureAwait(false);
+
+        if (getResult.IsErr)
+        {
+            return Result<Option<LogoutRequest>, LogoutFailure>.Err(
+                LogoutFailure.UnexpectedError($"Storage access failed: {getResult.UnwrapErr().Message}"));
+        }
+
+        Option<byte[]> dataOption = getResult.Unwrap();
+        if (!dataOption.IsSome)
+        {
+            return Result<Option<LogoutRequest>, LogoutFailure>.Ok(Option<LogoutRequest>.None);
+        }
+
         try
         {
-            Result<Option<byte[]>, InternalServiceApiFailure> getResult =
-                await _storageProvider.TryGetByKeyAsync(StorageKey).ConfigureAwait(false);
-
-            if (getResult.IsErr)
-            {
-                Log.Warning("[PENDING-LOGOUT] Failed to get pending logout request");
-                return Result<Option<LogoutRequest>, LogoutFailure>.Err(
-                    LogoutFailure.UnexpectedError($"Storage access failed: {getResult.UnwrapErr().Message}"));
-            }
-
-            Option<byte[]> dataOption = getResult.Unwrap();
-            if (!dataOption.IsSome)
-            {
-                return Result<Option<LogoutRequest>, LogoutFailure>.Ok(Option<LogoutRequest>.None);
-            }
-
             LogoutRequest request = LogoutRequest.Parser.ParseFrom(dataOption.Value);
             return Result<Option<LogoutRequest>, LogoutFailure>.Ok(Option<LogoutRequest>.Some(request));
         }
         catch (InvalidProtocolBufferException ex)
         {
-            Log.Error(ex, "[PENDING-LOGOUT] Failed to parse stored logout request");
             ClearPendingLogout();
             return Result<Option<LogoutRequest>, LogoutFailure>.Err(
                 LogoutFailure.UnexpectedError($"Failed to parse stored request: {ex.Message}", ex));
         }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "[PENDING-LOGOUT] Unexpected error getting pending logout request");
-            return Result<Option<LogoutRequest>, LogoutFailure>.Err(
-                LogoutFailure.UnexpectedError($"Unexpected error: {ex.Message}", ex));
-        }
     }
 
-    public void ClearPendingLogout()
-    {
-        try
-        {
-            _storageProvider.Delete(StorageKey);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "[PENDING-LOGOUT] Failed to clear pending logout request");
-        }
-    }
+    public void ClearPendingLogout() => storageProvider.Delete(STORAGE_KEY);
 }

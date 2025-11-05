@@ -5,7 +5,8 @@ namespace Ecliptix.Core.Core.Messaging.Events;
 public enum LanguageDetectionAction
 {
     Decline,
-    Confirm
+    Confirm,
+    Request
 }
 
 public sealed record LanguageDetectionDialogEvent
@@ -26,4 +27,7 @@ public sealed record LanguageDetectionDialogEvent
 
     public static LanguageDetectionDialogEvent Confirm(string targetCulture) =>
         new(LanguageDetectionAction.Confirm, targetCulture);
+
+    public static LanguageDetectionDialogEvent Request(string targetCulture) =>
+        new(LanguageDetectionAction.Request, targetCulture);
 }

@@ -2,21 +2,21 @@ namespace Ecliptix.Utilities;
 
 public enum ErrorCode
 {
-    ValidationFailed = 0,
-    MaxAttemptsReached = 1,
-    InvalidMobileNumber = 2,
-    OtpExpired = 3,
-    NotFound = 4,
-    AlreadyExists = 5,
-    Unauthenticated = 6,
-    PermissionDenied = 7,
-    PreconditionFailed = 8,
-    Conflict = 9,
-    ResourceExhausted = 10,
-    ServiceUnavailable = 11,
-    DependencyUnavailable = 12,
-    DeadlineExceeded = 13,
-    Cancelled = 14,
-    InternalError = 15,
-    DatabaseUnavailable = 16
+    VALIDATION_FAILED = 0,
+    MAX_ATTEMPTS_REACHED = 1,
+    INVALID_MOBILE_NUMBER = 2,
+    OTP_EXPIRED = 3,
+    NOT_FOUND = 4,
+    ALREADY_EXISTS = 5,
+    UNAUTHENTICATED = 6,
+    PERMISSION_DENIED = 7,
+    PRECONDITION_FAILED = 8,
+    CONFLICT = 9,
+    RESOURCE_EXHAUSTED = 10,
+    SERVICE_UNAVAILABLE = 11,
+    DEPENDENCY_UNAVAILABLE = 12,
+    DEADLINE_EXCEEDED = 13,
+    CANCELLED = 14,
+    INTERNAL_ERROR = 15,
+    DATABASE_UNAVAILABLE = 16
 }

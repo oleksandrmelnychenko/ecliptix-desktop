@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json.schemastore.org/sarif-1.0.0",
+  "version": "1.0.0",
+  "runs": [
+    {
+      "tool": {
+        "name": "Microsoft (R) Visual C# Compiler",
+        "version": "4.12.0.0",
+        "fileVersion": "4.12.0-3.24570.6 (913fb4ec)",
+        "semanticVersion": "4.12.0",
+        "language": "en-UA"
+      },
+      "results": [
+        {
+          "ruleId": "CA1859",
+          "level": "note",
+          "message": "Change return type of method 'ConfigureServices' from 'Microsoft.Extensions.DependencyInjection.IServiceCollection' to 'Microsoft.Extensions.DependencyInjection.ServiceCollection' for improved performance",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core.Desktop/Program.cs",
+                "region": {
+                  "startLine": 182,
+                  "startColumn": 39,
+                  "endLine": 182,
+                  "endColumn": 56
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        }
+      ],
+      "rules": {
+        "CA1859": {
+          "id": "CA1859",
+          "shortDescription": "Use concrete types when possible for improved performance",
+          "fullDescription": "Using concrete types avoids virtual or interface call overhead and enables inlining.",
+          "defaultLevel": "note",
+          "helpUri": "https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1859",
+          "properties": {
+            "category": "Performance",
+            "isEnabledByDefault": true,
+            "tags": [
+              "Telemetry",
+              "EnabledRuleInAggressiveMode"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

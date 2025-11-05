@@ -1,8 +1,6 @@
-using System;
 using System.Diagnostics.CodeAnalysis;
 using Ecliptix.Utilities;
 using ReactiveUI;
-using Serilog;
 
 namespace Ecliptix.Core.Core.MVVM;
 
@@ -12,7 +10,7 @@ public class ReactiveUiViewLocatorAdapter(Abstractions.IViewLocator moduleViewLo
         Justification = "ViewLocator is registered with explicit view/viewmodel mappings at startup")]
     public IViewFor? ResolveView<T>(T? viewModel, string? contract = null)
     {
-        if (viewModel == null)
+        if (object.Equals(viewModel, default(T)))
         {
             return null;
         }

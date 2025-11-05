@@ -63,7 +63,7 @@ public sealed class ReceiveStreamRpcServices : IReceiveStreamRpcServices
         }
 
         return Task.FromResult(Result<RpcFlow, NetworkFailure>.Err(
-            NetworkFailure.InvalidRequestType(NetworkServiceMessages.RpcService.UnsupportedServiceMethod)
+            NetworkFailure.InvalidRequestType(NetworkServiceMessages.RpcService.UNSUPPORTED_SERVICE_METHOD)
         ));
     }
 

@@ -10,8 +10,8 @@ public sealed class OperationTimeoutProvider : IOperationTimeoutProvider
 {
 #if DEBUG
     private static readonly TimeSpan DefaultTimeout = Timeout.InfiniteTimeSpan;
-    private const double MaxAdaptiveMultiplier = 2.0;
-    private const double AdaptiveMultiplierIncrement = 0.5;
+    private const double MAX_ADAPTIVE_MULTIPLIER = 2.0;
+    private const double ADAPTIVE_MULTIPLIER_INCREMENT = 0.5;
 
     private static readonly FrozenDictionary<RpcServiceType, TimeSpan> ServiceTimeouts =
         new Dictionary<RpcServiceType, TimeSpan>
@@ -34,8 +34,8 @@ public sealed class OperationTimeoutProvider : IOperationTimeoutProvider
         }.ToFrozenDictionary();
 #else
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(30);
-    private const double MaxAdaptiveMultiplier = 2.0;
-    private const double AdaptiveMultiplierIncrement = 0.5;
+    private const double MAX_ADAPTIVE_MULTIPLIER = 2.0;
+    private const double ADAPTIVE_MULTIPLIER_INCREMENT = 0.5;
 
     private static readonly FrozenDictionary<RpcServiceType, TimeSpan> ServiceTimeouts =
         new Dictionary<RpcServiceType, TimeSpan>
@@ -62,18 +62,20 @@ public sealed class OperationTimeoutProvider : IOperationTimeoutProvider
     {
         TimeSpan baseTimeout = ServiceTimeouts.GetValueOrDefault(serviceType, DefaultTimeout);
 
-        if (requestContext is { Attempt: > 1 })
+        if (requestContext is not { Attempt: > 1 })
         {
-            double multiplier = CalculateAdaptiveMultiplier(requestContext.Attempt);
-            baseTimeout = TimeSpan.FromMilliseconds(baseTimeout.TotalMilliseconds * multiplier);
+            return baseTimeout;
         }
+
+        double multiplier = CalculateAdaptiveMultiplier(requestContext.Attempt);
+        baseTimeout = TimeSpan.FromMilliseconds(baseTimeout.TotalMilliseconds * multiplier);
 
         return baseTimeout;
     }
 
     private static double CalculateAdaptiveMultiplier(int attempt)
     {
-        double multiplier = 1.0 + (attempt - 1) * AdaptiveMultiplierIncrement;
-        return Math.Min(multiplier, MaxAdaptiveMultiplier);
+        double multiplier = 1.0 + (attempt - 1) * ADAPTIVE_MULTIPLIER_INCREMENT;
+        return Math.Min(multiplier, MAX_ADAPTIVE_MULTIPLIER);
     }
 }

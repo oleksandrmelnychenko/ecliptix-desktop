@@ -2,13 +2,13 @@ namespace Ecliptix.Utilities.Failures.Network;
 
 public enum NetworkFailureType
 {
-    DataCenterNotResponding,
-    DataCenterShutdown,
-    InvalidRequestType,
-    EcliptixProtocolFailure,
-    RsaEncryptionFailure,
-    ProtocolStateMismatch,
-    OperationCancelled,
-    CriticalAuthenticationFailure,
-    ConnectionFailed
+    DATA_CENTER_NOT_RESPONDING,
+    DATA_CENTER_SHUTDOWN,
+    INVALID_REQUEST_TYPE,
+    ECLIPTIX_PROTOCOL_FAILURE,
+    RSA_ENCRYPTION_FAILURE,
+    PROTOCOL_STATE_MISMATCH,
+    OPERATION_CANCELLED,
+    CRITICAL_AUTHENTICATION_FAILURE,
+    CONNECTION_FAILED
 }

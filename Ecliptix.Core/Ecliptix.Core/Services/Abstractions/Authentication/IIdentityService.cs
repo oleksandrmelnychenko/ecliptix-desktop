@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
@@ -12,4 +13,6 @@ public interface IIdentityService
 
     Task<Result<Unit, AuthenticationFailure>> StoreIdentityAsync(SodiumSecureMemoryHandle masterKeyHandle, string membershipId);
     Task<Result<SodiumSecureMemoryHandle, AuthenticationFailure>> LoadMasterKeyHandleAsync(string membershipId);
+
+    Task<Result<Unit, Exception>> CleanupMembershipStateWithKeysAsync(string membershipId, uint connectId);
 }

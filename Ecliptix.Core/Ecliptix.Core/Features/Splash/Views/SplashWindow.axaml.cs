@@ -13,22 +13,22 @@ namespace Ecliptix.Core.Features.Splash.Views;
 
 public partial class SplashWindow : ReactiveWindow<SplashWindowViewModel>
 {
-    private const string ConnectedClass = "connected";
-    private const string ConnectingClass = "connecting";
-    private const string DisconnectedClass = "disconnected";
-    private const string RestoreClass = "restore";
-    private const string DefaultClass = "default";
+    private const string CONNECTED_CLASS = "connected";
+    private const string CONNECTING_CLASS = "connecting";
+    private const string DISCONNECTED_CLASS = "disconnected";
+    private const string RESTORE_CLASS = "restore";
+    private const string DEFAULT_CLASS = "default";
 
     private static readonly FrozenDictionary<ConnectivityStatus, string> StatusClassMap =
         new Dictionary<ConnectivityStatus, string>
         {
-            [ConnectivityStatus.Connected] = ConnectedClass,
-            [ConnectivityStatus.Connecting] = ConnectingClass,
-            [ConnectivityStatus.Recovering] = RestoreClass,
-            [ConnectivityStatus.Disconnected] = DisconnectedClass,
-            [ConnectivityStatus.Unavailable] = DisconnectedClass,
-            [ConnectivityStatus.RetriesExhausted] = DisconnectedClass,
-            [ConnectivityStatus.ShuttingDown] = DisconnectedClass
+            [ConnectivityStatus.Connected] = CONNECTED_CLASS,
+            [ConnectivityStatus.Connecting] = CONNECTING_CLASS,
+            [ConnectivityStatus.Recovering] = RESTORE_CLASS,
+            [ConnectivityStatus.Disconnected] = DISCONNECTED_CLASS,
+            [ConnectivityStatus.Unavailable] = DISCONNECTED_CLASS,
+            [ConnectivityStatus.RetriesExhausted] = DISCONNECTED_CLASS,
+            [ConnectivityStatus.ShuttingDown] = DISCONNECTED_CLASS
         }.ToFrozenDictionary();
 
     private ConnectivityStatus _currentConnectivityStatus = ConnectivityStatus.Disconnected;
@@ -74,7 +74,7 @@ public partial class SplashWindow : ReactiveWindow<SplashWindowViewModel>
     }
 
     private static string GetClassForStatusFast(ConnectivityStatus status) =>
-        StatusClassMap.GetValueOrDefault(status, DefaultClass);
+        StatusClassMap.GetValueOrDefault(status, DEFAULT_CLASS);
 
     protected override void OnUnloaded(RoutedEventArgs e)
     {

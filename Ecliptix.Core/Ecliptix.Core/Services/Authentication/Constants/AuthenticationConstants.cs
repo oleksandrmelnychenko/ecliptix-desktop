@@ -4,51 +4,44 @@ namespace Ecliptix.Core.Services.Authentication.Constants;
 
 public static class AuthenticationConstants
 {
-    public const string MobileNumberRequiredKey = "ValidationErrors.MobileNumber.Required";
-    public const string MobileNumberIdentifierRequiredKey = "ValidationErrors.MobileNumberIdentifier.Required";
-    public const string DeviceIdentifierRequiredKey = "ValidationErrors.DeviceIdentifier.Required";
-    public const string SessionIdentifierRequiredKey = "ValidationErrors.SessionIdentifier.Required";
-    public const string MembershipIdentifierRequiredKey = "ValidationErrors.MembershipIdentifier.Required";
-    public const string SecureKeyRequiredKey = "ValidationErrors.SecureKey.Required";
-    public const string InvalidCredentialsKey = "ValidationErrors.SecureKey.InvalidCredentials";
-    public const string VerifySecureKeyDoesNotMatchKey = "ValidationErrors.VerifySecureKey.DoesNotMatch";
-    public const string CommonUnexpectedErrorKey = "Common.UnexpectedError";
+    public const string MOBILE_NUMBER_REQUIRED_KEY = "ValidationErrors.MobileNumber.REQUIRED";
+    public const string MOBILE_NUMBER_IDENTIFIER_REQUIRED_KEY = "ValidationErrors.MobileNumberIdentifier.REQUIRED";
+    public const string SESSION_IDENTIFIER_REQUIRED_KEY = "ValidationErrors.SessionIdentifier.REQUIRED";
+    public const string MEMBERSHIP_IDENTIFIER_REQUIRED_KEY = "ValidationErrors.MembershipIdentifier.REQUIRED";
+    public const string SECURE_KEY_REQUIRED_KEY = "ValidationErrors.SecureKey.REQUIRED";
+    public const string INVALID_CREDENTIALS_KEY = "ValidationErrors.SecureKey.InvalidCredentials";
+    public const string VERIFY_SECURE_KEY_DOES_NOT_MATCH_KEY = "ValidationErrors.VerifySecureKey.DoesNotMatch";
+    public const string COMMON_UNEXPECTED_ERROR_KEY = "Common.UnexpectedError";
 
-    public const string SecureKeyStrengthInvalidKey = "ValidationErrors.SecureKeyStrength.Invalid";
-    public const string SecureKeyStrengthVeryWeakKey = "ValidationErrors.SecureKeyStrength.VeryWeak";
-    public const string SecureKeyStrengthWeakKey = "ValidationErrors.SecureKeyStrength.Weak";
-    public const string SecureKeyStrengthGoodKey = "ValidationErrors.SecureKeyStrength.Good";
-    public const string SecureKeyStrengthStrongKey = "ValidationErrors.SecureKeyStrength.Strong";
-    public const string SecureKeyStrengthVeryStrongKey = "ValidationErrors.SecureKeyStrength.VeryStrong";
+    public const string SECURE_KEY_STRENGTH_INVALID_KEY = "ValidationErrors.SecureKeyStrength.Invalid";
+    public const string SECURE_KEY_STRENGTH_VERY_WEAK_KEY = "ValidationErrors.SecureKeyStrength.VeryWeak";
+    public const string SECURE_KEY_STRENGTH_WEAK_KEY = "ValidationErrors.SecureKeyStrength.Weak";
+    public const string SECURE_KEY_STRENGTH_GOOD_KEY = "ValidationErrors.SecureKeyStrength.Good";
+    public const string SECURE_KEY_STRENGTH_STRONG_KEY = "ValidationErrors.SecureKeyStrength.Strong";
+    public const string SECURE_KEY_STRENGTH_VERY_STRONG_KEY = "ValidationErrors.SecureKeyStrength.VeryStrong";
 
-    public const string NetworkFailurePrefix = "Failed to parse response: ";
-    public const string VerificationFailurePrefix = "Verification failed: ";
-    public const string RegistrationFailurePrefix = "Registration failed: ";
+    public const string NETWORK_FAILURE_PREFIX = "Failed to parse response: ";
+    public const string VERIFICATION_FAILURE_PREFIX = "Verification failed: ";
+    public const string REGISTRATION_FAILURE_PREFIX = "Registration failed: ";
 
-    public const string InvalidOtpCodeKey = "Verification.Error.InvalidOtpCode";
-    public const string RegistrationFailedKey = "Registration.Error.Failed";
-    public const string NoVerificationSessionKey = "Verification.Error.NoSession";
-    public const string VerificationSessionExpiredKey = "Verification.Error.SessionExpired";
-    public const string NoActiveVerificationSessionKey = "Verification.Error.NoActiveSession";
-    public const string MaxAttemptsReachedKey = "Verification.Error.MaxAttemptsReached";
-    public const string SessionNotFoundKey = "Verification.Error.SessionNotFound";
-    public const string RedirectingInSecondsKey = "Verification.Info.RedirectingInSeconds";
-    public const string NavigationFailureKey = "Authentication.Error.NavigationFailure";
+    public const string INVALID_OTP_CODE_KEY = "Verification.ERROR.InvalidOtpCode";
+    public const string REGISTRATION_FAILED_KEY = "Registration.ERROR.Failed";
+    public const string NO_VERIFICATION_SESSION_KEY = "Verification.ERROR.NoSession";
+    public const string VERIFICATION_SESSION_EXPIRED_KEY = "Verification.ERROR.SESSION_EXPIRED";
+    public const string NO_ACTIVE_VERIFICATION_SESSION_KEY = "Verification.ERROR.NoActiveSession";
+    public const string MAX_ATTEMPTS_REACHED_KEY = "Verification.ERROR.MaxAttemptsReached";
+    public const string SESSION_NOT_FOUND_KEY = "Verification.ERROR.SessionNotFound";
+    public const string REDIRECTING_IN_SECONDS_KEY = "Verification.Info.RedirectingInSeconds";
+    public const string NAVIGATION_FAILURE_KEY = "Authentication.ERROR.NavigationFailure";
 
-
-    public const string AccountAlreadyExistsKey = "ResponseErrors.MobileNumber.AccountAlreadyRegistered";
-    public const string TimeoutExceededKey = "ResponseErrors.Common.TimeoutExceeded";
-
-    public const string InitialRemainingTime = "00:30";
-    public const string ExpiredRemainingTime = "00:00";
+    public const string INITIAL_REMAINING_TIME = "00:30";
+    public const string EXPIRED_REMAINING_TIME = "00:00";
 
     public static readonly Guid EmptyGuid = Guid.Empty;
 
     public static class ErrorMessages
     {
-        public const string SessionNotFound = "Session not found";
-        public const string StartOver = "start over";
-        public const string SessionExpiredStartOver = "Session expired. Please start over.";
+        public const string SESSION_EXPIRED_START_OVER = "Session expired. Please start over.";
     }
 
     public static class Timeouts
@@ -58,38 +51,38 @@ public static class AuthenticationConstants
 
     public static class SecureKeyConfirmationKeys
     {
-        public const string RegistrationTitle = "Authentication.SignUp.SecureKeyConfirmation.Title";
-        public const string RegistrationDescription = "Authentication.SignUp.SecureKeyConfirmation.Description";
-        public const string RegistrationButton = "Authentication.SignUp.SecureKeyConfirmation.Button";
+        public const string REGISTRATION_TITLE = "Authentication.SignUp.SecureKeyConfirmation.Title";
+        public const string REGISTRATION_DESCRIPTION = "Authentication.SignUp.SecureKeyConfirmation.Description";
+        public const string REGISTRATION_BUTTON = "Authentication.SignUp.SecureKeyConfirmation.Button";
 
-        public const string RecoveryTitle = "Authentication.SecureKeyRecovery.Reset.Title";
-        public const string RecoveryDescription = "Authentication.SecureKeyRecovery.Reset.Description";
-        public const string RecoveryButton = "Authentication.SecureKeyRecovery.Reset.Button";
+        public const string RECOVERY_TITLE = "Authentication.SecureKeyRecovery.Reset.Title";
+        public const string RECOVERY_DESCRIPTION = "Authentication.SecureKeyRecovery.Reset.Description";
+        public const string RECOVERY_BUTTON = "Authentication.SecureKeyRecovery.Reset.Button";
 
-        public const string SecureKeyPlaceholder = "Authentication.SignUp.SecureKeyConfirmation.SecureKeyPlaceholder";
-        public const string SecureKeyHint = "Authentication.SignUp.SecureKeyConfirmation.SecureKeyHint";
-        public const string VerifySecureKeyPlaceholder = "Authentication.SignUp.SecureKeyConfirmation.VerifySecureKeyPlaceholder";
-        public const string VerifySecureKeyHint = "Authentication.SignUp.SecureKeyConfirmation.VerifySecureKeyHint";
+        public const string SECURE_KEY_PLACEHOLDER = "Authentication.SignUp.SecureKeyConfirmation.SECURE_KEY_PLACEHOLDER";
+        public const string SECURE_KEY_HINT = "Authentication.SignUp.SecureKeyConfirmation.SECURE_KEY_HINT";
+        public const string VERIFY_SECURE_KEY_PLACEHOLDER = "Authentication.SignUp.SecureKeyConfirmation.VERIFY_SECURE_KEY_PLACEHOLDER";
+        public const string VERIFY_SECURE_KEY_HINT = "Authentication.SignUp.SecureKeyConfirmation.VERIFY_SECURE_KEY_HINT";
 
-        public const string RecoverySecureKeyPlaceholder = "Authentication.SecureKeyRecovery.Reset.NewSecureKeyPlaceholder";
-        public const string RecoverySecureKeyHint = "Authentication.SecureKeyRecovery.Reset.NewSecureKeyHint";
-        public const string RecoveryVerifySecureKeyPlaceholder = "Authentication.SecureKeyRecovery.Reset.ConfirmSecureKeyPlaceholder";
-        public const string RecoveryVerifySecureKeyHint = "Authentication.SecureKeyRecovery.Reset.ConfirmSecureKeyHint";
+        public const string RECOVERY_SECURE_KEY_PLACEHOLDER = "Authentication.SecureKeyRecovery.Reset.NewSecureKeyPlaceholder";
+        public const string RECOVERY_SECURE_KEY_HINT = "Authentication.SecureKeyRecovery.Reset.NewSecureKeyHint";
+        public const string RECOVERY_VERIFY_SECURE_KEY_PLACEHOLDER = "Authentication.SecureKeyRecovery.Reset.ConfirmSecureKeyPlaceholder";
+        public const string RECOVERY_VERIFY_SECURE_KEY_HINT = "Authentication.SecureKeyRecovery.Reset.ConfirmSecureKeyHint";
     }
 
     public static class MobileVerificationKeys
     {
-        public const string RegistrationTitle = "Authentication.SignUp.MobileVerification.Title";
-        public const string RegistrationDescription = "Authentication.SignUp.MobileVerification.Description";
-        public const string RegistrationHint = "Authentication.SignUp.MobileVerification.Hint";
-        public const string RegistrationWatermark = "Authentication.SignUp.MobileVerification.Watermark";
-        public const string RegistrationButton = "Authentication.SignUp.MobileVerification.Button";
+        public const string REGISTRATION_TITLE = "Authentication.SignUp.MobileVerification.Title";
+        public const string REGISTRATION_DESCRIPTION = "Authentication.SignUp.MobileVerification.Description";
+        public const string REGISTRATION_HINT = "Authentication.SignUp.MobileVerification.Hint";
+        public const string REGISTRATION_WATERMARK = "Authentication.SignUp.MobileVerification.Watermark";
+        public const string REGISTRATION_BUTTON = "Authentication.SignUp.MobileVerification.Button";
 
-        public const string RecoveryTitle = "Authentication.SecureKeyRecovery.MobileVerification.Title";
-        public const string RecoveryDescription = "Authentication.SecureKeyRecovery.MobileVerification.Description";
-        public const string RecoveryHint = "Authentication.SecureKeyRecovery.MobileVerification.Hint";
-        public const string RecoveryWatermark = "Authentication.SecureKeyRecovery.MobileVerification.Watermark";
-        public const string RecoveryButton = "Authentication.SecureKeyRecovery.MobileVerification.Button";
+        public const string RECOVERY_TITLE = "Authentication.SecureKeyRecovery.MobileVerification.Title";
+        public const string RECOVERY_DESCRIPTION = "Authentication.SecureKeyRecovery.MobileVerification.Description";
+        public const string RECOVERY_HINT = "Authentication.SecureKeyRecovery.MobileVerification.Hint";
+        public const string RECOVERY_WATERMARK = "Authentication.SecureKeyRecovery.MobileVerification.Watermark";
+        public const string RECOVERY_BUTTON = "Authentication.SecureKeyRecovery.MobileVerification.Button";
     }
 
 

@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
 using Ecliptix.Core.Infrastructure.Network.Core.Constants;
 using Ecliptix.Core.Services.Abstractions.Core;
@@ -24,15 +25,17 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
 
         return failureType switch
         {
-            NetworkFailureType.InvalidRequestType => NetworkFailure.InvalidRequestType(userError.Message, rpcException,
+            NetworkFailureType.INVALID_REQUEST_TYPE => NetworkFailure.InvalidRequestType(userError.Message,
+                rpcException,
                 userError),
-            NetworkFailureType.DataCenterShutdown => NetworkFailure.DataCenterShutdown(userError.Message, rpcException,
+            NetworkFailureType.DATA_CENTER_SHUTDOWN => NetworkFailure.DataCenterShutdown(userError.Message,
+                rpcException,
                 userError),
-            NetworkFailureType.ProtocolStateMismatch => NetworkFailure.ProtocolStateMismatch(userError.Message,
+            NetworkFailureType.PROTOCOL_STATE_MISMATCH => NetworkFailure.ProtocolStateMismatch(userError.Message,
                 rpcException, userError),
-            NetworkFailureType.CriticalAuthenticationFailure => NetworkFailure.CriticalAuthenticationFailure(
+            NetworkFailureType.CRITICAL_AUTHENTICATION_FAILURE => NetworkFailure.CriticalAuthenticationFailure(
                 userError.Message, rpcException, userError),
-            NetworkFailureType.OperationCancelled => NetworkFailure.OperationCancelled(userError.Message, rpcException,
+            NetworkFailureType.OPERATION_CANCELLED => NetworkFailure.OperationCancelled(userError.Message, rpcException,
                 userError),
             _ => NetworkFailure.DataCenterNotResponding(userError.Message, rpcException, userError)
         };
@@ -44,7 +47,7 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
 
         ErrorCode errorCode = ParseErrorCode(rpcException, trailers);
         (string message, string keyUsed) = ResolveMessage(
-            GetMetadataValue(trailers, GrpcErrorMetadataKeys.I18nKey),
+            GetMetadataValue(trailers, GrpcErrorMetadataKeys.I_18N_KEY),
             errorCode,
             rpcException.Status.Detail);
 
@@ -56,8 +59,8 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
         }
 
         int? retryAfter = ParseRetryAfter(trailers);
-        string? correlationId = GetMetadataValue(trailers, GrpcErrorMetadataKeys.CorrelationId);
-        string? locale = GetMetadataValue(trailers, GrpcErrorMetadataKeys.Locale);
+        string? correlationId = GetMetadataValue(trailers, GrpcErrorMetadataKeys.CORRELATION_ID);
+        string? locale = GetMetadataValue(trailers, GrpcErrorMetadataKeys.LOCALE);
 
         return new UserFacingError(
             errorCode,
@@ -70,14 +73,14 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
             rpcException.StatusCode);
     }
 
-    private ErrorCode ParseErrorCode(RpcException rpcException, Metadata trailers)
+    private static ErrorCode ParseErrorCode(RpcException rpcException, Metadata trailers)
     {
         if (GrpcErrorClassifier.IsAuthFlowMissing(rpcException))
         {
-            return ErrorCode.DependencyUnavailable;
+            return ErrorCode.DEPENDENCY_UNAVAILABLE;
         }
 
-        string? rawCode = GetMetadataValue(trailers, GrpcErrorMetadataKeys.ErrorCode);
+        string? rawCode = GetMetadataValue(trailers, GrpcErrorMetadataKeys.ERROR_CODE);
         if (!string.IsNullOrWhiteSpace(rawCode) &&
             Enum.TryParse(rawCode, ignoreCase: true, out ErrorCode parsed))
         {
@@ -111,13 +114,13 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
             return (statusDetail, fallbackKey);
         }
 
-        string internalMessage = Localize(ErrorI18nKeys.Internal);
+        string internalMessage = Localize(ErrorI18NKeys.INTERNAL);
         if (IsMissing(internalMessage))
         {
             internalMessage = "An unexpected error occurred";
         }
 
-        return (internalMessage, ErrorI18nKeys.Internal);
+        return (internalMessage, ErrorI18NKeys.INTERNAL);
     }
 
     private string Localize(string key)
@@ -140,7 +143,7 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
 
     private static bool? ParseRetryable(Metadata trailers)
     {
-        string? retryableValue = GetMetadataValue(trailers, GrpcErrorMetadataKeys.Retryable);
+        string? retryableValue = GetMetadataValue(trailers, GrpcErrorMetadataKeys.RETRYABLE);
         if (string.IsNullOrWhiteSpace(retryableValue))
         {
             return null;
@@ -151,7 +154,7 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
 
     private static int? ParseRetryAfter(Metadata trailers)
     {
-        string? retryAfterValue = GetMetadataValue(trailers, GrpcErrorMetadataKeys.RetryAfterMilliseconds);
+        string? retryAfterValue = GetMetadataValue(trailers, GrpcErrorMetadataKeys.RETRY_AFTER_MILLISECONDS);
         if (string.IsNullOrWhiteSpace(retryAfterValue))
         {
             return null;
@@ -162,18 +165,9 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
             : null;
     }
 
-    private static string? GetMetadataValue(Metadata metadata, string key)
-    {
-        foreach (Metadata.Entry entry in metadata)
-        {
-            if (entry.Key.Equals(key, StringComparison.OrdinalIgnoreCase))
-            {
-                return entry.Value;
-            }
-        }
-
-        return null;
-    }
+    private static string? GetMetadataValue(Metadata metadata, string key) => (from entry in metadata
+        where entry.Key.Equals(key, StringComparison.OrdinalIgnoreCase)
+        select entry.Value).FirstOrDefault();
 
     private static bool IsTransientStatus(StatusCode statusCode) =>
         statusCode is StatusCode.Unavailable or StatusCode.DeadlineExceeded or StatusCode.Cancelled;
@@ -181,78 +175,67 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
     private static ErrorCode MapStatusCode(StatusCode statusCode) =>
         statusCode switch
         {
-            StatusCode.InvalidArgument or StatusCode.OutOfRange => ErrorCode.ValidationFailed,
-            StatusCode.NotFound => ErrorCode.NotFound,
-            StatusCode.AlreadyExists => ErrorCode.AlreadyExists,
-            StatusCode.PermissionDenied => ErrorCode.PermissionDenied,
-            StatusCode.Unauthenticated => ErrorCode.Unauthenticated,
-            StatusCode.FailedPrecondition => ErrorCode.PreconditionFailed,
-            StatusCode.Aborted => ErrorCode.Conflict,
-            StatusCode.ResourceExhausted => ErrorCode.ResourceExhausted,
-            StatusCode.Unavailable => ErrorCode.ServiceUnavailable,
-            StatusCode.DeadlineExceeded => ErrorCode.DeadlineExceeded,
-            StatusCode.Cancelled => ErrorCode.Cancelled,
-            _ => ErrorCode.InternalError
+            StatusCode.InvalidArgument or StatusCode.OutOfRange => ErrorCode.VALIDATION_FAILED,
+            StatusCode.NotFound => ErrorCode.NOT_FOUND,
+            StatusCode.AlreadyExists => ErrorCode.ALREADY_EXISTS,
+            StatusCode.PermissionDenied => ErrorCode.PERMISSION_DENIED,
+            StatusCode.Unauthenticated => ErrorCode.UNAUTHENTICATED,
+            StatusCode.FailedPrecondition => ErrorCode.PRECONDITION_FAILED,
+            StatusCode.Aborted => ErrorCode.CONFLICT,
+            StatusCode.ResourceExhausted => ErrorCode.RESOURCE_EXHAUSTED,
+            StatusCode.Unavailable => ErrorCode.SERVICE_UNAVAILABLE,
+            StatusCode.DeadlineExceeded => ErrorCode.DEADLINE_EXCEEDED,
+            StatusCode.Cancelled => ErrorCode.CANCELLED,
+            _ => ErrorCode.INTERNAL_ERROR
         };
 
     private static string GetFallbackKey(ErrorCode errorCode) =>
         errorCode switch
         {
-            ErrorCode.ValidationFailed => ErrorI18nKeys.Validation,
-            ErrorCode.MaxAttemptsReached => ErrorI18nKeys.MaxAttempts,
-            ErrorCode.InvalidMobileNumber => ErrorI18nKeys.InvalidMobile,
-            ErrorCode.OtpExpired => ErrorI18nKeys.OtpExpired,
-            ErrorCode.NotFound => ErrorI18nKeys.NotFound,
-            ErrorCode.AlreadyExists => ErrorI18nKeys.AlreadyExists,
-            ErrorCode.Unauthenticated => ErrorI18nKeys.Unauthenticated,
-            ErrorCode.PermissionDenied => ErrorI18nKeys.PermissionDenied,
-            ErrorCode.PreconditionFailed => ErrorI18nKeys.PreconditionFailed,
-            ErrorCode.Conflict => ErrorI18nKeys.Conflict,
-            ErrorCode.ResourceExhausted => ErrorI18nKeys.ResourceExhausted,
-            ErrorCode.ServiceUnavailable => ErrorI18nKeys.ServiceUnavailable,
-            ErrorCode.DependencyUnavailable => ErrorI18nKeys.DependencyUnavailable,
-            ErrorCode.DeadlineExceeded => ErrorI18nKeys.DeadlineExceeded,
-            ErrorCode.Cancelled => ErrorI18nKeys.Cancelled,
-            ErrorCode.DatabaseUnavailable => ErrorI18nKeys.DatabaseUnavailable,
-            _ => ErrorI18nKeys.Internal
+            ErrorCode.VALIDATION_FAILED => ErrorI18NKeys.VALIDATION,
+            ErrorCode.MAX_ATTEMPTS_REACHED => ErrorI18NKeys.MAX_ATTEMPTS,
+            ErrorCode.INVALID_MOBILE_NUMBER => ErrorI18NKeys.INVALID_MOBILE,
+            ErrorCode.OTP_EXPIRED => ErrorI18NKeys.OTP_EXPIRED,
+            ErrorCode.NOT_FOUND => ErrorI18NKeys.NOT_FOUND,
+            ErrorCode.ALREADY_EXISTS => ErrorI18NKeys.ALREADY_EXISTS,
+            ErrorCode.UNAUTHENTICATED => ErrorI18NKeys.UNAUTHENTICATED,
+            ErrorCode.PERMISSION_DENIED => ErrorI18NKeys.PERMISSION_DENIED,
+            ErrorCode.PRECONDITION_FAILED => ErrorI18NKeys.PRECONDITION_FAILED,
+            ErrorCode.CONFLICT => ErrorI18NKeys.CONFLICT,
+            ErrorCode.RESOURCE_EXHAUSTED => ErrorI18NKeys.RESOURCE_EXHAUSTED,
+            ErrorCode.SERVICE_UNAVAILABLE => ErrorI18NKeys.SERVICE_UNAVAILABLE,
+            ErrorCode.DEPENDENCY_UNAVAILABLE => ErrorI18NKeys.DEPENDENCY_UNAVAILABLE,
+            ErrorCode.DEADLINE_EXCEEDED => ErrorI18NKeys.DEADLINE_EXCEEDED,
+            ErrorCode.CANCELLED => ErrorI18NKeys.CANCELLED,
+            ErrorCode.DATABASE_UNAVAILABLE => ErrorI18NKeys.DATABASE_UNAVAILABLE,
+            _ => ErrorI18NKeys.INTERNAL
         };
 
     private static NetworkFailureType DetermineFailureType(RpcException rpcException, UserFacingError userError)
     {
         if (GrpcErrorClassifier.IsIdentityKeyDerivationFailure(rpcException) ||
             GrpcErrorClassifier.IsAuthenticationError(rpcException) ||
-            userError.ErrorCode == ErrorCode.Unauthenticated)
+            userError.ErrorCode == ErrorCode.UNAUTHENTICATED)
         {
-            return NetworkFailureType.CriticalAuthenticationFailure;
+            return NetworkFailureType.CRITICAL_AUTHENTICATION_FAILURE;
         }
 
         if (GrpcErrorClassifier.IsProtocolStateMismatch(rpcException))
         {
-            return NetworkFailureType.ProtocolStateMismatch;
+            return NetworkFailureType.PROTOCOL_STATE_MISMATCH;
         }
 
         if (GrpcErrorClassifier.IsServerShutdown(rpcException))
         {
-            return NetworkFailureType.DataCenterShutdown;
+            return NetworkFailureType.DATA_CENTER_SHUTDOWN;
         }
 
         if (GrpcErrorClassifier.IsBusinessError(rpcException) &&
             !GrpcErrorClassifier.IsAuthFlowMissing(rpcException))
         {
-            return NetworkFailureType.InvalidRequestType;
+            return NetworkFailureType.INVALID_REQUEST_TYPE;
         }
 
-        if (GrpcErrorClassifier.IsTransientInfrastructure(rpcException) ||
-            GrpcErrorClassifier.RequiresHandshakeRecovery(rpcException) ||
-            GrpcErrorClassifier.IsAuthFlowMissing(rpcException))
-        {
-            return NetworkFailureType.DataCenterNotResponding;
-        }
-
-        if (rpcException.StatusCode == StatusCode.Cancelled)
-        {
-        }
-
-        return NetworkFailureType.DataCenterNotResponding;
+        return NetworkFailureType.DATA_CENTER_NOT_RESPONDING;
     }
 }

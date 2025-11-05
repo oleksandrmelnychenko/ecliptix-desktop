@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -5,14 +6,12 @@ using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Features.Authentication.ViewModels.Registration;
-using ReactiveUI;
 
 namespace Ecliptix.Core.Features.Authentication.Views.Registration;
 
-public partial class MobileVerificationView : ReactiveUserControl<MobileVerificationViewModel>,
-    IViewFor<MobileVerificationViewModel>
+public partial class MobileVerificationView : ReactiveUserControl<MobileVerificationViewModel>
 {
-    private const string MobileTextBoxControlName = "MobileTextBox";
+    private const string MOBILE_TEXT_BOX_CONTROL_NAME = "MobileTextBox";
 
     private bool _handlersAttached;
     public MobileVerificationView()
@@ -44,7 +43,7 @@ public partial class MobileVerificationView : ReactiveUserControl<MobileVerifica
             return;
         }
 
-        if (this.FindControl<HintedTextBox>(MobileTextBoxControlName) is { } mobileTextBox)
+        if (this.FindControl<HintedTextBox>(MOBILE_TEXT_BOX_CONTROL_NAME) is { } mobileTextBox)
         {
             mobileTextBox.KeyDown += OnMobileTextBoxKeyDown;
             _handlersAttached = true;
@@ -58,7 +57,7 @@ public partial class MobileVerificationView : ReactiveUserControl<MobileVerifica
             return;
         }
 
-        if (this.FindControl<HintedTextBox>(MobileTextBoxControlName) is { } mobileTextBox)
+        if (this.FindControl<HintedTextBox>(MOBILE_TEXT_BOX_CONTROL_NAME) is { } mobileTextBox)
         {
             mobileTextBox.KeyDown -= OnMobileTextBoxKeyDown;
         }
@@ -78,7 +77,15 @@ public partial class MobileVerificationView : ReactiveUserControl<MobileVerifica
             return;
         }
 
-        _ = vm.HandleEnterKeyPressAsync();
+        vm.HandleEnterKeyPressAsync().ContinueWith(
+            task =>
+            {
+                if (task is { IsFaulted: true, Exception: not null })
+                {
+                    Serilog.Log.Error(task.Exception, "[MOBILE-VERIFICATION-VIEW] Unhandled exception in HandleEnterKeyPressAsync");
+                }
+            },
+            TaskScheduler.Default);
         e.Handled = true;
     }
 }

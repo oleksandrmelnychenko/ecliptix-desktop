@@ -32,6 +32,6 @@ public interface IMessageRequest
 
 public interface IMessageResponse
 {
-    string? CorrelationId { get; }
+    string? CORRELATION_ID { get; }
 }
 

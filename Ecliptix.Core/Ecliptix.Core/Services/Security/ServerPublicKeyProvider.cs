@@ -16,21 +16,18 @@ internal sealed class ServerPublicKeyProvider(NetworkProvider networkProvider) :
     {
         lock (_lock)
         {
-            Option<byte[]> key = _cachedKey.Or(() =>
+            if (_cachedKey.IsSome)
             {
-                byte[] newKey = SecureByteStringInterop.WithByteStringAsSpan(
-                    networkProvider.ApplicationInstanceSettings.ServerPublicKey,
-                    span => span.ToArray());
-                _cachedKey = Option<byte[]>.Some(newKey);
-                return _cachedKey;
-            });
-
-            if (!key.IsSome)
-            {
-                throw new InvalidOperationException("Failed to load server public key");
+                return (byte[])_cachedKey.Value!.Clone();
             }
 
-            return (byte[])key.Value!.Clone();
+            byte[] newKey = SecureByteStringInterop.WithByteStringAsSpan(
+                networkProvider.ApplicationInstanceSettings.ServerPublicKey,
+                span => span.ToArray());
+
+            _cachedKey = Option<byte[]>.Some(newKey);
+
+            return (byte[])_cachedKey.Value!.Clone();
         }
     }
 }

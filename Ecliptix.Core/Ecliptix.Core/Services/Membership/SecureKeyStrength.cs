@@ -2,10 +2,10 @@ namespace Ecliptix.Core.Services.Membership;
 
 public enum SecureKeyStrength
 {
-    Invalid,
-    VeryWeak,
-    Weak,
-    Good,
-    Strong,
-    VeryStrong
+    INVALID,
+    VERY_WEAK,
+    WEAK,
+    GOOD,
+    STRONG,
+    VERY_STRONG
 }

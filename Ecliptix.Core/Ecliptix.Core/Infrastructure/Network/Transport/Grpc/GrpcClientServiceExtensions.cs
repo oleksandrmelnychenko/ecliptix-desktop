@@ -31,7 +31,7 @@ public static class GrpcClientServiceExtensions
 
         if (string.IsNullOrEmpty(endpoint))
         {
-            throw new InvalidOperationException("gRPC DataCenterConnectionString is not configured.");
+            throw new InvalidOperationException("gRPC DATA_CENTER_CONNECTION_STRING is not configured.");
         }
 
         options.Address = new Uri(endpoint);

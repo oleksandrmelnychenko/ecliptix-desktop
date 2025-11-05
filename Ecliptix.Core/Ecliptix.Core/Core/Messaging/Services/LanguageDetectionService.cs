@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Core.Messaging.Events;
 
 namespace Ecliptix.Core.Core.Messaging.Services;
@@ -16,7 +15,7 @@ internal sealed class LanguageDetectionService(IMessageBus messageBus) : ILangua
             return;
         }
 
-        LanguageDetectionDialogEvent evt = LanguageDetectionDialogEvent.Confirm(targetCulture);
+        LanguageDetectionDialogEvent evt = LanguageDetectionDialogEvent.Request(targetCulture);
         await messageBus.PublishAsync(evt);
     }
 

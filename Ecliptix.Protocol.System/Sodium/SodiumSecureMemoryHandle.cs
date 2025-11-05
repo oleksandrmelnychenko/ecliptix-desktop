@@ -33,7 +33,7 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         {
             case < 0:
                 return Result<SodiumSecureMemoryHandle, SodiumFailure>.Err(
-                    SodiumFailure.InvalidBufferSize(string.Format(SodiumFailureMessages.NegativeAllocationLength,
+                    SodiumFailure.InvalidBufferSize(string.Format(SodiumFailureMessages.NEGATIVE_ALLOCATION_LENGTH,
                         length)));
             case 0:
                 return Result<SodiumSecureMemoryHandle, SodiumFailure>.Ok(
@@ -43,13 +43,13 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         if (!SodiumInterop.IsInitialized)
         {
             return Result<SodiumSecureMemoryHandle, SodiumFailure>.Err(
-                SodiumFailure.InitializationFailed(SodiumFailureMessages.SodiumNotInitialized));
+                SodiumFailure.INITIALIZATION_FAILED(SodiumFailureMessages.SODIUM_NOT_INITIALIZED));
         }
 
         Result<IntPtr, SodiumFailure> allocationResult = ExecuteWithErrorHandling(
             () => SodiumInterop.sodium_malloc((UIntPtr)length),
-            ex => SodiumFailure.AllocationFailed(
-                string.Format(SodiumFailureMessages.UnexpectedAllocationError, length), ex)
+            ex => SodiumFailure.ALLOCATION_FAILED(
+                string.Format(SodiumFailureMessages.UNEXPECTED_ALLOCATION_ERROR, length), ex)
         );
 
         if (allocationResult.IsErr)
@@ -61,7 +61,7 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         if (ptr == IntPtr.Zero)
         {
             return Result<SodiumSecureMemoryHandle, SodiumFailure>.Err(
-                SodiumFailure.AllocationFailed(string.Format(SodiumFailureMessages.AllocationFailed,
+                SodiumFailure.ALLOCATION_FAILED(string.Format(SodiumFailureMessages.ALLOCATION_FAILED,
                     length)));
         }
 
@@ -80,13 +80,13 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
             if (IsInvalid || IsClosed)
             {
                 return Result<Unit, SodiumFailure>.Err(
-                    SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.HandleDisposed));
+                    SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.HANDLE_DISPOSED));
             }
 
             if (data.Length > Length)
             {
                 return Result<Unit, SodiumFailure>.Err(
-                    SodiumFailure.BufferTooLarge(string.Format(ProtocolSystemConstants.ErrorMessages.DataExceedsBuffer, data.Length, Length)));
+                    SodiumFailure.BUFFER_TOO_LARGE(string.Format(ProtocolSystemConstants.ErrorMessages.DATA_EXCEEDS_BUFFER, data.Length, Length)));
             }
 
             if (data.IsEmpty)
@@ -98,7 +98,7 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
             if (!success)
             {
                 return Result<Unit, SodiumFailure>.Err(
-                    SodiumFailure.MemoryPinningFailed(ProtocolSystemConstants.ErrorMessages.RefCountFailed));
+                    SodiumFailure.MemoryPinningFailed(ProtocolSystemConstants.ErrorMessages.REF_COUNT_FAILED));
             }
 
             unsafe
@@ -115,7 +115,7 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         catch (Exception ex)
         {
             return Result<Unit, SodiumFailure>.Err(
-                SodiumFailure.MemoryProtectionFailed(ProtocolSystemConstants.ErrorMessages.UnexpectedWriteError, ex));
+                SodiumFailure.MemoryProtectionFailed(ProtocolSystemConstants.ErrorMessages.UNEXPECTED_WRITE_ERROR, ex));
         }
         finally
         {
@@ -133,15 +133,15 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         if (IsInvalid || IsClosed)
         {
             return Result<Unit, SodiumFailure>.Err(
-                SodiumFailure.NullPointer(string.Format(SodiumFailureMessages.ObjectDisposed,
+                SodiumFailure.NullPointer(string.Format(SodiumFailureMessages.OBJECT_DISPOSED,
                     nameof(SodiumSecureMemoryHandle))));
         }
 
         if (destination.Length < Length)
         {
             return Result<Unit, SodiumFailure>.Err(
-                SodiumFailure.BufferTooSmall(
-                    string.Format(SodiumFailureMessages.BufferTooSmall, destination.Length, Length)));
+                SodiumFailure.BUFFER_TOO_SMALL(
+                    string.Format(SodiumFailureMessages.BUFFER_TOO_SMALL, destination.Length, Length)));
         }
 
         if (Length == 0)
@@ -158,14 +158,14 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
             if (!success)
             {
                 return Result<Unit, SodiumFailure>.Err(
-                    SodiumFailure.MemoryPinningFailed(SodiumFailureMessages.ReferenceCountFailed));
+                    SodiumFailure.MemoryPinningFailed(SodiumFailureMessages.REFERENCE_COUNT_FAILED));
             }
 
             if (IsInvalid || IsClosed)
             {
                 return Result<Unit, SodiumFailure>.Err(
                     SodiumFailure.NullPointer(
-                        string.Format(SodiumFailureMessages.DisposedAfterAddRef, nameof(SodiumSecureMemoryHandle))));
+                        string.Format(SodiumFailureMessages.DISPOSED_AFTER_ADD_REF, nameof(SodiumSecureMemoryHandle))));
             }
 
             unsafe
@@ -182,7 +182,7 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         catch (Exception ex)
         {
             return Result<Unit, SodiumFailure>.Err(
-                SodiumFailure.MemoryProtectionFailed(SodiumFailureMessages.UnexpectedReadError, ex));
+                SodiumFailure.MemoryProtectionFailed(SodiumFailureMessages.UNEXPECTED_READ_ERROR, ex));
         }
         finally
         {
@@ -200,20 +200,20 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         if (IsInvalid || IsClosed)
         {
             return Result<byte[], SodiumFailure>.Err(
-                SodiumFailure.NullPointer(string.Format(SodiumFailureMessages.ObjectDisposed,
+                SodiumFailure.NullPointer(string.Format(SodiumFailureMessages.OBJECT_DISPOSED,
                     nameof(SodiumSecureMemoryHandle))));
         }
 
         if (length < 0)
         {
             return Result<byte[], SodiumFailure>.Err(
-                SodiumFailure.InvalidBufferSize(string.Format(SodiumFailureMessages.NegativeReadLength, length)));
+                SodiumFailure.InvalidBufferSize(string.Format(SodiumFailureMessages.NEGATIVE_READ_LENGTH, length)));
         }
 
         if (length > Length)
         {
             return Result<byte[], SodiumFailure>.Err(
-                SodiumFailure.BufferTooSmall(string.Format(SodiumFailureMessages.ReadLengthExceedsSize,
+                SodiumFailure.BUFFER_TOO_SMALL(string.Format(SodiumFailureMessages.READ_LENGTH_EXCEEDS_SIZE,
                     length,
                     Length)));
         }
@@ -235,13 +235,13 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
                     DangerousAddRef(ref success);
                     if (!success)
                     {
-                        throw new InvalidOperationException(SodiumFailureMessages.ReferenceCountFailed);
+                        throw new InvalidOperationException(SodiumFailureMessages.REFERENCE_COUNT_FAILED);
                     }
 
                     if (IsInvalid || IsClosed)
                     {
                         throw new ObjectDisposedException(
-                            string.Format(SodiumFailureMessages.DisposedAfterAddRef, nameof(SodiumSecureMemoryHandle)));
+                            string.Format(SodiumFailureMessages.DISPOSED_AFTER_ADD_REF, nameof(SodiumSecureMemoryHandle)));
                     }
 
                     unsafe
@@ -257,12 +257,12 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
                 },
                 ex => ex switch
                 {
-                    InvalidOperationException { Message: SodiumFailureMessages.ReferenceCountFailed } =>
-                        SodiumFailure.MemoryPinningFailed(SodiumFailureMessages.ReferenceCountFailed),
+                    InvalidOperationException { Message: SodiumFailureMessages.REFERENCE_COUNT_FAILED } =>
+                        SodiumFailure.MemoryPinningFailed(SodiumFailureMessages.REFERENCE_COUNT_FAILED),
                     ObjectDisposedException => SodiumFailure.NullPointer(
-                        string.Format(SodiumFailureMessages.DisposedAfterAddRef, nameof(SodiumSecureMemoryHandle))),
+                        string.Format(SodiumFailureMessages.DISPOSED_AFTER_ADD_REF, nameof(SodiumSecureMemoryHandle))),
                     _ => SodiumFailure.MemoryProtectionFailed(
-                        string.Format(SodiumFailureMessages.UnexpectedReadBytesError, length), ex)
+                        string.Format(SodiumFailureMessages.UNEXPECTED_READ_BYTES_ERROR, length), ex)
                 }
             );
 
@@ -281,7 +281,15 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
 
     protected override bool ReleaseHandle()
     {
-        _lock.EnterWriteLock();
+        try
+        {
+            _lock.EnterWriteLock();
+        }
+        catch
+        {
+            return false;
+        }
+
         try
         {
             if (IsInvalid)
@@ -301,7 +309,15 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         finally
         {
             _lock.ExitWriteLock();
-            _lock.Dispose();
+        }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+        if (disposing)
+        {
+            _lock?.Dispose();
         }
     }
 
@@ -320,6 +336,11 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
                 {
                     _isLocked = true;
                 }
+                else
+                {
+                    Serilog.Log.Warning("[SODIUM-MEMORY] Failed to lock memory with VirtualLock. Address: {Address}, Size: {Size}",
+                        handle, Length);
+                }
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
                      RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
@@ -328,11 +349,18 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
                 {
                     _isLocked = true;
                 }
+                else
+                {
+                    Serilog.Log.Warning("[SODIUM-MEMORY] Failed to lock memory with mlock. Address: {Address}, Size: {Size}",
+                        handle, Length);
+                }
             }
         }
-        catch
+        catch (Exception ex)
         {
             _isLocked = false;
+            Serilog.Log.Error(ex, "[SODIUM-MEMORY] Exception during memory locking. Address: {Address}, Size: {Size}",
+                handle, Length);
         }
     }
 
@@ -355,8 +383,10 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
                 munlock(handle, (UIntPtr)Length);
             }
         }
-        catch
+        catch (Exception ex)
         {
+            Serilog.Log.Debug(ex, "[SODIUM-MEMORY] Exception during memory unlocking (may be expected). Address: {Address}, Size: {Size}",
+                handle, Length);
         }
         finally
         {
@@ -385,7 +415,7 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         if (IsInvalid || IsClosed)
         {
             return Result<TResult, SodiumFailure>.Err(
-                SodiumFailure.NullPointer(string.Format(SodiumFailureMessages.ObjectDisposed,
+                SodiumFailure.NullPointer(string.Format(SodiumFailureMessages.OBJECT_DISPOSED,
                     nameof(SodiumSecureMemoryHandle))));
         }
 
@@ -398,13 +428,13 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
             if (!success)
             {
                 return Result<TResult, SodiumFailure>.Err(
-                    SodiumFailure.MemoryProtectionFailed(SodiumFailureMessages.ReferenceCountFailed));
+                    SodiumFailure.MemoryProtectionFailed(SodiumFailureMessages.REFERENCE_COUNT_FAILED));
             }
 
             if (IsInvalid || IsClosed)
             {
                 return Result<TResult, SodiumFailure>.Err(
-                    SodiumFailure.ObjectDisposed(string.Format(SodiumFailureMessages.DisposedAfterAddRef,
+                    SodiumFailure.OBJECT_DISPOSED(string.Format(SodiumFailureMessages.DISPOSED_AFTER_ADD_REF,
                         nameof(SodiumSecureMemoryHandle))));
             }
 
@@ -417,7 +447,7 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         catch (Exception ex)
         {
             return Result<TResult, SodiumFailure>.Err(
-                SodiumFailure.MemoryProtectionFailed(SodiumFailureMessages.UnexpectedReadError, ex));
+                SodiumFailure.MemoryProtectionFailed(SodiumFailureMessages.UNEXPECTED_READ_ERROR, ex));
         }
         finally
         {
@@ -430,15 +460,15 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         }
     }
 
-    [DllImport(ProtocolSystemConstants.Libraries.Kernel32, SetLastError = true)]
+    [DllImport(ProtocolSystemConstants.Libraries.KERNEL_32, SetLastError = true)]
     private static extern bool VirtualLock(IntPtr lpAddress, UIntPtr dwSize);
 
-    [DllImport(ProtocolSystemConstants.Libraries.Kernel32, SetLastError = true)]
+    [DllImport(ProtocolSystemConstants.Libraries.KERNEL_32, SetLastError = true)]
     private static extern bool VirtualUnlock(IntPtr lpAddress, UIntPtr dwSize);
 
-    [DllImport(ProtocolSystemConstants.Libraries.LibC, SetLastError = true)]
+    [DllImport(ProtocolSystemConstants.Libraries.LIB_C, SetLastError = true)]
     private static extern int mlock(IntPtr addr, UIntPtr len);
 
-    [DllImport(ProtocolSystemConstants.Libraries.LibC, SetLastError = true)]
+    [DllImport(ProtocolSystemConstants.Libraries.LIB_C, SetLastError = true)]
     private static extern int munlock(IntPtr addr, UIntPtr len);
 }

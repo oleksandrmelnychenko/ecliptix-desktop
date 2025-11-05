@@ -1,10 +1,9 @@
-using System;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
-using Ecliptix.Core.Controls;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Controls.EventArgs;
 using Ecliptix.Core.Features.Authentication.ViewModels.Registration;
@@ -44,20 +43,22 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
             return;
         }
 
-        if (this.FindControl<HintedTextBox>("SecureKeyTextBox") is HintedTextBox secureKeyBox)
+        if (this.FindControl<HintedTextBox>("SecureKeyTextBox") is { } secureKeyBox)
         {
             secureKeyBox.SecureKeyCharactersAdded += OnSecureKeyCharactersAdded;
             secureKeyBox.SecureKeyCharactersRemoved += OnSecureKeyCharactersRemoved;
             secureKeyBox.KeyDown += OnSecureKeyTextBoxKeyDown;
             secureKeyBox.CharacterRejected += OnCharacterRejected;
         }
-        if (this.FindControl<HintedTextBox>("VerifySecureKeyTextBox") is HintedTextBox verifySecureKeyBox)
+
+        if (this.FindControl<HintedTextBox>("VerifySecureKeyTextBox") is { } verifySecureKeyBox)
         {
             verifySecureKeyBox.SecureKeyCharactersAdded += OnVerifySecureKeyCharactersAdded;
             verifySecureKeyBox.SecureKeyCharactersRemoved += OnVerifySecureKeyCharactersRemoved;
             verifySecureKeyBox.KeyDown += OnSecureKeyTextBoxKeyDown;
             verifySecureKeyBox.CharacterRejected += OnCharacterRejected;
         }
+
         _handlersAttached = true;
     }
 
@@ -75,6 +76,7 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
             secureKeyBox.KeyDown -= OnSecureKeyTextBoxKeyDown;
             secureKeyBox.CharacterRejected -= OnCharacterRejected;
         }
+
         if (this.FindControl<HintedTextBox>("VerifySecureKeyTextBox") is HintedTextBox verifySecureKeyBox)
         {
             verifySecureKeyBox.SecureKeyCharactersAdded -= OnVerifySecureKeyCharactersAdded;
@@ -82,6 +84,7 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
             verifySecureKeyBox.KeyDown -= OnSecureKeyTextBoxKeyDown;
             verifySecureKeyBox.CharacterRejected -= OnCharacterRejected;
         }
+
         _handlersAttached = false;
     }
 
@@ -141,7 +144,16 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
             return;
         }
 
-        _ = vm.HandleEnterKeyPressAsync();
+        vm.HandleEnterKeyPressAsync().ContinueWith(
+            task =>
+            {
+                if (task is { IsFaulted: true, Exception: not null })
+                {
+                    Serilog.Log.Error(task.Exception,
+                        "[SECURE-KEY-CONFIRMATION-VIEW] Unhandled exception in HandleEnterKeyPressAsync");
+                }
+            },
+            TaskScheduler.Default);
         e.Handled = true;
     }
 

@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
-using Ecliptix.Core.Controls.Modals.BottomSheetModal;
 using Ecliptix.Core.Core.Messaging.Events;
 using Serilog;
 
@@ -12,8 +12,7 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
 {
     private readonly IMessageBus _messageBus;
     private readonly Queue<BottomSheetRequest> _requestQueue = new();
-    private readonly object _queueLock = new();
-    private BottomSheetRequest? _currentRequest;
+    private readonly Lock _queueLock = new();
     private BottomSheetRequest? _pendingRequest;
     private bool _isShowingBottomSheet;
     private bool _isAnimating;
@@ -126,7 +125,6 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
             else
             {
                 requestToShow = _requestQueue.Dequeue();
-                _currentRequest = requestToShow;
                 _isAnimating = true;
                 Log.Debug("[BottomSheet-Service] Processing request: Type={Type}, Queue remaining: {QueueSize}",
                     requestToShow.ComponentType, _requestQueue.Count);
@@ -138,10 +136,10 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
             Log.Debug("[BottomSheet-Service] Waiting for show animation to fully complete before hiding...");
             await _messageBus.PublishAsync(BottomSheetCommandEvent.Hide());
         }
-        else if (requestToShow != null)
+        else
         {
             await _messageBus.PublishAsync(BottomSheetCommandEvent.Show(
-                requestToShow.ComponentType,
+                requestToShow!.ComponentType,
                 requestToShow.Control,
                 requestToShow.ShowScrim,
                 requestToShow.IsDismissable));
@@ -169,13 +167,11 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
             else // Hide
             {
                 _isShowingBottomSheet = false;
-                _currentRequest = null;
                 Log.Debug("[BottomSheet-Service] Hide animation complete - sheet is now hidden");
 
                 if (_pendingRequest != null)
                 {
                     requestToShow = _pendingRequest;
-                    _currentRequest = requestToShow;
                     _pendingRequest = null;
                     _isAnimating = true;
                     Log.Debug("[BottomSheet-Service] Showing pending request: Type={Type}", requestToShow.ComponentType);
@@ -220,12 +216,11 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
         lock (_queueLock)
         {
             _requestQueue.Clear();
-            _currentRequest = null;
             _pendingRequest = null;
         }
     }
 
-    private record BottomSheetRequest(
+    private sealed record BottomSheetRequest(
         BottomSheetComponentType ComponentType,
         UserControl? Control,
         bool ShowScrim,

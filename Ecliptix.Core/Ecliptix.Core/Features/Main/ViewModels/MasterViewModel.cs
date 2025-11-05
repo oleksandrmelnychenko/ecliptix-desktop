@@ -4,7 +4,6 @@ using System.Reactive.Linq;
 using System.Threading;
 
 using Ecliptix.Core.Controls.Core;
-using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Models.Membership;
 using Ecliptix.Core.Services.Abstractions.Core;
@@ -22,7 +21,7 @@ using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Main.ViewModels;
 
-public sealed class MasterViewModel : Core.MVVM.ViewModelBase, IDisposable
+public sealed class MasterViewModel : Core.MVVM.ViewModelBase
 {
     private readonly ILogoutService _logoutService;
     private readonly CompositeDisposable _disposables = new();
@@ -134,6 +133,7 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase, IDisposable
         }
         catch (ObjectDisposedException)
         {
+            // Intentionally suppressed: Logout cancellation token source already disposed
         }
         finally
         {

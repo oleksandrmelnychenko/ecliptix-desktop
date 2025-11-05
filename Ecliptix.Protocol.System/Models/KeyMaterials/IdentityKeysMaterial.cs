@@ -1,0 +1,9 @@
+namespace Ecliptix.Protocol.System.Models.KeyMaterials;
+
+using Ecliptix.Protocol.System.Models.Keys;
+
+internal readonly record struct IdentityKeysMaterial(
+    Ed25519KeyMaterial Ed25519,
+    X25519KeyMaterial IdentityX25519,
+    SignedPreKeyMaterial SignedPreKey,
+    List<OneTimePreKeyLocal> OneTimePreKeys);

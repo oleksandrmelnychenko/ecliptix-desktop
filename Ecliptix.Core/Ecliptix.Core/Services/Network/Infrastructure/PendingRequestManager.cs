@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -200,9 +199,9 @@ public sealed class PendingRequestManager : IPendingRequestManager
             RemovePendingRequest(requestId);
             Log.Debug("Successfully retried request {RequestId}", requestId);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
-            Log.Debug("Retry for pending request {RequestId} cancelled", requestId);
+            Log.Debug(ex, "Retry for pending request {RequestId} cancelled", requestId);
         }
         catch (Exception ex)
         {
@@ -233,9 +232,9 @@ public sealed class PendingRequestManager : IPendingRequestManager
             RemovePendingRequest(requestId);
             Log.Debug("Successfully retried typed request {RequestId}", requestId);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
-            Log.Debug("Retry for typed pending request {RequestId} cancelled", requestId);
+            Log.Debug(ex, "Retry for typed pending request {RequestId} cancelled", requestId);
         }
         catch (Exception ex)
         {
@@ -263,6 +262,7 @@ public sealed class PendingRequestManager : IPendingRequestManager
             }
             catch (ObjectDisposedException)
             {
+                // Intentionally suppressed: CancellationTokenSource already disposed during cleanup
             }
             finally
             {

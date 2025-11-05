@@ -8,10 +8,7 @@ public delegate bool RequiresConnectionRecoveryDelegate<TResponse>(Result<TRespo
 
 public static class RetryDecisionFactory
 {
-    public static ShouldRetryDelegate<TResponse> CreateShouldRetryDelegate<TResponse>()
-    {
-        return static result => result.IsErr && FailureClassification.IsTransient(result.UnwrapErr());
-    }
+    public static ShouldRetryDelegate<TResponse> CreateShouldRetryDelegate<TResponse>() => static result => result.IsErr && FailureClassification.IsTransient(result.UnwrapErr());
 
     public static RequiresConnectionRecoveryDelegate<TResponse> CreateConnectionRecoveryDelegate<TResponse>()
     {

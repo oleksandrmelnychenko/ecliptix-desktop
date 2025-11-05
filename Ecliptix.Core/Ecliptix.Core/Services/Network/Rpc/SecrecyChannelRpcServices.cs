@@ -10,7 +10,6 @@ using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
-using Google.Protobuf;
 using Grpc.Core;
 
 namespace Ecliptix.Core.Services.Network.Rpc;
@@ -39,7 +38,7 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        Metadata headers = new();
+        Metadata headers = [];
         if (exchangeType.HasValue)
         {
             headers.Add("exchange-type", exchangeType.Value.ToString());
@@ -104,12 +103,12 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
             {
                 UserFacingError userError = failure.UserError ??
                                             new UserFacingError(
-                                                ErrorCode.Unauthenticated,
-                                                ErrorI18nKeys.Unauthenticated,
+                                                ErrorCode.UNAUTHENTICATED,
+                                                ErrorI18NKeys.UNAUTHENTICATED,
                                                 failure.Message);
 
                 failure = new NetworkFailure(
-                    NetworkFailureType.CriticalAuthenticationFailure,
+                    NetworkFailureType.CRITICAL_AUTHENTICATION_FAILURE,
                     userError.Message,
                     rpcEx)
                 {

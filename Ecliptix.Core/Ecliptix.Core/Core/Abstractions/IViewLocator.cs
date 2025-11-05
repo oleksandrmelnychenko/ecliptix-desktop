@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using Ecliptix.Utilities;
 using ReactiveUI;
 
@@ -12,17 +11,12 @@ public interface IViewLocator
         where TViewModel : class, IRoutableViewModel
         where TView : class, new();
 
-    [RequiresUnreferencedCode("ViewLocator uses reflection to validate ViewModel types")]
-    [RequiresDynamicCode("ViewLocator may create types dynamically")]
-    void Register([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type viewModelType,
-                  [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type viewType);
-
     void RegisterFactory<TViewModel>(Func<object> factory)
         where TViewModel : class, IRoutableViewModel;
 
-    Option<object> ResolveView<TViewModel>(TViewModel? viewModel = null) where TViewModel : class, IRoutableViewModel;
+    Option<object> ResolveView<TViewModel>(TViewModel? viewModel = null)
+        where TViewModel : class, IRoutableViewModel;
 
-    [RequiresUnreferencedCode("ViewLocator uses reflection to determine view model types")]
     Option<object> ResolveView(object? viewModel);
 
     bool IsRegistered<TViewModel>() where TViewModel : class, IRoutableViewModel;

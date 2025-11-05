@@ -1,6 +1,5 @@
 using System;
 using System.Globalization;
-using System.Reactive;
 using System.Reactive.Disposables;
 using System.Threading.Tasks;
 
@@ -103,7 +102,6 @@ public sealed class DetectLanguageDialogViewModel : ReactiveObject, IDisposable,
         }
 
         _disposed = true;
-        GC.SuppressFinalize(this);
     }
 
     private async Task OnConfirm()
