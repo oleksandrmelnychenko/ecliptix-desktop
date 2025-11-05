@@ -45,7 +45,7 @@ internal sealed class LocalizationService : ILocalizationService
 
     public LocalizationService(DefaultSystemSettings defaultSystemSettings)
     {
-        string? defaultCultureName = defaultSystemSettings.CULTURE;
+        string? defaultCultureName = defaultSystemSettings.Culture;
 
         _currentCultureInfo = CreateCultureInfo(defaultCultureName);
         _defaultLanguageStrings = LocalizationData.EnglishStrings;

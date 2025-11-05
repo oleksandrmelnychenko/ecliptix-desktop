@@ -70,13 +70,10 @@ public sealed class ApplicationRouter(
 
     public async Task NavigateToMainAsync()
     {
-        Log.Debug("[ROUTER-NAV] Starting navigation to Main content");
-
         Option<IModule> mainModuleOption = await moduleManager.LoadModuleAsync("Main").ConfigureAwait(false);
 
         if (!mainModuleOption.IsSome)
         {
-            Log.Error("[ROUTER-NAV] Failed to load Main module");
             throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FAILED_TO_LOAD_MAIN_MODULE);
         }
 
@@ -84,7 +81,6 @@ public sealed class ApplicationRouter(
 
         if (mainModule.ServiceScope?.ServiceProvider == null)
         {
-            Log.Error("[ROUTER-NAV] Failed to load Main module");
             throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FAILED_TO_LOAD_MAIN_MODULE);
         }
 
@@ -93,17 +89,11 @@ public sealed class ApplicationRouter(
 
         if (mainViewModel == null)
         {
-            Log.Error("[ROUTER-NAV] Failed to create MasterViewModel");
             throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FAILED_TO_CREATE_MAIN_VIEW_MODEL);
         }
 
-        Log.Debug("[ROUTER-NAV] Setting main content in MainWindow");
         await mainWindowViewModel.SetMainContentAsync(mainViewModel).ConfigureAwait(false);
-
-        Log.Debug("[ROUTER-NAV] Unloading Authentication module");
         await moduleManager.UnloadModuleAsync("Authentication").ConfigureAwait(false);
-
-        Log.Debug("[ROUTER-NAV] Navigation to Main completed successfully");
     }
 
     public async Task TransitionFromSplashAsync(Window splashWindow, bool isAuthenticated)

@@ -62,7 +62,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         SetupHandlersAsync().ContinueWith(
             task =>
             {
-                if (task.IsFaulted && task.Exception != null)
+                if (task is { IsFaulted: true, Exception: not null })
                 {
                     Log.Error(task.Exception, "[MAIN-WINDOW-VM] Unhandled exception in setup handlers");
                 }
@@ -92,20 +92,12 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         BottomSheetComponentType type,
         UserControl view,
         bool showScrim = true,
-        bool isDismissable = false)
-    {
+        bool isDismissable = false) =>
         await _bottomSheetService.ShowAsync(type, view, showScrim, isDismissable).ConfigureAwait(false);
-    }
 
-    public async Task HideBottomSheetAsync()
-    {
-        await _bottomSheetService.HideAsync().ConfigureAwait(false);
-    }
+    public async Task HideBottomSheetAsync() => await _bottomSheetService.HideAsync().ConfigureAwait(false);
 
-    public IDisposable OnBottomSheetHidden(Func<BottomSheetHiddenEvent, Task> handler, SubscriptionLifetime lifetime)
-    {
-        return _bottomSheetService.OnBottomSheetHidden(handler, lifetime);
-    }
+    public IDisposable OnBottomSheetHidden(Func<BottomSheetHiddenEvent, Task> handler, SubscriptionLifetime lifetime) => _bottomSheetService.OnBottomSheetHidden(handler, lifetime);
 
     public void Dispose()
     {
@@ -120,10 +112,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         _isDisposed = true;
     }
 
-    private static double EaseInOutCubic(double t)
-    {
-        return t < 0.5 ? 4 * t * t * t : 1 - Math.Pow(-2 * t + 2, 3) / 2;
-    }
+    private static double EaseInOutCubic(double t) => t < 0.5 ? 4 * t * t * t : 1 - Math.Pow(-2 * t + 2, 3) / 2;
 
     private static Task SetupHandlersAsync() => Task.CompletedTask;
 
@@ -137,10 +126,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        Log.Debug("[MainWindowViewModel] Animating window resize: {StartWidth}x{StartHeight} -> {TargetWidth}x{TargetHeight}",
-            startWidth, startHeight, targetWidth, targetHeight);
-
-        int steps = 30;
+        const int steps = 30;
         TimeSpan stepDuration = TimeSpan.FromMilliseconds(duration.TotalMilliseconds / steps);
 
         for (int i = 1; i <= steps; i++)

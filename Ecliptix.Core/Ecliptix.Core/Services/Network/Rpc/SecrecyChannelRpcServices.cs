@@ -33,15 +33,15 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
     public async Task<Result<SecureEnvelope, NetworkFailure>> EstablishAppDeviceSecrecyChannelAsync(
         IConnectivityService connectivityService,
         SecureEnvelope request,
-        PubKeyExchangeType? EXCHANGE_TYPE = null,
+        PubKeyExchangeType? exchangeType = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        Metadata headers = new();
-        if (EXCHANGE_TYPE.HasValue)
+        Metadata headers = [];
+        if (exchangeType.HasValue)
         {
-            headers.Add("exchange-type", EXCHANGE_TYPE.Value.ToString());
+            headers.Add("exchange-type", exchangeType.Value.ToString());
         }
 
         return await ExecuteSecureEnvelopeAsync(

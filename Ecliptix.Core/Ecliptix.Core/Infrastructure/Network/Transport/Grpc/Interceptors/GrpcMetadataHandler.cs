@@ -29,11 +29,10 @@ public static class GrpcMetadataHandler
         string appInstanceId,
         string appDeviceId,
         string? culture,
-        PubKeyExchangeType EXCHANGE_TYPE = PubKeyExchangeType.DataCenterEphemeralConnect,
+        PubKeyExchangeType exchangeType = PubKeyExchangeType.DataCenterEphemeralConnect,
         string? localIpAddress = null,
         string? publicIpAddress = null,
-        string? platform = null,
-        Guid _ = default)
+        string? platform = null)
     {
         Metadata metadata = new()
         {
@@ -47,7 +46,7 @@ public static class GrpcMetadataHandler
             { APP_DEVICE_ID, appDeviceId },
             { PLATFORM_KEY, platform ?? GetPlatform() },
             { KEY_EXCHANGE_CONTEXT_TYPE_KEY, KEY_EXCHANGE_CONTEXT_TYPE_VALUE },
-            { CONNECTION_CONTEXT_ID, EXCHANGE_TYPE.ToString() },
+            { CONNECTION_CONTEXT_ID, exchangeType.ToString() },
             { OPERATION_CONTEXT_ID, string.Empty }
         };
 
@@ -88,10 +87,7 @@ public static class GrpcMetadataHandler
         }
     }
 
-    private static string GenerateLinkId()
-    {
-        return $"link-{Guid.NewGuid():N}"[..16];
-    }
+    private static string GenerateLinkId() => $"link-{Guid.NewGuid():N}"[..16];
 
     private static string GetPlatform()
     {

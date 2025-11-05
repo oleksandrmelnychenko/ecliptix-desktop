@@ -45,12 +45,12 @@ internal class RpcServiceManager : IRpcServiceManager
     public async Task<Result<SecureEnvelope, NetworkFailure>> EstablishSecrecyChannelAsync(
         IConnectivityService connectivityService,
         SecureEnvelope envelope,
-        PubKeyExchangeType? EXCHANGE_TYPE = null,
+        PubKeyExchangeType? exchangeType = null,
         CancellationToken cancellationToken = default)
     {
         return await _secrecyChannelRpcServices.EstablishAppDeviceSecrecyChannelAsync(connectivityService,
             envelope,
-            EXCHANGE_TYPE,
+            exchangeType,
             cancellationToken).ConfigureAwait(false);
     }
 

@@ -70,7 +70,7 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
             rpcException.StatusCode);
     }
 
-    private ErrorCode ParseErrorCode(RpcException rpcException, Metadata trailers)
+    private static ErrorCode ParseErrorCode(RpcException rpcException, Metadata trailers)
     {
         if (GrpcErrorClassifier.IsAuthFlowMissing(rpcException))
         {
@@ -240,13 +240,6 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
             !GrpcErrorClassifier.IsAuthFlowMissing(rpcException))
         {
             return NetworkFailureType.INVALID_REQUEST_TYPE;
-        }
-
-        if (GrpcErrorClassifier.IsTransientInfrastructure(rpcException) ||
-            GrpcErrorClassifier.RequiresHandshakeRecovery(rpcException) ||
-            GrpcErrorClassifier.IsAuthFlowMissing(rpcException))
-        {
-
         }
 
         return NetworkFailureType.DATA_CENTER_NOT_RESPONDING;

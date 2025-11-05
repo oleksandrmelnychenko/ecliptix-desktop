@@ -274,14 +274,14 @@ public static class Program
                 configuration.GetSection(ApplicationConstants.Configuration.DEFAULT_APP_SETTINGS_SECTION);
             DefaultSystemSettings settings = new()
             {
-                DEFAULT_THEME = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.DEFAULT_THEME),
-                ENVIRONMENT = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.ENVIRONMENT,
+                DefaultTheme = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.DEFAULT_THEME),
+                Environment = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.ENVIRONMENT,
                     ApplicationConstants.ApplicationSettings.PRODUCTION_ENVIRONMENT),
-                DATA_CENTER_CONNECTION_STRING = GetSectionValue(section,
+                DataCenterConnectionString = GetSectionValue(section,
                     ApplicationConstants.ConfigurationKeys.DATA_CENTER_CONNECTION_STRING),
-                COUNTRY_CODE_API = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.COUNTRY_CODE_API),
-                DOMAIN_NAME = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.DOMAIN_NAME),
-                CULTURE = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.CULTURE),
+                CountryCodeApi = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.COUNTRY_CODE_API),
+                DomainName = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.DOMAIN_NAME),
+                Culture = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.CULTURE),
                 PrivacyPolicyUrl = GetSectionValue(section, "PrivacyPolicyUrl"),
                 TermsOfServiceUrl = GetSectionValue(section, "TermsOfServiceUrl"),
                 SupportUrl = GetSectionValue(section, "SupportUrl")
@@ -440,9 +440,9 @@ public static class Program
             DefaultSystemSettings settings = services.BuildServiceProvider()
                 .GetRequiredService<DefaultSystemSettings>();
             string endpoint =
-                settings.ENVIRONMENT.Equals(ApplicationConstants.ApplicationSettings.DEVELOPMENT_ENVIRONMENT,
+                settings.Environment.Equals(ApplicationConstants.ApplicationSettings.DEVELOPMENT_ENVIRONMENT,
                     StringComparison.OrdinalIgnoreCase)
-                    ? settings.DATA_CENTER_CONNECTION_STRING
+                    ? settings.DataCenterConnectionString
                     : string.Empty;
 
             if (string.IsNullOrEmpty(endpoint))

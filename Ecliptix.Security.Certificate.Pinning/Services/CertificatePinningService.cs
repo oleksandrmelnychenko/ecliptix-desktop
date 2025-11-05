@@ -338,7 +338,7 @@ public sealed class CertificatePinningService : IAsyncDisposable
             byte* errorPtr = CertificatePinningNativeLibrary.GetErrorMessage();
             if (errorPtr != null)
             {
-                return Marshal.PtrToStringUTF8((IntPtr)errorPtr) ?? FormattableString.Invariant($"Unknown error: {result}");
+                return Marshal.PtrToStringUTF8((IntPtr)errorPtr) ?? string.Create(CultureInfo.InvariantCulture, $"Unknown error: {result}");
             }
         }
         catch (Exception ex)

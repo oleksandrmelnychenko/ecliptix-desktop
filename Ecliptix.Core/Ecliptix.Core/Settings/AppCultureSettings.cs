@@ -75,9 +75,8 @@ public sealed class AppCultureSettings
                     int separatorIndex = englishName.IndexOf(AppCultureSettingsConstants.CULTURE_DISPLAY_NAME_SEPARATOR);
                     return separatorIndex > 0 ? englishName[..separatorIndex].Trim() : englishName.Trim();
                 }
-                catch (CultureNotFoundException ex)
+                catch
                 {
-                    System.Diagnostics.Debug.WriteLine($"[APP-CULTURE] CULTURE not found: {cultureCode}, ERROR: {ex.Message}");
                     return cultureCode;
                 }
             });

@@ -51,7 +51,7 @@ public sealed class ApplicationInitializer(
     public async Task<bool> InitializeAsync(DefaultSystemSettings defaultSystemSettings)
     {
         Result<InstanceSettingsResult, InternalServiceApiFailure> settingsResult =
-            await applicationSecureStorageProvider.InitApplicationInstanceSettingsAsync(defaultSystemSettings.CULTURE)
+            await applicationSecureStorageProvider.InitApplicationInstanceSettingsAsync(defaultSystemSettings.Culture)
                 .ConfigureAwait(false);
 
         if (settingsResult.IsErr)
