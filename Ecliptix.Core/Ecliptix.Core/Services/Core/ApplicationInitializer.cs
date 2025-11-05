@@ -132,7 +132,7 @@ public sealed class ApplicationInitializer(
             NetworkProvider.ComputeUniqueConnectId(applicationInstanceSettings,
                 PubKeyExchangeType.DataCenterEphemeralConnect);
 
-        string? membershipId = ExtractMembershipId(applicationInstanceSettings);
+        Option<string> membershipId = ExtractMembershipId(applicationInstanceSettings);
 
         if (!isNewInstance)
         {
@@ -152,13 +152,14 @@ public sealed class ApplicationInitializer(
 
     private static Option<string> ExtractMembershipId(ApplicationInstanceSettings applicationInstanceSettings) =>
         applicationInstanceSettings.Membership?.UniqueIdentifier is { IsEmpty: false }
-            ? Option<string>.Some(Helpers.FromByteStringToGuid(applicationInstanceSettings.Membership.UniqueIdentifier).ToString())
-            : Option<string>.None();
+            ? Option<string>.Some(Helpers.FromByteStringToGuid(applicationInstanceSettings.Membership.UniqueIdentifier)
+                .ToString())
+            : Option<string>.None;
 
     private async Task<Result<uint, NetworkFailure>?> TryRestoreExistingSessionAsync(
         uint connectId,
         ApplicationInstanceSettings applicationInstanceSettings,
-        string? membershipId)
+        Option<string> membershipId)
     {
         Result<bool, NetworkFailure> restoreResult =
             await TryRestoreSessionStateAsync(connectId, applicationInstanceSettings).ConfigureAwait(false);
@@ -173,10 +174,13 @@ public sealed class ApplicationInitializer(
             return null;
         }
 
-        if (!string.IsNullOrEmpty(membershipId) &&
-            await identityService.HasStoredIdentityAsync(membershipId).ConfigureAwait(false))
+        if (membershipId.IsSome)
         {
-            await stateManager.TransitionToAuthenticatedAsync(membershipId).ConfigureAwait(false);
+            string membershipIdValue = membershipId.Value!;
+            if (await identityService.HasStoredIdentityAsync(membershipIdValue).ConfigureAwait(false))
+            {
+                await stateManager.TransitionToAuthenticatedAsync(membershipIdValue).ConfigureAwait(false);
+            }
         }
 
         return Result<uint, NetworkFailure>.Ok(connectId);
@@ -185,7 +189,7 @@ public sealed class ApplicationInitializer(
     private async Task<Result<uint, NetworkFailure>> EstablishNewSecrecyChannelAsync(
         ApplicationInstanceSettings applicationInstanceSettings,
         uint connectId,
-        string? membershipId)
+        Option<string> membershipId)
     {
         Option<SodiumSecureMemoryHandle> masterKeyHandle =
             await PrepareMasterKeyHandleAsync(membershipId, applicationInstanceSettings)
@@ -201,7 +205,7 @@ public sealed class ApplicationInitializer(
                     await TryUseAuthenticatedProtocolAsync(
                             applicationInstanceSettings,
                             connectId,
-                            membershipId!,
+                            membershipId.Value!,
                             masterKeyHandle.Value!)
                         .ConfigureAwait(false);
 
@@ -214,7 +218,9 @@ public sealed class ApplicationInitializer(
             await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId)
                 .ConfigureAwait(false);
 
-            byte[]? membershipIdBytes = applicationInstanceSettings.Membership?.UniqueIdentifier?.ToByteArray();
+            Option<byte[]> membershipIdBytes = applicationInstanceSettings.Membership?.UniqueIdentifier?.ToByteArray() is { } bytes
+                ? Option<byte[]>.Some(bytes)
+                : Option<byte[]>.None;
             return await EstablishAndSaveSecrecyChannelAsync(connectId, membershipIdBytes).ConfigureAwait(false);
         }
         finally
@@ -224,21 +230,22 @@ public sealed class ApplicationInitializer(
     }
 
     private async Task<Option<SodiumSecureMemoryHandle>> PrepareMasterKeyHandleAsync(
-        string? membershipId,
+        Option<string> membershipId,
         ApplicationInstanceSettings applicationInstanceSettings)
     {
-        if (string.IsNullOrEmpty(membershipId))
+        if (!membershipId.IsSome)
         {
             return Option<SodiumSecureMemoryHandle>.None;
         }
 
-        bool hasStoredIdentity = await identityService.HasStoredIdentityAsync(membershipId).ConfigureAwait(false);
+        string membershipIdValue = membershipId.Value!;
+        bool hasStoredIdentity = await identityService.HasStoredIdentityAsync(membershipIdValue).ConfigureAwait(false);
         if (!hasStoredIdentity)
         {
             return Option<SodiumSecureMemoryHandle>.None;
         }
 
-        return await TryReconstructMasterKeyAsync(membershipId, applicationInstanceSettings)
+        return await TryReconstructMasterKeyAsync(membershipIdValue, applicationInstanceSettings)
             .ConfigureAwait(false);
     }
 
@@ -290,7 +297,7 @@ public sealed class ApplicationInitializer(
     }
 
     private async Task<Result<uint, NetworkFailure>> EstablishAndSaveSecrecyChannelAsync(uint connectId,
-        byte[]? membershipId)
+        Option<byte[]> membershipId)
     {
         Result<EcliptixSessionState, NetworkFailure> establishResult =
             await networkProvider.EstablishSecrecyChannelAsync(connectId).ConfigureAwait(false);
@@ -302,12 +309,12 @@ public sealed class ApplicationInitializer(
 
         EcliptixSessionState secrecyChannelState = establishResult.Unwrap();
 
-        if (membershipId != null)
+        if (membershipId.IsSome)
         {
             await SecureByteStringInterop.WithByteStringAsSpan(
                     secrecyChannelState.ToByteString(),
                     span => secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString(),
-                        membershipId))
+                        membershipId.Value!))
                 .ConfigureAwait(false);
         }
 
@@ -350,10 +357,10 @@ public sealed class ApplicationInitializer(
 
         byte[] stateBytes = loadResult.Unwrap();
 
-        EcliptixSessionState? state;
+        Option<EcliptixSessionState> state;
         try
         {
-            state = EcliptixSessionState.Parser.ParseFrom(stateBytes);
+            state = Option<EcliptixSessionState>.Some(EcliptixSessionState.Parser.ParseFrom(stateBytes));
         }
         catch (InvalidProtocolBufferException ex)
         {
@@ -363,10 +370,15 @@ public sealed class ApplicationInitializer(
             if (deleteSecureStateResult.IsErr)
             {
                 Log.Warning(ex,
-                    "[CLIENT-RESTORE-CLEANUP] Failed to delete corrupted state. ConnectId: {ConnectId}, ERROR: {ERROR}",
+                    "[CLIENT-RESTORE-CLEANUP] Failed to delete corrupted state. ConnectId: {ConnectId}, Error: {Error}",
                     connectId, deleteSecureStateResult.UnwrapErr().Message);
             }
 
+            return Result<bool, NetworkFailure>.Ok(false);
+        }
+
+        if (!state.IsSome)
+        {
             return Result<bool, NetworkFailure>.Ok(false);
         }
 
@@ -387,7 +399,7 @@ public sealed class ApplicationInitializer(
         }
 
         Result<bool, NetworkFailure> restoreResult =
-            await networkProvider.RestoreSecrecyChannelAsync(state, applicationInstanceSettings).ConfigureAwait(false);
+            await networkProvider.RestoreSecrecyChannelAsync(state.Value!, applicationInstanceSettings).ConfigureAwait(false);
 
         if (restoreResult.IsErr)
         {
@@ -481,27 +493,19 @@ public sealed class ApplicationInitializer(
         string membershipId,
         ApplicationInstanceSettings applicationInstanceSettings)
     {
-        try
+        uint connectId = NetworkProvider.ComputeUniqueConnectId(
+            applicationInstanceSettings,
+            PubKeyExchangeType.DataCenterEphemeralConnect);
+
+        Result<Unit, Exception> cleanupResult =
+            await identityService.CleanupMembershipStateWithKeysAsync(membershipId, connectId)
+                .ConfigureAwait(false);
+
+        if (cleanupResult.IsErr)
         {
-            uint connectId = NetworkProvider.ComputeUniqueConnectId(
-                applicationInstanceSettings,
-                PubKeyExchangeType.DataCenterEphemeralConnect);
-
-            Result<Unit, Exception> cleanupResult =
-                await identityService.CleanupMembershipStateWithKeysAsync(membershipId, connectId)
-                    .ConfigureAwait(false);
-
-            if (cleanupResult.IsErr)
-            {
-                return;
-            }
-
-            await stateManager.TransitionToAnonymousAsync().ConfigureAwait(false);
+            return;
         }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "[CLIENT-RECOVERY] Failed to cleanup corrupted identity data. MembershipId: {MembershipId}",
-                membershipId);
-        }
+
+        await stateManager.TransitionToAnonymousAsync().ConfigureAwait(false);
     }
 }

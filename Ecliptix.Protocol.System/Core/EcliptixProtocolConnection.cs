@@ -14,6 +14,16 @@ using Sodium;
 
 namespace Ecliptix.Protocol.System.Core;
 
+internal readonly record struct ProtocolConnectionParams(
+    uint Id,
+    bool IsInitiator,
+    SodiumSecureMemoryHandle InitialSendingDh,
+    EcliptixProtocolChainStep SendingStep,
+    SodiumSecureMemoryHandle PersistentDh,
+    byte[] PersistentDhPublic,
+    RatchetConfig RatchetConfig,
+    PubKeyExchangeType ExchangeType);
+
 internal sealed class EcliptixProtocolConnection : IDisposable
 {
     private static readonly TimeSpan SessionTimeout = ProtocolSystemConstants.Timeouts.SessionTimeout;
@@ -29,45 +39,43 @@ internal sealed class EcliptixProtocolConnection : IDisposable
 
     private readonly Lock _lock = new();
     private readonly ReplayProtection _replayProtection = new();
-    private readonly RatchetConfig _ratchetConfig;
     private readonly RatchetRecovery _ratchetRecovery = new();
-
+    private readonly RatchetConfig _ratchetConfig;
     private readonly DateTimeOffset _createdAt;
     private readonly uint _id;
-    private long _lastRatchetTimeTicks = DateTime.UtcNow.Ticks;
-    private volatile bool _isFirstReceivingRatchet;
     private readonly bool _isInitiator;
     private readonly EcliptixProtocolChainStep _sendingStep;
-    private SodiumSecureMemoryHandle? _currentSendingDhPrivateKeyHandle;
-    private volatile bool _disposed;
     private readonly SodiumSecureMemoryHandle? _initialSendingDhPrivateKeyHandle;
-    private long _nonceCounter;
-    private LocalPublicKeyBundle? _peerBundle;
-    private byte[]? _peerDhPublicKey;
     private readonly SodiumSecureMemoryHandle? _persistentDhPrivateKeyHandle;
     private readonly byte[]? _persistentDhPublicKey;
+    private readonly PubKeyExchangeType _exchangeType;
+
+    private long _lastRatchetTimeTicks = DateTime.UtcNow.Ticks;
+    private long _nonceCounter;
+    private volatile bool _isFirstReceivingRatchet;
+    private volatile bool _disposed;
     private volatile bool _receivedNewDhKey;
-    private EcliptixProtocolChainStep? _receivingStep;
+    private SodiumSecureMemoryHandle? _currentSendingDhPrivateKeyHandle;
     private SodiumSecureMemoryHandle? _rootKeyHandle;
     private SodiumSecureMemoryHandle? _metadataEncryptionKeyHandle;
+    private LocalPublicKeyBundle? _peerBundle;
+    private byte[]? _peerDhPublicKey;
+    private EcliptixProtocolChainStep? _receivingStep;
     private IProtocolEventHandler? _eventHandler;
-    private readonly PubKeyExchangeType _exchangeType;
 
     public PubKeyExchangeType ExchangeType => _exchangeType;
 
-    private EcliptixProtocolConnection(uint id, bool isInitiator, SodiumSecureMemoryHandle initialSendingDh,
-        EcliptixProtocolChainStep sendingStep, SodiumSecureMemoryHandle persistentDh, byte[] persistentDhPublic,
-        RatchetConfig ratchetConfig, PubKeyExchangeType exchangeType)
+    private EcliptixProtocolConnection(ProtocolConnectionParams parameters)
     {
-        _id = id;
-        _isInitiator = isInitiator;
-        _initialSendingDhPrivateKeyHandle = initialSendingDh;
-        _currentSendingDhPrivateKeyHandle = initialSendingDh;
-        _sendingStep = sendingStep;
-        _persistentDhPrivateKeyHandle = persistentDh;
-        _persistentDhPublicKey = persistentDhPublic;
-        _ratchetConfig = ratchetConfig;
-        _exchangeType = exchangeType;
+        _id = parameters.Id;
+        _isInitiator = parameters.IsInitiator;
+        _initialSendingDhPrivateKeyHandle = parameters.InitialSendingDh;
+        _currentSendingDhPrivateKeyHandle = parameters.InitialSendingDh;
+        _sendingStep = parameters.SendingStep;
+        _persistentDhPrivateKeyHandle = parameters.PersistentDh;
+        _persistentDhPublicKey = parameters.PersistentDhPublic;
+        _ratchetConfig = parameters.RatchetConfig;
+        _exchangeType = parameters.ExchangeType;
         _peerBundle = null;
         _receivingStep = null;
         _rootKeyHandle = null;
@@ -110,14 +118,6 @@ internal sealed class EcliptixProtocolConnection : IDisposable
         _receivedNewDhKey = false;
         _disposed = false;
         _lock = new Lock();
-    }
-
-    public void SetEventHandler(IProtocolEventHandler? handler) => _eventHandler = handler;
-
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
     }
 
     public static Result<EcliptixProtocolConnection, EcliptixProtocolFailure> Create(uint connectId, bool isInitiator)
@@ -186,9 +186,16 @@ internal sealed class EcliptixProtocolConnection : IDisposable
             }
 
             sendingStep = stepResult.Unwrap();
-            EcliptixProtocolConnection connection = new(connectId, isInitiator,
-                initialSendingDhPrivateKeyHandle, sendingStep, persistentDhPrivateKeyHandle,
-                persistentDhPublicKey, ratchetConfig, exchangeType);
+            ProtocolConnectionParams parameters = new(
+                Id: connectId,
+                IsInitiator: isInitiator,
+                InitialSendingDh: initialSendingDhPrivateKeyHandle,
+                SendingStep: sendingStep,
+                PersistentDh: persistentDhPrivateKeyHandle,
+                PersistentDhPublic: persistentDhPublicKey,
+                RatchetConfig: ratchetConfig,
+                ExchangeType: exchangeType);
+            EcliptixProtocolConnection connection = new(parameters);
             initialSendingDhPrivateKeyHandle = null;
             persistentDhPrivateKeyHandle = null;
             sendingStep = null;
@@ -345,6 +352,16 @@ internal sealed class EcliptixProtocolConnection : IDisposable
         }
     }
 
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    public void SetEventHandler(IProtocolEventHandler? handler) => _eventHandler = handler;
+
+    public bool IsInitiator() => _isInitiator;
+
     public Result<LocalPublicKeyBundle, EcliptixProtocolFailure> GetPeerBundle()
     {
         lock (_lock)
@@ -365,9 +382,145 @@ internal sealed class EcliptixProtocolConnection : IDisposable
         }
     }
 
-    public bool IsInitiator()
+    public Result<byte[]?, EcliptixProtocolFailure> GetCurrentPeerDhPublicKey()
     {
-        return _isInitiator;
+        lock (_lock)
+        {
+            Result<Unit, EcliptixProtocolFailure> disposedCheck = CheckDisposed();
+            if (disposedCheck.IsErr)
+            {
+                return Result<byte[]?, EcliptixProtocolFailure>.Err(disposedCheck.UnwrapErr());
+            }
+
+            byte[]? result = _peerDhPublicKey != null ? (byte[])_peerDhPublicKey.Clone() : null;
+            return Result<byte[]?, EcliptixProtocolFailure>.Ok(result);
+        }
+    }
+
+    public Result<byte[]?, EcliptixProtocolFailure> GetCurrentSenderDhPublicKey()
+    {
+        lock (_lock)
+        {
+            Result<Unit, EcliptixProtocolFailure> disposedCheck = CheckDisposed();
+            if (disposedCheck.IsErr)
+            {
+                return Result<byte[]?, EcliptixProtocolFailure>.Err(disposedCheck.UnwrapErr());
+            }
+
+            Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> stepResult = EnsureSendingStepInitialized();
+            if (stepResult.IsErr)
+            {
+                return Result<byte[]?, EcliptixProtocolFailure>.Err(stepResult.UnwrapErr());
+            }
+
+            Result<byte[]?, EcliptixProtocolFailure> keyResult = stepResult.Unwrap().ReadDhPublicKey();
+
+            return keyResult;
+        }
+    }
+
+    public Result<byte[], EcliptixProtocolFailure> GetMetadataEncryptionKey()
+    {
+        if (_metadataEncryptionKeyHandle is not { IsInvalid: false })
+        {
+            return Result<byte[], EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.Generic("Metadata encryption key not initialized"));
+        }
+
+        Result<byte[], SodiumFailure> readResult = _metadataEncryptionKeyHandle.ReadBytes(Constants.AES_KEY_SIZE);
+        return readResult.IsOk
+            ? Result<byte[], EcliptixProtocolFailure>.Ok(readResult.Unwrap())
+            : Result<byte[], EcliptixProtocolFailure>.Err(readResult.UnwrapErr().ToEcliptixProtocolFailure());
+    }
+
+    public Result<Unit, EcliptixProtocolFailure> PerformReceivingRatchet(byte[] receivedDhKey)
+    {
+        lock (_lock)
+        {
+            Result<Unit, EcliptixProtocolFailure> disposedCheck = CheckDisposed();
+            if (disposedCheck.IsErr)
+            {
+                return disposedCheck;
+            }
+
+            Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> receivingStepResult =
+                EnsureReceivingStepInitialized();
+            if (receivingStepResult.IsErr)
+            {
+                return Result<Unit, EcliptixProtocolFailure>.Err(receivingStepResult.UnwrapErr());
+            }
+
+            EcliptixProtocolChainStep receivingStep = receivingStepResult.Unwrap();
+
+            Result<uint, EcliptixProtocolFailure> currentIndexResult = receivingStep.GetCurrentIndex();
+            if (currentIndexResult.IsErr)
+            {
+                return Result<Unit, EcliptixProtocolFailure>.Err(currentIndexResult.UnwrapErr());
+            }
+
+            uint currentIndex = currentIndexResult.Unwrap();
+            DateTime lastRatchetTime = new DateTime(Interlocked.Read(ref _lastRatchetTimeTicks), DateTimeKind.Utc);
+            bool shouldRatchetNow = _isFirstReceivingRatchet ||
+                                    _ratchetConfig.ShouldRatchet(currentIndex + 1, lastRatchetTime, _receivedNewDhKey);
+
+            if (!shouldRatchetNow)
+            {
+                return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
+            }
+
+            _isFirstReceivingRatchet = false;
+            return PerformDhRatchet(isSender: false, receivedDhPublicKeyBytes: receivedDhKey);
+        }
+    }
+
+    public Result<Unit, EcliptixProtocolFailure> SyncWithRemoteState(uint remoteSendingChainLength,
+        uint remoteReceivingChainLength)
+    {
+        lock (_lock)
+        {
+            Result<Unit, EcliptixProtocolFailure> disposedCheck = CheckDisposed();
+            if (disposedCheck.IsErr)
+            {
+                return disposedCheck;
+            }
+
+            Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> receivingStepResult =
+                EnsureReceivingStepInitialized();
+            if (receivingStepResult.IsErr)
+            {
+                return Result<Unit, EcliptixProtocolFailure>.Err(receivingStepResult.UnwrapErr());
+            }
+
+            Result<Unit, EcliptixProtocolFailure> receivingSkipResult =
+                receivingStepResult.Unwrap().SkipKeysUntil(remoteSendingChainLength);
+            if (receivingSkipResult.IsErr)
+            {
+                return receivingSkipResult;
+            }
+
+            Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> sendingStepResult =
+                EnsureSendingStepInitialized();
+            if (sendingStepResult.IsErr)
+            {
+                return Result<Unit, EcliptixProtocolFailure>.Err(sendingStepResult.UnwrapErr());
+            }
+
+            Result<Unit, EcliptixProtocolFailure> sendingSkipResult =
+                sendingStepResult.Unwrap().SkipKeysUntil(remoteReceivingChainLength);
+            if (sendingSkipResult.IsErr)
+            {
+                return sendingSkipResult;
+            }
+
+            _eventHandler?.OnProtocolStateChanged(_id);
+
+            return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
+        }
+    }
+
+    public void NotifyRatchetRotation()
+    {
+        _replayProtection.OnRatchetRotation();
     }
 
     internal Result<Unit, EcliptixProtocolFailure> SetPeerBundle(LocalPublicKeyBundle peerBundle)
@@ -630,38 +783,43 @@ internal sealed class EcliptixProtocolConnection : IDisposable
         }
     }
 
+    private Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> ValidateReceivedMessagePrerequisites(uint receivedIndex)
+    {
+        Result<Unit, EcliptixProtocolFailure> disposedCheck = CheckDisposed();
+        if (disposedCheck.IsErr)
+        {
+            return Result<EcliptixProtocolChainStep, EcliptixProtocolFailure>.Err(disposedCheck.UnwrapErr());
+        }
+
+        Result<Unit, EcliptixProtocolFailure> expiredCheck = EnsureNotExpired();
+        if (expiredCheck.IsErr)
+        {
+            return Result<EcliptixProtocolChainStep, EcliptixProtocolFailure>.Err(expiredCheck.UnwrapErr());
+        }
+
+        if (receivedIndex > uint.MaxValue - ProtocolSystemConstants.RatchetRecovery.INDEX_OVERFLOW_BUFFER)
+        {
+            return Result<EcliptixProtocolChainStep, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.Generic(string.Format(
+                    EcliptixProtocolFailureMessages.RECEIVED_INDEX_TOO_LARGE,
+                    receivedIndex)));
+        }
+
+        return EnsureReceivingStepInitialized();
+    }
+
     internal Result<RatchetChainKey, EcliptixProtocolFailure> ProcessReceivedMessage(uint receivedIndex)
     {
         lock (_lock)
         {
-            Result<Unit, EcliptixProtocolFailure> disposedCheck = CheckDisposed();
-            if (disposedCheck.IsErr)
+            Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> validationResult =
+                ValidateReceivedMessagePrerequisites(receivedIndex);
+            if (validationResult.IsErr)
             {
-                return Result<RatchetChainKey, EcliptixProtocolFailure>.Err(disposedCheck.UnwrapErr());
+                return Result<RatchetChainKey, EcliptixProtocolFailure>.Err(validationResult.UnwrapErr());
             }
 
-            Result<Unit, EcliptixProtocolFailure> expiredCheck = EnsureNotExpired();
-            if (expiredCheck.IsErr)
-            {
-                return Result<RatchetChainKey, EcliptixProtocolFailure>.Err(expiredCheck.UnwrapErr());
-            }
-
-            if (receivedIndex > uint.MaxValue - ProtocolSystemConstants.RatchetRecovery.INDEX_OVERFLOW_BUFFER)
-            {
-                return Result<RatchetChainKey, EcliptixProtocolFailure>.Err(
-                    EcliptixProtocolFailure.Generic(string.Format(
-                        EcliptixProtocolFailureMessages.RECEIVED_INDEX_TOO_LARGE,
-                        receivedIndex)));
-            }
-
-            Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> receivingStepResult =
-                EnsureReceivingStepInitialized();
-            if (receivingStepResult.IsErr)
-            {
-                return Result<RatchetChainKey, EcliptixProtocolFailure>.Err(receivingStepResult.UnwrapErr());
-            }
-
-            EcliptixProtocolChainStep receivingStep = receivingStepResult.Unwrap();
+            EcliptixProtocolChainStep receivingStep = validationResult.Unwrap();
 
             Result<Option<RatchetChainKey>, EcliptixProtocolFailure> recoveryResult =
                 _ratchetRecovery.TryRecoverMessageKey(receivedIndex);
@@ -754,46 +912,6 @@ internal sealed class EcliptixProtocolConnection : IDisposable
         }
 
         _receivingStep!.PruneOldKeys();
-    }
-
-    public Result<Unit, EcliptixProtocolFailure> PerformReceivingRatchet(byte[] receivedDhKey)
-    {
-        lock (_lock)
-        {
-            Result<Unit, EcliptixProtocolFailure> disposedCheck = CheckDisposed();
-            if (disposedCheck.IsErr)
-            {
-                return disposedCheck;
-            }
-
-            Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> receivingStepResult =
-                EnsureReceivingStepInitialized();
-            if (receivingStepResult.IsErr)
-            {
-                return Result<Unit, EcliptixProtocolFailure>.Err(receivingStepResult.UnwrapErr());
-            }
-
-            EcliptixProtocolChainStep receivingStep = receivingStepResult.Unwrap();
-
-            Result<uint, EcliptixProtocolFailure> currentIndexResult = receivingStep.GetCurrentIndex();
-            if (currentIndexResult.IsErr)
-            {
-                return Result<Unit, EcliptixProtocolFailure>.Err(currentIndexResult.UnwrapErr());
-            }
-
-            uint currentIndex = currentIndexResult.Unwrap();
-            DateTime lastRatchetTime = new DateTime(Interlocked.Read(ref _lastRatchetTimeTicks), DateTimeKind.Utc);
-            bool shouldRatchetNow = _isFirstReceivingRatchet ||
-                                    _ratchetConfig.ShouldRatchet(currentIndex + 1, lastRatchetTime, _receivedNewDhKey);
-
-            if (!shouldRatchetNow)
-            {
-                return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
-            }
-
-            _isFirstReceivingRatchet = false;
-            return PerformDhRatchet(isSender: false, receivedDhPublicKeyBytes: receivedDhKey);
-        }
     }
 
     private Result<Unit, EcliptixProtocolFailure> PerformDhRatchet(bool isSender,
@@ -1052,28 +1170,6 @@ internal sealed class EcliptixProtocolConnection : IDisposable
         _eventHandler?.OnProtocolStateChanged(_id);
     }
 
-    private sealed class DhRatchetContext : IDisposable
-    {
-        public byte[]? DhSecret;
-        public byte[]? NewRootKey;
-        public byte[]? NewChainKey;
-        public byte[]? NewEphemeralPublicKey;
-        public byte[]? LocalPrivateKeyBytes;
-        public byte[]? NewDhPrivateKeyBytes;
-        public SodiumSecureMemoryHandle? NewEphemeralSkHandle;
-
-        public void Dispose()
-        {
-            WipeIfNotNull(DhSecret);
-            WipeIfNotNull(NewRootKey);
-            WipeIfNotNull(NewChainKey);
-            WipeIfNotNull(NewEphemeralPublicKey);
-            WipeIfNotNull(LocalPrivateKeyBytes);
-            WipeIfNotNull(NewDhPrivateKeyBytes);
-            NewEphemeralSkHandle?.Dispose();
-        }
-    }
-
     internal Result<byte[], EcliptixProtocolFailure> GenerateNextNonce()
     {
         if (_disposed)
@@ -1106,41 +1202,10 @@ internal sealed class EcliptixProtocolConnection : IDisposable
         return Result<byte[], EcliptixProtocolFailure>.Ok(nonceBuffer.ToArray());
     }
 
-    public Result<byte[]?, EcliptixProtocolFailure> GetCurrentPeerDhPublicKey()
+    internal Result<Unit, EcliptixProtocolFailure> CheckReplayProtection(byte[] nonce, ulong messageIndex)
     {
-        lock (_lock)
-        {
-            Result<Unit, EcliptixProtocolFailure> disposedCheck = CheckDisposed();
-            if (disposedCheck.IsErr)
-            {
-                return Result<byte[]?, EcliptixProtocolFailure>.Err(disposedCheck.UnwrapErr());
-            }
-
-            byte[]? result = _peerDhPublicKey != null ? (byte[])_peerDhPublicKey.Clone() : null;
-            return Result<byte[]?, EcliptixProtocolFailure>.Ok(result);
-        }
-    }
-
-    public Result<byte[]?, EcliptixProtocolFailure> GetCurrentSenderDhPublicKey()
-    {
-        lock (_lock)
-        {
-            Result<Unit, EcliptixProtocolFailure> disposedCheck = CheckDisposed();
-            if (disposedCheck.IsErr)
-            {
-                return Result<byte[]?, EcliptixProtocolFailure>.Err(disposedCheck.UnwrapErr());
-            }
-
-            Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> stepResult = EnsureSendingStepInitialized();
-            if (stepResult.IsErr)
-            {
-                return Result<byte[]?, EcliptixProtocolFailure>.Err(stepResult.UnwrapErr());
-            }
-
-            Result<byte[]?, EcliptixProtocolFailure> keyResult = stepResult.Unwrap().ReadDhPublicKey();
-
-            return keyResult;
-        }
+        return _replayProtection.CheckAndRecordMessage(nonce, messageIndex,
+            chainIndex: ProtocolSystemConstants.Protocol.DEFAULT_CHAIN_INDEX);
     }
 
     private Result<Unit, EcliptixProtocolFailure> DeriveMetadataEncryptionKey()
@@ -1211,20 +1276,6 @@ internal sealed class EcliptixProtocolConnection : IDisposable
         }
     }
 
-    public Result<byte[], EcliptixProtocolFailure> GetMetadataEncryptionKey()
-    {
-        if (_metadataEncryptionKeyHandle is not { IsInvalid: false })
-        {
-            return Result<byte[], EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.Generic("Metadata encryption key not initialized"));
-        }
-
-        Result<byte[], SodiumFailure> readResult = _metadataEncryptionKeyHandle.ReadBytes(Constants.AES_KEY_SIZE);
-        return readResult.IsOk
-            ? Result<byte[], EcliptixProtocolFailure>.Ok(readResult.Unwrap())
-            : Result<byte[], EcliptixProtocolFailure>.Err(readResult.UnwrapErr().ToEcliptixProtocolFailure());
-    }
-
     private void Dispose(bool disposing)
     {
         lock (_lock)
@@ -1240,67 +1291,6 @@ internal sealed class EcliptixProtocolConnection : IDisposable
                 SecureCleanupLogic();
             }
         }
-    }
-
-    public Result<Unit, EcliptixProtocolFailure> SyncWithRemoteState(uint remoteSendingChainLength,
-        uint remoteReceivingChainLength)
-    {
-        lock (_lock)
-        {
-            Result<Unit, EcliptixProtocolFailure> disposedCheck = CheckDisposed();
-            if (disposedCheck.IsErr)
-            {
-                return disposedCheck;
-            }
-
-            Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> receivingStepResult =
-                EnsureReceivingStepInitialized();
-            if (receivingStepResult.IsErr)
-            {
-                return Result<Unit, EcliptixProtocolFailure>.Err(receivingStepResult.UnwrapErr());
-            }
-
-            Result<Unit, EcliptixProtocolFailure> receivingSkipResult =
-                receivingStepResult.Unwrap().SkipKeysUntil(remoteSendingChainLength);
-            if (receivingSkipResult.IsErr)
-            {
-                return receivingSkipResult;
-            }
-
-            Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> sendingStepResult =
-                EnsureSendingStepInitialized();
-            if (sendingStepResult.IsErr)
-            {
-                return Result<Unit, EcliptixProtocolFailure>.Err(sendingStepResult.UnwrapErr());
-            }
-
-            Result<Unit, EcliptixProtocolFailure> sendingSkipResult =
-                sendingStepResult.Unwrap().SkipKeysUntil(remoteReceivingChainLength);
-            if (sendingSkipResult.IsErr)
-            {
-                return sendingSkipResult;
-            }
-
-            _eventHandler?.OnProtocolStateChanged(_id);
-
-            return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
-        }
-    }
-
-    public void NotifyRatchetRotation()
-    {
-        _replayProtection.OnRatchetRotation();
-    }
-
-    ~EcliptixProtocolConnection()
-    {
-        Dispose(false);
-    }
-
-    internal Result<Unit, EcliptixProtocolFailure> CheckReplayProtection(byte[] nonce, ulong messageIndex)
-    {
-        return _replayProtection.CheckAndRecordMessage(nonce, messageIndex,
-            chainIndex: ProtocolSystemConstants.Protocol.DEFAULT_CHAIN_INDEX);
     }
 
     private void SecureCleanupLogic()
@@ -1446,5 +1436,32 @@ internal sealed class EcliptixProtocolConnection : IDisposable
 
         _receivedNewDhKey = false;
         return Result<bool, EcliptixProtocolFailure>.Ok(true);
+    }
+
+    private sealed class DhRatchetContext : IDisposable
+    {
+        public byte[]? DhSecret;
+        public byte[]? NewRootKey;
+        public byte[]? NewChainKey;
+        public byte[]? NewEphemeralPublicKey;
+        public byte[]? LocalPrivateKeyBytes;
+        public byte[]? NewDhPrivateKeyBytes;
+        public SodiumSecureMemoryHandle? NewEphemeralSkHandle;
+
+        public void Dispose()
+        {
+            WipeIfNotNull(DhSecret);
+            WipeIfNotNull(NewRootKey);
+            WipeIfNotNull(NewChainKey);
+            WipeIfNotNull(NewEphemeralPublicKey);
+            WipeIfNotNull(LocalPrivateKeyBytes);
+            WipeIfNotNull(NewDhPrivateKeyBytes);
+            NewEphemeralSkHandle?.Dispose();
+        }
+    }
+
+    ~EcliptixProtocolConnection()
+    {
+        Dispose(false);
     }
 }
