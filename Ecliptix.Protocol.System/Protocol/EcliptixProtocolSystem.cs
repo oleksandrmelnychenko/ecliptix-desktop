@@ -725,16 +725,17 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
             return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
         }
 
-        Result<byte[]?, EcliptixProtocolFailure> currentKeyResult = connection.GetCurrentPeerDhPublicKey();
+        Result<Option<byte[]>, EcliptixProtocolFailure> currentKeyResult = connection.GetCurrentPeerDhPublicKey();
         if (currentKeyResult.IsErr)
         {
             return Result<Unit, EcliptixProtocolFailure>.Err(currentKeyResult.UnwrapErr());
         }
 
-        byte[]? currentPeerDhKey = currentKeyResult.Unwrap();
+        Option<byte[]> currentPeerDhKeyOption = currentKeyResult.Unwrap();
 
-        if (currentPeerDhKey != null)
+        if (currentPeerDhKeyOption.IsSome)
         {
+            byte[] currentPeerDhKey = currentPeerDhKeyOption.Value!;
             Result<bool, SodiumFailure> comparisonResult =
                 SodiumInterop.ConstantTimeEquals(receivedDhKey.AsSpan(), currentPeerDhKey);
             if (comparisonResult.IsOk && comparisonResult.Unwrap())

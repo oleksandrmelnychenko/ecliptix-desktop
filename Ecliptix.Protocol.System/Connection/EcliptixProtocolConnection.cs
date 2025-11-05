@@ -118,10 +118,7 @@ internal sealed class EcliptixProtocolConnection : IDisposable
         _lock = new Lock();
     }
 
-    public static Result<EcliptixProtocolConnection, EcliptixProtocolFailure> Create(uint connectId, bool isInitiator)
-    {
-        return Create(connectId, isInitiator, RatchetConfig.Default, PubKeyExchangeType.InitialHandshake);
-    }
+    public static Result<EcliptixProtocolConnection, EcliptixProtocolFailure> Create(uint connectId, bool isInitiator) => Create(connectId, isInitiator, RatchetConfig.Default, PubKeyExchangeType.InitialHandshake);
 
     public static Result<EcliptixProtocolConnection, EcliptixProtocolFailure> Create(
         uint connectId,
@@ -380,18 +377,21 @@ internal sealed class EcliptixProtocolConnection : IDisposable
         }
     }
 
-    public Result<byte[]?, EcliptixProtocolFailure> GetCurrentPeerDhPublicKey()
+    public Result<Option<byte[]>, EcliptixProtocolFailure> GetCurrentPeerDhPublicKey()
     {
         lock (_lock)
         {
             Result<Unit, EcliptixProtocolFailure> disposedCheck = CheckDisposed();
             if (disposedCheck.IsErr)
             {
-                return Result<byte[]?, EcliptixProtocolFailure>.Err(disposedCheck.UnwrapErr());
+                return Result<Option<byte[]>, EcliptixProtocolFailure>.Err(disposedCheck.UnwrapErr());
             }
 
-            byte[]? result = _peerDhPublicKey != null ? (byte[])_peerDhPublicKey.Clone() : null;
-            return Result<byte[]?, EcliptixProtocolFailure>.Ok(result);
+            Option<byte[]> result = _peerDhPublicKey != null
+                ? Option<byte[]>.Some((byte[])_peerDhPublicKey.Clone())
+                : Option<byte[]>.None;
+
+            return Result<Option<byte[]>, EcliptixProtocolFailure>.Ok(result);
         }
     }
 
