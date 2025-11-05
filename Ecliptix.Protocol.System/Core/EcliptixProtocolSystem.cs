@@ -587,7 +587,7 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
                 return Result<byte[], EcliptixProtocolFailure>.Err(ratchetResult.UnwrapErr());
             }
 
-            Result<DecryptionMaterials, EcliptixProtocolFailure> materialsResult =
+            Result<Unit, EcliptixProtocolFailure> materialsResult =
                 ExtractDecryptionMaterials(secureEnvelope, connection, out headerNonce, out metadataKey, out ad,
                     out encryptedMetadata);
             if (materialsResult.IsErr)
@@ -631,9 +631,7 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
             : Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
     }
 
-    private readonly record struct DecryptionMaterials;
-
-    private Result<DecryptionMaterials, EcliptixProtocolFailure> ExtractDecryptionMaterials(
+    private Result<Unit, EcliptixProtocolFailure> ExtractDecryptionMaterials(
         SecureEnvelope secureEnvelope,
         EcliptixProtocolConnection connection,
         out byte[]? headerNonce,
@@ -649,7 +647,7 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
         if (secureEnvelope.HeaderNonce == null || secureEnvelope.HeaderNonce.IsEmpty ||
             secureEnvelope.HeaderNonce.Length != Constants.AES_GCM_NONCE_SIZE)
         {
-            return Result<DecryptionMaterials, EcliptixProtocolFailure>.Err(
+            return Result<Unit, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.Decode("Invalid or missing header nonce for metadata decryption"));
         }
 
@@ -658,7 +656,7 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
         Result<byte[], EcliptixProtocolFailure> metadataKeyResult = connection.GetMetadataEncryptionKey();
         if (metadataKeyResult.IsErr)
         {
-            return Result<DecryptionMaterials, EcliptixProtocolFailure>.Err(metadataKeyResult.UnwrapErr());
+            return Result<Unit, EcliptixProtocolFailure>.Err(metadataKeyResult.UnwrapErr());
         }
 
         metadataKey = metadataKeyResult.Unwrap();
@@ -666,7 +664,7 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
         Result<LocalPublicKeyBundle, EcliptixProtocolFailure> peerBundleResult = connection.GetPeerBundle();
         if (peerBundleResult.IsErr)
         {
-            return Result<DecryptionMaterials, EcliptixProtocolFailure>.Err(peerBundleResult.UnwrapErr());
+            return Result<Unit, EcliptixProtocolFailure>.Err(peerBundleResult.UnwrapErr());
         }
 
         LocalPublicKeyBundle peerBundle = peerBundleResult.Unwrap();
@@ -680,7 +678,7 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
 
         encryptedMetadata = secureEnvelope.MetaData.ToByteArray();
 
-        return Result<DecryptionMaterials, EcliptixProtocolFailure>.Ok(new DecryptionMaterials());
+        return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
     }
 
     private static void CleanupDecryptionMaterials(byte[]? dhPublicKey, byte[]? headerNonce, byte[]? metadataKey,
