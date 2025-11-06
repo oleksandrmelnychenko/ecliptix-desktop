@@ -98,7 +98,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         movesAndSizes
             .WithLatestFrom(canSaveGate, (moveEvent, canSave) => canSave)
             .Where(canSave => canSave)
-            .Throttle(TimeSpan.FromMilliseconds(500))
+            .Throttle(TimeSpan.FromMilliseconds(2000))
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(async void (_) =>
             {
