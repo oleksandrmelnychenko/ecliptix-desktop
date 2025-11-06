@@ -58,7 +58,7 @@ public sealed class CertificatePinningService : IAsyncDisposable
         try
         {
             CertificatePinningNativeResult nativeResult = CertificatePinningNativeLibrary.Initialize();
-            if (nativeResult != CertificatePinningNativeResult.Success)
+            if (nativeResult != CertificatePinningNativeResult.SUCCESS)
             {
                 string error = GetErrorStringStatic(nativeResult);
                 return CertificatePinningOperationResult.FromError(
@@ -113,8 +113,8 @@ public sealed class CertificatePinningService : IAsyncDisposable
 
                     return result switch
                     {
-                        CertificatePinningNativeResult.Success => CertificatePinningBoolResult.FromValue(true),
-                        CertificatePinningNativeResult.ErrorVerificationFailed => CertificatePinningBoolResult.FromValue(false),
+                        CertificatePinningNativeResult.SUCCESS => CertificatePinningBoolResult.FromValue(true),
+                        CertificatePinningNativeResult.ERROR_VERIFICATION_FAILED => CertificatePinningBoolResult.FromValue(false),
                         _ => CertificatePinningBoolResult.FromError(
                             CertificatePinningFailure.ED_25519_VERIFICATION_ERROR(GetErrorStringStatic(result)))
                     };
@@ -165,7 +165,7 @@ public sealed class CertificatePinningService : IAsyncDisposable
                             plaintextPtr, (nuint)plaintext.Length,
                             stackBuffer, &actualSize);
 
-                        if (result == CertificatePinningNativeResult.Success)
+                        if (result == CertificatePinningNativeResult.SUCCESS)
                         {
                             byte[] output = new byte[actualSize];
                             fixed (byte* outputPtr = output)
@@ -189,7 +189,7 @@ public sealed class CertificatePinningService : IAsyncDisposable
                                 plaintextPtr, (nuint)plaintext.Length,
                                 ciphertextPtr, &actualSize);
 
-                            if (result == CertificatePinningNativeResult.Success)
+                            if (result == CertificatePinningNativeResult.SUCCESS)
                             {
                                 if (actualSize != estimatedSize)
                                 {
@@ -248,7 +248,7 @@ public sealed class CertificatePinningService : IAsyncDisposable
                             ciphertextPtr, (nuint)ciphertext.Length,
                             plaintextPtr, &plaintextLen);
 
-                        if (result == CertificatePinningNativeResult.Success)
+                        if (result == CertificatePinningNativeResult.SUCCESS)
                         {
                             if (plaintextLen != (nuint)ciphertext.Length)
                             {
@@ -297,7 +297,7 @@ public sealed class CertificatePinningService : IAsyncDisposable
                 {
                     CertificatePinningNativeResult result = CertificatePinningNativeLibrary.GetPublicKey(keyPtr, &keyLen);
 
-                    if (result == CertificatePinningNativeResult.Success)
+                    if (result == CertificatePinningNativeResult.SUCCESS)
                     {
                         if (keyLen != INITIAL_KEY_BUFFER_SIZE)
                         {

@@ -8,14 +8,14 @@ public readonly struct CertificatePinningByteArrayResult
     {
         IsSuccess = isSuccess;
         Value = value;
-        ERROR = error;
+        Error = error;
     }
 
     public bool IsSuccess { get; }
 
     public byte[]? Value { get; }
 
-    public CertificatePinningFailure? ERROR { get; }
+    public CertificatePinningFailure? Error { get; }
 
     public static CertificatePinningByteArrayResult FromValue(byte[] value) => new(true, value, null);
     public static CertificatePinningByteArrayResult FromError(CertificatePinningFailure error) => new(false, null, error);

@@ -35,10 +35,10 @@ public sealed class RsaChunkEncryptor : IRsaChunkEncryptor
                 CertificatePinningByteArrayResult chunkResult =
                     certificatePinningService.Encrypt(chunk);
 
-                if (chunkResult.ERROR != null)
+                if (chunkResult.Error != null)
                 {
                     return Result<byte[], NetworkFailure>.Err(
-                        NetworkFailure.RsaEncryption($"RSA encryption failed: {chunkResult.ERROR.Message}"));
+                        NetworkFailure.RsaEncryption($"RSA encryption failed: {chunkResult.Error.Message}"));
                 }
 
                 if (chunkResult.Value == null)
@@ -116,7 +116,7 @@ public sealed class RsaChunkEncryptor : IRsaChunkEncryptor
                 {
                     return Result<byte[], NetworkFailure>.Err(
                         NetworkFailure.DataCenterNotResponding(
-                            $"Failed to decrypt response chunk {(offset / RSA_ENCRYPTED_CHUNK_SIZE) + 1}: {chunkDecryptResult.ERROR?.Message}"));
+                            $"Failed to decrypt response chunk {(offset / RSA_ENCRYPTED_CHUNK_SIZE) + 1}: {chunkDecryptResult.Error?.Message}"));
                 }
 
                 if (chunkDecryptResult.Value == null)

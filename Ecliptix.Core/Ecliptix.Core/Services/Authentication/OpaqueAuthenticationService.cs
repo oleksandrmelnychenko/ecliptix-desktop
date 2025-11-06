@@ -331,7 +331,7 @@ internal sealed class OpaqueAuthenticationService(
         RpcRequestContext requestContext,
         CancellationToken cancellationToken)
     {
-        using KeyExchangeResult ke1Result = opaqueClient.GenerateKE1(signInContext.SecureKeyCopy!);
+        using KeyExchangeResult ke1Result = opaqueClient.GenerateKe1(signInContext.SecureKeyCopy!);
 
         Result<OpaqueSignInInitResponse, AuthenticationFailure> initResult =
             await PerformSignInInitPhaseAsync(mobileNumber, ke1Result, connectId, requestContext, cancellationToken)

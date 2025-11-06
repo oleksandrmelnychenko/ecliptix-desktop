@@ -138,7 +138,7 @@ public sealed class NetworkProvider(
             {
                 return Result<PubKeyExchange, NetworkFailure>.Err(
                     NetworkFailure.RsaEncryption(
-                        $"Server signature verification failed: {certificatePinningBoolResult.ERROR?.Message}"));
+                        $"Server signature verification failed: {certificatePinningBoolResult.Error?.Message}"));
             }
         }
 

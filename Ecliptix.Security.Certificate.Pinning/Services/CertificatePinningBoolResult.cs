@@ -8,14 +8,14 @@ public readonly struct CertificatePinningBoolResult
     {
         IsSuccess = isSuccess;
         Value = value;
-        ERROR = error;
+        Error = error;
     }
 
     public bool IsSuccess { get; }
 
     public bool Value { get; }
 
-    public CertificatePinningFailure? ERROR { get; }
+    public CertificatePinningFailure? Error { get; }
 
     public static CertificatePinningBoolResult FromValue(bool value) => new(true, value, null);
     public static CertificatePinningBoolResult FromError(CertificatePinningFailure error) => new(false, false, error);
