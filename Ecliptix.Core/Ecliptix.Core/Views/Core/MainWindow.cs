@@ -66,38 +66,61 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                 })
                 .DisposeWith(disposables);
 
-            IObservable<EventPattern<PixelPointEventArgs>> positionChanged = Observable.FromEventPattern<PixelPointEventArgs>(
-                handler => PositionChanged += handler,
-                handler => PositionChanged -= handler
-            );
-
-            IObservable<Size> sizeChanged = this.GetObservable(ClientSizeProperty);
-
-            positionChanged.Select(_ => Unit.Default).Merge(sizeChanged.Select(_ => Unit.Default)
-                )
-                .Throttle(TimeSpan.FromMilliseconds(2000))
-                .ObserveOn(RxApp.MainThreadScheduler)
-                .Where(_ => WindowState == WindowState.Normal)
-                .Subscribe(async void (_) =>
-                {
-                    try
-                    {
-                        if (ViewModel != null && WindowState == WindowState.Normal)
-                        {
-                            await ViewModel.SavePlacementAsync(
-                                WindowState,
-                                Position,
-                                ClientSize);
-                            Log.Debug("[MAIN-WINDOW] Rx-based dynamic save complete.");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error(ex, "[MAIN-WINDOW] Error in Rx-based dynamic save.");
-                    }
-                })
-                .DisposeWith(disposables);
+            SetupDynamicPlacementSaving(disposables);
         });
+    }
+
+    private void SetupDynamicPlacementSaving(CompositeDisposable disposables)
+    {
+        IObservable<bool> canSaveGate = this.GetObservable(WindowStateProperty)
+            .StartWith(WindowState)
+            .Select(state =>
+            {
+                if (state == WindowState.Normal)
+                {
+                    return Observable.Return(true).Delay(TimeSpan.FromMilliseconds(100));
+                }
+
+                return Observable.Return(false);
+            })
+            .Switch()
+            .StartWith(WindowState == WindowState.Normal)
+            .DistinctUntilChanged();
+
+        IObservable<Unit> movesAndSizes = Observable.Merge(
+            Observable.FromEventPattern<EventHandler<PixelPointEventArgs>, PixelPointEventArgs>(
+                    h => PositionChanged += h,
+                    h => PositionChanged -= h)
+                .Select(_ => Unit.Default),
+            this.GetObservable(ClientSizeProperty).Select(_ => Unit.Default)
+        );
+
+        movesAndSizes
+            .WithLatestFrom(canSaveGate, (moveEvent, canSave) => canSave)
+            .Where(canSave => canSave)
+            .Throttle(TimeSpan.FromMilliseconds(500))
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(async void (_) =>
+            {
+                try
+                {
+                    if (ViewModel == null || WindowState != WindowState.Normal)
+                    {
+                        return;
+                    }
+
+                    await ViewModel.SavePlacementAsync(
+                        WindowState,
+                        Position,
+                        ClientSize);
+                    Log.Debug("[MAIN-WINDOW] Rx-based dynamic save complete.");
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "[MAIN-WINDOW] Error in Rx-based dynamic save.");
+                }
+            })
+            .DisposeWith(disposables);
     }
 
     private async Task LoadWindowPlacementAsync(MainWindowViewModel viewModel)
