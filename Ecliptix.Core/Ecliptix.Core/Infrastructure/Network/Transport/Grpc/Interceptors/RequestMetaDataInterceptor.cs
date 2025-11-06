@@ -14,7 +14,7 @@ public sealed class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataP
         AsyncServerStreamingCallContinuation<TRequest, TResponse> continuation)
     {
         Metadata headers = context.Options.Headers ?? [];
-        string? culture = rpcMetaDataProvider.CULTURE;
+        string? culture = rpcMetaDataProvider.Culture;
         Serilog.Log.Information("RequestMetaDataInterceptor: Using culture '{CULTURE}' for gRPC metadata", culture);
 
         PubKeyExchangeType EXCHANGE_TYPE = GetExchangeTypeForMethod(context.Method, headers);
@@ -52,7 +52,7 @@ public sealed class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataP
         AsyncUnaryCallContinuation<TRequest, TResponse> continuation)
     {
         Metadata headers = context.Options.Headers ?? [];
-        string? culture = rpcMetaDataProvider.CULTURE;
+        string? culture = rpcMetaDataProvider.Culture;
         Serilog.Log.Information("RequestMetaDataInterceptor: Using culture '{CULTURE}' for gRPC metadata", culture);
 
         PubKeyExchangeType EXCHANGE_TYPE = GetExchangeTypeForMethod(context.Method, headers);

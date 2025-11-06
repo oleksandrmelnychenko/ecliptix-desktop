@@ -60,27 +60,6 @@ internal sealed class SecureMemoryBuffer : IDisposable
         throw new ObjectDisposedException(nameof(SecureMemoryBuffer));
     }
 
-    public Result<int, SodiumFailure> ReadInto(Span<byte> destination)
-    {
-        if (_disposed)
-        {
-            return Result<int, SodiumFailure>.Err(
-                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.BUFFER_DISPOSED));
-        }
-
-        int bytesToRead = Math.Min(destination.Length, Length);
-        using SecurePooledArray<byte> tempBuffer = SecureArrayPool.Rent<byte>(bytesToRead);
-
-        Result<Unit, SodiumFailure> readResult = _handle.Read(tempBuffer.AsSpan());
-        if (readResult.IsErr)
-        {
-            return Result<int, SodiumFailure>.Err(readResult.UnwrapErr());
-        }
-
-        tempBuffer.AsSpan()[..bytesToRead].CopyTo(destination);
-        return Result<int, SodiumFailure>.Ok(bytesToRead);
-    }
-
     public Result<Unit, SodiumFailure> Read(Span<byte> destination)
     {
         if (_disposed)

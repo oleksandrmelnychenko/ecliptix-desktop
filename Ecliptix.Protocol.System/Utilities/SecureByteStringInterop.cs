@@ -7,10 +7,9 @@ namespace Ecliptix.Protocol.System.Utilities;
 
 internal static class SecureByteStringInterop
 {
-    public static Result<ByteString, SodiumFailure> CreateByteStringFromSecureMemory(SodiumSecureMemoryHandle source, int length)
+    public static Result<ByteString, SodiumFailure> CreateByteStringFromSecureMemory(SodiumSecureMemoryHandle source,
+        int length)
     {
-        ArgumentNullException.ThrowIfNull(source);
-
         switch (length)
         {
             case < 0:
@@ -26,16 +25,13 @@ internal static class SecureByteStringInterop
                 SodiumFailure.InvalidBufferSize($"Requested length {length} exceeds handle length {source.Length}"));
         }
 
-        return source.WithReadAccess(span => Result<ByteString, SodiumFailure>.Ok(ByteString.CopyFrom(span.Slice(0, length))));
+        return source.WithReadAccess(span =>
+            Result<ByteString, SodiumFailure>.Ok(ByteString.CopyFrom(span.Slice(0, length))));
     }
 
-    public static TResult WithByteStringAsSpan<TResult>(ByteString byteString, Func<ReadOnlySpan<byte>, TResult> operation)
-    {
-        ArgumentNullException.ThrowIfNull(byteString);
-        ArgumentNullException.ThrowIfNull(operation);
-
-        return operation(byteString.IsEmpty ? ReadOnlySpan<byte>.Empty : byteString.Span);
-    }
+    public static TResult WithByteStringAsSpan<TResult>(ByteString byteString,
+        Func<ReadOnlySpan<byte>, TResult> operation) =>
+        operation(byteString.IsEmpty ? [] : byteString.Span);
 
     public static void SecureCopyWithCleanup(ByteString source, out byte[] destination)
     {
@@ -49,13 +45,10 @@ internal static class SecureByteStringInterop
         source.Span.CopyTo(destination);
     }
 
-    public static ByteString CreateByteStringFromSpan(ReadOnlySpan<byte> source)
-    {
-        return source.IsEmpty ? ByteString.Empty : ByteString.CopyFrom(source);
-    }
+    public static ByteString CreateByteStringFromSpan(ReadOnlySpan<byte> source) =>
+        source.IsEmpty ? ByteString.Empty : ByteString.CopyFrom(source);
 
-    public static Result<Unit, SodiumFailure> CopyFromByteStringToSecureMemory(ByteString source, SodiumSecureMemoryHandle destination)
-    {
-        return source.IsEmpty ? Result<Unit, SodiumFailure>.Ok(Unit.Value) : destination.Write(source.Span);
-    }
+    public static Result<Unit, SodiumFailure> CopyFromByteStringToSecureMemory(ByteString source,
+        SodiumSecureMemoryHandle destination) =>
+        source.IsEmpty ? Result<Unit, SodiumFailure>.Ok(Unit.Value) : destination.Write(source.Span);
 }

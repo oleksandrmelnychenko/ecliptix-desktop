@@ -13,7 +13,7 @@ internal sealed class PendingLogoutRequestStorage(IApplicationSecureStorageProvi
 {
     private const string STORAGE_KEY = "PendingLogout";
 
-    public async Task<Result<Unit, LogoutFailure>> StorePendingLogoutAsync(LogoutRequest request)
+    public async Task StorePendingLogoutAsync(LogoutRequest request)
     {
         byte[] requestData = request.ToByteArray();
 
@@ -22,11 +22,9 @@ internal sealed class PendingLogoutRequestStorage(IApplicationSecureStorageProvi
 
         if (storeResult.IsErr)
         {
-            return Result<Unit, LogoutFailure>.Err(
+            Result<Unit, LogoutFailure>.Err(
                 LogoutFailure.UnexpectedError($"Storage failed: {storeResult.UnwrapErr().Message}"));
         }
-
-        return Result<Unit, LogoutFailure>.Ok(Unit.Value);
     }
 
     public async Task<Result<Option<LogoutRequest>, LogoutFailure>> GetPendingLogoutAsync()

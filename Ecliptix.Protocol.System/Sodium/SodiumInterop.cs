@@ -65,15 +65,16 @@ internal static partial class SodiumInterop
         );
     }
 
-    public static Result<Unit, SodiumFailure> SecureWipe(byte[]? buffer)
+    public static void SecureWipe(byte[]? buffer)
     {
         if (!IsInitialized)
         {
-            return Result<Unit, SodiumFailure>.Err(
+            Result<Unit, SodiumFailure>.Err(
                 SodiumFailure.INITIALIZATION_FAILED(SodiumFailureMessages.NOT_INITIALIZED));
+            return;
         }
 
-        return Result<byte[], SodiumFailure>
+        Result<byte[], SodiumFailure>
             .FromValue(buffer, SodiumFailure.BUFFER_TOO_SMALL(SodiumFailureMessages.BUFFER_NULL))
             .Bind(nonNullBuffer => nonNullBuffer switch
             {
@@ -92,8 +93,6 @@ internal static partial class SodiumInterop
     public static Result<(SodiumSecureMemoryHandle skHandle, byte[] pk), EcliptixProtocolFailure> GenerateX25519KeyPair(
         string keyPurpose)
     {
-        SodiumSecureMemoryHandle? skHandle = null;
-
         try
         {
             Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult =
@@ -104,7 +103,7 @@ internal static partial class SodiumInterop
                     .ToEcliptixProtocolFailure());
             }
 
-            skHandle = allocResult.Unwrap();
+            SodiumSecureMemoryHandle? skHandle = allocResult.Unwrap();
 
             byte[] skBytes = SodiumCore.GetRandomBytes(Constants.X_25519_PRIVATE_KEY_SIZE);
             try

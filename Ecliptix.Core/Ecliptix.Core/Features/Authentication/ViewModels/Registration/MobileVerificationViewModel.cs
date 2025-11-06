@@ -274,9 +274,6 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         switch (statusResponse.Status)
         {
             case MobileAvailabilityStatus.Available:
-                await NavigateToOtpVerificationAsync(mobileNumberIdentifier);
-                break;
-
             case MobileAvailabilityStatus.RegistrationExpired:
                 await NavigateToOtpVerificationAsync(mobileNumberIdentifier);
                 break;
@@ -417,35 +414,31 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         VerifyOtpViewModel vm = new(_connectivityService, NetworkProvider, LocalizationService, HostScreen,
             mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService);
 
-        if (HostScreen is AuthenticationViewModel hostWindow)
+        if (HostScreen is not AuthenticationViewModel hostWindow)
         {
-            hostWindow.RegistrationMobileNumber = MobileNumber;
-            hostWindow.NavigateToViewModel(vm);
+            return Task.CompletedTask;
         }
+
+        hostWindow.RegistrationMobileNumber = MobileNumber;
+        hostWindow.NavigateToViewModel(vm);
 
         return Task.CompletedTask;
     }
 
     private Task NavigateToSecureKeyAsync()
     {
-        if (_isDisposed)
+        if (_isDisposed || HostScreen is not AuthenticationViewModel hostWindow)
         {
             return Task.CompletedTask;
         }
 
-        if (HostScreen is AuthenticationViewModel hostWindow)
-        {
-            hostWindow.RegistrationMobileNumber = MobileNumber;
-            hostWindow.Navigate.Execute(MembershipViewType.SECURE_KEY_CONFIRMATION_VIEW).Subscribe();
-        }
+        hostWindow.RegistrationMobileNumber = MobileNumber;
+        hostWindow.Navigate.Execute(MembershipViewType.SECURE_KEY_CONFIRMATION_VIEW).Subscribe();
 
         return Task.CompletedTask;
     }
 
-    public new void Dispose()
-    {
-        Dispose(true);
-    }
+    public new void Dispose() => Dispose(true);
 
     protected override void Dispose(bool disposing)
     {
@@ -470,20 +463,22 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
             ref _currentOperationCts,
             null);
 
-        if (operationSource != null)
+        if (operationSource == null)
         {
-            try
-            {
-                operationSource.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-                // Intentionally suppressed: CancellationTokenSource already disposed during cleanup
-            }
-            finally
-            {
-                operationSource.Dispose();
-            }
+            return;
+        }
+
+        try
+        {
+            operationSource.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Intentionally suppressed: CancellationTokenSource already disposed during cleanup
+        }
+        finally
+        {
+            operationSource.Dispose();
         }
     }
 }

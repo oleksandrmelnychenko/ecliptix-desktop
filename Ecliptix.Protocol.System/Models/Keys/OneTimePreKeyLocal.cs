@@ -6,7 +6,7 @@ using Sodium;
 
 namespace Ecliptix.Protocol.System.Models.Keys;
 
-public readonly struct OneTimePreKeyLocal : IDisposable, global::System.IEquatable<OneTimePreKeyLocal>
+public readonly struct OneTimePreKeyLocal : IDisposable, IEquatable<OneTimePreKeyLocal>
 {
     private readonly byte[] _publicKey;
 

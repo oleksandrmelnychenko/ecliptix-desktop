@@ -36,34 +36,6 @@ using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 
-public readonly struct AuthenticationViewModelDependencies
-{
-    public required IConnectivityService ConnectivityService { get; init; }
-    public required NetworkProvider NetworkProvider { get; init; }
-    public required ILocalizationService LocalizationService { get; init; }
-    public required IApplicationSecureStorageProvider StorageProvider { get; init; }
-    public required IAuthenticationService AuthenticationService { get; init; }
-    public required IOpaqueRegistrationService RegistrationService { get; init; }
-    public required ISecureKeyRecoveryService RecoveryService { get; init; }
-    public required ILanguageDetectionService LanguageDetectionService { get; init; }
-    public required IApplicationRouter Router { get; init; }
-    public required MainWindowViewModel MainWindowViewModel { get; init; }
-    public required DefaultSystemSettings Settings { get; init; }
-}
-
-public readonly struct ViewModelFactoryContext
-{
-    public required IConnectivityService ConnectivityService { get; init; }
-    public required NetworkProvider NetworkProvider { get; init; }
-    public required ILocalizationService LocalizationService { get; init; }
-    public required IAuthenticationService AuthenticationService { get; init; }
-    public required IApplicationSecureStorageProvider StorageProvider { get; init; }
-    public required AuthenticationViewModel HostViewModel { get; init; }
-    public required IOpaqueRegistrationService RegistrationService { get; init; }
-    public required ISecureKeyRecoveryService RecoveryService { get; init; }
-    public required AuthenticationFlowContext FlowContext { get; init; }
-}
-
 public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
 {
     private static readonly AppCultureSettings LanguageConfig = AppCultureSettings.Default;
@@ -505,14 +477,12 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
             IModuleManager? moduleManager = Locator.Current.GetService<IModuleManager>();
             if (moduleManager == null)
             {
-                Log.Error("[MEMBERSHIP-HOST] Failed to get IModuleManager");
                 return;
             }
 
             Option<IModule> mainModuleOption = await moduleManager.LoadModuleAsync("Main");
             if (!mainModuleOption.IsSome)
             {
-                Log.Error("[MEMBERSHIP-HOST] Failed to load Main module");
                 return;
             }
 

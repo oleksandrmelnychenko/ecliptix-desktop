@@ -134,7 +134,7 @@ public static class LogoutKeyDerivation
 
     public static byte[] ComputeHmac(byte[] key, byte[] data)
     {
-        using HMACSHA256 hmac = new HMACSHA256(key);
+        using HMACSHA256 hmac = new(key);
         return hmac.ComputeHash(data);
     }
 

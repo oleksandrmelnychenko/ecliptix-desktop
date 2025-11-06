@@ -7,7 +7,6 @@ namespace Ecliptix.Core.Infrastructure.Network.Core.Connectivity;
 
 internal sealed class InternetConnectivityBridge : IDisposable
 {
-    private readonly IConnectivityService _connectivityService;
     private readonly IDisposable _subscription;
     private bool _disposed;
 
@@ -15,20 +14,27 @@ internal sealed class InternetConnectivityBridge : IDisposable
         IInternetConnectivityObserver connectivityObserver,
         IConnectivityService connectivityService)
     {
-        _connectivityService = connectivityService;
+        IConnectivityService connectivityService1 = connectivityService;
 
-        _subscription = connectivityObserver.Subscribe(async isOnline =>
+        _subscription = connectivityObserver.Subscribe(async void (isOnline) =>
         {
-            if (_disposed)
+            try
             {
-                return;
+                if (_disposed)
+                {
+                    return;
+                }
+
+                ConnectivityIntent intent = isOnline
+                    ? ConnectivityIntent.InternetRecovered()
+                    : ConnectivityIntent.InternetLost();
+
+                await connectivityService1.PublishAsync(intent).ConfigureAwait(false);
             }
-
-            ConnectivityIntent intent = isOnline
-                ? ConnectivityIntent.InternetRecovered()
-                : ConnectivityIntent.InternetLost();
-
-            await _connectivityService.PublishAsync(intent).ConfigureAwait(false);
+            catch
+            {
+                //Suppress
+            }
         });
     }
 

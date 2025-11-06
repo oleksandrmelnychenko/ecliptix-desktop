@@ -7,13 +7,13 @@ public record InternetConnectivityObserverOptions
 {
     public static InternetConnectivityObserverOptions Default { get; } = new();
 
-    public IReadOnlyList<string> ProbeUrls { get; init; } = [
+    public IReadOnlyList<string> ProbeUrls { get; } = [
         "https://www.google.com/generate_204",
         "http://www.gstatic.com/generate_204"
     ];
 
     public TimeSpan PollingInterval { get; init; } = TimeSpan.FromSeconds(5);
-    public TimeSpan ProbeTimeout { get; init; } = TimeSpan.FromSeconds(3);
+    public TimeSpan ProbeTimeout { get; } = TimeSpan.FromSeconds(3);
 
     public int FailureThreshold { get; init; } = 3;
 

@@ -440,7 +440,7 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
 
             unsafe
             {
-                ReadOnlySpan<byte> span = new ReadOnlySpan<byte>((void*)handle, Length);
+                ReadOnlySpan<byte> span = new((void*)handle, Length);
                 return operation(span);
             }
         }

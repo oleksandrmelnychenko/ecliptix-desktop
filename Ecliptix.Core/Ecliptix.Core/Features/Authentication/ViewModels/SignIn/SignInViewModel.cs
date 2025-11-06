@@ -328,20 +328,22 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             ref _signInCancellationTokenSource,
             null);
 
-        if (cancellationSource != null)
+        if (cancellationSource == null)
         {
-            try
-            {
-                cancellationSource.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-                // Intentionally suppressed: CancellationTokenSource already disposed during cleanup
-            }
-            finally
-            {
-                cancellationSource.Dispose();
-            }
+            return;
+        }
+
+        try
+        {
+            cancellationSource.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Intentionally suppressed: CancellationTokenSource already disposed during cleanup
+        }
+        finally
+        {
+            cancellationSource.Dispose();
         }
     }
 }

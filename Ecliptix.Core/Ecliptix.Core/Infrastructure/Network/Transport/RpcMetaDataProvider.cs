@@ -12,7 +12,7 @@ internal sealed class RpcMetaDataProvider : IRpcMetaDataProvider
 {
     public Guid AppInstanceId { get; private set; }
     public Guid DeviceId { get; private set; }
-    public string? CULTURE { get; private set; }
+    public string? Culture { get; private set; }
     public string LocalIpAddress { get; }
     public string? PublicIpAddress { get; }
     public string Platform { get; }
@@ -28,12 +28,12 @@ internal sealed class RpcMetaDataProvider : IRpcMetaDataProvider
     {
         AppInstanceId = appInstanceId;
         DeviceId = deviceId;
-        CULTURE = culture;
+        Culture = culture;
     }
 
     public void SetCulture(string? culture)
     {
-        CULTURE = culture;
+        Culture = culture;
     }
 
     private static string DetectLocalIpAddress()

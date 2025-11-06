@@ -14,15 +14,9 @@ internal sealed class ScopedSecureMemory : IDisposable
         _clearOnDispose = clearOnDispose;
     }
 
-    public static ScopedSecureMemory Allocate(int size)
-    {
-        return size <= 0 ? throw new ArgumentException(ProtocolSystemConstants.ErrorMessages.SIZE_POSITIVE, nameof(size)) : new ScopedSecureMemory(new byte[size]);
-    }
-
-    public static ScopedSecureMemory Wrap(byte[] data, bool clearOnDispose = true)
-    {
-        return new ScopedSecureMemory(data, clearOnDispose);
-    }
+    public static ScopedSecureMemory Allocate(int size) => size <= 0
+        ? throw new ArgumentException(ProtocolSystemConstants.ErrorMessages.SIZE_POSITIVE, nameof(size))
+        : new ScopedSecureMemory(new byte[size]);
 
     public Span<byte> AsSpan()
     {

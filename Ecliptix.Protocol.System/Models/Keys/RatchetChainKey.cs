@@ -4,6 +4,7 @@ using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 
 namespace Ecliptix.Protocol.System.Models.Keys;
+
 internal sealed class RatchetChainKey : IEquatable<RatchetChainKey>
 {
     private readonly IKeyProvider _keyProvider;
@@ -26,15 +27,9 @@ internal sealed class RatchetChainKey : IEquatable<RatchetChainKey>
         return Index == other.Index && ReferenceEquals(_keyProvider, other._keyProvider);
     }
 
-    public override bool Equals(object? obj)
-    {
-        return obj is RatchetChainKey other && Equals(other);
-    }
+    public override bool Equals(object? obj) => obj is RatchetChainKey other && Equals(other);
 
-    public override int GetHashCode()
-    {
-        return Index.GetHashCode();
-    }
+    public override int GetHashCode() => Index.GetHashCode();
 
     public static bool operator ==(RatchetChainKey? left, RatchetChainKey? right)
     {
@@ -51,12 +46,10 @@ internal sealed class RatchetChainKey : IEquatable<RatchetChainKey>
         return left.Equals(right);
     }
 
-    public static bool operator !=(RatchetChainKey? left, RatchetChainKey? right)
-    {
-        return !(left == right);
-    }
+    public static bool operator !=(RatchetChainKey? left, RatchetChainKey? right) => !(left == right);
 
-    public static Result<Unit, EcliptixProtocolFailure> ReadKeyMaterial(RatchetChainKey chainKey, Span<byte> destination)
+    public static Result<Unit, EcliptixProtocolFailure> ReadKeyMaterial(RatchetChainKey chainKey,
+        Span<byte> destination)
     {
         if (destination.Length < Constants.X_25519_KEY_SIZE)
         {
@@ -88,8 +81,7 @@ internal sealed class RatchetChainKey : IEquatable<RatchetChainKey>
         }
     }
 
-    private Result<T, EcliptixProtocolFailure> WithKeyMaterial<T>(Func<ReadOnlySpan<byte>, Result<T, EcliptixProtocolFailure>> operation)
-    {
-        return _keyProvider.ExecuteWithKey(Index, operation);
-    }
+    private Result<T, EcliptixProtocolFailure> WithKeyMaterial<T>(
+        Func<ReadOnlySpan<byte>, Result<T, EcliptixProtocolFailure>> operation) =>
+        _keyProvider.ExecuteWithKey(Index, operation);
 }

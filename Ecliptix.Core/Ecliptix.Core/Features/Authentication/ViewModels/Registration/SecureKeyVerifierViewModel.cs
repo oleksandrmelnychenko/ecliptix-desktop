@@ -68,8 +68,6 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
         _secureKeyRecoveryService = secureKeyRecoveryService;
         _flowContext = flowContext;
 
-        Log.Information("[SECUREKEYVERIFIER-VM] INITIALIZED with flow context: {FlowContext}", flowContext);
-
         IObservable<bool> isFormLogicallyValid = SetupValidation();
         SetupCommands(isFormLogicallyValid);
         SetupSubscriptions();
@@ -146,7 +144,6 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
                     error =>
                     {
                         IsMembershipLoading = false;
-                        Log.Error(error, "[SECUREKEYVERIFIER-VM] Unexpected error loading membership");
                         ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
                         ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.WELCOME_VIEW);
                     })
@@ -543,7 +540,6 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to switch to main window after successful authentication");
                 SetServerError($"{LocalizationService[AuthenticationConstants.NAVIGATION_FAILURE_KEY]}");
             }
         }

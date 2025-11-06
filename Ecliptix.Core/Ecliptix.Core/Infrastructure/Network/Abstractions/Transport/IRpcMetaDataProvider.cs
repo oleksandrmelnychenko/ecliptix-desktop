@@ -6,7 +6,7 @@ public interface IRpcMetaDataProvider
 {
     Guid AppInstanceId { get; }
     Guid DeviceId { get; }
-    string? CULTURE { get; }
+    string? Culture { get; }
     string LocalIpAddress { get; }
     string? PublicIpAddress { get; }
     string Platform { get; }

@@ -47,7 +47,7 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
 
         ErrorCode errorCode = ParseErrorCode(rpcException, trailers);
         (string message, string keyUsed) = ResolveMessage(
-            GetMetadataValue(trailers, GrpcErrorMetadataKeys.I_18N_KEY),
+            GetMetadataValue(trailers, GrpcErrorMetadataKeys.I_18_N_KEY),
             errorCode,
             rpcException.Status.Detail);
 

@@ -2,7 +2,7 @@ namespace Ecliptix.Protocol.System.Utilities;
 
 internal sealed class ScopedSecureMemoryCollection : IDisposable
 {
-    private readonly List<IDisposable> _resources = new();
+    private readonly List<IDisposable> _resources = [];
     private bool _disposed;
 
     public ScopedSecureMemory Allocate(int size)

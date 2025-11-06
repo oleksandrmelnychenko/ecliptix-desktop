@@ -163,24 +163,24 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         }
 
         Option<byte[]> maybeData = getResult.Unwrap();
-        if (maybeData.IsSome)
+        if (!maybeData.IsSome)
         {
-            try
-            {
-                ApplicationInstanceSettings settings = ApplicationInstanceSettings.Parser.ParseFrom(maybeData.Value);
-                return Result<InstanceSettingsResult, InternalServiceApiFailure>.Ok(
-                    new InstanceSettingsResult(settings, false));
-            }
-            catch (InvalidProtocolBufferException ex)
-            {
-                Log.Warning(ex,
-                    "[SETTINGS-INIT-RECOVERY] Settings parsing failed, creating fresh settings. ERROR: {ERROR}",
-                    ex.Message);
-                return await CreateAndStoreNewSettingsAsync(defaultCulture);
-            }
+            return await CreateAndStoreNewSettingsAsync(defaultCulture);
         }
 
-        return await CreateAndStoreNewSettingsAsync(defaultCulture);
+        try
+        {
+            ApplicationInstanceSettings settings = ApplicationInstanceSettings.Parser.ParseFrom(maybeData.Value);
+            return Result<InstanceSettingsResult, InternalServiceApiFailure>.Ok(
+                new InstanceSettingsResult(settings, false));
+        }
+        catch (InvalidProtocolBufferException ex)
+        {
+            Log.Warning(ex,
+                "[SETTINGS-INIT-RECOVERY] Settings parsing failed, creating fresh settings. ERROR: {ERROR}",
+                ex.Message);
+            return await CreateAndStoreNewSettingsAsync(defaultCulture);
+        }
     }
 
     private async Task<Result<InstanceSettingsResult, InternalServiceApiFailure>> CreateAndStoreNewSettingsAsync(

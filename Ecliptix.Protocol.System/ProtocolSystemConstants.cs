@@ -5,7 +5,6 @@ internal static class ProtocolSystemConstants
     public static class Timeouts
     {
         public static readonly TimeSpan SessionTimeout = TimeSpan.FromHours(24);
-        public static readonly TimeSpan DefaultCircuitBreakerTimeout = TimeSpan.FromSeconds(30);
         public static readonly TimeSpan NonceLifetime = TimeSpan.FromMinutes(5);
         public static readonly TimeSpan CleanupInterval = TimeSpan.FromMinutes(1);
         public static readonly TimeSpan WindowAdjustmentInterval = TimeSpan.FromMinutes(2);
@@ -17,7 +16,6 @@ internal static class ProtocolSystemConstants
         public const int DEFAULT_BUFFER_SIZE = 4096;
         public const int MAX_POOL_SIZE = 100;
         public const int SECURE_WIPE_CHUNK_SIZE = 1024;
-        public const int SECURE_STRING_BUILDER_DEFAULT_CHUNK_SIZE = 256;
     }
 
     public static class ErrorMessages
@@ -33,22 +31,13 @@ internal static class ProtocolSystemConstants
         public const string BUFFER_SIZE_POSITIVE = "Buffer size must be positive";
         public const string MAX_POOL_SIZE_POSITIVE = "Max pool size must be positive";
         public const string SIZE_POSITIVE = "Size must be positive";
-        public const string CHUNK_SIZE_POSITIVE = "Chunk size must be positive";
         public const string LIB_SODIUM_CONSTANT_TIME_COMPARISON_FAILED = "libsodium constant-time comparison failed.";
 
-        public const string PERSONAL_PARAMETER_INVALID_SIZE = "Personal parameter (membershipId) must be exactly {0} bytes, got {1}";
-        public const string FAILED_TO_DERIVE_MASTER_KEY = "Failed to derive master key: {0}";
-        public const string MARSHAL_PTR_TO_STRING_FAILED = "Failed to marshal pointer to string";
-        public const string HASH_ALGORITHM_NOT_SUPPORTED = "Hash algorithm {0} not supported";
         public const string SECURE_STRING_HANDLER_DISPOSED = "SecureStringHandler is disposed";
-        public const string SECURE_STRING_BUILDER_DISPOSED = "Builder is disposed";
-        public const string SECURE_STRING_BUILDER_NO_DATA = "No data to build";
     }
 
     public static class Numeric
     {
-        public const int PERFORMANCE_DECIMAL_PLACES = 3;
-        public const int JSON_ESCAPE_BUFFER_EXTRA = 16;
         public const int DLL_IMPORT_SUCCESS = 0;
         public const int ZERO_VALUE = 0;
     }
@@ -63,7 +52,6 @@ internal static class ProtocolSystemConstants
         public const long MAX_NONCE_COUNTER = 10_000_000;
         public const int RANDOM_NONCE_PREFIX_SIZE = 8;
         public const uint DEFAULT_CHAIN_INDEX = 0;
-        public const uint DEFAULT_MESSAGE_INDEX = 0;
         public const int HKDF_OUTPUT_BUFFER_MULTIPLIER = 2;
     }
 
@@ -100,8 +88,6 @@ internal static class ProtocolSystemConstants
         public const string PROTOCOL_CONNECTION_NOT_INITIALIZED_MESSAGE = "Protocol connection not initialized";
         public const string IDENTITY_KEYS_TOO_LARGE_MESSAGE = "Identity keys too large (max {0} bytes each)";
         public const string INTEGER_OVERFLOW_MESSAGE = "Combined identity keys would cause integer overflow";
-        public const string AES_GCM_ENCRYPT_OPERATION_NAME = "AES-GCM-Encrypt";
-        public const string AES_GCM_DECRYPT_OPERATION_NAME = "AES-GCM-Decrypt";
         public const string AES_GCM_ENCRYPTION_FAILED_MESSAGE = "AES-GCM encryption failed.";
         public const string CIPHERTEXT_TOO_SMALL_MESSAGE = "Received ciphertext length ({0}) is smaller than the GCM tag size ({1}).";
         public const string AES_GCM_DECRYPTION_FAILED_MESSAGE = "AES-GCM decryption failed (authentication tag mismatch).";

@@ -198,7 +198,8 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
             ? Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value)
             : Result<Unit, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.InvalidInput(string.Format(
-                    EcliptixProtocolFailureMessages.ChainStep.INITIAL_CHAIN_KEY_INVALID_SIZE, Constants.X_25519_KEY_SIZE)));
+                    EcliptixProtocolFailureMessages.ChainStep.INITIAL_CHAIN_KEY_INVALID_SIZE,
+                    Constants.X_25519_KEY_SIZE)));
     }
 
     private static Result<(SodiumSecureMemoryHandle? dhPrivateKeyHandle, byte[]? dhPublicKeyCloned),
@@ -517,7 +518,8 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
         catch (Exception ex)
         {
             return Result<ChainStepState, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.Generic(EcliptixProtocolFailureMessages.ChainStep.FAILED_TO_EXPORT_CHAIN_STEP_STATE,
+                EcliptixProtocolFailure.Generic(
+                    EcliptixProtocolFailureMessages.ChainStep.FAILED_TO_EXPORT_CHAIN_STEP_STATE,
                     ex));
         }
     }
@@ -602,12 +604,7 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
         }
 
         Result<Unit, EcliptixProtocolFailure> dhUpdateResult = HandleDhKeyUpdate(newDhPrivateKey, newDhPublicKey);
-        if (dhUpdateResult.IsErr)
-        {
-            return dhUpdateResult;
-        }
-
-        return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
+        return dhUpdateResult.IsErr ? dhUpdateResult : Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
     }
 
     private Result<Unit, EcliptixProtocolFailure> CheckDisposed()
@@ -684,7 +681,8 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
     private static Result<Unit, EcliptixProtocolFailure> ValidateAll(
         params Func<Result<Unit, EcliptixProtocolFailure>>[]? validators)
     {
-        if (validators is null || validators.Length == ProtocolSystemConstants.ChainStep.VALIDATOR_ARRAY_EMPTY_THRESHOLD)
+        if (validators is null ||
+            validators.Length == ProtocolSystemConstants.ChainStep.VALIDATOR_ARRAY_EMPTY_THRESHOLD)
         {
             return OkResult;
         }
@@ -711,7 +709,8 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
         if (privateKey == null || publicKey == null)
         {
             return Result<Unit, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.InvalidInput(EcliptixProtocolFailureMessages.ChainStep.DH_KEYS_PROVIDED_TOGETHER));
+                EcliptixProtocolFailure.InvalidInput(
+                    EcliptixProtocolFailureMessages.ChainStep.DH_KEYS_PROVIDED_TOGETHER));
         }
 
         return OkResult;

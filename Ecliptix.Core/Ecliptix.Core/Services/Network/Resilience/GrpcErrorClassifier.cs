@@ -80,7 +80,7 @@ public static class GrpcErrorClassifier
                    .Where(code => string.Equals(code, "AuthFlowMissing", StringComparison.OrdinalIgnoreCase))
                    .IsSome
                ||
-               GetMetadataValue(ex.Trailers, GrpcErrorMetadataKeys.I_18N_KEY)
+               GetMetadataValue(ex.Trailers, GrpcErrorMetadataKeys.I_18_N_KEY)
                    .Where(key => string.Equals(key, "error.auth_flow_missing", StringComparison.OrdinalIgnoreCase))
                    .IsSome;
     }
