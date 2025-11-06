@@ -56,7 +56,6 @@ public sealed class RetryStrategy : IRetryStrategy
 
         public int CurrentRetryCount
         {
-            get => Interlocked.CompareExchange(ref _currentRetryCount, 0, 0);
             set => Interlocked.Exchange(ref _currentRetryCount, value);
         }
 
@@ -150,7 +149,7 @@ public sealed class RetryStrategy : IRetryStrategy
         bool bypassExhaustionCheck)
     {
         uint actualConnectId = connectId ?? 0;
-        int actualMaxRetries = maxRetries ?? _strategyConfiguration.MAX_RETRIES;
+        int actualMaxRetries = maxRetries ?? _strategyConfiguration.MaxRetries;
 
         if (!bypassExhaustionCheck && await IsGloballyExhaustedAsync().ConfigureAwait(false))
         {
@@ -394,7 +393,7 @@ public sealed class RetryStrategy : IRetryStrategy
                 _ = _connectivityService.PublishAsync(
                     ConnectivityIntent.Connected(
                         connectId,
-                        ConnectivityReason.ManualRetry)).ContinueWith(
+                        ConnectivityReason.MANUAL_RETRY)).ContinueWith(
                     task =>
                     {
                         if (task.IsFaulted && task.Exception != null)
@@ -557,9 +556,9 @@ public sealed class RetryStrategy : IRetryStrategy
                 maxRetries);
         }
 
-        TimeSpan baseDelay = _strategyConfiguration.INITIAL_RETRY_DELAY;
-        TimeSpan maxDelay = _strategyConfiguration.MAX_RETRY_DELAY;
-        bool useJitter = _strategyConfiguration.USE_ADAPTIVE_RETRY;
+        TimeSpan baseDelay = _strategyConfiguration.InitialRetryDelay;
+        TimeSpan maxDelay = _strategyConfiguration.MaxRetryDelay;
+        bool useJitter = _strategyConfiguration.UseAdaptiveRetry;
 
         IEnumerable<TimeSpan> rawDelays = useJitter
             ? Backoff.DecorrelatedJitterBackoffV2(
@@ -895,7 +894,7 @@ public sealed class RetryStrategy : IRetryStrategy
                 (context) =>
                 {
                     int currentAttempt = GetCurrentAttempt(context);
-                    TimeSpan timeout = _strategyConfiguration.PER_ATTEMPT_TIMEOUT;
+                    TimeSpan timeout = _strategyConfiguration.PerAttemptTimeout;
 
                     if (Log.IsEnabled(LogEventLevel.Debug))
                     {

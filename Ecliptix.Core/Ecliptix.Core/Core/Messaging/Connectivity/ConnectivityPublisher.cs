@@ -26,35 +26,31 @@ internal sealed class ConnectivityPublisher : IDisposable
         await _publishGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            Guid correlation = intent.CORRELATION_ID ?? Guid.NewGuid();
+            Guid correlation = intent.CorrelationId ?? Guid.NewGuid();
 
             ConnectivityReason reason;
-            if (intent.Reason == ConnectivityReason.None)
+            if (intent.Reason == ConnectivityReason.NONE)
             {
                 reason = intent.Failure is not null
                     ? ConnectivityReasonMapper.FromNetworkFailure(intent.Failure)
-                    : ConnectivityReason.Unknown;
+                    : ConnectivityReason.UNKNOWN;
             }
             else
             {
                 reason = intent.Reason;
             }
 
-            if (reason == ConnectivityReason.None)
+            if (reason == ConnectivityReason.NONE)
             {
-                reason = ConnectivityReason.Unknown;
+                reason = ConnectivityReason.UNKNOWN;
             }
 
             ConnectivitySnapshot next = new(
                 intent.Status,
                 reason,
                 intent.Source,
-                intent.Failure,
-                intent.ConnectId,
                 intent.RetryAttempt,
-                intent.RetryBackoff,
-                correlation,
-                DateTime.UtcNow);
+                correlation);
 
             _currentSnapshot = next;
             _snapshotStream.OnNext(next);
@@ -77,21 +73,21 @@ internal sealed class ConnectivityPublisher : IDisposable
         {
             if (failure is null)
             {
-                return ConnectivityReason.Unknown;
+                return ConnectivityReason.UNKNOWN;
             }
 
             return failure.FailureType switch
             {
-                NetworkFailureType.DATA_CENTER_SHUTDOWN => ConnectivityReason.ServerShutdown,
-                NetworkFailureType.OPERATION_CANCELLED => ConnectivityReason.OperationCancelled,
-                NetworkFailureType.CRITICAL_AUTHENTICATION_FAILURE => ConnectivityReason.SecurityError,
-                NetworkFailureType.INVALID_REQUEST_TYPE => ConnectivityReason.SecurityError,
-                NetworkFailureType.ECLIPTIX_PROTOCOL_FAILURE => ConnectivityReason.SecurityError,
-                NetworkFailureType.RSA_ENCRYPTION_FAILURE => ConnectivityReason.SecurityError,
-                NetworkFailureType.PROTOCOL_STATE_MISMATCH => ConnectivityReason.SecurityError,
-                NetworkFailureType.CONNECTION_FAILED => ConnectivityReason.HandshakeFailed,
-                NetworkFailureType.DATA_CENTER_NOT_RESPONDING => ConnectivityReason.RpcFailure,
-                _ => ConnectivityReason.Unknown
+                NetworkFailureType.DATA_CENTER_SHUTDOWN => ConnectivityReason.SERVER_SHUTDOWN,
+                NetworkFailureType.OPERATION_CANCELLED => ConnectivityReason.OPERATION_CANCELLED,
+                NetworkFailureType.CRITICAL_AUTHENTICATION_FAILURE => ConnectivityReason.SECURITY_ERROR,
+                NetworkFailureType.INVALID_REQUEST_TYPE => ConnectivityReason.SECURITY_ERROR,
+                NetworkFailureType.ECLIPTIX_PROTOCOL_FAILURE => ConnectivityReason.SECURITY_ERROR,
+                NetworkFailureType.RSA_ENCRYPTION_FAILURE => ConnectivityReason.SECURITY_ERROR,
+                NetworkFailureType.PROTOCOL_STATE_MISMATCH => ConnectivityReason.SECURITY_ERROR,
+                NetworkFailureType.CONNECTION_FAILED => ConnectivityReason.HANDSHAKE_FAILED,
+                NetworkFailureType.DATA_CENTER_NOT_RESPONDING => ConnectivityReason.RPC_FAILURE,
+                _ => ConnectivityReason.UNKNOWN
             };
         }
     }

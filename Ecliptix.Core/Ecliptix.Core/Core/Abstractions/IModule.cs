@@ -7,7 +7,6 @@ public interface IModule
 {
     ModuleIdentifier Id { get; }
     IModuleManifest Manifest { get; }
-    bool IsLoaded { get; }
 
     IModuleScope? ServiceScope { get; }
 
@@ -25,17 +24,17 @@ public interface ITypedModule<out TManifest> : IModule where TManifest : IModule
 
 public enum ModuleLoadingStrategy
 {
-    Eager,
-    Lazy,
-    Background
+    EAGER,
+    LAZY,
+    BACKGROUND
 }
 
 public enum ModuleState
 {
-    NotLoaded,
-    Loading,
-    Loaded,
-    Failed,
-    Unloading,
-    Unloaded
+    NOT_LOADED,
+    LOADING,
+    LOADED,
+    FAILED,
+    UNLOADING,
+    UNLOADED
 }

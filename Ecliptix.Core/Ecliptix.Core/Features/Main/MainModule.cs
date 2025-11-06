@@ -8,13 +8,13 @@ namespace Ecliptix.Core.Features.Main;
 
 public record MainModuleManifest() : ModuleManifest(
     Priority: 20,
-    LoadingStrategy: ModuleLoadingStrategy.Lazy,
+    LoadingStrategy: ModuleLoadingStrategy.LAZY,
     Dependencies: []
 );
 
 public class MainModule : ModuleBase<MainModuleManifest>
 {
-    public override ModuleIdentifier Id => ModuleIdentifier.Main;
+    public override ModuleIdentifier Id => ModuleIdentifier.MAIN;
     public override MainModuleManifest Manifest { get; } = new();
 
     public override async Task SetupMessageHandlersAsync(IModuleMessageBus messageBus)

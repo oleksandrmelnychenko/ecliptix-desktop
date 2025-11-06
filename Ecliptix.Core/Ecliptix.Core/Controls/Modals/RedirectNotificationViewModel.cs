@@ -16,10 +16,10 @@ public sealed class RedirectNotificationViewModel : ReactiveObject, IDisposable,
 
     private readonly ILocalizationService _localizationService;
     private string? _cachedRedirectingTemplate;
-    private bool _disposed = false;
+    private bool _disposed;
 
     [Reactive] public string Message { get; set; }
-    [Reactive] public double Progress { get; set; } = 0;
+    [Reactive] public double Progress { get; set; }
     [Reactive] public string CountdownText { get; set; }
 
     public RedirectNotificationViewModel(
@@ -56,7 +56,7 @@ public sealed class RedirectNotificationViewModel : ReactiveObject, IDisposable,
                        .Subscribe(_ =>
                        {
                            double elapsed = stopwatch.Elapsed.TotalSeconds;
-                           Progress = Math.Min(100.0, (elapsed / totalSeconds) * 100.0);
+                           Progress = Math.Min(100.0, elapsed / totalSeconds * 100.0);
                        })
                        .DisposeWith(disposables);
             Observable.Interval(TimeSpan.FromSeconds(1))
@@ -83,14 +83,10 @@ public sealed class RedirectNotificationViewModel : ReactiveObject, IDisposable,
                 })
                 .DisposeWith(disposables);
             Disposable.Create(() => stopwatch.Stop()).DisposeWith(disposables);
-
         });
     }
 
-    private void ClearStringCache()
-    {
-        _cachedRedirectingTemplate = null;
-    }
+    private void ClearStringCache() => _cachedRedirectingTemplate = null;
 
     private string GetCachedRedirectingText(int seconds)
     {

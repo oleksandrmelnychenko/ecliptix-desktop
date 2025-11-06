@@ -25,7 +25,7 @@ public class ModuleManager : IModuleManager
 
         foreach (IModule module in _catalog.GetModules())
         {
-            _moduleStates[module.Id.ToName()] = ModuleState.NotLoaded;
+            _moduleStates[module.Id.ToName()] = ModuleState.NOT_LOADED;
         }
     }
 
@@ -46,15 +46,15 @@ public class ModuleManager : IModuleManager
             return Option<IModule>.None;
         }
 
-        if (currentState == ModuleState.Loaded)
+        if (currentState == ModuleState.LOADED)
         {
             return Option<IModule>.Some(module);
         }
 
-        if (!_moduleStates.TryUpdate(moduleName, ModuleState.Loading, currentState))
+        if (!_moduleStates.TryUpdate(moduleName, ModuleState.LOADING, currentState))
         {
             if (_moduleStates.TryGetValue(moduleName, out ModuleState updatedState) &&
-                updatedState == ModuleState.Loaded)
+                updatedState == ModuleState.LOADED)
             {
                 return Option<IModule>.Some(module);
             }
@@ -65,14 +65,14 @@ public class ModuleManager : IModuleManager
 
         if (!await module.CanLoadAsync())
         {
-            _moduleStates[moduleName] = ModuleState.Failed;
+            _moduleStates[moduleName] = ModuleState.FAILED;
             Log.Warning("Module '{ModuleName}' cannot be loaded at this time", moduleName);
             return Option<IModule>.None;
         }
 
         await module.LoadAsync(_serviceProvider);
 
-        _moduleStates[moduleName] = ModuleState.Loaded;
+        _moduleStates[moduleName] = ModuleState.LOADED;
 
         await module.SetupMessageHandlersAsync(_messageBus);
         return Option<IModule>.Some(module);
@@ -97,7 +97,7 @@ public class ModuleManager : IModuleManager
 
     public async Task LoadEagerModulesAsync()
     {
-        await LoadModulesAsync(ModuleLoadingStrategy.Eager);
+        await LoadModulesAsync(ModuleLoadingStrategy.EAGER);
     }
 
     public async Task<IReadOnlyList<IModule>> LoadAllModulesAsync()
@@ -127,7 +127,7 @@ public class ModuleManager : IModuleManager
     public void StartBackgroundPreloading()
     {
         IModule[] backgroundModules = _catalog.GetModules()
-            .Where(m => m.Manifest.LoadingStrategy == ModuleLoadingStrategy.Background &&
+            .Where(m => m.Manifest.LoadingStrategy == ModuleLoadingStrategy.BACKGROUND &&
                         !IsModuleLoaded(m.Id.ToName()))
             .ToArray();
 
@@ -153,17 +153,17 @@ public class ModuleManager : IModuleManager
 
         IModule module = moduleOption.Value!;
 
-        _moduleStates[moduleName] = ModuleState.Unloading;
+        _moduleStates[moduleName] = ModuleState.UNLOADING;
 
         await module.UnloadAsync();
-        _moduleStates[moduleName] = ModuleState.Unloaded;
+        _moduleStates[moduleName] = ModuleState.UNLOADED;
 
         ModuleResourceManager? resourceManager = _serviceProvider.GetService<ModuleResourceManager>();
         resourceManager?.RemoveModuleScope(moduleName);
     }
 
     public bool IsModuleLoaded(string moduleName) =>
-        _moduleStates.TryGetValue(moduleName, out ModuleState state) && state == ModuleState.Loaded;
+        _moduleStates.TryGetValue(moduleName, out ModuleState state) && state == ModuleState.LOADED;
 
     public IReadOnlyDictionary<string, ModuleState> GetModuleStates() =>
         new Dictionary<string, ModuleState>(_moduleStates);

@@ -18,8 +18,5 @@ public class BooleanToOpacityConverter : IValueConverter
         return FalseOpacity;
     }
 
-    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-    {
-        throw new NotImplementedException("ConvertBack is not supported for one-way opacity binding");
-    }
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotImplementedException("ConvertBack is not supported for one-way opacity binding");
 }

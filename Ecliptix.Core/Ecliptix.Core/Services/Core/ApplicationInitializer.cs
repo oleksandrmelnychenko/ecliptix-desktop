@@ -97,8 +97,6 @@ public sealed class ApplicationInitializer(
             await RegisterDeviceAsync(connectId, settings).ConfigureAwait(false);
         if (registrationResult.IsErr)
         {
-            Log.Error("[CLIENT-REGISTER] RegisterDevice failed. ConnectId: {ConnectId}, ERROR: {ERROR}",
-                connectId, registrationResult.UnwrapErr().Message);
             return false;
         }
 
@@ -486,7 +484,7 @@ public sealed class ApplicationInitializer(
                     ByteString.CopyFrom);
 
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-            }, false, CancellationToken.None).ConfigureAwait(false);
+            }, allowDuplicates: false, token: CancellationToken.None).ConfigureAwait(false);
     }
 
     private async Task CleanupCorruptedIdentityDataAsync(

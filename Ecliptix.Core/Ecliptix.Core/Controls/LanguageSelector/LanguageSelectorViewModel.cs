@@ -110,7 +110,7 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
         _ = PersistCultureSettingAsync(cultureCode).ContinueWith(
             task =>
             {
-                if (task.IsFaulted && task.Exception != null)
+                if (task is { IsFaulted: true, Exception: not null })
                 {
                     Serilog.Log.Error(task.Exception, "[LANGUAGE-SELECTOR] Unhandled exception in culture persistence");
                 }
@@ -131,13 +131,13 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
             if (result.IsErr)
             {
                 Serilog.Log.Warning(
-                    "[LANGUAGE-SELECTOR] Failed to persist culture setting. CULTURE: {CULTURE}, ERROR: {ERROR}",
+                    "[LANGUAGE-SELECTOR] Failed to persist culture setting. CULTURE: {Culture}, ERROR: {Error}",
                     cultureCode, result.UnwrapErr().Message);
             }
         }
         catch (Exception ex)
         {
-            Serilog.Log.Error(ex, "[LANGUAGE-SELECTOR] Exception persisting culture setting. CULTURE: {CULTURE}",
+            Serilog.Log.Error(ex, "[LANGUAGE-SELECTOR] Exception persisting culture setting. CULTURE: {Culture}",
                 cultureCode);
         }
     }
@@ -149,7 +149,7 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
             return;
         }
 
-        ToggleLanguageCommand?.Dispose();
+        ToggleLanguageCommand.Dispose();
         _disposables.Dispose();
 
         _disposed = true;

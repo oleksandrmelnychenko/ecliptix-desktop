@@ -18,13 +18,13 @@ namespace Ecliptix.Core.Infrastructure.Security.Storage;
 
 public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, IDisposable
 {
-    private const string KeychainPrefix = "ecliptix_key_";
+    private const string KEYCHAIN_PREFIX = "ecliptix_key_";
 
     private static readonly Encoding Utf8 = Encoding.UTF8;
     private static readonly Encoding Ascii = Encoding.ASCII;
     private static readonly byte[] MagicHeaderBytes = Ascii.GetBytes(SecureStorageConstants.Header.MAGIC_HEADER);
     private static readonly char[] InvalidFileNameChars = Path.GetInvalidFileNameChars();
-    private static readonly HashSet<char> InvalidFileNameCharacterSet = new(InvalidFileNameChars);
+    private static readonly HashSet<char> InvalidFileNameCharacterSet = [..InvalidFileNameChars];
 
     private readonly IPlatformSecurityProvider _platformProvider;
     private readonly string _storageDirectory;
@@ -171,7 +171,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
             if (derivedKey)
             {
-                await _platformProvider.StoreKeyInKeychainAsync(keychainKey, encryptionKey!).ConfigureAwait(false);
+                await _platformProvider.StoreKeyInKeychainAsync(keychainKey, encryptionKey).ConfigureAwait(false);
             }
 
             return Result<byte[], SecureStorageFailure>.Ok(plaintext);
@@ -242,7 +242,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         _disposed = true;
     }
 
-    private static string BuildKeychainKey(string connectId) => $"{KeychainPrefix}{connectId}";
+    private static string BuildKeychainKey(string connectId) => $"{KEYCHAIN_PREFIX}{connectId}";
 
     private string GetStorageFilePath(string connectId)
     {

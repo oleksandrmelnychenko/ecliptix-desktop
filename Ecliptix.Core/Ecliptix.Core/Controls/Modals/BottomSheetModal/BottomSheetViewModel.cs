@@ -16,7 +16,6 @@ namespace Ecliptix.Core.Controls.Modals.BottomSheetModal;
 public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel, IDisposable
 {
     private readonly IBottomSheetService _bottomSheetService;
-    private readonly IMessageBus _messageBus;
     private bool _disposed;
     private bool _isVisible;
     private bool _isDismissableOnScrimClick;
@@ -52,11 +51,11 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
     public BottomSheetViewModel(IBottomSheetService bottomSheetService, IMessageBus messageBus)
     {
         _bottomSheetService = bottomSheetService;
-        _messageBus = messageBus;
+        IMessageBus messageBus1 = messageBus;
 
         this.WhenActivated(disposables =>
         {
-            _messageBus.Subscribe<BottomSheetCommandEvent>(async evt =>
+            messageBus1.Subscribe<BottomSheetCommandEvent>(async evt =>
             {
                 await HandleCommand(evt);
             }).DisposeWith(disposables);
@@ -71,7 +70,7 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
                         ? BottomSheetAnimationConstants.ShowAnimationDuration
                         : BottomSheetAnimationConstants.HideAnimationDuration);
 
-                    await _messageBus.PublishAsync(isVisible
+                    await messageBus1.PublishAsync(isVisible
                         ? BottomSheetAnimationCompleteEvent.ShowComplete()
                         : BottomSheetAnimationCompleteEvent.HideComplete());
 
@@ -99,7 +98,7 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
             return Task.CompletedTask;
         }
 
-        if (evt.AnimationType == AnimationType.Show)
+        if (evt.AnimationType == AnimationType.SHOW)
         {
             Content = evt.Control;
             ShowScrim = evt.ShowScrim;
@@ -114,10 +113,7 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
         return Task.CompletedTask;
     }
 
-    public void BottomSheetDismissed()
-    {
-        Task.Run(async () => await _bottomSheetService.BottomSheetDismissed());
-    }
+    public void BottomSheetDismissed() => Task.Run(async () => await _bottomSheetService.BottomSheetDismissed());
 
     public void Dispose()
     {
@@ -127,6 +123,5 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
         }
 
         _disposed = true;
-        GC.SuppressFinalize(this);
     }
 }

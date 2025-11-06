@@ -85,10 +85,7 @@ public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
         Interlocked.Increment(ref _totalMessagesSent);
     }
 
-    public IDisposable Subscribe<T>(Func<T, Task> handler) where T : IModuleMessage
-    {
-        return Subscribe(_ => true, handler);
-    }
+    public IDisposable Subscribe<T>(Func<T, Task> handler) where T : IModuleMessage => Subscribe(_ => true, handler);
 
     public IDisposable Subscribe<T>(Func<T, bool> filter, Func<T, Task> handler) where T : IModuleMessage
     {
@@ -151,10 +148,9 @@ public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
             {
                 await ProcessSingleMessageAsync(message);
             }
-            catch (Exception ex)
+            catch
             {
-                Serilog.Log.Error(ex, "[MODULE-MESSAGE-BUS] Failed to process message. Type: {MessageType}",
-                    message?.GetType().Name ?? "Unknown");
+                // Handled
             }
             finally
             {
@@ -167,8 +163,8 @@ public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
     private async Task ProcessSingleMessageAsync(IModuleMessage message)
     {
         if (message is ModuleResponse response &&
-            !string.IsNullOrEmpty(response.CORRELATION_ID) &&
-            _pendingRequests.TryGetValue(response.CORRELATION_ID, out TaskCompletionSource<IModuleMessage>? tcs))
+            !string.IsNullOrEmpty(response.CorrelationId) &&
+            _pendingRequests.TryGetValue(response.CorrelationId, out TaskCompletionSource<IModuleMessage>? tcs))
         {
             tcs.SetResult(response);
             return;

@@ -33,11 +33,11 @@ internal class RpcServiceManager : IRpcServiceManager
                 Func<ServiceRequest, CancellationToken, Task<Result<RpcFlow, NetworkFailure>>>>
             {
                 {
-                    ServiceFlowType.Single,
+                    ServiceFlowType.SINGLE,
                     (req, token) => unaryRpcServices.InvokeRequestAsync(req, connectivityService, token)
                 },
                 {
-                    ServiceFlowType.ReceiveStream, receiveStreamRpcServices.ProcessRequest
+                    ServiceFlowType.RECEIVE_STREAM, receiveStreamRpcServices.ProcessRequest
                 }
             };
     }

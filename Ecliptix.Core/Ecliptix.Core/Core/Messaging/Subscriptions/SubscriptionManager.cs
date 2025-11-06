@@ -38,9 +38,9 @@ internal sealed class SubscriptionManager : IDisposable
 
         ISubscription subscription = lifetime switch
         {
-            SubscriptionLifetime.Weak => new WeakSubscription<T>(filter, handler, priority),
-            SubscriptionLifetime.Strong => new StrongSubscription<T>(filter, handler, priority),
-            SubscriptionLifetime.Scoped => new ScopedSubscription<T>(filter, handler, priority),
+            SubscriptionLifetime.WEAK => new WeakSubscription<T>(filter, handler, priority),
+            SubscriptionLifetime.STRONG => new StrongSubscription<T>(filter, handler, priority),
+            SubscriptionLifetime.SCOPED => new ScopedSubscription<T>(filter, handler, priority),
             _ => throw new ArgumentOutOfRangeException(nameof(lifetime))
         };
 
@@ -61,7 +61,7 @@ internal sealed class SubscriptionManager : IDisposable
 
     public async Task PublishAsync<T>(T message, CancellationToken _) where T : class
     {
-        if (_disposed || message == null)
+        if (_disposed)
         {
             return;
         }
@@ -74,14 +74,13 @@ internal sealed class SubscriptionManager : IDisposable
         }
 
         ISubscription[] activeSubscriptions = list.GetActiveSubscriptions();
-        if (activeSubscriptions.Length == 0)
+        switch (activeSubscriptions.Length)
         {
-            return;
-        }
-
-        if (activeSubscriptions.Length > 1)
-        {
-            Array.Sort(activeSubscriptions, (x, y) => y.Priority.CompareTo(x.Priority));
+            case 0:
+                return;
+            case > 1:
+                Array.Sort(activeSubscriptions, (x, y) => y.Priority.CompareTo(x.Priority));
+                break;
         }
 
         List<Task> handlerTasks = new(activeSubscriptions.Length);
@@ -151,25 +150,24 @@ internal sealed class SubscriptionManager : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static string GetMessageTypeKey<T>() where T : class
-    {
-        return typeof(T).Name;
-    }
+    private static string GetMessageTypeKey<T>() where T : class => typeof(T).Name;
 
     public void Dispose()
     {
-        if (!_disposed)
+        if (_disposed)
         {
-            _disposed = true;
-            _cleanupTimer.Dispose();
-
-            foreach (SubscriptionList list in _subscriptions.Values)
-            {
-                list.Dispose();
-            }
-
-            _subscriptions.Clear();
+            return;
         }
+
+        _disposed = true;
+        _cleanupTimer.Dispose();
+
+        foreach (SubscriptionList list in _subscriptions.Values)
+        {
+            list.Dispose();
+        }
+
+        _subscriptions.Clear();
     }
 }
 
@@ -179,11 +177,13 @@ internal sealed class SubscriptionToken(Action disposeAction) : IDisposable
 
     public void Dispose()
     {
-        if (!_disposed)
+        if (_disposed)
         {
-            disposeAction();
-            _disposed = true;
+            return;
         }
+
+        disposeAction();
+        _disposed = true;
     }
 }
 
@@ -267,6 +267,7 @@ internal sealed class SubscriptionList : IDisposable
                     strong++;
                 }
             }
+
             return (weak, strong);
         }
         finally

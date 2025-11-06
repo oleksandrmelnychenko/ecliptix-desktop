@@ -62,7 +62,7 @@ internal sealed class OpaqueRegistrationService(
                 responseSource.TrySetResult(response);
 
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-            }, true, cancellationToken).ConfigureAwait(false);
+            }, allowDuplicates: true, token: cancellationToken).ConfigureAwait(false);
 
         if (networkResult.IsErr)
         {
@@ -99,7 +99,7 @@ internal sealed class OpaqueRegistrationService(
                     Helpers.ParseFromBytes<CheckMobileNumberAvailabilityResponse>(payload);
                 responseSource.TrySetResult(response);
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-            }, true, cancellationToken).ConfigureAwait(false);
+            }, allowDuplicates: true, token: cancellationToken).ConfigureAwait(false);
 
         if (networkResult.IsErr)
         {
@@ -251,7 +251,7 @@ internal sealed class OpaqueRegistrationService(
                 }
 
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-            }, true, cancellationToken).ConfigureAwait(false);
+            }, allowDuplicates: true, token: cancellationToken).ConfigureAwait(false);
 
         if (networkResult.IsErr)
         {
@@ -275,23 +275,21 @@ internal sealed class OpaqueRegistrationService(
             return Result<Unit, string>.Err(localizationService[AuthenticationConstants.SECURE_KEY_REQUIRED_KEY]);
         }
 
-        SensitiveBytes? secureKeyBytes = null;
         Result<SensitiveBytes, SodiumFailure>? createResult = null;
+        secureKey.WithSecureBytes(secureKeySpan => { createResult = SensitiveBytes.From(secureKeySpan); });
+
+        if (createResult == null || createResult.Value.IsErr)
+        {
+            string errorMessage = createResult?.IsErr is true
+                ? $"Failed to create secure key buffer: {createResult.Value.UnwrapErr().Message}"
+                : localizationService[AuthenticationConstants.SECURE_KEY_REQUIRED_KEY];
+            return Result<Unit, string>.Err(errorMessage);
+        }
+
+        SensitiveBytes secureKeyBytes = createResult.Value.Unwrap();
 
         try
         {
-            secureKey.WithSecureBytes(secureKeySpan => { createResult = SensitiveBytes.From(secureKeySpan); });
-
-            if (createResult == null || createResult.Value.IsErr)
-            {
-                string errorMessage = createResult?.IsErr is true
-                    ? $"Failed to create secure key buffer: {createResult.Value.UnwrapErr().Message}"
-                    : localizationService[AuthenticationConstants.SECURE_KEY_REQUIRED_KEY];
-                return Result<Unit, string>.Err(errorMessage);
-            }
-
-            secureKeyBytes = createResult.Value.Unwrap();
-
             if (secureKeyBytes.Length == 0)
             {
                 return Result<Unit, string>.Err(localizationService[AuthenticationConstants.SECURE_KEY_REQUIRED_KEY]);
@@ -304,7 +302,7 @@ internal sealed class OpaqueRegistrationService(
                     (attempt, attemptCancellationToken) =>
                         ExecuteCompleteRegistrationAttemptAsync(
                             membershipIdentifier,
-                            secureKeyBytes!,
+                            secureKeyBytes,
                             connectId,
                             attempt,
                             attemptCancellationToken),
@@ -315,7 +313,7 @@ internal sealed class OpaqueRegistrationService(
         }
         finally
         {
-            secureKeyBytes?.Dispose();
+            secureKeyBytes.Dispose();
         }
     }
 
@@ -541,9 +539,9 @@ internal sealed class OpaqueRegistrationService(
 
                         return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                     },
-                    true,
-                    cancellationToken,
-                    requestContext: requestContext)
+                    allowDuplicates: true,
+                    requestContext: requestContext,
+                    token: cancellationToken)
                 .ConfigureAwait(false);
 
             if (networkResult.IsErr)
@@ -834,7 +832,7 @@ internal sealed class OpaqueRegistrationService(
                 responseSource.TrySetResult(response);
 
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-            }, true, cancellationToken, requestContext: requestContext).ConfigureAwait(false);
+            }, allowDuplicates: true, requestContext: requestContext, token: cancellationToken).ConfigureAwait(false);
 
         if (networkResult.IsErr)
         {

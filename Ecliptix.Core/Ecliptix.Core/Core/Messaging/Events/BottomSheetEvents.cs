@@ -5,16 +5,16 @@ namespace Ecliptix.Core.Core.Messaging.Events;
 
 public enum BottomSheetComponentType
 {
-    DetectedLocalization,
-    RedirectNotification,
-    UserRequestError,
-    Hidden
+    DETECTED_LOCALIZATION,
+    REDIRECT_NOTIFICATION,
+    USER_REQUEST_ERROR,
+    HIDDEN
 }
 
 public enum AnimationType
 {
-    Show,
-    Hide
+    SHOW,
+    HIDE
 }
 
 public sealed record BottomSheetCommandEvent
@@ -26,7 +26,8 @@ public sealed record BottomSheetCommandEvent
     public bool IsDismissable { get; }
     public DateTime Timestamp { get; }
 
-    private BottomSheetCommandEvent(AnimationType animationType, BottomSheetComponentType componentType, UserControl? control, bool showScrim, bool isDismissable)
+    private BottomSheetCommandEvent(AnimationType animationType, BottomSheetComponentType componentType,
+        UserControl? control, bool showScrim, bool isDismissable)
     {
         AnimationType = animationType;
         ComponentType = componentType;
@@ -36,11 +37,12 @@ public sealed record BottomSheetCommandEvent
         Timestamp = DateTime.UtcNow;
     }
 
-    public static BottomSheetCommandEvent Show(BottomSheetComponentType componentType, UserControl? control, bool showScrim, bool isDismissable) =>
-        new(AnimationType.Show, componentType, control, showScrim, isDismissable);
+    public static BottomSheetCommandEvent Show(BottomSheetComponentType componentType, UserControl? control,
+        bool showScrim, bool isDismissable) =>
+        new(AnimationType.SHOW, componentType, control, showScrim, isDismissable);
 
     public static BottomSheetCommandEvent Hide() =>
-        new(AnimationType.Hide, BottomSheetComponentType.Hidden, null, false, true);
+        new(AnimationType.HIDE, BottomSheetComponentType.HIDDEN, null, false, true);
 }
 
 public sealed record BottomSheetHiddenEvent
@@ -68,6 +70,6 @@ public sealed record BottomSheetAnimationCompleteEvent
         Timestamp = DateTime.UtcNow;
     }
 
-    public static BottomSheetAnimationCompleteEvent ShowComplete() => new(AnimationType.Show);
-    public static BottomSheetAnimationCompleteEvent HideComplete() => new(AnimationType.Hide);
+    public static BottomSheetAnimationCompleteEvent ShowComplete() => new(AnimationType.SHOW);
+    public static BottomSheetAnimationCompleteEvent HideComplete() => new(AnimationType.HIDE);
 }

@@ -7,23 +7,15 @@ public readonly record struct ConnectivitySnapshot(
     ConnectivityStatus Status,
     ConnectivityReason Reason,
     ConnectivitySource Source,
-    NetworkFailure? Failure,
-    uint? ConnectId,
     int? RetryAttempt,
-    TimeSpan? RetryBackoff,
-    Guid CORRELATION_ID,
-    DateTime OccurredAt)
+    Guid CorrelationId)
 {
     public static readonly ConnectivitySnapshot Initial = new(
-        ConnectivityStatus.Connected,
-        ConnectivityReason.None,
-        ConnectivitySource.System,
+        ConnectivityStatus.CONNECTED,
+        ConnectivityReason.NONE,
+        ConnectivitySource.SYSTEM,
         null,
-        null,
-        null,
-        null,
-        Guid.Empty,
-        DateTime.MinValue);
+        Guid.Empty);
 }
 
 public readonly record struct ConnectivityIntent(
@@ -34,32 +26,32 @@ public readonly record struct ConnectivityIntent(
     uint? ConnectId = null,
     int? RetryAttempt = null,
     TimeSpan? RetryBackoff = null,
-    Guid? CORRELATION_ID = null)
+    Guid? CorrelationId = null)
 {
-    public static ConnectivityIntent Connected(uint? connectId = null, ConnectivityReason reason = ConnectivityReason.HandshakeSucceeded) =>
-        new(ConnectivityStatus.Connected, reason, ConnectivitySource.DataCenter, null, connectId);
+    public static ConnectivityIntent Connected(uint? connectId = null, ConnectivityReason reason = ConnectivityReason.HANDSHAKE_SUCCEEDED) =>
+        new(ConnectivityStatus.CONNECTED, reason, ConnectivitySource.DATA_CENTER, null, connectId);
 
-    public static ConnectivityIntent Connecting(uint? connectId = null, ConnectivityReason reason = ConnectivityReason.HandshakeStarted, ConnectivitySource source = ConnectivitySource.DataCenter) =>
-        new(ConnectivityStatus.Connecting, reason, source, null, connectId);
+    public static ConnectivityIntent Connecting(uint? connectId = null, ConnectivityReason reason = ConnectivityReason.HANDSHAKE_STARTED, ConnectivitySource source = ConnectivitySource.DATA_CENTER) =>
+        new(ConnectivityStatus.CONNECTING, reason, source, null, connectId);
 
-    public static ConnectivityIntent Disconnected(NetworkFailure failure, uint? connectId = null, ConnectivityReason reason = ConnectivityReason.RpcFailure, ConnectivitySource source = ConnectivitySource.DataCenter) =>
-        new(ConnectivityStatus.Disconnected, reason, source, failure, connectId);
+    public static ConnectivityIntent Disconnected(NetworkFailure failure, uint? connectId = null, ConnectivityReason reason = ConnectivityReason.RPC_FAILURE, ConnectivitySource source = ConnectivitySource.DATA_CENTER) =>
+        new(ConnectivityStatus.DISCONNECTED, reason, source, failure, connectId);
 
     public static ConnectivityIntent Recovering(NetworkFailure failure, uint? connectId = null, int? retryAttempt = null, TimeSpan? backoff = null) =>
-        new(ConnectivityStatus.Recovering, ConnectivityReason.Backoff, ConnectivitySource.System, failure, connectId, retryAttempt, backoff);
+        new(ConnectivityStatus.RECOVERING, ConnectivityReason.BACKOFF, ConnectivitySource.SYSTEM, failure, connectId, retryAttempt, backoff);
 
     public static ConnectivityIntent RetriesExhausted(NetworkFailure failure, uint? connectId = null, int? retries = null) =>
-        new(ConnectivityStatus.RetriesExhausted, ConnectivityReason.RetryLimitReached, ConnectivitySource.System, failure, connectId, retries);
+        new(ConnectivityStatus.RETRIES_EXHAUSTED, ConnectivityReason.RETRY_LIMIT_REACHED, ConnectivitySource.SYSTEM, failure, connectId, retries);
 
     public static ConnectivityIntent InternetLost() =>
-        new(ConnectivityStatus.Unavailable, ConnectivityReason.NoInternet, ConnectivitySource.InternetProbe);
+        new(ConnectivityStatus.UNAVAILABLE, ConnectivityReason.NO_INTERNET, ConnectivitySource.INTERNET_PROBE);
 
     public static ConnectivityIntent InternetRecovered() =>
-        new(ConnectivityStatus.Connecting, ConnectivityReason.InternetRecovered, ConnectivitySource.InternetProbe);
+        new(ConnectivityStatus.CONNECTING, ConnectivityReason.INTERNET_RECOVERED, ConnectivitySource.INTERNET_PROBE);
 
     public static ConnectivityIntent ManualRetry(uint? connectId = null) =>
-        new(ConnectivityStatus.Connecting, ConnectivityReason.ManualRetry, ConnectivitySource.ManualAction, null, connectId);
+        new(ConnectivityStatus.CONNECTING, ConnectivityReason.MANUAL_RETRY, ConnectivitySource.MANUAL_ACTION, null, connectId);
 
     public static ConnectivityIntent ServerShutdown(NetworkFailure failure) =>
-        new(ConnectivityStatus.ShuttingDown, ConnectivityReason.ServerShutdown, ConnectivitySource.DataCenter, failure);
+        new(ConnectivityStatus.SHUTTING_DOWN, ConnectivityReason.SERVER_SHUTDOWN, ConnectivitySource.DATA_CENTER, failure);
 }

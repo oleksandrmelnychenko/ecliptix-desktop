@@ -407,22 +407,22 @@ public static class Program
     {
         return new RetryStrategyConfiguration
         {
-            INITIAL_RETRY_DELAY = TimeSpan.TryParse(section[ApplicationConstants.ConfigurationKeys.INITIAL_RETRY_DELAY],
+            InitialRetryDelay = TimeSpan.TryParse(section[ApplicationConstants.ConfigurationKeys.INITIAL_RETRY_DELAY],
                 CultureInfo.InvariantCulture, out TimeSpan initialDelay)
                 ? initialDelay
                 : ApplicationConstants.Timeouts.DefaultInitialRetryDelay,
-            MAX_RETRY_DELAY = TimeSpan.TryParse(section[ApplicationConstants.ConfigurationKeys.MAX_RETRY_DELAY],
+            MaxRetryDelay = TimeSpan.TryParse(section[ApplicationConstants.ConfigurationKeys.MAX_RETRY_DELAY],
                 CultureInfo.InvariantCulture, out TimeSpan maxDelay)
                 ? maxDelay
                 : ApplicationConstants.Timeouts.DefaultMaxRetryDelay,
-            MAX_RETRIES = int.TryParse(section[ApplicationConstants.ConfigurationKeys.MAX_RETRIES], out int maxRetries)
+            MaxRetries = int.TryParse(section[ApplicationConstants.ConfigurationKeys.MAX_RETRIES], out int maxRetries)
                 ? maxRetries
                 : ApplicationConstants.Thresholds.DEFAULT_MAX_RETRIES,
-            PER_ATTEMPT_TIMEOUT = TimeSpan.TryParse(section[ApplicationConstants.ConfigurationKeys.PER_ATTEMPT_TIMEOUT],
+            PerAttemptTimeout = TimeSpan.TryParse(section[ApplicationConstants.ConfigurationKeys.PER_ATTEMPT_TIMEOUT],
                 CultureInfo.InvariantCulture, out TimeSpan perAttemptTimeout)
                 ? perAttemptTimeout
                 : TimeSpan.FromSeconds(30),
-            USE_ADAPTIVE_RETRY =
+            UseAdaptiveRetry =
                 !bool.TryParse(section[ApplicationConstants.ConfigurationKeys.USE_ADAPTIVE_RETRY], out bool adaptive) ||
                 adaptive
         };

@@ -2,7 +2,7 @@ namespace Ecliptix.Core.Controls.Common;
 
 public enum CharacterWarningType
 {
-    NonLatinLetter,
-    InvalidCharacter,
-    MultipleCharacters
+    NON_LATIN_LETTER,
+    INVALID_CHARACTER,
+    MULTIPLE_CHARACTERS
 }

@@ -9,19 +9,7 @@ using Serilog.Events;
 
 namespace Ecliptix.Core.Services.Network.Infrastructure;
 
-internal interface ITypedPendingRequest
-{
-    Task ExecuteAsync(CancellationToken cancellationToken);
-    void Cancel();
-}
-
-public interface IPendingRequestManager
-{
-    void RegisterPendingRequest(string requestId, Func<CancellationToken, Task> retryAction);
-    void RemovePendingRequest(string requestId);
-    Task<int> RetryAllPendingRequestsAsync(CancellationToken cancellationToken = default);
-}
-
+//TODO: check
 public sealed class PendingRequestManager : IPendingRequestManager
 {
     private readonly ConcurrentDictionary<string, Func<CancellationToken, Task>> _pendingRequests = new();
@@ -48,29 +36,6 @@ public sealed class PendingRequestManager : IPendingRequestManager
         if (!_requestCancellationSources.TryAdd(requestId, requestCts))
         {
             _pendingRequests.TryRemove(requestId, out _);
-            requestCts.Dispose();
-            return;
-        }
-
-        int newCount = Interlocked.Increment(ref _pendingCount);
-        PendingCountChanged?.Invoke(this, newCount);
-    }
-
-    public void RegisterPendingRequest<T>(string requestId, Func<CancellationToken, Task<T>> retryAction,
-        TaskCompletionSource<T> originalTaskCompletionSource)
-    {
-        CancellationTokenSource requestCts = new();
-        TypedPendingRequest<T> typedRequest = new(retryAction, originalTaskCompletionSource);
-
-        if (!_typedPendingRequests.TryAdd(requestId, typedRequest))
-        {
-            requestCts.Dispose();
-            return;
-        }
-
-        if (!_requestCancellationSources.TryAdd(requestId, requestCts))
-        {
-            _typedPendingRequests.TryRemove(requestId, out _);
             requestCts.Dispose();
             return;
         }
@@ -245,86 +210,5 @@ public sealed class PendingRequestManager : IPendingRequestManager
             linkedCts?.Dispose();
             _retryingRequests.TryRemove(requestId, out _);
         }
-    }
-
-    public void CancelAllPendingRequests()
-    {
-        foreach (KeyValuePair<string, CancellationTokenSource> entry in _requestCancellationSources.ToArray())
-        {
-            if (!_requestCancellationSources.TryRemove(entry.Key, out CancellationTokenSource? requestCts))
-            {
-                continue;
-            }
-
-            try
-            {
-                requestCts.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-                // Intentionally suppressed: CancellationTokenSource already disposed during cleanup
-            }
-            finally
-            {
-                requestCts.Dispose();
-            }
-        }
-
-        foreach (ITypedPendingRequest typedRequest in _typedPendingRequests.Values)
-        {
-            typedRequest.Cancel();
-        }
-
-        _pendingRequests.Clear();
-        _typedPendingRequests.Clear();
-        _retryingRequests.Clear();
-        _requestCancellationSources.Clear();
-
-        Interlocked.Exchange(ref _pendingCount, 0);
-        PendingCountChanged?.Invoke(this, 0);
-    }
-}
-
-internal sealed class TypedPendingRequest<T> : ITypedPendingRequest
-{
-    private readonly Func<CancellationToken, Task<T>> _retryAction;
-    private readonly TaskCompletionSource<T> _originalTaskCompletionSource;
-
-    public TypedPendingRequest(Func<CancellationToken, Task<T>> retryAction,
-        TaskCompletionSource<T> originalTaskCompletionSource)
-    {
-        _retryAction = retryAction;
-        _originalTaskCompletionSource = originalTaskCompletionSource;
-    }
-
-    public async Task ExecuteAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            Task<T> retryTask = _retryAction(cancellationToken);
-            T result = await (retryTask.IsCompleted
-                    ? retryTask
-                    : retryTask.WaitAsync(cancellationToken))
-                .ConfigureAwait(false);
-
-            _originalTaskCompletionSource.SetResult(result);
-        }
-        catch (OperationCanceledException)
-        {
-            _originalTaskCompletionSource.TrySetCanceled(cancellationToken);
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _originalTaskCompletionSource.SetException(ex);
-            throw;
-        }
-    }
-
-    public void Cancel()
-    {
-        _originalTaskCompletionSource.TrySetCanceled();
     }
 }

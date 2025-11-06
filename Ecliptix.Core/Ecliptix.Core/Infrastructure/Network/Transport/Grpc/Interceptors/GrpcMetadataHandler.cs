@@ -58,7 +58,7 @@ public static class GrpcMetadataHandler
         try
         {
             string localIp = NetworkInterface.GetAllNetworkInterfaces()
-                .Where(x => x.OperationalStatus == OperationalStatus.Up && !x.IsReceiveOnly)
+                .Where(x => x is { OperationalStatus: OperationalStatus.Up, IsReceiveOnly: false })
                 .SelectMany(x => x.GetIPProperties().UnicastAddresses)
                 .Where(x => x.Address.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(x.Address))
                 .Select(x => x.Address.ToString())

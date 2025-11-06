@@ -2,11 +2,11 @@ namespace Ecliptix.Core.Core.Messaging.Connectivity;
 
 public enum ConnectivityStatus
 {
-    Connected,
-    Connecting,
-    Disconnected,
-    Recovering,
-    Unavailable,
-    ShuttingDown,
-    RetriesExhausted
+    CONNECTED,
+    CONNECTING,
+    DISCONNECTED,
+    RECOVERING,
+    UNAVAILABLE,
+    SHUTTING_DOWN,
+    RETRIES_EXHAUSTED
 }

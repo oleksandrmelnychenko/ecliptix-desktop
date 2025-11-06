@@ -18,5 +18,5 @@ public interface IConnectivityService : IDisposable
 
     IDisposable OnManualRetryRequested(
         Func<ManualRetryRequestedEvent, Task> handler,
-        SubscriptionLifetime lifetime = SubscriptionLifetime.Weak);
+        SubscriptionLifetime lifetime = SubscriptionLifetime.WEAK);
 }

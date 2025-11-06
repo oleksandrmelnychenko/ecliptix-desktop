@@ -11,7 +11,7 @@ namespace Ecliptix.Core.Features.Splash.ViewModels;
 
 public sealed class SplashWindowViewModel : Core.MVVM.ViewModelBase
 {
-    private ConnectivitySnapshot _connectivity = ConnectivitySnapshot.Initial with { Status = ConnectivityStatus.Connecting };
+    private ConnectivitySnapshot _connectivity = ConnectivitySnapshot.Initial with { Status = ConnectivityStatus.CONNECTING };
     private bool _isShuttingDown;
 
     public ConnectivitySnapshot Connectivity

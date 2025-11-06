@@ -6,22 +6,18 @@ namespace Ecliptix.Core.Core.Messaging;
 
 public interface IMessageBus : IDisposable
 {
-    IObservable<TMessage> GetEvent<TMessage>() where TMessage : class;
-
     Task PublishAsync<TMessage>(TMessage message, CancellationToken cancellationToken = default) where TMessage : class;
 
     IDisposable Subscribe<TMessage>(
         Func<TMessage, Task> handler,
-        SubscriptionLifetime lifetime = SubscriptionLifetime.Strong) where TMessage : class;
+        SubscriptionLifetime lifetime = SubscriptionLifetime.STRONG) where TMessage : class;
 }
 
 public enum SubscriptionLifetime
 {
-    Strong,
-
-    Weak,
-
-    Scoped
+    STRONG,
+    WEAK,
+    SCOPED
 }
 
 public interface IMessageRequest
@@ -32,6 +28,6 @@ public interface IMessageRequest
 
 public interface IMessageResponse
 {
-    string? CORRELATION_ID { get; }
+    string? CorrelationId { get; }
 }
 

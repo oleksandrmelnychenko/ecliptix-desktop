@@ -310,7 +310,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "[HARDWARE-DECRYPT-ERROR] Hardware decryption failed: {ERROR}", ex.Message);
+            Log.Error(ex, "[HARDWARE-DECRYPT-ERROR] Hardware decryption failed: {Error}", ex.Message);
             return Option<byte[]>.None;
         }
     }
@@ -439,7 +439,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             catch (Exception deleteEx)
             {
                 Log.Error(deleteEx,
-                    "[KEYCHAIN-FILE-DELETE-ERROR] Failed to delete corrupted key file. Identifier: {Identifier}, Path: {Path}, ERROR: {ERROR}",
+                    "[KEYCHAIN-FILE-DELETE-ERROR] Failed to delete corrupted key file. Identifier: {Identifier}, Path: {Path}, ERROR: {Error}",
                     identifier, keyFile, deleteEx.Message);
             }
 
@@ -449,7 +449,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         catch (Exception ex)
         {
             Log.Error(ex,
-                "[KEYCHAIN-FILE-ERROR] Failed to read encrypted file. Identifier: {Identifier}, Path: {Path}, ERROR: {ERROR}",
+                "[KEYCHAIN-FILE-ERROR] Failed to read encrypted file. Identifier: {Identifier}, Path: {Path}, ERROR: {Error}",
                 identifier, keyFile, ex.Message);
             return Result<byte[], SecureStorageFailure>.Err(
                 new SecureStorageFailure($"Failed to read encrypted file: {ex.Message}"));
@@ -479,92 +479,107 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         string machineKeyFile = Path.Combine(_keychainPath, MACHINE_KEY_FILENAME);
         string machineId = BuildMachineIdentifier();
 
-        if (File.Exists(machineKeyFile))
+        if (!File.Exists(machineKeyFile))
         {
-            try
-            {
-                _cachedMachineKey = File.ReadAllBytes(machineKeyFile);
-
-                if (_cachedMachineKey.Length != AES_KEY_SIZE)
-                {
-                    Log.Error("[MACHINE-KEY] Invalid machine key size: {ActualSize}, expected: {ExpectedSize}",
-                        _cachedMachineKey.Length, AES_KEY_SIZE);
-                    _cachedMachineKey = null;
-                    return Option<byte[]>.None;
-                }
-
-                byte[] derivedKey = DeriveKeyFromMachineId(machineId);
-
-                if (!CryptographicOperations.FixedTimeEquals(derivedKey, _cachedMachineKey))
-                {
-                    Log.Warning("[MACHINE-KEY] Machine key verification failed - regenerating from current machine ID");
-                    CryptographicOperations.ZeroMemory(derivedKey);
-                    _cachedMachineKey = null;
-
-                    try
-                    {
-                        File.Delete(machineKeyFile);
-
-                        try
-                        {
-                            string[] existingKeyFiles = Directory.GetFiles(_keychainPath, "*.key");
-                            if (existingKeyFiles.Length > 0)
-                            {
-                                Log.Warning("[MACHINE-KEY] Deleting {Count} obsolete encrypted key files", existingKeyFiles.Length);
-                                foreach (string keyFile in existingKeyFiles)
-                                {
-                                    try
-                                    {
-                                        File.Delete(keyFile);
-                                    }
-                                    catch (Exception fileEx)
-                                    {
-                                        Log.Warning(fileEx, "[MACHINE-KEY] Failed to delete obsolete key file: {File}", Path.GetFileName(keyFile));
-                                    }
-                                }
-                            }
-                        }
-                        catch (Exception cleanupEx)
-                        {
-                            Log.Warning(cleanupEx, "[MACHINE-KEY] Failed to cleanup obsolete key files: {ERROR}", cleanupEx.Message);
-                        }
-
-                        _cachedMachineKey = DeriveKeyFromMachineId(machineId);
-
-                        try
-                        {
-                            File.WriteAllBytes(machineKeyFile, _cachedMachineKey);
-                            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                            {
-                                File.SetUnixFileMode(machineKeyFile, UnixFileMode.UserRead | UnixFileMode.UserWrite);
-                            }
-                        }
-                        catch (Exception writeEx)
-                        {
-                            Log.Error(writeEx, "[MACHINE-KEY-ERROR] Failed to write regenerated machine key file: {ERROR}", writeEx.Message);
-                        }
-
-                        return Option<byte[]>.Some(_cachedMachineKey);
-                    }
-                    catch (Exception deleteEx)
-                    {
-                        Log.Error(deleteEx, "[MACHINE-KEY-ERROR] Failed to delete corrupted machine key file: {ERROR}", deleteEx.Message);
-                        return Option<byte[]>.None;
-                    }
-                }
-
-                CryptographicOperations.ZeroMemory(derivedKey);
-                return Option<byte[]>.Some(_cachedMachineKey);
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "[MACHINE-KEY-ERROR] Failed to read existing machine key file: {ERROR}",
-                    ex.Message);
-                _cachedMachineKey = null;
-                return Option<byte[]>.None;
-            }
+            return CreateAndStoreMachineKey(machineKeyFile, machineId);
         }
 
+        return LoadAndVerifyMachineKey(machineKeyFile, machineId);
+    }
+
+    private Option<byte[]> LoadAndVerifyMachineKey(string machineKeyFile, string machineId)
+    {
+        try
+        {
+            byte[] fileKey = File.ReadAllBytes(machineKeyFile);
+
+            if (!IsValidMachineKeySize(fileKey))
+            {
+                return Option<byte[]>.None;
+            }
+
+            byte[] derivedKey = DeriveKeyFromMachineId(machineId);
+
+            if (!CryptographicOperations.FixedTimeEquals(derivedKey, fileKey))
+            {
+                return HandleMachineKeyVerificationFailure(machineKeyFile, machineId, derivedKey);
+            }
+
+            CryptographicOperations.ZeroMemory(derivedKey);
+            _cachedMachineKey = fileKey;
+            return Option<byte[]>.Some(_cachedMachineKey);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[MACHINE-KEY-ERROR] Failed to read existing machine key file: {Error}", ex.Message);
+            _cachedMachineKey = null;
+            return Option<byte[]>.None;
+        }
+    }
+
+    private bool IsValidMachineKeySize(byte[] key)
+    {
+        if (key.Length == AES_KEY_SIZE)
+        {
+            return true;
+        }
+
+        Log.Error("[MACHINE-KEY] Invalid machine key size: {ActualSize}, expected: {ExpectedSize}",
+            key.Length, AES_KEY_SIZE);
+        _cachedMachineKey = null;
+        return false;
+    }
+
+    private Option<byte[]> HandleMachineKeyVerificationFailure(string machineKeyFile, string machineId, byte[] derivedKey)
+    {
+        Log.Warning("[MACHINE-KEY] Machine key verification failed - regenerating from current machine ID");
+        CryptographicOperations.ZeroMemory(derivedKey);
+        _cachedMachineKey = null;
+
+        try
+        {
+            File.Delete(machineKeyFile);
+            CleanupObsoleteKeyFiles();
+            return CreateAndStoreMachineKey(machineKeyFile, machineId);
+        }
+        catch (Exception deleteEx)
+        {
+            Log.Error(deleteEx, "[MACHINE-KEY-ERROR] Failed to delete corrupted machine key file: {Error}", deleteEx.Message);
+            return Option<byte[]>.None;
+        }
+    }
+
+    private void CleanupObsoleteKeyFiles()
+    {
+        try
+        {
+            string[] existingKeyFiles = Directory.GetFiles(_keychainPath, "*.key");
+            if (existingKeyFiles.Length == 0)
+            {
+                return;
+            }
+
+            Log.Warning("[MACHINE-KEY] Deleting {Count} obsolete encrypted key files", existingKeyFiles.Length);
+            foreach (string keyFile in existingKeyFiles)
+            {
+                try
+                {
+                    File.Delete(keyFile);
+                }
+                catch (Exception fileEx)
+                {
+                    Log.Warning(fileEx, "[MACHINE-KEY] Failed to delete obsolete key file: {File}", Path.GetFileName(keyFile));
+                }
+            }
+        }
+        catch (Exception cleanupEx)
+        {
+            Log.Warning(cleanupEx, "[MACHINE-KEY] Failed to cleanup obsolete key files: {Error}", cleanupEx.Message);
+        }
+    }
+
+    private Option<byte[]> CreateAndStoreMachineKey(string machineKeyFile, string machineId)
+    {
         _cachedMachineKey = DeriveKeyFromMachineId(machineId);
 
         try
@@ -577,8 +592,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "[MACHINE-KEY-ERROR] Failed to write machine key file: {ERROR}",
-                ex.Message);
+            Log.Error(ex, "[MACHINE-KEY-ERROR] Failed to write machine key file: {Error}", ex.Message);
         }
 
         return Option<byte[]>.Some(_cachedMachineKey);
@@ -642,16 +656,14 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
     {
         try
         {
-            using System.Diagnostics.Process process = new()
+            using System.Diagnostics.Process process = new();
+            process.StartInfo = new System.Diagnostics.ProcessStartInfo
             {
-                StartInfo = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "ioreg",
-                    Arguments = "-rd1 -c IOPlatformExpertDevice",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                }
+                FileName = "ioreg",
+                Arguments = "-rd1 -c IOPlatformExpertDevice",
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
             };
 
             process.Start();

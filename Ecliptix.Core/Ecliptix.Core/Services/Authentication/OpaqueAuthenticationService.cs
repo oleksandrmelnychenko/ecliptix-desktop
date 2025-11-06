@@ -50,8 +50,7 @@ internal sealed class OpaqueAuthenticationService(
 
     private sealed record SignInFlowResult(
         SodiumSecureMemoryHandle MasterKeyHandle,
-        ByteString MembershipIdentifier,
-        Guid MembershipId) : IDisposable
+        ByteString MembershipIdentifier) : IDisposable
     {
         public void Dispose() => MasterKeyHandle.Dispose();
     }
@@ -67,23 +66,21 @@ internal sealed class OpaqueAuthenticationService(
                 AuthenticationFailure.MobileNumberRequired(mobileRequiredError));
         }
 
-        SensitiveBytes? secureKeyBytes = null;
         Result<SensitiveBytes, SodiumFailure>? createResult = null;
+        secureKey.WithSecureBytes(secureKeySpan => { createResult = SensitiveBytes.From(secureKeySpan); });
+
+        if (createResult == null || createResult.Value.IsErr)
+        {
+            string errorMessage = createResult?.IsErr is true
+                ? $"Failed to create secure key buffer: {createResult.Value.UnwrapErr().Message}"
+                : localizationService[AuthenticationConstants.SECURE_KEY_REQUIRED_KEY];
+            return Result<Unit, AuthenticationFailure>.Err(AuthenticationFailure.SecureKeyRequired(errorMessage));
+        }
+
+        SensitiveBytes secureKeyBytes = createResult.Value.Unwrap();
 
         try
         {
-            secureKey.WithSecureBytes(secureKeySpan => { createResult = SensitiveBytes.From(secureKeySpan); });
-
-            if (createResult == null || createResult.Value.IsErr)
-            {
-                string errorMessage = createResult?.IsErr is true
-                    ? $"Failed to create secure key buffer: {createResult.Value.UnwrapErr().Message}"
-                    : localizationService[AuthenticationConstants.SECURE_KEY_REQUIRED_KEY];
-                return Result<Unit, AuthenticationFailure>.Err(AuthenticationFailure.SecureKeyRequired(errorMessage));
-            }
-
-            secureKeyBytes = createResult.Value.Unwrap();
-
             if (secureKeyBytes.Length != 0)
             {
                 Result<SignInFlowResult, AuthenticationFailure> signInResult =
@@ -105,7 +102,7 @@ internal sealed class OpaqueAuthenticationService(
         }
         finally
         {
-            secureKeyBytes?.Dispose();
+            secureKeyBytes.Dispose();
         }
     }
 
@@ -492,7 +489,7 @@ internal sealed class OpaqueAuthenticationService(
         if (!signInResult.Membership.IsSome)
         {
             return Result<SignInFlowResult, AuthenticationFailure>.Ok(
-                new SignInFlowResult(masterKeyHandle, ByteString.Empty, Guid.Empty));
+                new SignInFlowResult(masterKeyHandle, ByteString.Empty));
         }
 
         Ecliptix.Protobuf.Membership.Membership membership = signInResult.Membership.Value!;
@@ -514,8 +511,7 @@ internal sealed class OpaqueAuthenticationService(
             return Result<SignInFlowResult, AuthenticationFailure>.Err(storeResult.UnwrapErr());
         }
 
-        Guid membershipId = Helpers.FromByteStringToGuid(membershipIdentifier);
-        SignInFlowResult flowResult = new(masterKeyHandle, membershipIdentifier, membershipId);
+        SignInFlowResult flowResult = new(masterKeyHandle, membershipIdentifier);
 
         return Result<SignInFlowResult, AuthenticationFailure>.Ok(flowResult);
     }
@@ -574,7 +570,7 @@ internal sealed class OpaqueAuthenticationService(
                     Helpers.ParseFromBytes<OpaqueSignInInitResponse>(initResponsePayload);
                 responseCompletionSource.TrySetResult(response);
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-            }, false, cancellationToken, waitForRecovery: false, requestContext
+            }, allowDuplicates: false, waitForRecovery: false, requestContext: requestContext, token: cancellationToken
         ).ConfigureAwait(false);
 
         if (networkResult.IsErr)
@@ -605,7 +601,7 @@ internal sealed class OpaqueAuthenticationService(
                 responseCompletionSource.TrySetResult(response);
 
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-            }, false, cancellationToken, waitForRecovery: false, requestContext
+            }, allowDuplicates: false, waitForRecovery: false, requestContext: requestContext, token: cancellationToken
         ).ConfigureAwait(false);
 
         if (networkResult.IsErr)

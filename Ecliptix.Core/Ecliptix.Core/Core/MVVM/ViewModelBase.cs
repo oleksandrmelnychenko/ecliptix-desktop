@@ -84,10 +84,10 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
     {
         return warningType switch
         {
-            CharacterWarningType.NonLatinLetter => LocalizationService["ValidationWarnings.SecureKey.NonLatinLetter"],
-            CharacterWarningType.InvalidCharacter => LocalizationService[
+            CharacterWarningType.NON_LATIN_LETTER => LocalizationService["ValidationWarnings.SecureKey.NonLatinLetter"],
+            CharacterWarningType.INVALID_CHARACTER => LocalizationService[
                 "ValidationWarnings.SecureKey.InvalidCharacter"],
-            CharacterWarningType.MultipleCharacters => LocalizationService[
+            CharacterWarningType.MULTIPLE_CHARACTERS => LocalizationService[
                 "ValidationWarnings.SecureKey.MultipleCharacters"],
             _ => LocalizationService["ValidationWarnings.SecureKey.InvalidCharacter"]
         };
@@ -108,7 +108,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
             try
             {
                 await hostWindow.ShowBottomSheet(
-                    BottomSheetComponentType.UserRequestError,
+                    BottomSheetComponentType.USER_REQUEST_ERROR,
                     errorView,
                     showScrim: false,
                     isDismissable: true);
@@ -146,7 +146,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
             {
                 if (!_disposedValue)
                 {
-                    await hostWindow.ShowBottomSheet(BottomSheetComponentType.RedirectNotification, redirectView,
+                    await hostWindow.ShowBottomSheet(BottomSheetComponentType.REDIRECT_NOTIFICATION, redirectView,
                         showScrim: true, isDismissable: false);
                 }
                 else
@@ -205,11 +205,11 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
     };
 
     private static bool IsNetworkInOutage(ConnectivitySnapshot snapshot) =>
-        snapshot.Status is ConnectivityStatus.Disconnected
-            or ConnectivityStatus.ShuttingDown
-            or ConnectivityStatus.Recovering
-            or ConnectivityStatus.RetriesExhausted
-            or ConnectivityStatus.Unavailable;
+        snapshot.Status is ConnectivityStatus.DISCONNECTED
+            or ConnectivityStatus.SHUTTING_DOWN
+            or ConnectivityStatus.RECOVERING
+            or ConnectivityStatus.RETRIES_EXHAUSTED
+            or ConnectivityStatus.UNAVAILABLE;
 
     protected static CancellationTokenSource RecreateCancellationToken(ref CancellationTokenSource? cts)
     {

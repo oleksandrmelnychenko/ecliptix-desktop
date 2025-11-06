@@ -57,7 +57,7 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase
                 try
                 {
                     Result<Unit, LogoutFailure> result = await _logoutService.LogoutAsync(
-                        LogoutReason.UserInitiated,
+                        LogoutReason.USER_INITIATED,
                         operationCts.Token).ConfigureAwait(false);
                     return result;
                 }

@@ -9,8 +9,6 @@ public class EqualityConverter : IValueConverter
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         value?.Equals(parameter) ?? false;
 
-    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-    {
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         throw new NotImplementedException("ConvertBack is not supported for one-way equality binding");
-    }
 }

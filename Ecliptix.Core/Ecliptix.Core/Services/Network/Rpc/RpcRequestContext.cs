@@ -28,8 +28,5 @@ public sealed class RpcRequestContext(string correlationId, string idempotencyKe
             attempt);
     }
 
-    public void MarkReinitAttempted()
-    {
-        ReinitAttempted = true;
-    }
+    public void MarkReinitAttempted() => ReinitAttempted = true;
 }

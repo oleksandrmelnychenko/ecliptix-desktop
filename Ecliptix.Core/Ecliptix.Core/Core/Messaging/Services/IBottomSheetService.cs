@@ -13,11 +13,7 @@ public interface IBottomSheetService
 
     Task BottomSheetDismissed();
 
-    IDisposable OnBottomSheetChanged(
-        Func<BottomSheetCommandEvent, Task> handler,
-        SubscriptionLifetime lifetime = SubscriptionLifetime.Weak);
-
     IDisposable OnBottomSheetHidden(
         Func<BottomSheetHiddenEvent, Task> handler,
-        SubscriptionLifetime lifetime = SubscriptionLifetime.Weak);
+        SubscriptionLifetime lifetime = SubscriptionLifetime.WEAK);
 }

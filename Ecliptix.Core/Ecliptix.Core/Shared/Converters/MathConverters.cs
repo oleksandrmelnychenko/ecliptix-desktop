@@ -26,10 +26,7 @@ public class AddConverter : IValueConverter
         };
     }
 
-    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-    {
-        throw new NotSupportedException("Reverse conversion is not supported for math operations");
-    }
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException("Reverse conversion is not supported for math operations");
 }
 
 public class SubtractConverter : IValueConverter
@@ -44,10 +41,7 @@ public class SubtractConverter : IValueConverter
         return value;
     }
 
-    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-    {
-        throw new NotSupportedException("Reverse conversion is not supported for math operations");
-    }
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException("Reverse conversion is not supported for math operations");
 }
 
 public class MultiplyConverter : IValueConverter
@@ -62,10 +56,7 @@ public class MultiplyConverter : IValueConverter
         return value;
     }
 
-    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-    {
-        throw new NotSupportedException("Reverse conversion is not supported for math operations");
-    }
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException("Reverse conversion is not supported for math operations");
 }
 
 public class DivideConverter : IValueConverter
@@ -81,8 +72,5 @@ public class DivideConverter : IValueConverter
         return value;
     }
 
-    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-    {
-        throw new NotSupportedException("Reverse conversion is not supported for math operations");
-    }
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException("Reverse conversion is not supported for math operations");
 }

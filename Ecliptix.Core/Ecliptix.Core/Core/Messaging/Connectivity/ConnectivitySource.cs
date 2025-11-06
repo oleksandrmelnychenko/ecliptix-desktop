@@ -2,8 +2,8 @@ namespace Ecliptix.Core.Core.Messaging.Connectivity;
 
 public enum ConnectivitySource
 {
-    System,
-    DataCenter,
-    InternetProbe,
-    ManualAction
+    SYSTEM,
+    DATA_CENTER,
+    INTERNET_PROBE,
+    MANUAL_ACTION
 }

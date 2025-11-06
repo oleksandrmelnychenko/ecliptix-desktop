@@ -149,7 +149,7 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
             SecureEnvelope response = await call.ResponseAsync.ConfigureAwait(false);
 
             await connectivityService.PublishAsync(
-                    ConnectivityIntent.Connected(null, ConnectivityReason.HandshakeSucceeded))
+                    ConnectivityIntent.Connected(null, ConnectivityReason.HANDSHAKE_SUCCEEDED))
                 .ConfigureAwait(false);
 
             return Result<SecureEnvelope, NetworkFailure>.Ok(response);
@@ -191,7 +191,7 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
             TResponse response = await call.ResponseAsync.ConfigureAwait(false);
 
             await connectivityService.PublishAsync(
-                    ConnectivityIntent.Connected(null, ConnectivityReason.HandshakeSucceeded))
+                    ConnectivityIntent.Connected(null, ConnectivityReason.HANDSHAKE_SUCCEEDED))
                 .ConfigureAwait(false);
 
             return Result<TResponse, NetworkFailure>.Ok(response);

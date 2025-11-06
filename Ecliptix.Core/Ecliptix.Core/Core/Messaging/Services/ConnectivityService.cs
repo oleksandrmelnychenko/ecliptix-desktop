@@ -41,7 +41,7 @@ internal sealed class ConnectivityService(IMessageBus messageBus) : IConnectivit
 
     public IDisposable OnManualRetryRequested(
         Func<ManualRetryRequestedEvent, Task> handler,
-        SubscriptionLifetime lifetime = SubscriptionLifetime.Weak) =>
+        SubscriptionLifetime lifetime = SubscriptionLifetime.WEAK) =>
         messageBus.Subscribe(handler, lifetime);
 
     public void Dispose()

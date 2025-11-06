@@ -13,16 +13,12 @@ public sealed class ViewLocator : IViewLocator
 
     public void Register<TViewModel, TView>()
         where TViewModel : class, IRoutableViewModel
-        where TView : class, new()
-    {
+        where TView : class, new() =>
         RegisterFactory<TViewModel>(() => new TView());
-    }
 
     public void RegisterFactory<TViewModel>(Func<object> factory)
-        where TViewModel : class, IRoutableViewModel
-    {
+        where TViewModel : class, IRoutableViewModel =>
         _viewFactories[typeof(TViewModel)] = factory;
-    }
 
     public Option<object> ResolveView<TViewModel>(TViewModel? viewModel = null)
         where TViewModel : class, IRoutableViewModel
@@ -70,18 +66,9 @@ public sealed class ViewLocator : IViewLocator
         return staticView.ToOption();
     }
 
-    public bool IsRegistered<TViewModel>() where TViewModel : class, IRoutableViewModel
-    {
-        return IsRegistered(typeof(TViewModel));
-    }
+    public bool IsRegistered<TViewModel>() where TViewModel : class, IRoutableViewModel => IsRegistered(typeof(TViewModel));
 
-    public bool IsRegistered(Type viewModelType)
-    {
-        return _viewFactories.ContainsKey(viewModelType);
-    }
+    public bool IsRegistered(Type viewModelType) => _viewFactories.ContainsKey(viewModelType);
 
-    public IReadOnlyDictionary<Type, Func<object>> GetRegistrations()
-    {
-        return new Dictionary<Type, Func<object>>(_viewFactories);
-    }
+    public IReadOnlyDictionary<Type, Func<object>> GetRegistrations() => new Dictionary<Type, Func<object>>(_viewFactories);
 }

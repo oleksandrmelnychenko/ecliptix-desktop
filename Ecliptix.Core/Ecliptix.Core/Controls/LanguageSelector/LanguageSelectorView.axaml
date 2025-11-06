@@ -151,12 +151,12 @@
         </Style>
 
         <!-- Hover state for ComboBox main button -->
-        <Style Selector="ComboBox:pointerover /template/ Border#Background">
+        <Style Selector="ComboBox:pointerover /template/ Border#BACKGROUND">
             <Setter Property="Background" Value="{DynamicResource Button.Secondary.Hover}" />
         </Style>
 
         <!-- Pressed state for ComboBox main button -->
-        <Style Selector="ComboBox:pressed /template/ Border#Background">
+        <Style Selector="ComboBox:pressed /template/ Border#BACKGROUND">
             <Setter Property="Background" Value="{DynamicResource Button.Secondary.Pressed}" />
             <Setter Property="Opacity" Value="0.9" />
         </Style>
@@ -216,7 +216,7 @@
         </Style>
 
         <!-- Open state for ComboBox -->
-        <Style Selector="ComboBox:dropdownopen /template/ Border#Background">
+        <Style Selector="ComboBox:dropdownopen /template/ Border#BACKGROUND">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
         </Style>

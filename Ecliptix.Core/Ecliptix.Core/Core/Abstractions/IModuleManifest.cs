@@ -8,8 +8,6 @@ public interface IModuleManifest
     ModuleLoadingStrategy LoadingStrategy { get; }
 
     IReadOnlyList<ModuleIdentifier> Dependencies { get; }
-
-    bool CanLoad();
 }
 
 public record ModuleManifest(

@@ -302,11 +302,11 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
         {
             switch (evt.Action)
             {
-                case LanguageDetectionAction.Confirm when !string.IsNullOrEmpty(evt.TargetCulture):
+                case LanguageDetectionAction.CONFIRM when !string.IsNullOrEmpty(evt.TargetCulture):
                     ChangeApplicationLanguage(evt.TargetCulture);
                     break;
 
-                case LanguageDetectionAction.Decline:
+                case LanguageDetectionAction.DECLINE:
                     break;
             }
 
@@ -359,10 +359,10 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
             {
                 _languageSubscription =
                     _languageDetectionService.OnLanguageDetectionRequested(HandleLanguageDetectionEvent,
-                        SubscriptionLifetime.Scoped);
+                        SubscriptionLifetime.SCOPED);
                 _bottomSheetHiddenSubscription =
                     _mainWindowViewModel.OnBottomSheetHidden(HandleBottomSheetDismissedEvent,
-                        SubscriptionLifetime.Scoped);
+                        SubscriptionLifetime.SCOPED);
 
                 string currentCulture = System.Globalization.CultureInfo.CurrentUICulture.Name;
 
@@ -379,7 +379,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
                     DetectLanguageDialog detectLanguageView = new() { DataContext = detectLanguageViewModel };
 
                     await _mainWindowViewModel.ShowBottomSheetAsync(
-                        BottomSheetComponentType.DetectedLocalization,
+                        BottomSheetComponentType.DETECTED_LOCALIZATION,
                         detectLanguageView,
                         showScrim: true,
                         isDismissable: true
@@ -558,10 +558,10 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
         if (recoveryResult.IsOk)
         {
             ConnectivityIntent intent =
-                ConnectivityIntent.Connected(e.ConnectId, ConnectivityReason.ManualRetry)
+                ConnectivityIntent.Connected(e.ConnectId, ConnectivityReason.MANUAL_RETRY)
                     with
                 {
-                    Source = ConnectivitySource.ManualAction
+                    Source = ConnectivitySource.MANUAL_ACTION
                 };
             await _connectivityService.PublishAsync(intent);
         }

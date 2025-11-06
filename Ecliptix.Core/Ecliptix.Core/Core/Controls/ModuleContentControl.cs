@@ -41,9 +41,6 @@ public sealed class ModuleContentControl : ContentControl
 
     private void OnViewModelContentChanged(object? newViewModel)
     {
-        Serilog.Log.Information(
-            "🔍 ModuleContentControl.OnViewModelContentChanged called with ViewModel: {ViewModelType}",
-            newViewModel?.GetType().Name ?? "null");
         if (newViewModel == null)
         {
             Content = null;
@@ -57,15 +54,10 @@ public sealed class ModuleContentControl : ContentControl
                 {
                     view.DataContext = newViewModel;
                     Content = view;
-                    Serilog.Log.Information(
-                        "✅ ModuleContentControl: Successfully set view: {ViewType} for ViewModel: {ViewModelType}",
-                        view.GetType().Name, newViewModel.GetType().Name);
                 },
                 () =>
                 {
                     Content = CreateFallbackView();
-                    Serilog.Log.Warning("❌ ModuleContentControl: No view found, using fallback for ViewModel: {ViewModelType}",
-                        newViewModel.GetType().Name);
                 });
     }
 
@@ -78,33 +70,17 @@ public sealed class ModuleContentControl : ContentControl
 
         try
         {
-            Serilog.Log.Information("🔍 TryCreateViewWithModuleFactory: Attempting to create view for {ViewModelType}",
-                viewModel.GetType().FullName);
-
             Option<Control> result = _moduleViewFactory.CreateView(viewModel.GetType());
-
-            result.Match(
-                view => Serilog.Log.Information(
-                    "✅ ModuleViewFactory: Successfully created {ViewType} for {ViewModelType}",
-                    view.GetType().Name, viewModel.GetType().Name),
-                () => Serilog.Log.Debug(
-                    "🔍 ModuleViewFactory: No factory registered for {ViewModelType}",
-                    viewModel.GetType().Name));
-
             return result;
         }
-        catch (Exception ex)
+        catch
         {
-            Serilog.Log.Error(ex, "❌ TryCreateViewWithModuleFactory: Exception creating view for {ViewModelType}",
-                viewModel.GetType().FullName);
             return Option<Control>.None;
         }
     }
 
     private static Control? TryCreateViewWithStaticMapper(object viewModel)
     {
-        Serilog.Log.Information("🔍 TryCreateViewWithStaticMapper: Attempting to create view for {ViewModelType}",
-            viewModel.GetType().FullName);
         try
         {
             Control? result = viewModel switch
@@ -134,15 +110,10 @@ public sealed class ModuleContentControl : ContentControl
                         typeof(Ecliptix.Core.Features.Authentication.ViewModels.Welcome.WelcomeViewModel)),
                 _ => null
             };
-            Serilog.Log.Information(
-                "🔍 TryCreateViewWithStaticMapper: Pattern matching result for {ViewModelType}: {ViewType}",
-                viewModel.GetType().FullName, result?.GetType().Name ?? "null");
             return result;
         }
-        catch (Exception ex)
+        catch
         {
-            Serilog.Log.Error(ex, "❌ TryCreateViewWithStaticMapper: Exception creating view for {ViewModelType}",
-                viewModel.GetType().FullName);
             return null;
         }
     }

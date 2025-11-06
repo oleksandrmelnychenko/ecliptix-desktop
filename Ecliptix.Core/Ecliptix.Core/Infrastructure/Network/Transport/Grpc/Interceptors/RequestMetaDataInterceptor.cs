@@ -15,20 +15,14 @@ public sealed class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataP
     {
         Metadata headers = context.Options.Headers ?? [];
         string? culture = rpcMetaDataProvider.Culture;
-        Serilog.Log.Information("RequestMetaDataInterceptor: Using culture '{CULTURE}' for gRPC metadata", culture);
 
-        PubKeyExchangeType EXCHANGE_TYPE = GetExchangeTypeForMethod(context.Method, headers);
-        if (Serilog.Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
-        {
-            Serilog.Log.Debug("RequestMetaDataInterceptor: Using exchange type '{ExchangeType}' for method '{Method}' (streaming)",
-                EXCHANGE_TYPE, context.Method.Name);
-        }
+        PubKeyExchangeType exchangeType = GetExchangeTypeForMethod(context.Method, headers);
 
         Metadata newMetadata = GrpcMetadataHandler.GenerateMetadata(
             rpcMetaDataProvider.AppInstanceId.ToString(),
             rpcMetaDataProvider.DeviceId.ToString(),
             culture,
-            EXCHANGE_TYPE,
+            exchangeType,
             rpcMetaDataProvider.LocalIpAddress,
             rpcMetaDataProvider.PublicIpAddress,
             rpcMetaDataProvider.Platform);
@@ -53,20 +47,14 @@ public sealed class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataP
     {
         Metadata headers = context.Options.Headers ?? [];
         string? culture = rpcMetaDataProvider.Culture;
-        Serilog.Log.Information("RequestMetaDataInterceptor: Using culture '{CULTURE}' for gRPC metadata", culture);
 
-        PubKeyExchangeType EXCHANGE_TYPE = GetExchangeTypeForMethod(context.Method, headers);
-        if (Serilog.Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
-        {
-            Serilog.Log.Debug("RequestMetaDataInterceptor: Using exchange type '{ExchangeType}' for method '{Method}' (unary)",
-                EXCHANGE_TYPE, context.Method.Name);
-        }
+        PubKeyExchangeType exchangeType = GetExchangeTypeForMethod(context.Method, headers);
 
         Metadata newMetadata = GrpcMetadataHandler.GenerateMetadata(
             rpcMetaDataProvider.AppInstanceId.ToString(),
             rpcMetaDataProvider.DeviceId.ToString(),
             culture,
-            EXCHANGE_TYPE,
+            exchangeType,
             rpcMetaDataProvider.LocalIpAddress,
             rpcMetaDataProvider.PublicIpAddress,
             rpcMetaDataProvider.Platform);
@@ -84,17 +72,24 @@ public sealed class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataP
         return continuation(request, newContext);
     }
 
-    private static PubKeyExchangeType GetExchangeTypeForMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, Metadata? headers = null)
+    private static PubKeyExchangeType GetExchangeTypeForMethod<TRequest, TResponse>(Method<TRequest, TResponse> method,
+        Metadata? headers = null)
     {
-        if (headers != null)
+        if (headers == null)
         {
-            string? exchangeTypeHeader = headers.GetValue("exchange-type");
-            if (!string.IsNullOrEmpty(exchangeTypeHeader) &&
-                Enum.TryParse(exchangeTypeHeader, true, out PubKeyExchangeType headerExchangeType) &&
-                Enum.IsDefined(typeof(PubKeyExchangeType), headerExchangeType))
+            return method.Name switch
             {
-                return headerExchangeType;
-            }
+                "InitiateVerification" => PubKeyExchangeType.ServerStreaming,
+                _ => PubKeyExchangeType.DataCenterEphemeralConnect
+            };
+        }
+
+        string? exchangeTypeHeader = headers.GetValue("exchange-type");
+        if (!string.IsNullOrEmpty(exchangeTypeHeader) &&
+            Enum.TryParse(exchangeTypeHeader, true, out PubKeyExchangeType headerExchangeType) &&
+            Enum.IsDefined(headerExchangeType))
+        {
+            return headerExchangeType;
         }
 
         return method.Name switch

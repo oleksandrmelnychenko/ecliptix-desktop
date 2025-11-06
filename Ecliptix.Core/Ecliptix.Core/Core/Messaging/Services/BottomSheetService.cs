@@ -21,52 +21,41 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
     public BottomSheetService(IMessageBus messageBus)
     {
         _messageBus = messageBus;
-        Log.Debug("[BottomSheet-Service] Service created");
-
         _messageBus.Subscribe<BottomSheetAnimationCompleteEvent>(async evt =>
         {
-            Log.Debug("[BottomSheet-Service] Animation complete: Type={Type}", evt.AnimationType);
             await HandleAnimationComplete(evt);
         });
     }
 
-    public async Task ShowAsync(BottomSheetComponentType componentType, UserControl? control = null, bool showScrim = true, bool isDismissable = true)
+    public async Task ShowAsync(BottomSheetComponentType componentType, UserControl? control = null,
+        bool showScrim = true, bool isDismissable = true)
     {
         if (_disposed)
         {
-            Log.Warning("[BottomSheet-Service] ShowAsync called on disposed service");
             return;
         }
-
-        Log.Debug("[BottomSheet-Service] ShowAsync requested: Type={Type}", componentType);
 
         BottomSheetRequest request = new(componentType, control, showScrim, isDismissable);
 
         lock (_queueLock)
         {
             _requestQueue.Enqueue(request);
-            Log.Debug("[BottomSheet-Service] Request queued. Queue size: {QueueSize}", _requestQueue.Count);
         }
 
         await ProcessNextRequest();
     }
 
-
     public async Task HideAsync()
     {
         if (_disposed)
         {
-            Log.Warning("[BottomSheet-Service] HideAsync called on disposed service");
             return;
         }
-
-        Log.Debug("[BottomSheet-Service] HideAsync requested");
 
         lock (_queueLock)
         {
             if (!_isShowingBottomSheet || _isAnimating)
             {
-                Log.Debug("[BottomSheet-Service] Cannot hide - not showing or already animating");
                 return;
             }
 
@@ -78,8 +67,6 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
 
     public async Task BottomSheetDismissed()
     {
-        Log.Debug("[BottomSheet-Service] BottomSheetDismissed by user");
-
         lock (_queueLock)
         {
             if (!_isShowingBottomSheet)
@@ -87,6 +74,7 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
                 return;
             }
         }
+
         await _messageBus.PublishAsync(BottomSheetCommandEvent.Hide());
     }
 
@@ -104,36 +92,29 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
         {
             if (_isAnimating)
             {
-                Log.Debug("[BottomSheet-Service] Cannot process: Already animating");
                 return;
             }
 
             if (_requestQueue.Count == 0)
             {
-                Log.Debug("[BottomSheet-Service] Queue empty, nothing to process");
                 return;
             }
 
             if (_isShowingBottomSheet)
             {
                 _pendingRequest = _requestQueue.Dequeue();
-                Log.Debug("[BottomSheet-Service] Sheet showing, hiding current to show next. Type={Type}, Queue remaining: {QueueSize}",
-                    _pendingRequest.ComponentType, _requestQueue.Count);
                 shouldHide = true;
-                _isAnimating = true;
             }
             else
             {
                 requestToShow = _requestQueue.Dequeue();
-                _isAnimating = true;
-                Log.Debug("[BottomSheet-Service] Processing request: Type={Type}, Queue remaining: {QueueSize}",
-                    requestToShow.ComponentType, _requestQueue.Count);
             }
+
+            _isAnimating = true;
         }
 
         if (shouldHide)
         {
-            Log.Debug("[BottomSheet-Service] Waiting for show animation to fully complete before hiding...");
             await _messageBus.PublishAsync(BottomSheetCommandEvent.Hide());
         }
         else
@@ -159,22 +140,18 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
         {
             _isAnimating = false;
 
-            if (evt.AnimationType == AnimationType.Show)
+            if (evt.AnimationType == AnimationType.SHOW)
             {
                 _isShowingBottomSheet = true;
-                Log.Debug("[BottomSheet-Service] Show animation complete - sheet is now visible. Queue has {QueueCount} items", _requestQueue.Count);
             }
             else // Hide
             {
                 _isShowingBottomSheet = false;
-                Log.Debug("[BottomSheet-Service] Hide animation complete - sheet is now hidden");
-
                 if (_pendingRequest != null)
                 {
                     requestToShow = _pendingRequest;
                     _pendingRequest = null;
                     _isAnimating = true;
-                    Log.Debug("[BottomSheet-Service] Showing pending request: Type={Type}", requestToShow.ComponentType);
                 }
             }
         }
@@ -193,15 +170,11 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
         }
     }
 
-    public IDisposable OnBottomSheetChanged(Func<BottomSheetCommandEvent, Task> handler, SubscriptionLifetime lifetime = SubscriptionLifetime.Weak)
-    {
-        return _messageBus.Subscribe(handler, lifetime);
-    }
+    public IDisposable OnBottomSheetChanged(Func<BottomSheetCommandEvent, Task> handler,
+        SubscriptionLifetime lifetime = SubscriptionLifetime.WEAK) => _messageBus.Subscribe(handler, lifetime);
 
-    public IDisposable OnBottomSheetHidden(Func<BottomSheetHiddenEvent, Task> handler, SubscriptionLifetime lifetime = SubscriptionLifetime.Weak)
-    {
-        return _messageBus.Subscribe(handler, lifetime);
-    }
+    public IDisposable OnBottomSheetHidden(Func<BottomSheetHiddenEvent, Task> handler,
+        SubscriptionLifetime lifetime = SubscriptionLifetime.WEAK) => _messageBus.Subscribe(handler, lifetime);
 
     public void Dispose()
     {
@@ -210,7 +183,6 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
             return;
         }
 
-        Log.Debug("[BottomSheet-Service] Service disposing");
         _disposed = true;
 
         lock (_queueLock)

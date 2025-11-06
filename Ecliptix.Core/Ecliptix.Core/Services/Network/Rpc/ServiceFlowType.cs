@@ -2,8 +2,8 @@ namespace Ecliptix.Core.Services.Network.Rpc;
 
 public enum ServiceFlowType
 {
-    Single,
-    ReceiveStream,
-    SendStream,
-    BidirectionalStream
+    SINGLE,
+    RECEIVE_STREAM,
+    SEND_STREAM,
+    BIDIRECTIONAL_STREAM
 }

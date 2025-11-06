@@ -7,13 +7,13 @@ namespace Ecliptix.Core.Features.Authentication;
 
 public record AuthenticationModuleManifest() : ModuleManifest(
     Priority: 30,
-    LoadingStrategy: ModuleLoadingStrategy.Eager,
+    LoadingStrategy: ModuleLoadingStrategy.EAGER,
     Dependencies: []
 );
 
 public class AuthenticationModule : ModuleBase<AuthenticationModuleManifest>
 {
-    public override ModuleIdentifier Id => ModuleIdentifier.Authentication;
+    public override ModuleIdentifier Id => ModuleIdentifier.AUTHENTICATION;
     public override AuthenticationModuleManifest Manifest { get; } = new();
 
     public override async Task SetupMessageHandlersAsync(IModuleMessageBus messageBus)

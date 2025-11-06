@@ -14,7 +14,6 @@ namespace Ecliptix.Core.Infrastructure.Security.KeySplitting;
 
 public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecurityProvider) : IHardenedKeyDerivation
 {
-
     private async Task<Result<byte[], KeySplittingFailure>> DeriveEnhancedKeyAsync(
         byte[] baseKey,
         string context,
@@ -81,8 +80,8 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
                 {
                     Salt = salt,
                     DegreeOfParallelism = options.DegreeOfParallelism,
-                    Iterations = options.ITERATIONS,
-                    MemorySize = options.MEMORY_SIZE
+                    Iterations = options.Iterations,
+                    MemorySize = options.MemorySize
                 };
 
                 byte[] hash = argon2.GetBytes(outputLength);

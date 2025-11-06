@@ -272,7 +272,7 @@ internal sealed class SecureKeyRecoveryService(
                     responseSource.TrySetResult(response);
 
                     return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-                }, true, cancellationToken).ConfigureAwait(false);
+                }, allowDuplicates: true, token: cancellationToken).ConfigureAwait(false);
 
             if (networkResult.IsErr)
             {
@@ -357,7 +357,7 @@ internal sealed class SecureKeyRecoveryService(
                     responseSource.TrySetResult(response);
 
                     return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-                }, true, cancellationToken).ConfigureAwait(false);
+                }, allowDuplicates: true, token: cancellationToken).ConfigureAwait(false);
 
             if (networkResult.IsErr)
             {

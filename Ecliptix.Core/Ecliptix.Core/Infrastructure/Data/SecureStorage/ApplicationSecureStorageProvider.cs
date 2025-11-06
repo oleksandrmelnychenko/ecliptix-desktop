@@ -157,7 +157,7 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         if (getResult.IsErr)
         {
             InternalServiceApiFailure failure = getResult.UnwrapErr();
-            Log.Warning("[SETTINGS-INIT-RECOVERY] Storage access failed, creating fresh settings. ERROR: {ERROR}",
+            Log.Warning("[SETTINGS-INIT-RECOVERY] Storage access failed, creating fresh settings. ERROR: {Error}",
                 failure.Message);
             return await CreateAndStoreNewSettingsAsync(defaultCulture);
         }
@@ -177,7 +177,7 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         catch (InvalidProtocolBufferException ex)
         {
             Log.Warning(ex,
-                "[SETTINGS-INIT-RECOVERY] Settings parsing failed, creating fresh settings. ERROR: {ERROR}",
+                "[SETTINGS-INIT-RECOVERY] Settings parsing failed, creating fresh settings. ERROR: {Error}",
                 ex.Message);
             return await CreateAndStoreNewSettingsAsync(defaultCulture);
         }
@@ -200,7 +200,7 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         if (storeResult.IsErr)
         {
             Log.Warning(
-                "[SETTINGS-INIT-RECOVERY] Failed to persist fresh settings, continuing in-memory. ERROR: {ERROR}",
+                "[SETTINGS-INIT-RECOVERY] Failed to persist fresh settings, continuing in-memory. ERROR: {Error}",
                 storeResult.UnwrapErr().Message);
         }
 

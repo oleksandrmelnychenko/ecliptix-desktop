@@ -13,16 +13,9 @@ internal sealed class RpcMetaDataProvider : IRpcMetaDataProvider
     public Guid AppInstanceId { get; private set; }
     public Guid DeviceId { get; private set; }
     public string? Culture { get; private set; }
-    public string LocalIpAddress { get; }
-    public string? PublicIpAddress { get; }
-    public string Platform { get; }
-
-    public RpcMetaDataProvider()
-    {
-        LocalIpAddress = DetectLocalIpAddress();
-        PublicIpAddress = DetectPublicIpAddress();
-        Platform = DetectPlatform();
-    }
+    public string LocalIpAddress { get; } = DetectLocalIpAddress();
+    public string? PublicIpAddress { get; } = DetectPublicIpAddress();
+    public string Platform { get; } = DetectPlatform();
 
     public void SetAppInfo(Guid appInstanceId, Guid deviceId, string? culture)
     {
@@ -31,17 +24,14 @@ internal sealed class RpcMetaDataProvider : IRpcMetaDataProvider
         Culture = culture;
     }
 
-    public void SetCulture(string? culture)
-    {
-        Culture = culture;
-    }
+    public void SetCulture(string? culture) => Culture = culture;
 
     private static string DetectLocalIpAddress()
     {
         try
         {
             string localIp = NetworkInterface.GetAllNetworkInterfaces()
-                .Where(x => x.OperationalStatus == OperationalStatus.Up && !x.IsReceiveOnly)
+                .Where(x => x is { OperationalStatus: OperationalStatus.Up, IsReceiveOnly: false })
                 .SelectMany(x => x.GetIPProperties().UnicastAddresses)
                 .Where(x => x.Address.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(x.Address))
                 .Select(x => x.Address.ToString())
@@ -119,6 +109,7 @@ internal sealed class RpcMetaDataProvider : IRpcMetaDataProvider
         {
             return frameworkDescription[(startIndex + 1)..];
         }
+
         return frameworkDescription;
     }
 }

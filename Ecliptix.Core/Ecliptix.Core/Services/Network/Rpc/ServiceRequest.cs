@@ -34,8 +34,6 @@ public class ServiceRequest
     public RpcRequestContext? RequestContext { get; }
 
     public static ServiceRequest New(uint reqId, ServiceFlowType actionType, RpcServiceType rpcServiceMethod,
-        SecureEnvelope payload, List<SecureEnvelope> encryptedChunks, RpcRequestContext? requestContext = null)
-    {
-        return new ServiceRequest(reqId, actionType, rpcServiceMethod, payload, encryptedChunks, requestContext);
-    }
+        SecureEnvelope payload, List<SecureEnvelope> encryptedChunks, RpcRequestContext? requestContext = null) =>
+        new(reqId, actionType, rpcServiceMethod, payload, encryptedChunks, requestContext);
 }

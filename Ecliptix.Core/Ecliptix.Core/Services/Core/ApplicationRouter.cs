@@ -277,6 +277,6 @@ public sealed class ApplicationRouter(
                     ByteString.CopyFrom);
 
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-            }, false, CancellationToken.None).ConfigureAwait(false);
+            }, allowDuplicates: false, token: CancellationToken.None).ConfigureAwait(false);
     }
 }

@@ -49,14 +49,7 @@ public sealed class DetectLanguageDialogViewModel : ReactiveObject, IDisposable,
 
         string country = networkProvider.ApplicationInstanceSettings.Country;
 
-        if (string.IsNullOrWhiteSpace(country))
-        {
-            _targetCulture = CultureInfo.CurrentCulture.Name;
-        }
-        else
-        {
-            _targetCulture = LanguageConfig.GetCultureByCountry(country) ?? CultureInfo.CurrentCulture.Name;
-        }
+        _targetCulture = string.IsNullOrWhiteSpace(country) ? CultureInfo.CurrentCulture.Name : LanguageConfig.GetCultureByCountry(country);
 
         CultureInfo targetInfo;
         try
@@ -73,14 +66,14 @@ public sealed class DetectLanguageDialogViewModel : ReactiveObject, IDisposable,
         int parenthesisIndex = languageName.IndexOf('(');
         if (parenthesisIndex > 0)
         {
-            languageName = languageName.Substring(0, parenthesisIndex).Trim();
+            languageName = languageName[..parenthesisIndex].Trim();
         }
 
-        Title = localizationService?["LanguageDetection.Title"] ?? "Language Detection";
-        PromptText = localizationService?.GetString("LanguageDetection.Prompt",
-                LanguageConfig.GetDisplayName(languageName)) ?? $"Switch to {languageName}?";
-        ConfirmButtonText = localizationService?["LanguageDetection.Button.Confirm"] ?? "Confirm";
-        DeclineButtonText = localizationService?["LanguageDetection.Button.Decline"] ?? "Decline";
+        Title = localizationService["LanguageDetection.Title"];
+        PromptText = localizationService.GetString("LanguageDetection.Prompt",
+            LanguageConfig.GetDisplayName(languageName));
+        ConfirmButtonText = localizationService["LanguageDetection.Button.Confirm"];
+        DeclineButtonText = localizationService["LanguageDetection.Button.Decline"];
 
 
         Option<LanguageItem> languageItem = LanguageConfig.GetLanguageByCode(_targetCulture);
@@ -104,13 +97,7 @@ public sealed class DetectLanguageDialogViewModel : ReactiveObject, IDisposable,
         _disposed = true;
     }
 
-    private async Task OnConfirm()
-    {
-        await _languageDetectionService.ConfirmLanguageChangeAsync(targetCulture: _targetCulture);
-    }
+    private async Task OnConfirm() => await _languageDetectionService.ConfirmLanguageChangeAsync(targetCulture: _targetCulture);
 
-    private async Task OnDecline()
-    {
-        await _languageDetectionService.DeclineLanguageChangeAsync();
-    }
+    private async Task OnDecline() => await _languageDetectionService.DeclineLanguageChangeAsync();
 }

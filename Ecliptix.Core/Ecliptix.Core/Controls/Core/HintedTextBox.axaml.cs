@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Reactive.Disposables;
@@ -8,6 +9,7 @@ using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Animation.Easings;
 using Avalonia.Controls;
+using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
@@ -33,7 +35,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     public static readonly StyledProperty<string> TextProperty =
         AvaloniaProperty.Register<HintedTextBox, string>(nameof(Text), string.Empty,
-            defaultBindingMode: Avalonia.Data.BindingMode.TwoWay);
+            defaultBindingMode: BindingMode.TwoWay);
 
     public static readonly StyledProperty<string> WatermarkProperty =
         AvaloniaProperty.Register<HintedTextBox, string>(nameof(Watermark), string.Empty);
@@ -105,8 +107,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         AvaloniaProperty.Register<HintedTextBox, bool>(nameof(IsSecureKeyStrengthMode));
 
     public static readonly StyledProperty<SecureKeyStrength> SecureKeyStrengthProperty =
-        AvaloniaProperty.Register<HintedTextBox, SecureKeyStrength>(nameof(SecureKeyStrength),
-            SecureKeyStrength.INVALID);
+        AvaloniaProperty.Register<HintedTextBox, SecureKeyStrength>(nameof(SecureKeyStrength));
 
     public static readonly StyledProperty<string> SecureKeyStrengthTextProperty =
         AvaloniaProperty.Register<HintedTextBox, string>(nameof(SecureKeyStrengthText), string.Empty);
@@ -255,10 +256,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     public string ErrorText
     {
         get => GetValue(ErrorTextProperty);
-        private set
-        {
-            SetValue(ErrorTextProperty, value);
-        }
+        private set => SetValue(ErrorTextProperty, value);
     }
 
     public double EllipseOpacity
@@ -459,7 +457,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"ERROR disposing subscriptions: {ex.Message}");
+                Debug.WriteLine($"ERROR disposing subscriptions: {ex.Message}");
             }
 
             _mainTextBox = null;
@@ -477,18 +475,18 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"ERROR in Dispose: {ex.Message}");
+            Debug.WriteLine($"ERROR in Dispose: {ex.Message}");
         }
     }
 
     private static CharacterWarningType GetWarningType(char c)
     {
-        if (char.IsLetter(c) && !((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')))
+        if (char.IsLetter(c) && !(c is >= 'A' and <= 'Z' || c is >= 'a' and <= 'z'))
         {
-            return CharacterWarningType.NonLatinLetter;
+            return CharacterWarningType.NON_LATIN_LETTER;
         }
 
-        return CharacterWarningType.InvalidCharacter;
+        return CharacterWarningType.INVALID_CHARACTER;
     }
 
     private static bool IsAllowedCharacter(char c)
@@ -498,17 +496,12 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             return true;
         }
 
-        if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
+        if (c is >= 'A' and <= 'Z' or >= 'a' and <= 'z')
         {
             return true;
         }
 
-        if (!char.IsLetter(c) && !char.IsDigit(c))
-        {
-            return true;
-        }
-
-        return false;
+        return !char.IsLetter(c) && !char.IsDigit(c);
     }
 
     private static (Color BorderColor, string ShadowKey, Color IconColor) GetSecureKeyStrengthColors(
@@ -572,7 +565,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine(
+            Debug.WriteLine(
                 $"[HINTED-TEXTBOX] Failed to get text element count, using fallback: {ex.Message}");
             int fallbackCount = text.Length;
             if (TextElementCountCache.Count < MAX_TEXT_ELEMENT_CACHE_SIZE)
@@ -606,7 +599,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine(
+            Debug.WriteLine(
                 $"[HINTED-TEXTBOX] Failed to substring by text elements, using character fallback: {ex.Message}");
             try
             {
@@ -616,7 +609,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             }
             catch (Exception ex2)
             {
-                System.Diagnostics.Debug.WriteLine(
+                Debug.WriteLine(
                     $"[HINTED-TEXTBOX] Failed to substring, returning empty: {ex2.Message}");
                 return string.Empty;
             }
@@ -650,7 +643,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine(
+            Debug.WriteLine(
                 $"[HINTED-TEXTBOX] Failed to get added text elements, using character fallback: {ex.Message}");
             int addedCount = currentText.Length - lastText.Length;
             if (addedCount <= 0)
@@ -876,7 +869,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         {
             e.Handled = true;
             CharacterRejectedEventArgs multiCharArgs =
-                new CharacterRejectedEventArgs('\0', CharacterWarningType.MultipleCharacters, e.Text)
+                new(CharacterWarningType.MULTIPLE_CHARACTERS)
                 {
                     RoutedEvent = CharacterRejectedEvent
                 };
@@ -896,7 +889,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         {
             e.Handled = true;
             CharacterWarningType warningType = GetWarningType(inputChar);
-            CharacterRejectedEventArgs args = new CharacterRejectedEventArgs(inputChar, warningType)
+            CharacterRejectedEventArgs args = new(warningType)
             {
                 RoutedEvent = CharacterRejectedEvent
             };
@@ -1079,10 +1072,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private void DebouncedProcessTextChange()
     {
-        if (_inputDebounceTimer != null)
-        {
-            _inputDebounceTimer.Stop();
-        }
+        _inputDebounceTimer?.Stop();
 
         if (_inputDebounceTimer == null)
         {
@@ -1440,7 +1430,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"ERROR in OnGotFocus: {ex.Message}");
+            Debug.WriteLine($"ERROR in OnGotFocus: {ex.Message}");
         }
     }
 
@@ -1455,7 +1445,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"ERROR in OnLostFocus: {ex.Message}");
+            Debug.WriteLine($"ERROR in OnLostFocus: {ex.Message}");
         }
     }
 
@@ -1513,7 +1503,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"ERROR in {context}: {ex.Message}");
+            Debug.WriteLine($"ERROR in {context}: {ex.Message}");
         }
     }
 
@@ -1625,7 +1615,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"ERROR in TriggerTypingAnimation: {ex.Message}");
+            Debug.WriteLine($"ERROR in TriggerTypingAnimation: {ex.Message}");
         }
     }
 
@@ -1642,8 +1632,5 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         return shadow;
     }
 
-    private void InitializeComponent()
-    {
-        AvaloniaXamlLoader.Load(this);
-    }
+    private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
 }

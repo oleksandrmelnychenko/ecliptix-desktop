@@ -26,7 +26,6 @@ using Ecliptix.Utilities.Failures.Authentication;
 using Google.Protobuf;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
-using Serilog;
 using Keys = Ecliptix.Core.Services.Authentication.Constants.AuthenticationConstants.SecureKeyConfirmationKeys;
 using SystemU = System.Reactive.Unit;
 
@@ -141,7 +140,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
                         ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
                         ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.WELCOME_VIEW);
                     },
-                    error =>
+                    _ =>
                     {
                         IsMembershipLoading = false;
                         ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
@@ -538,7 +537,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
             {
                 await hostViewModel.SwitchToMainWindowCommand.Execute();
             }
-            catch (Exception ex)
+            catch
             {
                 SetServerError($"{LocalizationService[AuthenticationConstants.NAVIGATION_FAILURE_KEY]}");
             }
@@ -585,7 +584,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
         }
         catch (ObjectDisposedException)
         {
-            // Intentionally suppressed: CancellationTokenSource already disposed during cleanup
+            // Intentionally suppressed: CancellationTokenSource already disposed of during cleanup
         }
         finally
         {

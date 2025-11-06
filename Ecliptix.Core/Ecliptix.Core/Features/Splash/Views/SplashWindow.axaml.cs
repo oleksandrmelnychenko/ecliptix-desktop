@@ -22,16 +22,16 @@ public partial class SplashWindow : ReactiveWindow<SplashWindowViewModel>
     private static readonly FrozenDictionary<ConnectivityStatus, string> StatusClassMap =
         new Dictionary<ConnectivityStatus, string>
         {
-            [ConnectivityStatus.Connected] = CONNECTED_CLASS,
-            [ConnectivityStatus.Connecting] = CONNECTING_CLASS,
-            [ConnectivityStatus.Recovering] = RESTORE_CLASS,
-            [ConnectivityStatus.Disconnected] = DISCONNECTED_CLASS,
-            [ConnectivityStatus.Unavailable] = DISCONNECTED_CLASS,
-            [ConnectivityStatus.RetriesExhausted] = DISCONNECTED_CLASS,
-            [ConnectivityStatus.ShuttingDown] = DISCONNECTED_CLASS
+            [ConnectivityStatus.CONNECTED] = CONNECTED_CLASS,
+            [ConnectivityStatus.CONNECTING] = CONNECTING_CLASS,
+            [ConnectivityStatus.RECOVERING] = RESTORE_CLASS,
+            [ConnectivityStatus.DISCONNECTED] = DISCONNECTED_CLASS,
+            [ConnectivityStatus.UNAVAILABLE] = DISCONNECTED_CLASS,
+            [ConnectivityStatus.RETRIES_EXHAUSTED] = DISCONNECTED_CLASS,
+            [ConnectivityStatus.SHUTTING_DOWN] = DISCONNECTED_CLASS
         }.ToFrozenDictionary();
 
-    private ConnectivityStatus _currentConnectivityStatus = ConnectivityStatus.Disconnected;
+    private ConnectivityStatus _currentConnectivityStatus = ConnectivityStatus.DISCONNECTED;
 
     public SplashWindow()
     {
@@ -62,7 +62,7 @@ public partial class SplashWindow : ReactiveWindow<SplashWindowViewModel>
             return;
         }
 
-        if (_currentConnectivityStatus != ConnectivityStatus.Disconnected)
+        if (_currentConnectivityStatus != ConnectivityStatus.DISCONNECTED)
         {
             string oldClass = GetClassForStatusFast(_currentConnectivityStatus);
             Classes.Remove(oldClass);
@@ -78,7 +78,7 @@ public partial class SplashWindow : ReactiveWindow<SplashWindowViewModel>
 
     protected override void OnUnloaded(RoutedEventArgs e)
     {
-        _currentConnectivityStatus = ConnectivityStatus.Disconnected;
+        _currentConnectivityStatus = ConnectivityStatus.DISCONNECTED;
         base.OnUnloaded(e);
     }
 }

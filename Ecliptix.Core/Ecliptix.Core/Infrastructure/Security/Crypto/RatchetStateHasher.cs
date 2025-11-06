@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using System.Security.Cryptography;
 using Ecliptix.Protobuf.ProtocolState;
@@ -10,10 +9,8 @@ internal static class RatchetStateHasher
 {
     public static byte[] ComputeRatchetFingerprint(RatchetState ratchetState, uint connectId)
     {
-        ArgumentNullException.ThrowIfNull(ratchetState);
-
-        using MemoryStream memoryStream = new MemoryStream();
-        using BinaryWriter writer = new BinaryWriter(memoryStream);
+        using MemoryStream memoryStream = new();
+        using BinaryWriter writer = new(memoryStream);
 
         writer.Write(connectId);
         byte[] ratchetBytes = ratchetState.ToByteArray();

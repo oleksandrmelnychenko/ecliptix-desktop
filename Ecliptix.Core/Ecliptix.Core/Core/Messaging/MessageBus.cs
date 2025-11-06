@@ -105,7 +105,7 @@ public sealed class MessageBus : IMessageBus
 
     public IDisposable Subscribe<TMessage>(
         Func<TMessage, Task> handler,
-        SubscriptionLifetime lifetime = SubscriptionLifetime.Strong) where TMessage : class
+        SubscriptionLifetime lifetime = SubscriptionLifetime.STRONG) where TMessage : class
     {
         return Subscribe<TMessage>(_ => true, handler, lifetime, 0);
     }
@@ -113,7 +113,7 @@ public sealed class MessageBus : IMessageBus
     private IDisposable Subscribe<TMessage>(
         Func<TMessage, bool> filter,
         Func<TMessage, Task> handler,
-        SubscriptionLifetime lifetime = SubscriptionLifetime.Strong,
+        SubscriptionLifetime lifetime = SubscriptionLifetime.STRONG,
         int priority = 0) where TMessage : class
     {
         return _subscriptionManager.Subscribe(filter, handler, lifetime, priority);
@@ -141,13 +141,13 @@ public sealed class MessageBus : IMessageBus
             timeoutCts.CancelAfter(timeout);
 
             IDisposable responseSubscription = Subscribe<TResponse>(
-                response => response.CORRELATION_ID == request.MessageId,
+                response => response.CorrelationId == request.MessageId,
                 response =>
                 {
                     tcs.SetResult(response);
                     return Task.CompletedTask;
                 },
-                SubscriptionLifetime.Scoped);
+                SubscriptionLifetime.SCOPED);
 
             await PublishAsync(request, cancellationToken);
 

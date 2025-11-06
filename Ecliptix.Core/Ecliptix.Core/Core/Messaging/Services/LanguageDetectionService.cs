@@ -43,13 +43,8 @@ internal sealed class LanguageDetectionService(IMessageBus messageBus) : ILangua
 
     public IDisposable OnLanguageDetectionRequested(
         Func<LanguageDetectionDialogEvent, Task> handler,
-        SubscriptionLifetime lifetime = SubscriptionLifetime.Weak)
-    {
-        return messageBus.Subscribe(handler, lifetime);
-    }
+        SubscriptionLifetime lifetime = SubscriptionLifetime.WEAK) =>
+        messageBus.Subscribe(handler, lifetime);
 
-    public void Dispose()
-    {
-        _disposed = true;
-    }
+    public void Dispose() => _disposed = true;
 }

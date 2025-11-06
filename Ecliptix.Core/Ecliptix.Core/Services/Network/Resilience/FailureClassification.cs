@@ -16,7 +16,7 @@ public static class FailureClassification
             return false;
         }
 
-        if (failure.UserError?.Retryable is bool retryable)
+        if (failure.UserError?.Retryable is { } retryable)
         {
             return retryable;
         }
@@ -24,29 +24,13 @@ public static class FailureClassification
         return failure.FailureType == NetworkFailureType.DATA_CENTER_NOT_RESPONDING;
     }
 
-    public static bool IsServerShutdown(NetworkFailure failure)
-    {
-        return failure.FailureType == NetworkFailureType.DATA_CENTER_SHUTDOWN;
-    }
+    public static bool IsServerShutdown(NetworkFailure failure) => failure.FailureType == NetworkFailureType.DATA_CENTER_SHUTDOWN;
 
-    public static bool IsCryptoDesync(NetworkFailure failure)
-    {
-        return failure.FailureType == NetworkFailureType.RSA_ENCRYPTION_FAILURE;
-    }
+    public static bool IsCryptoDesync(NetworkFailure failure) => failure.FailureType == NetworkFailureType.RSA_ENCRYPTION_FAILURE;
 
-    public static bool IsProtocolStateMismatch(NetworkFailure failure)
-    {
-        return failure.FailureType == NetworkFailureType.PROTOCOL_STATE_MISMATCH;
-    }
+    public static bool IsProtocolStateMismatch(NetworkFailure failure) => failure.FailureType == NetworkFailureType.PROTOCOL_STATE_MISMATCH;
 
-    public static bool IsChainRotationMismatch(NetworkFailure failure)
-    {
-        // Chain rotation mismatches are a type of protocol state mismatch
-        return IsProtocolStateMismatch(failure);
-    }
+    public static bool IsChainRotationMismatch(NetworkFailure failure) => IsProtocolStateMismatch(failure);
 
-    public static bool IsCancellation(NetworkFailure failure)
-    {
-        return failure.FailureType == NetworkFailureType.OPERATION_CANCELLED;
-    }
+    public static bool IsCancellation(NetworkFailure failure) => failure.FailureType == NetworkFailureType.OPERATION_CANCELLED;
 }

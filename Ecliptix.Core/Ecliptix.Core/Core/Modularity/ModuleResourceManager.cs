@@ -43,15 +43,14 @@ internal class ModuleResourceManager(IServiceProvider serviceProvider) : IDispos
 
         ModuleScope moduleScope = new(moduleName, serviceScope);
 
-        if (!_moduleScopes.TryAdd(moduleName, moduleScope))
+        if (_moduleScopes.TryAdd(moduleName, moduleScope))
         {
-            moduleScope.Dispose();
-            throw new InvalidOperationException($"Module scope for '{moduleName}' already exists");
+            return moduleScope;
         }
 
-        Log.Information("Created module scope for {ModuleName}", moduleName);
+        moduleScope.Dispose();
+        throw new InvalidOperationException($"Module scope for '{moduleName}' already exists");
 
-        return moduleScope;
     }
 
     private static void AutoForwardCoreServices(IServiceCollection moduleServices, ModuleServiceContext context)
@@ -60,16 +59,23 @@ internal class ModuleResourceManager(IServiceProvider serviceProvider) : IDispos
         moduleServices.AddSingleton(context.GetParentService<Core.Messaging.Services.IBottomSheetService>());
         moduleServices.AddSingleton(context.GetParentService<Core.Messaging.Services.ILanguageDetectionService>());
         moduleServices.AddSingleton(context.GetParentService<Infrastructure.Network.Core.Providers.NetworkProvider>());
-        moduleServices.AddSingleton(context.GetParentService<Infrastructure.Network.Abstractions.Core.IInternetConnectivityObserver>());
-        moduleServices.AddSingleton(context.GetParentService<Infrastructure.Network.Abstractions.Transport.IRpcMetaDataProvider>());
-        moduleServices.AddSingleton(context.GetParentService<Infrastructure.Data.Abstractions.IApplicationSecureStorageProvider>());
+        moduleServices.AddSingleton(context
+            .GetParentService<Infrastructure.Network.Abstractions.Core.IInternetConnectivityObserver>());
+        moduleServices.AddSingleton(context
+            .GetParentService<Infrastructure.Network.Abstractions.Transport.IRpcMetaDataProvider>());
+        moduleServices.AddSingleton(context
+            .GetParentService<Infrastructure.Data.Abstractions.IApplicationSecureStorageProvider>());
         moduleServices.AddSingleton(context.GetParentService<Services.Abstractions.Core.ILocalizationService>());
         moduleServices.AddSingleton(context.GetParentService<Services.Abstractions.Core.IApplicationRouter>());
         moduleServices.AddSingleton(context.GetParentService<Services.Abstractions.Membership.ILogoutService>());
-        moduleServices.AddSingleton(context.GetParentService<Services.Abstractions.Authentication.IAuthenticationService>());
-        moduleServices.AddSingleton(context.GetParentService<Services.Abstractions.Authentication.IOpaqueRegistrationService>());
-        moduleServices.AddSingleton(context.GetParentService<Services.Abstractions.Authentication.ISecureKeyRecoveryService>());
-        moduleServices.AddSingleton(context.GetParentService<Ecliptix.Core.Controls.Core.ConnectivityNotificationViewModel>());
+        moduleServices.AddSingleton(context
+            .GetParentService<Services.Abstractions.Authentication.IAuthenticationService>());
+        moduleServices.AddSingleton(context
+            .GetParentService<Services.Abstractions.Authentication.IOpaqueRegistrationService>());
+        moduleServices.AddSingleton(context
+            .GetParentService<Services.Abstractions.Authentication.ISecureKeyRecoveryService>());
+        moduleServices.AddSingleton(context
+            .GetParentService<Ecliptix.Core.Controls.Core.ConnectivityNotificationViewModel>());
 
         Log.Debug("Auto-forwarded core services to module service collection");
     }
@@ -79,7 +85,6 @@ internal class ModuleResourceManager(IServiceProvider serviceProvider) : IDispos
         if (_moduleScopes.TryRemove(moduleName, out IModuleScope? scope))
         {
             scope.Dispose();
-            Log.Information("Removed module scope for {ModuleName}", moduleName);
             return true;
         }
 
@@ -107,9 +112,9 @@ internal class ModuleResourceManager(IServiceProvider serviceProvider) : IDispos
                 {
                     kvp.Value.Dispose();
                 }
-                catch (Exception ex)
+                catch
                 {
-                    Log.Error(ex, "ERROR disposing module scope for {ModuleName}", kvp.Key);
+                    // Suppressed
                 }
             }
 
