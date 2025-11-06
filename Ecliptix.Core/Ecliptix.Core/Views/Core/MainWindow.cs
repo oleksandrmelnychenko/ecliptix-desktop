@@ -1,11 +1,11 @@
 using System;
+using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
-using Avalonia.Platform;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Services.Core;
@@ -77,18 +77,8 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         Log.Information("[MAIN-WINDOW] Window placement loaded: {Placement}", placement);
 
         PixelPoint savedPosition = new(placement.PositionX, placement.PositionY);
-        bool isPositionVisible = false;
-        if (Screens?.All != null)
-        {
-            foreach (Screen screen in Screens.All)
-            {
-                if (screen.WorkingArea.Contains(savedPosition))
-                {
-                    isPositionVisible = true;
-                    break;
-                }
-            }
-        }
+
+        bool isPositionVisible = Screens?.All?.Any(screen => screen.WorkingArea.Contains(savedPosition)) ?? false;
 
         if (isPositionVisible)
         {
