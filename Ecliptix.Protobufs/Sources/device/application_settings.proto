@@ -19,4 +19,18 @@ message ApplicationInstanceSettings {
   ecliptix.proto.membership.Membership membership = 9;
 
   bytes current_account_id = 10;
+
+  WindowPlacement window_placement = 11;
+}
+
+message WindowPlacement {
+  int32 window_state = 1;
+
+  int32 position_x = 2;
+
+  int32 position_y = 3;
+
+  double client_width = 4;
+
+  double client_height = 5;
 }

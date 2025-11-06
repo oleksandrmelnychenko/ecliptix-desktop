@@ -120,6 +120,21 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
             span => StoreAsync(SETTINGS_KEY, span.ToArray()));
     }
 
+    public async Task<Result<Unit, InternalServiceApiFailure>> SetWindowPlacementAsync(WindowPlacement windowPlacement)
+    {
+        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
+            await GetApplicationInstanceSettingsAsync();
+        if (settingsResult.IsErr)
+        {
+            return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
+        }
+
+        ApplicationInstanceSettings settings = settingsResult.Unwrap();
+        settings.WindowPlacement = windowPlacement;
+        return await SecureByteStringInterop.WithByteStringAsSpan(settings.ToByteString(),
+            span => StoreAsync(SETTINGS_KEY, span.ToArray()));
+    }
+
     public async Task<Result<ApplicationInstanceSettings, InternalServiceApiFailure>>
         GetApplicationInstanceSettingsAsync()
     {

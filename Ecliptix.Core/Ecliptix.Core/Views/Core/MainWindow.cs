@@ -1,14 +1,18 @@
 using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
+using Avalonia.Platform;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Services.Core;
 using Ecliptix.Core.ViewModels.Core;
+using Ecliptix.Protobuf.Device;
 using ReactiveUI;
+using Serilog;
 
 namespace Ecliptix.Core.Views.Core;
 
@@ -16,6 +20,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 {
     private bool _languageSelectorLoaded;
     private readonly Border? _languageSelectorContainer;
+    private bool _isSaveInProgress;
 
     public MainWindow()
     {
@@ -24,14 +29,16 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
         _languageSelectorContainer = this.FindControl<Border>("LanguageSelectorContainer");
 
-        SetupLazyLanguageSelector();
+        SetupLazyViewModelDependentLogic();
+
+        Closing += OnWindowClosing;
 
 #if DEBUG
         this.AttachDevTools();
 #endif
     }
 
-    private void SetupLazyLanguageSelector()
+    private void SetupLazyViewModelDependentLogic()
     {
         this.WhenActivated(disposables =>
         {
@@ -40,11 +47,66 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                 .Select(dc => dc!)
                 .OfType<MainWindowViewModel>()
                 .Take(1)
-                .Where(_ => !_languageSelectorLoaded)
                 .ObserveOn(RxApp.MainThreadScheduler)
-                .Subscribe(LoadLanguageSelector)
+                .Subscribe(viewModel =>
+                {
+                    if (!_languageSelectorLoaded)
+                    {
+                        LoadLanguageSelector(viewModel);
+                    }
+
+                    LoadWindowPlacementAsync(viewModel).ContinueWith(t =>
+                    {
+                        if (t.IsFaulted)
+                        {
+                            Log.Error(t.Exception, "[MAIN-WINDOW] Cannot load window placement.");
+                        }
+                    });
+                })
                 .DisposeWith(disposables);
         });
+    }
+
+    private async Task LoadWindowPlacementAsync(MainWindowViewModel viewModel)
+    {
+        WindowPlacement? placement = await viewModel.LoadInitialPlacementAsync();
+        if (placement == null)
+        {
+            return;
+        }
+        Log.Information("[MAIN-WINDOW] Window placement loaded: {Placement}", placement);
+
+        PixelPoint savedPosition = new(placement.PositionX, placement.PositionY);
+        bool isPositionVisible = false;
+        if (Screens?.All != null)
+        {
+            foreach (Screen screen in Screens.All)
+            {
+                if (screen.WorkingArea.Contains(savedPosition))
+                {
+                    isPositionVisible = true;
+                    break;
+                }
+            }
+        }
+
+        if (isPositionVisible)
+        {
+            Position = savedPosition;
+        }
+        else
+        {
+            Log.Warning("[MAIN-WINDOW] The saved position of the window is out of bounds of the window, centering.");
+        }
+
+        Size clientSize = new(placement.ClientWidth, placement.ClientHeight);
+        ClientSize = clientSize;
+        viewModel.WindowWidth = clientSize.Width;
+        viewModel.WindowHeight = clientSize.Height;
+
+        WindowState windowState = (WindowState)placement.WindowState;
+        WindowState = windowState;
+        viewModel.WindowState = windowState;
     }
 
     private void LoadLanguageSelector(MainWindowViewModel viewModel)
@@ -61,5 +123,38 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
         _languageSelectorContainer.Child = languageSelector;
         _languageSelectorLoaded = true;
+    }
+
+    private async void OnWindowClosing(object? sender, WindowClosingEventArgs e)
+    {
+        if (_isSaveInProgress)
+        {
+            return;
+        }
+
+        if (ViewModel == null)
+        {
+            return;
+        }
+
+        e.Cancel = true;
+
+        _isSaveInProgress = true;
+
+        try
+        {
+            await ViewModel.SavePlacementAsync(
+                WindowState,
+                Position,
+                ClientSize);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[MAIN-WINDOW] Cannot save state during closing operation.");
+        }
+        finally
+        {
+            Close();
+        }
     }
 }

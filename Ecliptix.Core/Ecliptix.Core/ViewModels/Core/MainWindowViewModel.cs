@@ -1,8 +1,7 @@
 using System;
 using System.Threading.Tasks;
-
+using Avalonia;
 using Avalonia.Controls;
-
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Core.Messaging;
@@ -11,7 +10,9 @@ using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Core.Services.Abstractions.Core;
-
+using Ecliptix.Core.Services.Common;
+using Ecliptix.Protobuf.Device;
+using Ecliptix.Utilities;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 
@@ -22,13 +23,16 @@ namespace Ecliptix.Core.ViewModels.Core;
 public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 {
     private readonly IBottomSheetService _bottomSheetService;
+    private readonly IApplicationSecureStorageProvider _storageProvider;
+
     private bool _isDisposed;
 
+    [Reactive] public WindowState WindowState { get; set; } = WindowState.Normal;
     [Reactive] public object? CurrentContent { get; private set; }
 
-    [Reactive] public double WindowWidth { get; private set; }
+    [Reactive] public double WindowWidth { get; set; }
 
-    [Reactive] public double WindowHeight { get; private set; }
+    [Reactive] public double WindowHeight { get; set; }
 
     [Reactive] public bool CanResize { get; private set; }
 
@@ -46,6 +50,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         ConnectivityNotificationViewModel connectivityNotification)
     {
         _bottomSheetService = bottomSheetService;
+        _storageProvider = storageProvider;
 
         WindowWidth = 480;
         WindowHeight = 720;
@@ -118,6 +123,13 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     private async Task AnimateWindowResizeAsync(double targetWidth, double targetHeight, TimeSpan duration)
     {
+        if (WindowState == WindowState.Maximized || WindowState == WindowState.Normal)
+        {
+            WindowWidth = targetWidth;
+            WindowHeight = targetHeight;
+            return;
+        }
+
         double startWidth = WindowWidth;
         double startHeight = WindowHeight;
 
@@ -144,6 +156,45 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         WindowHeight = targetHeight;
     }
 
+    public async Task<WindowPlacement?> LoadInitialPlacementAsync()
+    {
+        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
+            await _storageProvider.GetApplicationInstanceSettingsAsync();
+        if (settingsResult.IsOk)
+        {
+            Log.Information("[MAIN-WINDOW-VM] Successfully loaded previous window state from secure storage");
+            return settingsResult.Unwrap().WindowPlacement;
+        }
+
+        Log.Warning("[MAIN-WINDOW-VM] Cannot load the previous window state from secure storage: {Error}",
+            settingsResult.UnwrapErr().Message);
+        return null;
+    }
+
+    public async Task SavePlacementAsync(WindowState state, PixelPoint position, Size clientSize)
+    {
+        WindowPlacement? placement = (await LoadInitialPlacementAsync()) ?? new WindowPlacement();
+
+        if (state == WindowState.Normal)
+        {
+            placement.PositionX = position.X;
+            placement.PositionY = position.Y;
+            placement.ClientWidth = clientSize.Width;
+            placement.ClientHeight = clientSize.Height;
+            Log.Information("[MAIN-WINDOW-VM] Saved window size {Width}x{Height} and position {X}:{Y}",
+                clientSize.Width, clientSize.Height, position.X, position.Y);
+        }
+
+        placement.WindowState = (int)(state == WindowState.Minimized ? WindowState.Normal : state);
+
+        Result<Unit, InternalServiceApiFailure> result = await _storageProvider.SetWindowPlacementAsync(placement);
+        if (result.IsErr)
+        {
+            Log.Warning("[MAIN-WINDOW-VM] Cannot save window state: {Error}", result.UnwrapErr().Message);
+            //TODO delete debug comments, keep only warging and error
+        }
+    }
+
     private async Task SetContentWithFadeAsync(object content)
     {
         if (CurrentContent != null)
@@ -155,4 +206,6 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
         await Task.Delay(100).ConfigureAwait(false);
     }
+
+
 }
