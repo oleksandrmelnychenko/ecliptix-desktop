@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
@@ -62,6 +63,38 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                             Log.Error(t.Exception, "[MAIN-WINDOW] Cannot load window placement.");
                         }
                     });
+                })
+                .DisposeWith(disposables);
+
+            IObservable<EventPattern<PixelPointEventArgs>> positionChanged = Observable.FromEventPattern<PixelPointEventArgs>(
+                handler => PositionChanged += handler,
+                handler => PositionChanged -= handler
+            );
+
+            IObservable<Size> sizeChanged = this.GetObservable(ClientSizeProperty);
+
+            positionChanged.Select(_ => Unit.Default).Merge(sizeChanged.Select(_ => Unit.Default)
+                )
+                .Throttle(TimeSpan.FromMilliseconds(2000))
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Where(_ => WindowState == WindowState.Normal)
+                .Subscribe(async void (_) =>
+                {
+                    try
+                    {
+                        if (ViewModel != null && WindowState == WindowState.Normal)
+                        {
+                            await ViewModel.SavePlacementAsync(
+                                WindowState,
+                                Position,
+                                ClientSize);
+                            Log.Debug("[MAIN-WINDOW] Rx-based dynamic save complete.");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex, "[MAIN-WINDOW] Error in Rx-based dynamic save.");
+                    }
                 })
                 .DisposeWith(disposables);
         });
