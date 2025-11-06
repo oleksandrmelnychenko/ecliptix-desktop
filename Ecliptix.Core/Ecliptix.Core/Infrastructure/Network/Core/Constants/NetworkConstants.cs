@@ -12,11 +12,6 @@ public static class NetworkConstants
         public const int REQUEST_KEY_HEX_PREFIX_LENGTH = 16;
     }
 
-    public static class Cryptography
-    {
-        public const int SHA_256_HASH_SIZE = 32;
-    }
-
     public static class Timeouts
     {
         public static readonly TimeSpan OutageRecoveryTimeout = TimeSpan.FromSeconds(5);
