@@ -81,7 +81,7 @@ public sealed class CertificatePinningService : IAsyncDisposable
         CertificatePinningOperationResult stateCheck = ValidateOperationState();
         if (!stateCheck.IsSuccess)
         {
-            return CertificatePinningBoolResult.FromError(stateCheck.ERROR!);
+            return CertificatePinningBoolResult.FromError(stateCheck.Error!);
         }
 
         if (data.IsEmpty)
@@ -133,7 +133,7 @@ public sealed class CertificatePinningService : IAsyncDisposable
         CertificatePinningOperationResult stateCheck = ValidateOperationState();
         if (!stateCheck.IsSuccess)
         {
-            return CertificatePinningByteArrayResult.FromError(stateCheck.ERROR!);
+            return CertificatePinningByteArrayResult.FromError(stateCheck.Error!);
         }
 
         if (plaintext.IsEmpty)
@@ -219,7 +219,7 @@ public sealed class CertificatePinningService : IAsyncDisposable
         CertificatePinningOperationResult stateCheck = ValidateOperationState();
         if (!stateCheck.IsSuccess)
         {
-            return CertificatePinningByteArrayResult.FromError(stateCheck.ERROR!);
+            return CertificatePinningByteArrayResult.FromError(stateCheck.Error!);
         }
 
         if (ciphertext.IsEmpty)
@@ -276,7 +276,7 @@ public sealed class CertificatePinningService : IAsyncDisposable
         CertificatePinningOperationResult stateCheck = ValidateOperationState();
         if (!stateCheck.IsSuccess)
         {
-            return CertificatePinningByteArrayResult.FromError(stateCheck.ERROR!);
+            return CertificatePinningByteArrayResult.FromError(stateCheck.Error!);
         }
 
         return GetPublicKeyUnsafe();
