@@ -8,6 +8,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
+using Avalonia.Threading;
 using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Services.Core;
 using Ecliptix.Core.ViewModels.Core;
@@ -68,6 +69,8 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
             SetupDynamicPlacementSaving(disposables);
         });
+
+
     }
 
     private void SetupDynamicPlacementSaving(CompositeDisposable disposables)

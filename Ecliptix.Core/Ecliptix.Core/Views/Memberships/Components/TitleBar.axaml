@@ -5,12 +5,12 @@
     x:Class="Ecliptix.Core.Views.Memberships.Components.TitleBar"
     Height="35">
 
-    <DockPanel Name="PART_Root" Background="Transparent">
+    <DockPanel Name="PART_Root" Background="Blue">
         <StackPanel
             DockPanel.Dock="Left"
             Orientation="Horizontal"
             Spacing="8"
-            Margin="10,0,0,0"
+            Margin="100,0,0,0"
             VerticalAlignment="Center">
             <Button Name="PART_Close"
                     Classes="traffic-light close"
