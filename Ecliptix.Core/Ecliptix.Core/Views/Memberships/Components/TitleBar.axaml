@@ -27,7 +27,7 @@
                 </Setter>
             </Style>
 
-            <Style Selector="ContentControl">
+            <Style Selector="ContentControl:not(:windows):not(:macos)">
                 <Setter Property="ContentTemplate">
                     <DataTemplate>
                         <windows:WindowsTitleBarLayout />

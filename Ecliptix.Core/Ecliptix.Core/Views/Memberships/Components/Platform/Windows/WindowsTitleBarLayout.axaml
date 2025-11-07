@@ -2,10 +2,11 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ecliptix.Core.Views.Memberships.Components"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ecliptix.Core.Views.Memberships.Components.Platform.Windows.WindowsTitleBarLayout"
-             DockPanel.Dock="Top"
-             Height="35">
+             Height="35"
+             x:DataType="vm:TitleBarViewModel">
 
    <DockPanel Background="Transparent">
 
@@ -47,7 +48,7 @@
                         <Setter Property="Background" Value="Transparent"/>
                     </Style>
                 </Button.Styles>
-                <Path Width="10" Height="10"
+                <Path Width="10" Height="2"
                       Stretch="Uniform"
                       VerticalAlignment="Center"
                       Fill="{DynamicResource OnSurface}"
