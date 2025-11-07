@@ -43,6 +43,7 @@
         <comp:TitleBar
             VerticalAlignment="Top"
             ZIndex="5"
+            DisableMaximizeButton="False"
             DisableMinimizeButton="False"
             DisableCloseButton="False"/>
 
