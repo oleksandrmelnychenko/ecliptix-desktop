@@ -77,7 +77,9 @@ public sealed class CertificatePinningServiceFactory : ICertificatePinningServic
             }
 
             _disposed = true;
+
             Option<CertificatePinningService> serviceToDispose = _service;
+
             _service = Option<CertificatePinningService>.None;
 
             try
