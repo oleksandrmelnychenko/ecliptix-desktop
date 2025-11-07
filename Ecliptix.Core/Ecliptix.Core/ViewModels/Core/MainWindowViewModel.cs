@@ -11,6 +11,7 @@ using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Common;
+using Ecliptix.Core.Views.Memberships.Components;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Utilities;
 using ReactiveUI;
@@ -40,6 +41,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     public LanguageSelectorViewModel LanguageSelector { get; }
 
+    public TitleBarViewModel TitleBarViewModel { get; }
     public ConnectivityNotificationViewModel ConnectivityNotification { get; }
 
     public MainWindowViewModel(
@@ -56,6 +58,8 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         WindowHeight = 720;
         CanResize = false;
         WindowTitle = string.Empty;
+
+        TitleBarViewModel = new();
 
         LanguageSelector = new LanguageSelectorViewModel(
             localizationService,

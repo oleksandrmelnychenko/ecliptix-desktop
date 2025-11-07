@@ -8,33 +8,6 @@
     Height="35"
     x:DataType="vm:TitleBarViewModel">
 
-    <ContentControl x:Name="PART_Root" Content="{Binding}">
-        <ContentControl.Styles>
+    <ContentControl x:Name="PART_Root"/>
 
-            <Style Selector="ContentControl:windows">
-                <Setter Property="ContentTemplate">
-                    <DataTemplate>
-                        <windows:WindowsTitleBarLayout />
-                    </DataTemplate>
-                </Setter>
-            </Style>
-
-            <Style Selector="ContentControl:macos">
-                <Setter Property="ContentTemplate">
-                    <DataTemplate>
-                        <osx:MacosTitleBarLayout />
-                    </DataTemplate>
-                </Setter>
-            </Style>
-
-            <Style Selector="ContentControl:not(:windows):not(:macos)">
-                <Setter Property="ContentTemplate">
-                    <DataTemplate>
-                        <windows:WindowsTitleBarLayout />
-                    </DataTemplate>
-                </Setter>
-            </Style>
-
-        </ContentControl.Styles>
-    </ContentControl>
 </UserControl>
