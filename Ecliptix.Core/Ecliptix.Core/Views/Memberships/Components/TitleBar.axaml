@@ -1,49 +1,40 @@
 <UserControl
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:components="clr-namespace:Ecliptix.Core.Views.Memberships.Components"
+    xmlns:windows="clr-namespace:Ecliptix.Core.Views.Memberships.Components.Platform.Windows"
+    xmlns:vm="clr-namespace:Ecliptix.Core.Views.Memberships.Components"
+    xmlns:osx="clr-namespace:Ecliptix.Core.Views.Memberships.Components.Platform.OSX"
     x:Class="Ecliptix.Core.Views.Memberships.Components.TitleBar"
-    Height="35">
+    Height="35"
+    x:DataType="vm:TitleBarViewModel">
 
-    <DockPanel Name="PART_Root" Background="Blue">
-        <StackPanel
-            DockPanel.Dock="Left"
-            Orientation="Horizontal"
-            Spacing="8"
-            Margin="100,0,0,0"
-            VerticalAlignment="Center">
-            <Button Name="PART_Close"
-                    Classes="traffic-light close"
-                    Command="{Binding CloseCommand, RelativeSource={RelativeSource AncestorType=components:TitleBar}}">
-                <Path
-                    Data="M 437.5,386.6 L 306.9,256 L 437.5,125.4 C 451.6,111.3 451.6,88.6 437.5,74.5 C 423.4,60.4 400.7,60.4 386.6,74.5 L 256,205.1 L 125.4,74.5 C 111.3,60.4 88.6,60.4 74.5,74.5 C 60.4,88.6 60.4,111.3 74.5,125.4 L 205.1,256 L 74.5,386.6 C 60.4,400.7 60.4,423.4 74.5,437.5 C 88.6,451.6 111.3,451.6 125.4,437.5 L 256,306.9 L 386.6,437.5 C 400.7,451.6 423.4,451.6 437.5,437.5 C 451.5,423.4 451.5,400.6 437.5,386.6 Z"
-                    Fill="#B71C1C" />
-            </Button>
+    <ContentControl x:Name="PART_Root" Content="{Binding}">
+        <ContentControl.Styles>
 
-            <Button Name="PART_Minimize"
-                    Classes="traffic-light minimize"
-                    Command="{Binding MinimizeCommand, RelativeSource={RelativeSource AncestorType=components:TitleBar}}">
-                <Path
-                    Data="M 480,480 L 32,480 C 14.25,480 0,465.75 0,448 C 0,430.25 14.25,416 32,416 L 480,416 C 497.75,416 512,430.25 512,448 C 512,465.75 497.75,480 480,480 Z"
-                    Fill="#E65100" />
-            </Button>
+            <Style Selector="ContentControl:windows">
+                <Setter Property="ContentTemplate">
+                    <DataTemplate>
+                        <windows:WindowsTitleBarLayout />
+                    </DataTemplate>
+                </Setter>
+            </Style>
 
-            <Button Name="PART_Maximize"
-                    Classes="traffic-light maximize"
-                    Command="{Binding MaximizeCommand, RelativeSource={RelativeSource AncestorType=components:TitleBar}}">
-                <Path
-                    Data="M 6,8 L 3,8 L 3,6 L 6,6 L 6,3 L 8,3 L 8,6 C 8,7.1 7.1,8 6,8 Z M 21,8 L 18,8 C 16.9,8 16,7.1 16,6 L 16,3 L 18,3 L 18,6 L 21,6 Z M 8,21 L 6,21 L 6,18 L 3,18 L 3,16 L 6,16 C 7.1,16 8,16.9 8,18 Z M 18,21 L 16,21 L 16,18 C 16,16.9 16.9,16 18,16 L 21,16 L 21,18 L 18,18 Z"
-                    Fill="#1B5E20" />
-            </Button>
+            <Style Selector="ContentControl:macos">
+                <Setter Property="ContentTemplate">
+                    <DataTemplate>
+                        <osx:MacosTitleBarLayout />
+                    </DataTemplate>
+                </Setter>
+            </Style>
 
-        </StackPanel>
+            <Style Selector="ContentControl">
+                <Setter Property="ContentTemplate">
+                    <DataTemplate>
+                        <windows:WindowsTitleBarLayout />
+                    </DataTemplate>
+                </Setter>
+            </Style>
 
-        <TextBlock
-            Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}"
-            Foreground="{DynamicResource OnSurface}"
-            FontWeight="Medium"
-            FontSize="{StaticResource Title.FontSize}"
-            VerticalAlignment="Center"
-            HorizontalAlignment="Center" />
-    </DockPanel>
+        </ContentControl.Styles>
+    </ContentControl>
 </UserControl>

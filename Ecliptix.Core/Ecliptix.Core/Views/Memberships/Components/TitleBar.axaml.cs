@@ -1,98 +1,63 @@
 using System;
-using System.Reactive;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
+using Avalonia.ReactiveUI;
 using ReactiveUI;
 
 namespace Ecliptix.Core.Views.Memberships.Components;
 
-public partial class TitleBar : UserControl
+public partial class TitleBar : ReactiveUserControl<TitleBarViewModel>
 {
-    public static readonly StyledProperty<bool> DisableCloseButtonProperty =
-        AvaloniaProperty.Register<TitleBar, bool>(nameof(DisableCloseButton), true);
-
-    public static readonly StyledProperty<bool> DisableMinimizeButtonProperty =
-        AvaloniaProperty.Register<TitleBar, bool>(nameof(DisableMinimizeButton), true);
-
-    public static readonly StyledProperty<bool> DisableMaximizeButtonProperty =
-        AvaloniaProperty.Register<TitleBar, bool>(nameof(DisableMaximizeButton), true);
-
-    public ReactiveCommand<Unit, Unit> CloseCommand { get; }
-    public ReactiveCommand<Unit, Unit> MinimizeCommand { get; }
-    public ReactiveCommand<Unit, Unit> MaximizeCommand { get; }
-
-    private readonly IDisposable? _pointerPressedSubscription;
-
     public TitleBar()
     {
         InitializeComponent();
 
-        CloseCommand = ReactiveCommand.Create(
-            () => Window?.Close(),
-            this.WhenAnyValue(x => x.DisableCloseButton).Select(disable => !disable)
-        );
+        this.WhenActivated(SetupPointerHandler);
+    }
 
-        MinimizeCommand = ReactiveCommand.Create(
-            () =>
-            {
-                if (Window != null)
-                {
-                    Window.WindowState = WindowState.Minimized;
-                }
-            },
-            this.WhenAnyValue(x => x.DisableMinimizeButton).Select(disable => !disable)
-        );
-
-        MaximizeCommand = ReactiveCommand.Create(
-            () =>
-            {
-                if (Window != null)
-                {
-                    Window.WindowState = Window.WindowState == WindowState.Maximized
-                        ? WindowState.Normal
-                        : WindowState.Maximized;
-                }
-            },
-            this.WhenAnyValue(x => x.DisableMaximizeButton).Select(disable => !disable)
-        );
-
-        Panel? rootPanel = this.FindControl<Panel>("PART_Root");
-        if (rootPanel != null)
+    private void SetupPointerHandler(CompositeDisposable disposables)
+    {
+        ContentControl? rootControl = this.FindControl<ContentControl>("PART_Root");
+        if (rootControl == null)
         {
-            _pointerPressedSubscription = Observable.FromEventPattern<PointerPressedEventArgs>(
-                h => rootPanel.PointerPressed += h,
-                h => rootPanel.PointerPressed -= h
-            ).Subscribe(e =>
-            {
-                if (e.EventArgs.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
-                {
-                    Window?.BeginMoveDrag(e.EventArgs);
-                }
-            });
+            return;
         }
 
-        this.Unloaded += (s, e) => _pointerPressedSubscription?.Dispose();
-    }
+        Observable.FromEventPattern<PointerPressedEventArgs>(
+                h => rootControl.PointerPressed += h,
+                h => rootControl.PointerPressed -= h
+            )
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(e =>
+            {
+                if (Window == null)
+                {
+                    return;
+                }
 
-    public bool DisableCloseButton
-    {
-        get => GetValue(DisableCloseButtonProperty);
-        set => SetValue(DisableCloseButtonProperty, value);
-    }
+                if (Window.WindowState == WindowState.FullScreen)
+                {
+                    return;
+                }
 
-    public bool DisableMinimizeButton
-    {
-        get => GetValue(DisableMinimizeButtonProperty);
-        set => SetValue(DisableMinimizeButtonProperty, value);
-    }
-
-    public bool DisableMaximizeButton
-    {
-        get => GetValue(DisableMaximizeButtonProperty);
-        set => SetValue(DisableMaximizeButtonProperty, value);
+                if (e.EventArgs.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+                {
+                    if (e.EventArgs.ClickCount == 2)
+                    {
+                        Window.WindowState = Window.WindowState == WindowState.Maximized
+                            ? WindowState.Normal
+                            : WindowState.Maximized;
+                    }
+                    else
+                    {
+                        Window.BeginMoveDrag(e.EventArgs);
+                    }
+                }
+            })
+            .DisposeWith(disposables);
     }
 
     private Window? Window => VisualRoot as Window;
@@ -102,3 +67,4 @@ public partial class TitleBar : UserControl
         AvaloniaXamlLoader.Load(this);
     }
 }
+
