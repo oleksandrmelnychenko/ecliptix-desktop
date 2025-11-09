@@ -2,7 +2,7 @@ namespace Ecliptix.Core.Controls.Constants;
 
 public static class HintedTextBoxConstants
 {
-    public const string FOCUS_COLOR_HEX = "#6a5acd";
+    public const string FOCUS_COLOR_HEX = "#99FF6D00";
     public const string ERROR_COLOR_HEX = "#de1e31";
 
     public const string INVALID_STRENGTH_COLOR_HEX = "#ef3a3a";

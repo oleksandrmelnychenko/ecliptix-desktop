@@ -87,7 +87,7 @@
                 x:Name="MainBorder">
 
             <Border.Effect>
-                <DropShadowEffect Color="{DynamicResource Shadow.Color}"
+                <DropShadowEffect Color="#FF6D00"
                                   BlurRadius="{StaticResource Shadow.Radius}"
                                   Opacity="0.4"
                                   OffsetX="0"

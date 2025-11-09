@@ -72,7 +72,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     public static readonly StyledProperty<IBrush> MainBorderBrushProperty =
         AvaloniaProperty.Register<HintedTextBox, IBrush>(
-            nameof(MainBorderBrush), new SolidColorBrush(Colors.LightGray));
+            nameof(MainBorderBrush), new SolidColorBrush(Color.Parse("#4DFF6D00")));
 
     public static readonly StyledProperty<TextWrapping> TextWrappingProperty =
         AvaloniaProperty.Register<HintedTextBox, TextWrapping>(nameof(TextWrapping));

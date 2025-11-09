@@ -30,7 +30,7 @@
             <system:TimeSpan x:Key="Input.FocusDuration">0:0:0.25</system:TimeSpan>
             <system:TimeSpan x:Key="Input.ErrorDuration">0:0:0.3</system:TimeSpan>
             <system:TimeSpan x:Key="Input.OpacityDuration">0:0:0.25</system:TimeSpan>
-            <system:TimeSpan x:Key="Input.ShadowDuration">0:0:0.3</system:TimeSpan>
+            <system:TimeSpan x:Key="Input.ShadowDuration">0:0:0.15</system:TimeSpan>
             
             <!-- Control Animations -->
             <system:TimeSpan x:Key="Brush.TransitionDuration">0:0:0.25</system:TimeSpan>

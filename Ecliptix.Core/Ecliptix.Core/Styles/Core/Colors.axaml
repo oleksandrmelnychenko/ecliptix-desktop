@@ -81,7 +81,7 @@
                     <!-- Special Colors -->
                     <Color x:Key="Circle.Border">White</Color>
                     <Color x:Key="Window.Background">#FFFFFF</Color>
-                    <Color x:Key="Window.Border">#6a5acd</Color>
+                    <Color x:Key="Window.Border">#4DFF6D00</Color>
 
                     <!-- Control-specific Colors -->
                     <Color x:Key="ScrollBar.ThumbColor">#E0E0E0</Color>
@@ -179,7 +179,7 @@
                     <!-- Special Colors -->
                     <Color x:Key="Circle.Border">#e3e3e3</Color>
                     <Color x:Key="Window.Background">#2d2d2d</Color>
-                    <Color x:Key="Window.Border">#8b7dd8</Color>
+                    <Color x:Key="Window.Border">#4DFF6D00</Color>
 
                     <!-- Control-specific Colors -->
                     <Color x:Key="ScrollBar.ThumbColor">#4A4A4A</Color>
