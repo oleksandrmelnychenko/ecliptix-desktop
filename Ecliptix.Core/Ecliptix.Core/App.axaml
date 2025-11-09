@@ -7,7 +7,7 @@
 
     <Application.Resources>
         <ResourceDictionary>
-            <FontFamily x:Key="Segoe">avares://Ecliptix.Core/Assets/Fonts/SegoeUI/#Segoe UI</FontFamily>
+            <FontFamily x:Key="Geist">avares://Ecliptix.Core/Assets/Fonts/Geist/#Geist</FontFamily>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="Assets/Icons/UI/LampIcon.axaml"></ResourceInclude>
             </ResourceDictionary.MergedDictionaries>
@@ -27,7 +27,7 @@
         <StyleInclude Source="/Styles/Main/MainStyles.axaml" />
         
         <Style Selector="TextElement">
-            <Setter Property="FontFamily" Value="{StaticResource Segoe}" />
+            <Setter Property="FontFamily" Value="{StaticResource Geist}" />
         </Style>
         
         <Style Selector=":is(UserControl)">

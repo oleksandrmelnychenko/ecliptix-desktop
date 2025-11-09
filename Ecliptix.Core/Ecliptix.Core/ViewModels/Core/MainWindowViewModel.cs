@@ -47,8 +47,8 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     {
         _bottomSheetService = bottomSheetService;
 
-        WindowWidth = 480;
-        WindowHeight = 720;
+        WindowWidth = 520;
+        WindowHeight = 800;
         CanResize = false;
         WindowTitle = string.Empty;
 
@@ -72,7 +72,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     public async Task SetAuthenticationContentAsync(object content)
     {
-        await AnimateWindowResizeAsync(480, 720, TimeSpan.FromMilliseconds(300)).ConfigureAwait(false);
+        await AnimateWindowResizeAsync(520, 800, TimeSpan.FromMilliseconds(300)).ConfigureAwait(false);
 
         CanResize = false;
 

@@ -45,12 +45,14 @@
             
             <!-- Logo & Branding -->
             <x:Double x:Key="Logo.Size">100</x:Double>
-            <x:Double x:Key="Logo.SmallSize">36</x:Double>
+            <x:Double x:Key="Logo.SmallSize">48</x:Double>
             <x:Double x:Key="Tagline.Height">18</x:Double>
+            <x:Double x:Key="Tagline.FontSize">18</x:Double>
+            <x:Double x:Key="Footer.FontSize">11</x:Double>
             
             <!-- Welcome Screen Specific -->
-            <x:Double x:Key="Circle.Size">180</x:Double>
-            <x:Double x:Key="Circle.InnerSize">170</x:Double>
+            <x:Double x:Key="Circle.Size">450</x:Double>
+            <x:Double x:Key="Circle.InnerSize">440</x:Double>
             
             <!-- Effects -->
             <x:Double x:Key="Blur.Radius">20</x:Double>
@@ -86,6 +88,8 @@
             
             <!-- Special Layout Margins -->
             <Thickness x:Key="Container.Margin">0,16,0,16</Thickness>
+            <Thickness x:Key="Welcome.Container.Margin">0,20,0,12</Thickness>
+            <Thickness x:Key="Welcome.Footer.Margin">0,0,0,16</Thickness>
             <Thickness x:Key="Content.Padding">20,0</Thickness>
             <Thickness x:Key="Header.Padding">0,12,0,0</Thickness>
             <Thickness x:Key="Footer.Margin">12,0,12,16</Thickness>

@@ -11,69 +11,39 @@
              MinWidth="320"
              Width="320">
 
-    <!-- Main Layout -->
     <Grid RowDefinitions="Auto,*,Auto"
           HorizontalAlignment="Stretch"
           VerticalAlignment="Top"
-          RowSpacing="{StaticResource Spacing.XXL}"
-          Margin="{StaticResource Container.Margin}"
+          Margin="{StaticResource Welcome.Container.Margin}"
           Width="{StaticResource Content.MaxWidth}">
 
-        <!-- Header Section -->
         <StackPanel Grid.Row="0"
                     Spacing="{StaticResource Spacing.M}"
                     HorizontalAlignment="Center"
-                    Name="HeaderSection">
+                    Name="HeaderSection"
+                    Margin="0,0,0,22">
 
-            <!-- Main Logo -->
             <Border Height="{StaticResource Logo.SmallSize}"
                     HorizontalAlignment="Center">
                 <Image Source="avares://Ecliptix.Core/Assets/Screens/Welcome/EcliptiX.png"
                        Stretch="Uniform" />
             </Border>
-
-            <!-- Tagline -->
-            <Border Height="{StaticResource Tagline.Height}"
-                    HorizontalAlignment="Center">
-                <Image Source="avares://Ecliptix.Core/Assets/Screens/Welcome/Master the architecture of your mind.png"
-                       Stretch="Uniform" />
-            </Border>
         </StackPanel>
 
-        <!-- Optimized Central Circle Image -->
-        <Border Grid.Row="1"
-                Width="{StaticResource Circle.Size}"
-                Height="{StaticResource Circle.Size}"
-                CornerRadius="{StaticResource Radius.Circle}"
-                Background="{DynamicResource Circle.Border}"
-                BorderThickness="{StaticResource Circle.BorderThickness}"
-                BorderBrush="{DynamicResource Circle.Border}"
-                ClipToBounds="True"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center">
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="6" Color="#20000000" OffsetX="0" OffsetY="2" />
-            </Border.Effect>
-            
-            <Border Width="{StaticResource Circle.InnerSize}"
-                    Height="{StaticResource Circle.InnerSize}"
-                    CornerRadius="85"
-                    ClipToBounds="True"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center">
-                <Image Source="avares://Ecliptix.Core/Assets/Screens/Welcome/bg.png"
-                       Stretch="UniformToFill"
-                       RenderOptions.BitmapInterpolationMode="HighQuality" />
-            </Border>
-        </Border>
+        <Svg Grid.Row="1"
+             Path="../../../../Assets/Screens/Welcome/welcome-circle.svg"
+             Width="{StaticResource Circle.Size}"
+             Height="{StaticResource Circle.Size}"
+             Stretch="Uniform"
+             HorizontalAlignment="Center"
+             VerticalAlignment="Center" />
 
-        <!-- Action Buttons -->
         <Grid Grid.Row="2"
               ColumnDefinitions="*,*"
-              ColumnSpacing="{StaticResource Spacing.S}"
-              HorizontalAlignment="Stretch">
+              ColumnSpacing="{StaticResource Spacing.M}"
+              HorizontalAlignment="Stretch"
+              Margin="0,32,0,16">
 
-            <!-- Sign In Button -->
             <Button Grid.Column="0"
                     Content="{Binding LocalizationService[Welcome.SignInButton]}"
                     Command="{Binding NavToSignInCommand}"
@@ -81,13 +51,15 @@
                     Classes.is-busy="{Binding IsSignInBusy}"
                     HorizontalAlignment="Stretch" />
 
-            <!-- Create Account Button -->
-            <Button Grid.Column="1"
-                    Content="{Binding LocalizationService[Welcome.CreateAccountButton]}"
-                    Command="{Binding NavToCreateAccountCommand}"
-                    Classes="auth-button continue-button loading-button"
-                    Classes.is-busy="{Binding IsCreateAccountBusy}"
-                    HorizontalAlignment="Stretch" />
+            <Border Grid.Column="1"
+                    BoxShadow="0 8 20 0 #60000000"
+                    CornerRadius="{StaticResource Button.CornerRadius}">
+                <Button Content="{Binding LocalizationService[Welcome.CreateAccountButton]}"
+                        Command="{Binding NavToCreateAccountCommand}"
+                        Classes="auth-button continue-button loading-button"
+                        Classes.is-busy="{Binding IsCreateAccountBusy}"
+                        HorizontalAlignment="Stretch" />
+            </Border>
         </Grid>
     </Grid>
 </UserControl>

@@ -170,6 +170,8 @@ public static class LocalizationData
         [LocalizationKeys.Footer.TERMS_OF_SERVICE] = "Terms of Service",
         [LocalizationKeys.Footer.SUPPORT] = "Support",
         [LocalizationKeys.Footer.AGREEMENT_TEXT] = "By continuing, you agree to our Terms and Privacy Policy.",
+        [LocalizationKeys.Footer.AGREEMENT_PREFIX] = "By signing up, you agree to the ",
+        [LocalizationKeys.Footer.AGREEMENT_CONJUNCTION] = " and ",
         [LocalizationKeys.Footer.COPYRIGHT] = "© 2025 Horizon Dynamics. All rights reserved.",
         [LocalizationKeys.Navigation.BACK] = "Back",
         [LocalizationKeys.Navigation.CLOSE] = "Close",
@@ -374,6 +376,8 @@ public static class LocalizationData
         [LocalizationKeys.Footer.SUPPORT] = "Підтримка",
         [LocalizationKeys.Footer.AGREEMENT_TEXT] =
             "Продовжуючи, ви погоджуєтесь з нашими Умовами та Політикою конфіденційності.",
+        [LocalizationKeys.Footer.AGREEMENT_PREFIX] = "Реєструючись, ви погоджуєтесь з ",
+        [LocalizationKeys.Footer.AGREEMENT_CONJUNCTION] = " та ",
         [LocalizationKeys.Footer.COPYRIGHT] = "© 2025 Horizon Dynamics. Усі права захищено.",
         [LocalizationKeys.Navigation.BACK] = "Назад",
         [LocalizationKeys.Navigation.CLOSE] = "Закрити",

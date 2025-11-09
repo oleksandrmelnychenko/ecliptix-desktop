@@ -116,5 +116,6 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Assets\Fonts\Geist\.DS_Store" />
   </ItemGroup>
 </Project>

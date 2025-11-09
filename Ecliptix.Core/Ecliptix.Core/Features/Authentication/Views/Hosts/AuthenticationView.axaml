@@ -21,7 +21,7 @@
     <Grid RowDefinitions="Auto,*,Auto"
           RowSpacing="2"
           ClipToBounds="True"
-          Margin="0,40,0,0">
+          Margin="0,20,0,0">
 
         <!-- Back Button (Module Navigation) -->
         <Button HorizontalAlignment="Left"
@@ -49,7 +49,6 @@
                  VerticalAlignment="Top" />
         </Border>
 
-        <!-- Content Area -->
         <Border Grid.Row="1">
             <Border Padding="{StaticResource ContentPadding}">
                 <core:ModuleContentControl ViewModelContent="{Binding CurrentView}"
@@ -61,69 +60,47 @@
             </Border>
         </Border>
 
-        <!-- Footer Section -->
         <StackPanel Grid.Row="2"
-                    Classes="footer-section">
+                    Classes="footer-section"
+                    Spacing="8">
 
-            <!-- Legal Links -->
+            <!-- Agreement Text (Terms & Privacy) -->
             <StackPanel Orientation="Horizontal"
                         HorizontalAlignment="Center"
-                        Spacing="8"
-                        Margin="0,0,0,2">
-
-                <Button Content="{Binding LocalizationService[Footer.PrivacyPolicy]}"
-                        Command="{Binding OpenPrivacyPolicyCommand}"
-                        Classes="footer-link"
-                        Margin="1,0" />
-
-                <TextBlock Text="•"
+                        FlowDirection="LeftToRight">
+                <TextBlock Text="{Binding LocalizationService[Footer.AgreementPrefix]}"
                            Classes="footer"
                            VerticalAlignment="Center"
-                           Opacity="0.5"
-                           FontSize="10" />
-
+                           Opacity="0.6" />
                 <Button Content="{Binding LocalizationService[Footer.TermsOfService]}"
                         Command="{Binding OpenTermsOfServiceCommand}"
                         Classes="footer-link"
-                        Margin="1,0" />
-
-                <TextBlock Text="•"
+                        Padding="0"
+                        Opacity="0.6"
+                        VerticalAlignment="Center" />
+                <TextBlock Text="{Binding LocalizationService[Footer.AgreementConjunction]}"
                            Classes="footer"
                            VerticalAlignment="Center"
-                           Opacity="0.5"
-                           FontSize="10" />
-
-                <Button Content="{Binding LocalizationService[Footer.Support]}"
-                        Command="{Binding OpenSupportCommand}"
+                           Opacity="0.6" />
+                <Button Content="{Binding LocalizationService[Footer.PrivacyPolicy]}"
+                        Command="{Binding OpenPrivacyPolicyCommand}"
                         Classes="footer-link"
-                        Margin="1,0" />
+                        Padding="0"
+                        Opacity="0.6"
+                        VerticalAlignment="Center" />
             </StackPanel>
 
-            <!-- Copyright Text -->
-            <TextBlock Text="{Binding LocalizationService[Footer.AgreementText]}"
-                       Classes="footer"
-                       TextWrapping="Wrap"
-                       MaxWidth="300"
-                       HorizontalAlignment="Center"
-                       TextAlignment="Center"
-                       LineHeight="15"
-                       Margin="1,1,1,4" />
-
-            <!-- Version and Copyright Layout -->
-            <Grid HorizontalAlignment="Stretch"
-                  Margin="0,2,0,0">
-
-                <!-- App Version - Aligned with Header Buttons -->
+            <!-- Copyright and version -->
+            <Grid HorizontalAlignment="Stretch">
                 <TextBlock Text="{Binding AppVersion, StringFormat='v{0}'}"
                            Classes="version"
                            HorizontalAlignment="Left"
                            VerticalAlignment="Center"
                            ToolTip.Tip="{Binding FullVersionInfo}"
                            Margin="10,0,0,0"
-                           Opacity="1.0"
+                           Opacity="0.7"
                            FontWeight="Medium" />
 
-                <!-- Copyright Text - Window Center -->
                 <TextBlock Text="{Binding LocalizationService[Footer.Copyright]}"
                            Classes="footer"
                            Opacity="0.6"
