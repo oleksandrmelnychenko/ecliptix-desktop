@@ -30,13 +30,14 @@
             </Border>
         </StackPanel>
 
-        <Svg Grid.Row="1"
-             Path="../../../../Assets/Screens/Welcome/welcome-circle.svg"
-             Width="{StaticResource Circle.Size}"
-             Height="{StaticResource Circle.Size}"
-             Stretch="Uniform"
-             HorizontalAlignment="Center"
-             VerticalAlignment="Center" />
+        <Border Grid.Row="1"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+            <Svg Path="../../../../Assets/Screens/Welcome/welcome-circle.svg"
+                 Width="{StaticResource Circle.Size}"
+                 Height="{StaticResource Circle.Size}"
+                 Stretch="Uniform" />
+        </Border>
 
         <Grid Grid.Row="2"
               ColumnDefinitions="*,*"
