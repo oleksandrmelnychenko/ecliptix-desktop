@@ -140,7 +140,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
     {
         WindowState = WindowState.Normal;
-        await Task.Delay(500).ConfigureAwait(false);
+        await Task.Delay(500).ConfigureAwait(true);
     }
 
 
@@ -192,7 +192,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
             OnWindowRepositionRequested?.Invoke(new PixelPoint(currentX, currentY));
         }
 
-        await Task.Delay(stepDuration).ConfigureAwait(false);
+        await Task.Delay(stepDuration).ConfigureAwait(true);
     }
 
     WindowWidth = targetWidth;
