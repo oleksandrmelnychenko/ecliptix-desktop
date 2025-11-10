@@ -7,11 +7,11 @@ namespace Ecliptix.Core.Views.Memberships.Components.Platform.OSX;
 
 public partial class MacosTitleBarLayout : UserControl
 {
-   private Button? _minimizeButton;
+    private Button? _minimizeButton;
     private Button? _maximizeButton;
     private Button? _closeButton;
-
     private Window? _hostWindow;
+    private Border? _mainBorder;
 
     public MacosTitleBarLayout()
     {
@@ -22,11 +22,17 @@ public partial class MacosTitleBarLayout : UserControl
     {
         base.OnAttachedToVisualTree(e);
 
-        _hostWindow = this.VisualRoot as Window;
+        _hostWindow = VisualRoot as Window;
 
         _minimizeButton = this.FindControl<Button>("PART_Minimize");
         _maximizeButton = this.FindControl<Button>("PART_Maximize");
         _closeButton = this.FindControl<Button>("PART_Close");
+
+
+        if (_hostWindow != null)
+        {
+            _mainBorder = _hostWindow.FindControl<Border>("MainBorder");
+        }
 
         if (_minimizeButton != null)
         {
@@ -66,21 +72,24 @@ public partial class MacosTitleBarLayout : UserControl
         _hostWindow = null;
     }
 
-    private void CloseWindow(object? sender, RoutedEventArgs e)
-    {
-        _hostWindow?.Close();
-    }
+    private void CloseWindow(object? sender, RoutedEventArgs e) => _hostWindow?.Close();
 
     private void MaximizeWindow(object? sender, RoutedEventArgs e)
     {
-        if (_hostWindow == null)
+        if (_hostWindow == null || _mainBorder == null)
         {
             return;
         }
 
-        _hostWindow.WindowState = _hostWindow.WindowState == WindowState.FullScreen
+        bool isCurrentlyFullScreen = _hostWindow.WindowState == WindowState.FullScreen;
+
+        _hostWindow.WindowState = isCurrentlyFullScreen
             ? WindowState.Normal
             : WindowState.FullScreen;
+
+        _mainBorder.CornerRadius = isCurrentlyFullScreen
+            ? new CornerRadius(12)
+            : new CornerRadius(0);
     }
 
     private void MinimizeWindow(object? sender, RoutedEventArgs e)
@@ -93,9 +102,6 @@ public partial class MacosTitleBarLayout : UserControl
         _hostWindow.WindowState = WindowState.Minimized;
     }
 
-    private void InitializeComponent()
-    {
-        AvaloniaXamlLoader.Load(this);
-    }
+    private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
 }
 

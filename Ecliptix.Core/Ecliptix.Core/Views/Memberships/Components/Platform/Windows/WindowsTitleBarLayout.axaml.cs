@@ -14,11 +14,9 @@ public partial class WindowsTitleBarLayout : UserControl
     private Button? _minimizeButton;
     private Button? _maximizeButton;
     private Button? _closeButton;
-
     private Path? _maximizeIcon;
-    private ToolTip? _maximizeToolTip;
-
     private Window? _hostWindow;
+    private Border? _mainBorder;
 
     public WindowsTitleBarLayout()
     {
@@ -29,14 +27,18 @@ public partial class WindowsTitleBarLayout : UserControl
     {
         base.OnAttachedToVisualTree(e);
 
+        _hostWindow = VisualRoot as Window;
+
         _minimizeButton = this.FindControl<Button>("MinimizeButton");
         _maximizeButton = this.FindControl<Button>("MaximizeButton");
         _closeButton = this.FindControl<Button>("CloseButton");
         _maximizeIcon = this.FindControl<Path>("MaximizeIcon");
-        _maximizeToolTip = this.FindControl<ToolTip>("MaximizeToolTip");
 
 
-        _hostWindow = VisualRoot as Window;
+        if (_hostWindow != null)
+        {
+            _mainBorder = _hostWindow.FindControl<Border>("MainBorder");
+        }
 
         if (_minimizeButton != null)
         {
@@ -75,7 +77,7 @@ public partial class WindowsTitleBarLayout : UserControl
             _closeButton.Click -= CloseWindow;
         }
 
-        _hostWindow = null; // Дозволяємо GC його зібрати
+        _hostWindow = null;
     }
 
     private void CloseWindow(object? sender, RoutedEventArgs e)
@@ -85,14 +87,20 @@ public partial class WindowsTitleBarLayout : UserControl
 
     private void MaximizeWindow(object? sender, RoutedEventArgs e)
     {
-        if (_hostWindow == null)
+        if (_hostWindow == null || _mainBorder == null)
         {
             return;
         }
 
-        _hostWindow.WindowState = _hostWindow.WindowState == WindowState.Maximized
+        bool isCurrentlyMaximized = _hostWindow.WindowState == WindowState.Maximized;
+
+        _hostWindow.WindowState = isCurrentlyMaximized
             ? WindowState.Normal
             : WindowState.Maximized;
+
+        _mainBorder.CornerRadius = isCurrentlyMaximized
+            ? new CornerRadius(12)
+            : new CornerRadius(0);
     }
 
     private void MinimizeWindow(object? sender, RoutedEventArgs e)
@@ -117,7 +125,7 @@ public partial class WindowsTitleBarLayout : UserControl
         _hostWindow.GetObservable(Window.WindowStateProperty)
             .Subscribe( state =>
             {
-                if (_maximizeIcon == null || _maximizeToolTip == null)
+                if (_maximizeIcon == null)
                 {
                     return;
                 }
@@ -125,12 +133,10 @@ public partial class WindowsTitleBarLayout : UserControl
                 if (state == WindowState.Maximized)
                 {
                     _maximizeIcon.Data = Geometry.Parse("M2048 1638h-410v410h-1638v-1638h410v-410h1638v1638zm-614-1024h-1229v1229h1229v-1229zm409-409h-1229v205h1024v1024h205v-1229z");
-                    _maximizeToolTip.Content = "Restore Down";
                 }
                 else
                 {
                     _maximizeIcon.Data = Geometry.Parse("M2048 2048v-2048h-2048v2048h2048zM1843 1843h-1638v-1638h1638v1638z");
-                    _maximizeToolTip.Content = "Maximize";
                 }
             });
     }
