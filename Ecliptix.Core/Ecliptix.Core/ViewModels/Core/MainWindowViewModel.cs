@@ -94,7 +94,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         CanResize = false;
         TitleBarViewModel.DisableMaximizeButton = true;
 
-        await SetContentWithFadeAsync(content).ConfigureAwait(false);
+        await SetContentWithFadeAsync(content).ConfigureAwait(true);
     }
 
     public async Task SetMainContentAsync(object content)
@@ -104,7 +104,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         CanResize = true;
         TitleBarViewModel.DisableMaximizeButton = false;
 
-        await SetContentWithFadeAsync(content).ConfigureAwait(false);
+        await SetContentWithFadeAsync(content).ConfigureAwait(true);
     }
 
     public async Task ShowBottomSheetAsync(
