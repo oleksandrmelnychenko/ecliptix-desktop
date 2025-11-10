@@ -4,47 +4,65 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Ecliptix.Core.Features.Main.ViewModels"
              xmlns:views="clr-namespace:Ecliptix.Core.Features.Main.Views.Components"
+             xmlns:nav="clr-namespace:Ecliptix.Core.Controls.Navigation"
              mc:Ignorable="d"
              d:DesignWidth="1200"
              d:DesignHeight="800"
              x:DataType="vm:MasterViewModel"
-             x:Class="Ecliptix.Core.Features.Main.Views.MasterView">
+             x:Class="Ecliptix.Core.Features.Main.Views.MasterView"
+             Background="#F6F7F9">
 
     <!-- Module-Specific Content Only: 2-Column Layout (Sidebar + Content) -->
-    <Grid ColumnDefinitions="80,*"
+    <Grid ColumnDefinitions="70,*"
           ClipToBounds="True"
           Margin="0,40,0,0">
 
-        <!-- Sidebar with Logout Button -->
-        <Border Grid.Column="0"
-                Background="{DynamicResource Surface}"
-                BorderBrush="{DynamicResource Border}"
-                BorderThickness="0,0,1,0">
-            <Button Command="{Binding LogoutCommand}"
-                    VerticalAlignment="Bottom"
-                    HorizontalAlignment="Center"
-                    Margin="0,0,0,20"
-                    Width="50"
-                    Height="50"
-                    Background="{DynamicResource Error}"
-                    CornerRadius="8"
-                    ToolTip.Tip="Logout">
-                <PathIcon Data="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14l5-5-5-5m5 5H9"
-                          Foreground="{DynamicResource OnError}"
-                          Width="24"
-                          Height="24" />
-            </Button>
-        </Border>
+        <!-- Navigation Sidebar -->
+        <nav:NavigationSidebar Grid.Column="0"
+                               DataContext="{Binding NavigationSidebar}" />
 
         <!-- Main Content Area -->
         <Border Grid.Column="1"
-                Background="{DynamicResource Window.Background}">
-            <TextBlock Text="Ecliptix"
-                       FontSize="32"
-                       FontWeight="Bold"
-                       Foreground="{DynamicResource OnSurface}"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center" />
+                Background="Transparent">
+            <Grid RowDefinitions="*,Auto">
+                <!-- Content Area -->
+                <StackPanel Grid.Row="0"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Spacing="20">
+                    <TextBlock Text="Ecliptix"
+                               FontSize="32"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource OnSurface}"
+                               HorizontalAlignment="Center" />
+                    <TextBlock Text="{Binding NavigationSidebar.SelectedMenuItem.Label, StringFormat='Current View: {0}'}"
+                               FontSize="16"
+                               Foreground="{DynamicResource OnSurfaceVariant}"
+                               HorizontalAlignment="Center" />
+                </StackPanel>
+
+                <!-- Logout Button at Bottom -->
+                <Button Grid.Row="1"
+                        Command="{Binding LogoutCommand}"
+                        HorizontalAlignment="Center"
+                        Margin="0,0,0,20"
+                        Width="120"
+                        Height="40"
+                        Background="{DynamicResource Error}"
+                        CornerRadius="8"
+                        ToolTip.Tip="Logout">
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="8">
+                        <PathIcon Data="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14l5-5-5-5m5 5H9"
+                                  Foreground="{DynamicResource OnError}"
+                                  Width="20"
+                                  Height="20" />
+                        <TextBlock Text="Logout"
+                                   Foreground="{DynamicResource OnError}"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </Grid>
         </Border>
     </Grid>
 </UserControl>

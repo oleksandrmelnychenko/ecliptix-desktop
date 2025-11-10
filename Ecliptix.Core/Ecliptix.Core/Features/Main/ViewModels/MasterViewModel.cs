@@ -9,6 +9,7 @@ using Ecliptix.Core.Models.Membership;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.Membership;
 using Ecliptix.Core.ViewModels.Core;
+using Ecliptix.Core.ViewModels.Navigation;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Membership;
 
@@ -31,6 +32,7 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase
     [ObservableAsProperty] public bool IsBusy { get; }
 
     public ConnectivityNotificationViewModel ConnectivityNotification { get; }
+    public NavigationSidebarViewModel NavigationSidebar { get; }
 
     public ReactiveCommand<SystemU, Result<Unit, LogoutFailure>> LogoutCommand { get; }
 
@@ -43,6 +45,7 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase
     {
         _logoutService = logoutService;
         ConnectivityNotification = mainWindowViewModel.ConnectivityNotification;
+        NavigationSidebar = new NavigationSidebarViewModel(networkProvider, localizationService);
 
         IObservable<bool> canLogout = this.WhenAnyValue(x => x.IsBusy, isBusy => !isBusy);
 
@@ -112,6 +115,7 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase
         {
             CancelLogoutOperation();
             LogoutCommand?.Dispose();
+            NavigationSidebar?.Dispose();
             _disposables.Dispose();
         }
 

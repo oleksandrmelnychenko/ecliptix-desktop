@@ -84,6 +84,7 @@
                 BorderThickness="1"
                 CornerRadius="{StaticResource WindowBorderRadius}"
                 Margin="8"
+                ClipToBounds="True"
                 x:Name="MainBorder">
 
             <Border.Effect>
@@ -98,8 +99,7 @@
             <core:ModuleContentControl ViewModelContent="{Binding CurrentContent}"
                                        Background="Transparent"
                                        HorizontalAlignment="Stretch"
-                                       VerticalAlignment="Stretch"
-                                       ClipToBounds="True" />
+                                       VerticalAlignment="Stretch" />
         </Border>
     </Grid>
 </Window>

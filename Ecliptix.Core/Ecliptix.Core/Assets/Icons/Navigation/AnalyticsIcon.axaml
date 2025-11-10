@@ -1,0 +1,5 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Analytics Icon - Chart trending up -->
+    <StreamGeometry x:Key="AnalyticsIconData">M3 21v-7l4-4 4 4 8-8v15H3z M21 3l-8 8-4-4-4 4</StreamGeometry>
+</ResourceDictionary>
