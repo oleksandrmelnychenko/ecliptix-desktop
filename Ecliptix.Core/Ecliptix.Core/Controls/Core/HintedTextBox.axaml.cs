@@ -53,7 +53,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     public static readonly StyledProperty<IBrush> HintForegroundProperty =
         AvaloniaProperty.Register<HintedTextBox, IBrush>(
-            nameof(HintForeground), new SolidColorBrush(Colors.Gray));
+            nameof(HintForeground), new SolidColorBrush(Color.Parse("#4DFF6D00")));
 
     public static readonly StyledProperty<DrawingImage?> IconRegularSourceProperty =
         AvaloniaProperty.Register<HintedTextBox, DrawingImage?>(nameof(IconRegularSource));
