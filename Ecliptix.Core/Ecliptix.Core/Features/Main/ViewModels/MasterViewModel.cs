@@ -3,7 +3,12 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
 
+using Avalonia.Controls;
+
 using Ecliptix.Core.Controls.Core;
+using Ecliptix.Core.Features.Chats.ViewModels;
+using Ecliptix.Core.Features.Chats.Views;
+using Ecliptix.Core.Features.Main.Views;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Models.Membership;
 using Ecliptix.Core.Services.Abstractions.Core;
@@ -30,9 +35,11 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase
     private bool _isDisposed;
 
     [ObservableAsProperty] public bool IsBusy { get; }
+    [Reactive] public UserControl? CurrentView { get; set; }
 
     public ConnectivityNotificationViewModel ConnectivityNotification { get; }
     public NavigationSidebarViewModel NavigationSidebar { get; }
+    public MasterChatViewModel MasterChatViewModel { get; }
 
     public ReactiveCommand<SystemU, Result<Unit, LogoutFailure>> LogoutCommand { get; }
 
@@ -46,6 +53,9 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase
         _logoutService = logoutService;
         ConnectivityNotification = mainWindowViewModel.ConnectivityNotification;
         NavigationSidebar = new NavigationSidebarViewModel(networkProvider, localizationService);
+        MasterChatViewModel = new MasterChatViewModel(networkProvider, localizationService);
+
+        CurrentView = new HomeView();
 
         IObservable<bool> canLogout = this.WhenAnyValue(x => x.IsBusy, isBusy => !isBusy);
 
@@ -102,6 +112,18 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase
             })
             .DisposeWith(_disposables);
 
+        this.WhenAnyValue(x => x.NavigationSidebar.SelectedMenuItem)
+            .WhereNotNull()
+            .Subscribe(menuItem =>
+            {
+                CurrentView = menuItem.Id switch
+                {
+                    "home" => new HomeView(),
+                    "chats" => new ChatListView { DataContext = MasterChatViewModel },
+                    _ => CurrentView
+                };
+            })
+            .DisposeWith(_disposables);
     }
 
     protected override void Dispose(bool disposing)
@@ -116,6 +138,7 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase
             CancelLogoutOperation();
             LogoutCommand?.Dispose();
             NavigationSidebar?.Dispose();
+            MasterChatViewModel?.Dispose();
             _disposables.Dispose();
         }
 

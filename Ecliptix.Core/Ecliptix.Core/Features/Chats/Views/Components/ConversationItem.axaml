@@ -1,0 +1,106 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:models="clr-namespace:Ecliptix.Core.Features.Chats.Models"
+             mc:Ignorable="d"
+             d:DesignWidth="320"
+             d:DesignHeight="72"
+             x:DataType="models:ChatConversation"
+             x:Class="Ecliptix.Core.Features.Chats.Views.Components.ConversationItem">
+
+    <UserControl.Styles>
+        <Style Selector="Border.conversation-item">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+
+        <Style Selector="Border.conversation-item:pointerover">
+            <Setter Property="Background" Value="#2E2E2E" />
+        </Style>
+
+        <Style Selector="Border.conversation-item.selected">
+            <Setter Property="Background" Value="#3A3A3A" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border Classes="conversation-item"
+            Classes.selected="{Binding IsSelected}"
+            Padding="12"
+            CornerRadius="8"
+            Margin="4,2">
+        <Grid ColumnDefinitions="48,*,Auto">
+            <!-- Avatar -->
+            <Border Grid.Column="0"
+                    Width="48"
+                    Height="48"
+                    CornerRadius="24"
+                    Background="#FF7A00"
+                    Margin="0,0,12,0">
+                <Grid>
+                    <TextBlock Text="{Binding ContactAvatar}"
+                               FontSize="18"
+                               FontWeight="Bold"
+                               Foreground="#FFFFFF"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center" />
+
+                    <!-- Online indicator -->
+                    <Border Width="12"
+                            Height="12"
+                            CornerRadius="6"
+                            Background="#4CAF50"
+                            BorderBrush="#252525"
+                            BorderThickness="2"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Bottom"
+                            Margin="0,0,-2,-2"
+                            IsVisible="{Binding IsOnline}" />
+                </Grid>
+            </Border>
+            <!-- Content -->
+            <StackPanel Grid.Column="1"
+                        VerticalAlignment="Center"
+                        Spacing="4">
+                <TextBlock Text="{Binding ContactName}"
+                           FontSize="15"
+                           FontWeight="SemiBold"
+                           Foreground="#FFFFFF"
+                           TextTrimming="CharacterEllipsis" />
+
+                <TextBlock Text="{Binding LastMessage}"
+                           FontSize="13"
+                           Foreground="#999999"
+                           TextTrimming="CharacterEllipsis"
+                           MaxLines="1" />
+            </StackPanel>
+
+            <!-- Right side (timestamp & badge) -->
+            <StackPanel Grid.Column="2"
+                        VerticalAlignment="Top"
+                        Spacing="4"
+                        Margin="8,0,0,0">
+                <TextBlock Text="{Binding LastMessageTimeDisplay}"
+                           FontSize="11"
+                           Foreground="#999999"
+                           HorizontalAlignment="Right" />
+
+                <!-- Unread badge -->
+                <Border Background="#FF7A00"
+                        CornerRadius="10"
+                        MinWidth="20"
+                        Height="20"
+                        Padding="6,0"
+                        HorizontalAlignment="Right"
+                        IsVisible="{Binding !!UnreadCount}">
+                    <TextBlock Text="{Binding UnreadCount}"
+                               FontSize="11"
+                               FontWeight="Bold"
+                               Foreground="#FFFFFF"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center" />
+                </Border>
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

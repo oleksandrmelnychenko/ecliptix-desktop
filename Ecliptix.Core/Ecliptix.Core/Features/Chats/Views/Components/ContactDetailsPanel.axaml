@@ -1,0 +1,219 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ecliptix.Core.Features.Chats.ViewModels"
+             mc:Ignorable="d"
+             d:DesignWidth="280"
+             d:DesignHeight="600"
+             x:DataType="vm:ContactDetailsViewModel"
+             x:Class="Ecliptix.Core.Features.Chats.Views.Components.ContactDetailsPanel">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="/Assets/Icons/Chat/CallIcon.axaml" />
+                <ResourceInclude Source="/Assets/Icons/Chat/VideoIcon.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Border Background="#252525"
+            BorderThickness="0"
+            CornerRadius="0"
+            IsVisible="{Binding IsVisible}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="0">
+                <!-- Profile Section -->
+                <Border Padding="20"
+                        BorderBrush="#3A3A3A"
+                        BorderThickness="0,0,0,1">
+                    <StackPanel Spacing="12"
+                                HorizontalAlignment="Center">
+                        <!-- Avatar -->
+                        <Border Width="80"
+                                Height="80"
+                                CornerRadius="40"
+                                Background="#FF7A00">
+                            <Grid>
+                                <TextBlock Text="{Binding SelectedContact.Avatar}"
+                                           FontSize="32"
+                                           FontWeight="Bold"
+                                           Foreground="#FFFFFF"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+
+                                <!-- Online indicator -->
+                                <Border Width="16"
+                                        Height="16"
+                                        CornerRadius="8"
+                                        Background="#4CAF50"
+                                        BorderBrush="#252525"
+                                        BorderThickness="2"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Bottom"
+                                        Margin="0,0,-2,-2"
+                                        IsVisible="{Binding SelectedContact.IsOnline}" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Name -->
+                        <TextBlock Text="{Binding SelectedContact.Name}"
+                                   FontSize="18"
+                                   FontWeight="Bold"
+                                   Foreground="#FFFFFF"
+                                   HorizontalAlignment="Center" />
+
+                        <!-- Status -->
+                        <TextBlock Text="{Binding SelectedContact.StatusMessage}"
+                                   FontSize="13"
+                                   Foreground="#999999"
+                                   HorizontalAlignment="Center" />
+
+                        <!-- Action Buttons -->
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="12"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,8,0,0">
+                            <Button Background="#2E2E2E"
+                                    BorderThickness="0"
+                                    Width="48"
+                                    Height="48"
+                                    CornerRadius="24"
+                                    ToolTip.Tip="Voice Call">
+                                <PathIcon Data="{StaticResource CallIconData}"
+                                          Width="20"
+                                          Height="20"
+                                          Foreground="#FFFFFF" />
+                            </Button>
+
+                            <Button Background="#2E2E2E"
+                                    BorderThickness="0"
+                                    Width="48"
+                                    Height="48"
+                                    CornerRadius="24"
+                                    ToolTip.Tip="Video Call">
+                                <PathIcon Data="{StaticResource VideoIconData}"
+                                          Width="20"
+                                          Height="20"
+                                          Foreground="#FFFFFF" />
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Contact Info -->
+                <Border Padding="20"
+                        BorderBrush="#3A3A3A"
+                        BorderThickness="0,0,0,1">
+                    <StackPanel Spacing="16">
+                        <TextBlock Text="Contact Info"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="#999999" />
+
+                        <StackPanel Spacing="12">
+                            <!-- Phone -->
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Phone"
+                                           FontSize="12"
+                                           Foreground="#666666" />
+                                <TextBlock Text="{Binding SelectedContact.PhoneNumber}"
+                                           FontSize="14"
+                                           Foreground="#FFFFFF" />
+                            </StackPanel>
+
+                            <!-- Email -->
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Email"
+                                           FontSize="12"
+                                           Foreground="#666666" />
+                                <TextBlock Text="{Binding SelectedContact.Email}"
+                                           FontSize="14"
+                                           Foreground="#FFFFFF" />
+                            </StackPanel>
+
+                            <!-- About -->
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="About"
+                                           FontSize="12"
+                                           Foreground="#666666" />
+                                <TextBlock Text="{Binding SelectedContact.About}"
+                                           FontSize="14"
+                                           Foreground="#FFFFFF"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Shared Media -->
+                <Border Padding="20"
+                        BorderBrush="#3A3A3A"
+                        BorderThickness="0,0,0,1">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Shared Media"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="#999999" />
+
+                        <!-- Media Grid -->
+                        <ItemsControl ItemsSource="{Binding SharedMedia}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="3"
+                                                 Rows="3" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Width="70"
+                                            Height="70"
+                                            Background="#2E2E2E"
+                                            CornerRadius="8"
+                                            Margin="2">
+                                        <TextBlock Text="{Binding FileName}"
+                                                   FontSize="10"
+                                                   Foreground="#999999"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   TextAlignment="Center"
+                                                   TextWrapping="Wrap"
+                                                   MaxLines="2" />
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <!-- Settings -->
+                <Border Padding="20">
+                    <StackPanel Spacing="8">
+                        <Button Content="Mute Notifications"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Foreground="#FFFFFF"
+                                HorizontalContentAlignment="Left"
+                                Command="{Binding MuteCommand}" />
+
+                        <Button Content="Block Contact"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Foreground="#FF5252"
+                                HorizontalContentAlignment="Left"
+                                Command="{Binding BlockCommand}" />
+
+                        <Button Content="Clear Chat History"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Foreground="#FFFFFF"
+                                HorizontalContentAlignment="Left"
+                                Command="{Binding ClearHistoryCommand}" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Border>
+</UserControl>

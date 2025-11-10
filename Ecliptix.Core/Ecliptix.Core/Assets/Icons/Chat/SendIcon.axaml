@@ -1,0 +1,5 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Send Icon - Arrow -->
+    <StreamGeometry x:Key="SendIconData">M2.01 21L23 12 2.01 3 2 10l15 2-15 2z</StreamGeometry>
+</ResourceDictionary>
