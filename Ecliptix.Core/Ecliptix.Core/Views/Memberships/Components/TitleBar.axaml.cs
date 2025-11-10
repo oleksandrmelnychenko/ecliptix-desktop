@@ -16,17 +16,95 @@ namespace Ecliptix.Core.Views.Memberships.Components;
 public partial class TitleBar : ReactiveUserControl<TitleBarViewModel>
 {
     private readonly ContentControl? _rootControl;
+    private readonly Border? _mainBorder;
+    private CompositeDisposable _pointerSubscriptions = new();
+
+    private const double DRAG_THRESHOLD = 3;
+
 
     public TitleBar()
     {
         InitializeComponent();
         _rootControl = this.FindControl<ContentControl>("PART_Root");
 
-        this.WhenActivated( disposables =>
+        if (Window != null)
         {
-            InitializeLayout();
-            SetupPointerHandler(disposables);
-        });
+            _mainBorder = Window.FindControl<Border>("MainBorder");
+        }
+
+        InitializeLayout();
+
+        if (_rootControl != null)
+        {
+            _rootControl.PointerPressed += OnRootPointerPressed;
+        }
+
+        Unloaded += (s, e) =>
+        {
+            if (_rootControl != null)
+            {
+                _rootControl.PointerPressed -= OnRootPointerPressed;
+            }
+
+            _pointerSubscriptions.Dispose();
+        };
+    }
+
+    private void OnRootPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (Window == null || Window.WindowState == WindowState.FullScreen)
+        {
+            return;
+        }
+
+        _pointerSubscriptions.Dispose();
+        _pointerSubscriptions = new CompositeDisposable();
+
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            bool isDragStarted = false;
+            Point startPosition = e.GetPosition(this);
+
+            Observable.FromEventPattern<PointerEventArgs>(
+                h => _rootControl!.PointerMoved += h,
+                h => _rootControl!.PointerMoved -= h
+            )
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(args =>
+            {
+                if (isDragStarted)
+                {
+                    return;
+                }
+
+                Point currentPosition = args.EventArgs.GetPosition(this);
+                Vector delta = startPosition - currentPosition;
+
+                if (Math.Abs(delta.X) > DRAG_THRESHOLD || Math.Abs(delta.Y) > DRAG_THRESHOLD)
+                {
+                    isDragStarted = true;
+                    Window.BeginMoveDrag(e);
+                    _pointerSubscriptions.Dispose();
+                }
+            })
+            .DisposeWith(_pointerSubscriptions);
+
+            Observable.FromEventPattern<PointerReleasedEventArgs>(
+                h => _rootControl!.PointerReleased += h,
+                h => _rootControl!.PointerReleased -= h
+            )
+            .Take(1)
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(args =>
+            {
+                if (!isDragStarted && e.ClickCount == 2 && DataContext is TitleBarViewModel vm && !vm.DisableMaximizeButton)
+                {
+                    HandleDoubleClickMaximize();
+                }
+                _pointerSubscriptions.Dispose();
+            })
+            .DisposeWith(_pointerSubscriptions);
+        }
     }
 
     private void InitializeLayout()
@@ -51,59 +129,35 @@ public partial class TitleBar : ReactiveUserControl<TitleBarViewModel>
         {
             layout = new WindowsTitleBarLayout();
         }
-        
+
         layout.Bind(DataContextProperty, this.GetObservable(DataContextProperty));
 
         _rootControl.Content = layout;
     }
 
-    private void SetupPointerHandler(CompositeDisposable disposables)
+    private void HandleDoubleClickMaximize()
     {
-        ContentControl? rootControl = this.FindControl<ContentControl>("PART_Root");
-        if (rootControl == null)
+        if (Window == null)
         {
             return;
         }
 
-        Observable.FromEventPattern<PointerPressedEventArgs>(
-                h => rootControl.PointerPressed += h,
-                h => rootControl.PointerPressed -= h
-            )
-            .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(e =>
-            {
-                if (Window == null)
-                {
-                    return;
-                }
+        bool isCurrentlyMaximized = Window.WindowState == WindowState.Maximized;
 
-                if (Window.WindowState == WindowState.FullScreen)
-                {
-                    return;
-                }
+        Window.WindowState = isCurrentlyMaximized
+            ? WindowState.Normal
+            : WindowState.Maximized;
 
-                if (e.EventArgs.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
-                {
-                    if (e.EventArgs.ClickCount == 2)
-                    {
-                        Window.WindowState = Window.WindowState == WindowState.Maximized
-                            ? WindowState.Normal
-                            : WindowState.Maximized;
-                    }
-                    else
-                    {
-                        Window.BeginMoveDrag(e.EventArgs);
-                    }
-                }
-            })
-            .DisposeWith(disposables);
+        if (_mainBorder != null)
+        {
+            _mainBorder.CornerRadius = isCurrentlyMaximized
+                ? new CornerRadius(12)
+                : new CornerRadius(0);
+        }
     }
 
     private Window? Window => VisualRoot as Window;
 
-    private void InitializeComponent()
-    {
-        AvaloniaXamlLoader.Load(this);
-    }
+    private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
 }
 
