@@ -84,6 +84,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         await AnimateWindowResizeAsync(480, 720, TimeSpan.FromMilliseconds(300)).ConfigureAwait(false);
 
         CanResize = false;
+        TitleBarViewModel.DisableMaximizeButton = true;
 
         await SetContentWithFadeAsync(content).ConfigureAwait(false);
     }
@@ -93,6 +94,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         await AnimateWindowResizeAsync(1200, 800, TimeSpan.FromMilliseconds(300)).ConfigureAwait(false);
 
         CanResize = true;
+        TitleBarViewModel.DisableMaximizeButton = false;
 
         await SetContentWithFadeAsync(content).ConfigureAwait(false);
     }

@@ -36,7 +36,7 @@
                     VerticalAlignment="Stretch"
                     HorizontalContentAlignment="Center"
                     BorderThickness="0"
-                    ToolTip.Tip="Minimize">
+                    IsEnabled="{Binding DisableMinimizeButton, Converter={x:Static BoolConverters.Not}}">
                 <Button.Resources>
                     <CornerRadius x:Key="ControlCornerRadius">0</CornerRadius>
                 </Button.Resources>
@@ -58,12 +58,8 @@
             <Button x:Name="MaximizeButton"
                     Width="46"
                     VerticalAlignment="Stretch"
-                    BorderThickness="0">
-                <ToolTip.Tip>
-                    <ToolTip Content="Maximize"
-                             Name="MaximizeToolTip"></ToolTip>
-                </ToolTip.Tip>
-
+                    BorderThickness="0"
+                    IsEnabled="{Binding DisableMaximizeButton, Converter={x:Static BoolConverters.Not}}">
                 <Button.Resources>
                     <CornerRadius x:Key="ControlCornerRadius">0</CornerRadius>
                 </Button.Resources>
@@ -86,7 +82,7 @@
                     Width="46"
                     VerticalAlignment="Stretch"
                     BorderThickness="0"
-                    ToolTip.Tip="Close">
+                    IsEnabled="{Binding DisableCloseButton, Converter={x:Static BoolConverters.Not}}">
                 <Button.Resources>
                     <CornerRadius x:Key="ControlCornerRadius">0</CornerRadius>
                 </Button.Resources>
