@@ -35,6 +35,8 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     [Reactive] public double WindowHeight { get; set; }
 
+    [Reactive] public PixelPoint CurrentPosition { get; set; } = new(0, 0);
+
     [Reactive] public bool CanResize { get; private set; }
 
     [Reactive] public string WindowTitle { get; set; }
@@ -43,6 +45,11 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     public TitleBarViewModel TitleBarViewModel { get; }
     public ConnectivityNotificationViewModel ConnectivityNotification { get; }
+
+    public Func<Rect>? GetPrimaryScreenWorkingArea { get; set; }
+
+    public event Action<PixelPoint>? OnWindowRepositionRequested;
+
 
     public MainWindowViewModel(
         IBottomSheetService bottomSheetService,
@@ -53,6 +60,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     {
         _bottomSheetService = bottomSheetService;
         _storageProvider = storageProvider;
+
 
         WindowWidth = 480;
         WindowHeight = 720;
@@ -128,39 +136,71 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     private static Task SetupHandlersAsync() => Task.CompletedTask;
 
     private async Task AnimateWindowResizeAsync(double targetWidth, double targetHeight, TimeSpan duration)
+{
+    if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
     {
-        if (WindowState == WindowState.Maximized || WindowState == WindowState.Normal)
-        {
-            WindowWidth = targetWidth;
-            WindowHeight = targetHeight;
-            return;
-        }
-
-        double startWidth = WindowWidth;
-        double startHeight = WindowHeight;
-
-        if (Math.Abs(startWidth - targetWidth) < 0.01 && Math.Abs(startHeight - targetHeight) < 0.01)
-        {
-            return;
-        }
-
-        const int steps = 30;
-        TimeSpan stepDuration = TimeSpan.FromMilliseconds(duration.TotalMilliseconds / steps);
-
-        for (int i = 1; i <= steps; i++)
-        {
-            double progress = (double)i / steps;
-            double easedProgress = EaseInOutCubic(progress);
-
-            WindowWidth = startWidth + (targetWidth - startWidth) * easedProgress;
-            WindowHeight = startHeight + (targetHeight - startHeight) * easedProgress;
-
-            await Task.Delay(stepDuration).ConfigureAwait(false);
-        }
-
-        WindowWidth = targetWidth;
-        WindowHeight = targetHeight;
+        WindowState = WindowState.Normal;
+        await Task.Delay(500).ConfigureAwait(false);
     }
+
+    double startWidth = WindowWidth;
+    double startHeight = WindowHeight;
+
+    PixelPoint startPosition = CurrentPosition;
+    PixelPoint? targetPosition = null;
+
+    if (GetPrimaryScreenWorkingArea != null)
+    {
+        Rect workingArea = GetPrimaryScreenWorkingArea();
+
+        double currentWindowCenterX = startPosition.X + startWidth / 2;
+        double currentWindowCenterY = startPosition.Y + startHeight / 2;
+        double targetX = currentWindowCenterX - targetWidth / 2;
+        double targetY = currentWindowCenterY - targetHeight / 2;
+
+        targetX = Math.Max(workingArea.X, Math.Min(targetX, workingArea.X + workingArea.Width - targetWidth));
+        targetY = Math.Max(workingArea.Y, Math.Min(targetY, workingArea.Y + workingArea.Height - targetHeight));
+
+        targetPosition = new PixelPoint((int)targetX, (int)targetY);
+    }
+
+    if (Math.Abs(startWidth - targetWidth) < 0.01 && Math.Abs(startHeight - targetHeight) < 0.01)
+    {
+        if (targetPosition.HasValue && startPosition != targetPosition)
+        {
+            OnWindowRepositionRequested?.Invoke(targetPosition.Value);
+        }
+        return;
+    }
+
+    const int steps = 30;
+    TimeSpan stepDuration = TimeSpan.FromMilliseconds(duration.TotalMilliseconds / steps);
+
+    for (int i = 1; i <= steps; i++)
+    {
+        double progress = (double)i / steps;
+        double easedProgress = EaseInOutCubic(progress);
+
+        WindowWidth = startWidth + (targetWidth - startWidth) * easedProgress;
+        WindowHeight = startHeight + (targetHeight - startHeight) * easedProgress;
+
+        if (targetPosition.HasValue)
+        {
+            int currentX = (int)(startPosition.X + (targetPosition.Value.X - startPosition.X) * easedProgress);
+            int currentY = (int)(startPosition.Y + (targetPosition.Value.Y - startPosition.Y) * easedProgress);
+            OnWindowRepositionRequested?.Invoke(new PixelPoint(currentX, currentY));
+        }
+
+        await Task.Delay(stepDuration).ConfigureAwait(false);
+    }
+
+    WindowWidth = targetWidth;
+    WindowHeight = targetHeight;
+    if (targetPosition.HasValue)
+    {
+        OnWindowRepositionRequested?.Invoke(targetPosition.Value);
+    }
+}
 
     public async Task<WindowPlacement?> LoadInitialPlacementAsync()
     {

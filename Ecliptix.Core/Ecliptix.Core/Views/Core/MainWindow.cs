@@ -7,8 +7,8 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
+using Avalonia.Platform;
 using Avalonia.ReactiveUI;
-using Avalonia.Threading;
 using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Services.Core;
 using Ecliptix.Core.ViewModels.Core;
@@ -52,6 +52,24 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                 .ObserveOn(RxApp.MainThreadScheduler)
                 .Subscribe(viewModel =>
                 {
+
+                    viewModel.GetPrimaryScreenWorkingArea = GetScreenWorkingAreaForWindow;
+                    viewModel.OnWindowRepositionRequested += position =>
+                    {
+                        Position = position;
+                    };
+
+                    viewModel.CurrentPosition = Position;
+
+                    Observable.FromEventPattern<EventHandler<PixelPointEventArgs>, PixelPointEventArgs>(
+                            h => PositionChanged += h,
+                            h => PositionChanged -= h)
+                        .Select(e => e.EventArgs.Point)
+                        .ObserveOn(RxApp.MainThreadScheduler)
+                        .Subscribe(pos => viewModel.CurrentPosition = pos)
+                        .DisposeWith(disposables);
+
+
                     if (!_languageSelectorLoaded)
                     {
                         LoadLanguageSelector(viewModel);
@@ -124,6 +142,32 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                 }
             })
             .DisposeWith(disposables);
+    }
+
+    private Rect GetScreenWorkingAreaForWindow()
+    {
+        try
+        {
+            Screen? screen = Screens.ScreenFromWindow(this);
+            if (screen != null)
+            {
+                return screen.WorkingArea.ToRect(1.0);
+            }
+
+            Screen? primaryScreen = Screens.Primary;
+            if (primaryScreen != null)
+            {
+                return primaryScreen.WorkingArea.ToRect(1.0);
+            }
+
+            Log.Warning("[MAIN-WINDOW] No screen information available, using default bounds");
+            return new Rect(0, 0, 1920, 1080);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[MAIN-WINDOW] Error getting screen working area");
+            return new Rect(0, 0, 1920, 1080);
+        }
     }
 
     private async Task LoadWindowPlacementAsync(MainWindowViewModel viewModel)
