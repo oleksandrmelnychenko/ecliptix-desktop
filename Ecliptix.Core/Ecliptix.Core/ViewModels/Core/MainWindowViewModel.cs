@@ -142,6 +142,16 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         WindowState = WindowState.Normal;
         await Task.Delay(500).ConfigureAwait(false);
     }
+    else
+    {
+        using (DelayChangeNotifications())
+        {
+            WindowWidth++;
+            WindowHeight++;
+        }
+
+        await Task.Delay(500).ConfigureAwait(false);
+    }
 
     double startWidth = WindowWidth;
     double startHeight = WindowHeight;
