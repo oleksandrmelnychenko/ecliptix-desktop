@@ -93,6 +93,8 @@
     
     <Style Selector="Button.continue-button:pressed">
         <Setter Property="Background" Value="{DynamicResource Button.Primary.Pressed}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Button.Primary.Pressed}" />
+        <Setter Property="BorderThickness" Value="0" />
     </Style>
     
     <!-- ===================================== -->

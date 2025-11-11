@@ -11,8 +11,8 @@
                 <ResourceDictionary x:Key="Light">
 
                     <!-- Primary Brand Colors -->
-                    <Color x:Key="Primary">#6a5acd</Color>
-                    <Color x:Key="PrimaryVariant">#553c9a</Color>
+                    <Color x:Key="Primary">#FF6D00</Color>
+                    <Color x:Key="PrimaryVariant">#FF7527</Color>
                     <Color x:Key="OnPrimary">#FFFFFF</Color>
 
                     <!-- Secondary Colors -->
@@ -75,13 +75,13 @@
                     <!-- Shadow & Effects -->
                     <Color x:Key="Shadow.Color">#000000</Color>
                     <SolidColorBrush x:Key="Shadow" Color="{DynamicResource Shadow.Color}" />
-                    <Color x:Key="Blur.Background">#FF6a5acd</Color>
+                    <Color x:Key="Blur.Background">#FFFFFF</Color>
                     <SolidColorBrush x:Key="BlurBackgroundBrush" Color="{DynamicResource Blur.Background}" />
 
                     <!-- Special Colors -->
                     <Color x:Key="Circle.Border">White</Color>
                     <Color x:Key="Window.Background">#FFFFFF</Color>
-                    <Color x:Key="Window.Border">#6a5acd</Color>
+                    <Color x:Key="Window.Border">#4DFF6D00</Color>
 
                     <!-- Control-specific Colors -->
                     <Color x:Key="ScrollBar.ThumbColor">#E0E0E0</Color>
@@ -109,8 +109,8 @@
                 <ResourceDictionary x:Key="Dark">
 
                     <!-- Primary Brand Colors -->
-                    <Color x:Key="Primary">#8b7dd8</Color>
-                    <Color x:Key="PrimaryVariant">#7c6cd4</Color>
+                    <Color x:Key="Primary">#FF6D00</Color>
+                    <Color x:Key="PrimaryVariant">#FF7527</Color>
                     <Color x:Key="OnPrimary">#000000</Color>
 
                     <!-- Secondary Colors -->
@@ -179,7 +179,7 @@
                     <!-- Special Colors -->
                     <Color x:Key="Circle.Border">#e3e3e3</Color>
                     <Color x:Key="Window.Background">#2d2d2d</Color>
-                    <Color x:Key="Window.Border">#8b7dd8</Color>
+                    <Color x:Key="Window.Border">#4DFF6D00</Color>
 
                     <!-- Control-specific Colors -->
                     <Color x:Key="ScrollBar.ThumbColor">#4A4A4A</Color>

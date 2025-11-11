@@ -25,6 +25,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         _languageSelectorContainer = this.FindControl<Border>("LanguageSelectorContainer");
 
         SetupLazyLanguageSelector();
+        SetupLanguageSelectorVisibility();
 
 #if DEBUG
         this.AttachDevTools();
@@ -43,6 +44,27 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                 .Where(_ => !_languageSelectorLoaded)
                 .ObserveOn(RxApp.MainThreadScheduler)
                 .Subscribe(LoadLanguageSelector)
+                .DisposeWith(disposables);
+        });
+    }
+
+    private void SetupLanguageSelectorVisibility()
+    {
+        this.WhenActivated(disposables =>
+        {
+            this.WhenAnyValue(x => x.DataContext)
+                .Where(dc => dc != null)
+                .Select(dc => dc!)
+                .OfType<MainWindowViewModel>()
+                .SelectMany(vm => vm.WhenAnyValue(x => x.CanResize))
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Subscribe(canResize =>
+                {
+                    if (_languageSelectorContainer != null)
+                    {
+                        _languageSelectorContainer.IsVisible = !canResize;
+                    }
+                })
                 .DisposeWith(disposables);
         });
     }

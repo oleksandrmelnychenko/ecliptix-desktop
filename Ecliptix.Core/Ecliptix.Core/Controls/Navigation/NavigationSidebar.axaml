@@ -1,0 +1,166 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ecliptix.Core.ViewModels.Navigation"
+             xmlns:models="clr-namespace:Ecliptix.Core.Models.Navigation"
+             mc:Ignorable="d"
+             d:DesignWidth="280"
+             d:DesignHeight="800"
+             x:DataType="vm:NavigationSidebarViewModel"
+             x:Class="Ecliptix.Core.Controls.Navigation.NavigationSidebar">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="/Assets/Icons/Navigation/FeedIcon.axaml" />
+                <ResourceInclude Source="/Assets/Icons/Navigation/ChatsIcon.axaml" />
+                <ResourceInclude Source="/Assets/Icons/Navigation/SettingsIcon.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="Button.copilot-sidebar-button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Margin" Value="3,1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="8" />
+            <Setter Property="Width" Value="72" />
+            <Setter Property="Height" Value="72" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.15" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Button.copilot-sidebar-button:pointerover">
+            <Setter Property="Background" Value="#F2F6F7" />
+        </Style>
+
+        <Style Selector="Button.copilot-sidebar-button:pressed">
+            <Setter Property="Background" Value="#F2F6F7" />
+        </Style>
+
+        <Style Selector="Button.copilot-sidebar-button.selected">
+            <Setter Property="Background" Value="#F2F6F7" />
+        </Style>
+
+        <!-- Icon Style -->
+        <Style Selector="PathIcon.copilot-icon">
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="Foreground" Value="#5C5C5C" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Foreground" Duration="0:0:0.15" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Path.copilot-path">
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="Stroke" Value="#5C5C5C" />
+            <Setter Property="StrokeThickness" Value="1.5" />
+            <Setter Property="Fill" Value="Transparent" />
+            <Setter Property="Stretch" Value="Uniform" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Stroke" Duration="0:0:0.15" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Button.copilot-sidebar-button.selected PathIcon.copilot-icon">
+            <Setter Property="Foreground" Value="#242424" />
+        </Style>
+
+        <Style Selector="Button.copilot-sidebar-button:pointerover PathIcon.copilot-icon">
+            <Setter Property="Foreground" Value="#242424" />
+        </Style>
+
+        <Style Selector="Button.copilot-sidebar-button.selected Path.copilot-path">
+            <Setter Property="Stroke" Value="#242424" />
+        </Style>
+
+        <Style Selector="Button.copilot-sidebar-button:pointerover Path.copilot-path">
+            <Setter Property="Stroke" Value="#242424" />
+        </Style>
+
+        <!-- Label Style -->
+        <Style Selector="TextBlock.copilot-label">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="#5C5C5C" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,6,0,0" />
+            <Setter Property="FontWeight" Value="Light" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Foreground" Duration="0:0:0.15" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Button.copilot-sidebar-button.selected TextBlock.copilot-label">
+            <Setter Property="Foreground" Value="#242424" />
+            <Setter Property="FontWeight" Value="Light" />
+        </Style>
+
+        <Style Selector="Button.copilot-sidebar-button:pointerover TextBlock.copilot-label">
+            <Setter Property="Foreground" Value="#242424" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border Background="#FCFEFF"
+            BorderBrush="#E8E8E8"
+            BorderThickness="1"
+            CornerRadius="24"
+            Padding="8"
+            Margin="8,0,0,0"
+            VerticalAlignment="Center">
+
+        <Border.Effect>
+            <DropShadowEffect Color="#000000"
+                              BlurRadius="16"
+                              Opacity="0.05"
+                              OffsetX="2"
+                              OffsetY="0" />
+        </Border.Effect>
+
+        <StackPanel Spacing="4">
+            <ItemsControl ItemsSource="{Binding MenuItems}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:NavigationMenuItem">
+                        <Button Classes="copilot-sidebar-button"
+                                Classes.selected="{Binding IsSelected}"
+                                Command="{Binding $parent[UserControl].((vm:NavigationSidebarViewModel)DataContext).NavigateCommand}"
+                                CommandParameter="{Binding}"
+                                IsVisible="{Binding !Type}">
+                            <StackPanel Spacing="6">
+                                <Panel Width="16" Height="16">
+                                    <Path Classes="copilot-path"
+                                          Data="{StaticResource FeedIconData}"
+                                          IsVisible="{Binding Id, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=home}" />
+                                    <Path Classes="copilot-path"
+                                          Data="{StaticResource ChatsIconData}"
+                                          IsVisible="{Binding Id, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=chats}" />
+                                    <Path Classes="copilot-path"
+                                          Data="{StaticResource SettingsIconData}"
+                                          IsVisible="{Binding Id, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=settings}" />
+                                </Panel>
+                                <TextBlock Classes="copilot-label"
+                                           Text="{Binding Label}" />
+                            </StackPanel>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </Border>
+</UserControl>

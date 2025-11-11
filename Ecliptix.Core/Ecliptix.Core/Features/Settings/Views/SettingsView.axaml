@@ -1,0 +1,29 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ecliptix.Core.Features.Settings.ViewModels"
+             mc:Ignorable="d"
+             d:DesignWidth="800"
+             d:DesignHeight="600"
+             x:DataType="vm:SettingsViewModel"
+             x:Class="Ecliptix.Core.Features.Settings.Views.SettingsView">
+
+    <Grid>
+        <Border Background="Transparent"
+                Margin="20"
+                CornerRadius="12"
+                Padding="40">
+            <StackPanel Spacing="20"
+                        VerticalAlignment="Top">
+                <TextBlock Text="{Binding Title}"
+                           FontSize="32"
+                           FontWeight="Bold"
+                           HorizontalAlignment="Left" />
+                <TextBlock Text="Settings options will appear here"
+                           FontSize="16"
+                           Foreground="#666666" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

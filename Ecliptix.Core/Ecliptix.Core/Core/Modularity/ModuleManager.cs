@@ -63,6 +63,34 @@ public class ModuleManager : IModuleManager
             return Option<IModule>.None;
         }
 
+        IReadOnlyList<ModuleIdentifier> dependencies = module.Manifest.Dependencies;
+        if (dependencies.Count > 0)
+        {
+            Log.Information("Module '{ModuleName}' has {Count} dependencies, loading them first",
+                moduleName, dependencies.Count);
+
+            foreach (ModuleIdentifier dependencyId in dependencies)
+            {
+                string dependencyName = dependencyId.ToName();
+
+                if (!IsModuleLoaded(dependencyName))
+                {
+                    Log.Information("Loading dependency '{DependencyName}' for module '{ModuleName}'",
+                        dependencyName, moduleName);
+
+                    Option<IModule> dependencyResult = await LoadModuleAsync(dependencyName);
+
+                    if (!dependencyResult.IsSome)
+                    {
+                        _moduleStates[moduleName] = ModuleState.FAILED;
+                        Log.Error("Failed to load dependency '{DependencyName}' for module '{ModuleName}'",
+                            dependencyName, moduleName);
+                        return Option<IModule>.None;
+                    }
+                }
+            }
+        }
+
         if (!await module.CanLoadAsync())
         {
             _moduleStates[moduleName] = ModuleState.FAILED;
@@ -75,6 +103,7 @@ public class ModuleManager : IModuleManager
         _moduleStates[moduleName] = ModuleState.LOADED;
 
         await module.SetupMessageHandlersAsync(_messageBus);
+        Log.Information("Module '{ModuleName}' loaded successfully", moduleName);
         return Option<IModule>.Some(module);
     }
 
@@ -141,6 +170,45 @@ public class ModuleManager : IModuleManager
                 }
             });
         }
+    }
+
+    public async Task<IReadOnlyList<IModule>> LoadModulesInParallelAsync(params string[] moduleNames)
+    {
+        Task<Option<IModule>>[] loadTasks = moduleNames
+            .Select(moduleName => LoadModuleAsync(moduleName))
+            .ToArray();
+
+        Option<IModule>[] results = await Task.WhenAll(loadTasks);
+
+        List<IModule> loadedModules = new();
+        foreach (Option<IModule> result in results)
+        {
+            if (result.IsSome)
+            {
+                loadedModules.Add(result.Value!);
+            }
+        }
+
+        Log.Information("Loaded {Count} modules in parallel: {Modules}",
+            loadedModules.Count,
+            string.Join(", ", loadedModules.Select(m => m.Id.ToName())));
+
+        return loadedModules;
+    }
+
+    public async Task<IReadOnlyList<IModule>> LoadModulesByStrategyInParallelAsync(ModuleLoadingStrategy strategy)
+    {
+        string[] moduleNames = _catalog.GetModules()
+            .Where(m => m.Manifest.LoadingStrategy == strategy && !IsModuleLoaded(m.Id.ToName()))
+            .Select(m => m.Id.ToName())
+            .ToArray();
+
+        if (moduleNames.Length == 0)
+        {
+            return [];
+        }
+
+        return await LoadModulesInParallelAsync(moduleNames);
     }
 
     public async Task UnloadModuleAsync(string moduleName)

@@ -84,12 +84,13 @@
                 BorderThickness="1"
                 CornerRadius="{StaticResource WindowBorderRadius}"
                 Margin="8"
+                ClipToBounds="True"
                 x:Name="MainBorder">
 
             <Border.Effect>
-                <DropShadowEffect Color="{DynamicResource Shadow.Color}"
+                <DropShadowEffect Color="Black"
                                   BlurRadius="{StaticResource Shadow.Radius}"
-                                  Opacity="0.4"
+                                  Opacity="0.1"
                                   OffsetX="0"
                                   OffsetY="2" />
             </Border.Effect>
@@ -98,8 +99,7 @@
             <core:ModuleContentControl ViewModelContent="{Binding CurrentContent}"
                                        Background="Transparent"
                                        HorizontalAlignment="Stretch"
-                                       VerticalAlignment="Stretch"
-                                       ClipToBounds="True" />
+                                       VerticalAlignment="Stretch" />
         </Border>
     </Grid>
 </Window>

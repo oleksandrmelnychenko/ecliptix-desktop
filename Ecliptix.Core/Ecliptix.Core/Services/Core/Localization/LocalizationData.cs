@@ -36,13 +36,13 @@ public static class LocalizationData
         [LocalizationKeys.Authentication.SignUp.SignUpMobileVerification.TITLE] = "Create Account",
         [LocalizationKeys.Authentication.SignUp.SignUpMobileVerification.DESCRIPTION] =
             "Confirm your number. We'll text you a verification code.",
-        [LocalizationKeys.Authentication.SignUp.SignUpMobileVerification.HINT] = "Include country code",
+        [LocalizationKeys.Authentication.SignUp.SignUpMobileVerification.HINT] = "Include country code (e.g., +1)",
         [LocalizationKeys.Authentication.SignUp.SignUpMobileVerification.WATERMARK] = "Mobile Number",
         [LocalizationKeys.Authentication.SignUp.SignUpMobileVerification.BUTTON] = "Continue",
         [LocalizationKeys.Authentication.SecureKeyRecovery.RecoveryMobileVerification.TITLE] = "Reset Secure Key",
         [LocalizationKeys.Authentication.SecureKeyRecovery.RecoveryMobileVerification.DESCRIPTION] =
             "Enter your mobile number to receive a verification code.",
-        [LocalizationKeys.Authentication.SecureKeyRecovery.RecoveryMobileVerification.HINT] = "Include country code",
+        [LocalizationKeys.Authentication.SecureKeyRecovery.RecoveryMobileVerification.HINT] = "Include country code (e.g., +1)",
         [LocalizationKeys.Authentication.SecureKeyRecovery.RecoveryMobileVerification.WATERMARK] = "Mobile Number",
         [LocalizationKeys.Authentication.SecureKeyRecovery.RecoveryMobileVerification.BUTTON] = "Continue",
         [LocalizationKeys.Authentication.SignUp.VerificationCodeEntry.TITLE] = "Verify Your Number",
@@ -63,7 +63,7 @@ public static class LocalizationData
             "Use a strong, unique secure key for security.",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.SECURE_KEY_PLACEHOLDER] = "Secure Key",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.SECURE_KEY_HINT] =
-            "8 chars, 1 upper and 1 number",
+            "Min 6 chars: uppercase, lowercase, number",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.VERIFY_SECURE_KEY_PLACEHOLDER] =
             "Confirm Secure Key",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.VERIFY_SECURE_KEY_HINT] =
@@ -76,7 +76,7 @@ public static class LocalizationData
             "Create a new secure key for your account.",
         [LocalizationKeys.Authentication.SecureKeyRecovery.Reset.NEW_SECURE_KEY_PLACEHOLDER] = "New Secure Key",
         [LocalizationKeys.Authentication.SecureKeyRecovery.Reset.NEW_SECURE_KEY_HINT] =
-            "8 chars, 1 upper and 1 number",
+            "Min 6 chars: uppercase, lowercase, number",
         [LocalizationKeys.Authentication.SecureKeyRecovery.Reset.CONFIRM_SECURE_KEY_PLACEHOLDER] =
             "Confirm New Key",
         [LocalizationKeys.Authentication.SecureKeyRecovery.Reset.CONFIRM_SECURE_KEY_HINT] =
@@ -125,7 +125,7 @@ public static class LocalizationData
         [LocalizationKeys.ValidationErrors.MobileNumber.MUST_START_WITH_COUNTRY_CODE] = "Must start with +",
         [LocalizationKeys.ValidationErrors.MobileNumber.CONTAINS_NON_DIGITS] = "Digits only after code",
         [LocalizationKeys.ValidationErrors.MobileNumber.INCORRECT_LENGTH] = "{0}-{1} digits required",
-        [LocalizationKeys.ValidationErrors.MobileNumber.CANNOT_BE_EMPTY] = "REQUIRED",
+        [LocalizationKeys.ValidationErrors.MobileNumber.CANNOT_BE_EMPTY] = "Required field",
         [LocalizationKeys.ResponseErrors.MobileNumber.ACCOUNT_ALREADY_REGISTERED] =
             "Account on this number already registered. Try sign in or use forgot secure key.",
         [LocalizationKeys.ResponseErrors.MobileNumber.UNEXPECTED_MEMBERSHIP_STATUS] =
@@ -137,7 +137,7 @@ public static class LocalizationData
         [LocalizationKeys.ValidationErrors.DeviceIdentifier.REQUIRED] = "Device identifier is required",
         [LocalizationKeys.ValidationErrors.SessionIdentifier.REQUIRED] = "Session identifier is required",
         [LocalizationKeys.ValidationErrors.MembershipIdentifier.REQUIRED] = "Membership identifier is required",
-        [LocalizationKeys.ValidationErrors.SecureKey.REQUIRED] = "REQUIRED",
+        [LocalizationKeys.ValidationErrors.SecureKey.REQUIRED] = "Required field",
         [LocalizationKeys.ValidationErrors.SecureKey.MIN_LENGTH] = "Min {0} characters",
         [LocalizationKeys.ValidationErrors.SecureKey.MAX_LENGTH] = "Max {0} characters",
         [LocalizationKeys.ValidationErrors.SecureKey.NO_SPACES] = "No spaces allowed",
@@ -170,6 +170,8 @@ public static class LocalizationData
         [LocalizationKeys.Footer.TERMS_OF_SERVICE] = "Terms of Service",
         [LocalizationKeys.Footer.SUPPORT] = "Support",
         [LocalizationKeys.Footer.AGREEMENT_TEXT] = "By continuing, you agree to our Terms and Privacy Policy.",
+        [LocalizationKeys.Footer.AGREEMENT_PREFIX] = "By signing up, you agree to the ",
+        [LocalizationKeys.Footer.AGREEMENT_CONJUNCTION] = " and ",
         [LocalizationKeys.Footer.COPYRIGHT] = "© 2025 Horizon Dynamics. All rights reserved.",
         [LocalizationKeys.Navigation.BACK] = "Back",
         [LocalizationKeys.Navigation.CLOSE] = "Close",
@@ -240,13 +242,13 @@ public static class LocalizationData
         [LocalizationKeys.Authentication.SignUp.SignUpMobileVerification.TITLE] = "Створити акаунт",
         [LocalizationKeys.Authentication.SignUp.SignUpMobileVerification.DESCRIPTION] =
             "Підтвердьте номер. Ми надішлемо код в SMS.",
-        [LocalizationKeys.Authentication.SignUp.SignUpMobileVerification.HINT] = "Включно з кодом країни",
+        [LocalizationKeys.Authentication.SignUp.SignUpMobileVerification.HINT] = "Включіть код країни (напр., +380)",
         [LocalizationKeys.Authentication.SignUp.SignUpMobileVerification.WATERMARK] = "Номер мобільного",
         [LocalizationKeys.Authentication.SignUp.SignUpMobileVerification.BUTTON] = "Продовжити",
         [LocalizationKeys.Authentication.SecureKeyRecovery.RecoveryMobileVerification.TITLE] = "Скинути ключ безпеки",
         [LocalizationKeys.Authentication.SecureKeyRecovery.RecoveryMobileVerification.DESCRIPTION] =
             "Підтвердьте номер для отримання коду підтвердження.",
-        [LocalizationKeys.Authentication.SecureKeyRecovery.RecoveryMobileVerification.HINT] = "Включно з кодом країни",
+        [LocalizationKeys.Authentication.SecureKeyRecovery.RecoveryMobileVerification.HINT] = "Включіть код країни (напр., +380)",
         [LocalizationKeys.Authentication.SecureKeyRecovery.RecoveryMobileVerification.WATERMARK] = "Номер мобільного",
         [LocalizationKeys.Authentication.SecureKeyRecovery.RecoveryMobileVerification.BUTTON] = "Продовжити",
         [LocalizationKeys.Authentication.SignUp.VerificationCodeEntry.TITLE] = "Підтвердження номера",
@@ -267,7 +269,7 @@ public static class LocalizationData
             "Для безпеки використовуйте надійний ключ безпеки.",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.SECURE_KEY_PLACEHOLDER] = "Ключ безпеки",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.SECURE_KEY_HINT] =
-            "8 символів, 1 велика літера та 1 цифра",
+            "Мін 6 символів: велика, мала літера, цифра",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.VERIFY_SECURE_KEY_PLACEHOLDER] =
             "Повторіть ключ",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.VERIFY_SECURE_KEY_HINT] =
@@ -280,7 +282,7 @@ public static class LocalizationData
             "Створіть новий ключ безпеки для облікового запису.",
         [LocalizationKeys.Authentication.SecureKeyRecovery.Reset.NEW_SECURE_KEY_PLACEHOLDER] = "Новий ключ безпеки",
         [LocalizationKeys.Authentication.SecureKeyRecovery.Reset.NEW_SECURE_KEY_HINT] =
-            "8 символів, 1 велика літера та 1 цифра",
+            "Мін 6 символів: велика, мала літера, цифра",
         [LocalizationKeys.Authentication.SecureKeyRecovery.Reset.CONFIRM_SECURE_KEY_PLACEHOLDER] =
             "Підтвердіть новий ключ",
         [LocalizationKeys.Authentication.SecureKeyRecovery.Reset.CONFIRM_SECURE_KEY_HINT] =
@@ -374,6 +376,8 @@ public static class LocalizationData
         [LocalizationKeys.Footer.SUPPORT] = "Підтримка",
         [LocalizationKeys.Footer.AGREEMENT_TEXT] =
             "Продовжуючи, ви погоджуєтесь з нашими Умовами та Політикою конфіденційності.",
+        [LocalizationKeys.Footer.AGREEMENT_PREFIX] = "Реєструючись, ви погоджуєтесь з ",
+        [LocalizationKeys.Footer.AGREEMENT_CONJUNCTION] = " та ",
         [LocalizationKeys.Footer.COPYRIGHT] = "© 2025 Horizon Dynamics. Усі права захищено.",
         [LocalizationKeys.Navigation.BACK] = "Назад",
         [LocalizationKeys.Navigation.CLOSE] = "Закрити",

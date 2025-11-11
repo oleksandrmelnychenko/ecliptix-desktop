@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignWidth="800"
+             d:DesignHeight="600"
+             x:Class="Ecliptix.Core.Features.Main.Views.HomeView">
+
+    <Grid>
+        <Border Background="Transparent"
+                Margin="20"
+                CornerRadius="12"
+                Padding="40">
+            <StackPanel Spacing="20"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Center">
+                <TextBlock Text="Welcome to Ecliptix"
+                           FontSize="32"
+                           FontWeight="Bold"
+                           HorizontalAlignment="Center" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

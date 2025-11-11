@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Ecliptix.Utilities;
 
@@ -11,4 +12,6 @@ public interface IModuleViewFactory
         where TView : Control, new();
 
     Option<Control> CreateView(Type viewModelType);
+
+    Task<Option<UserControl>> CreateViewForModuleAsync(ModuleIdentifier moduleId);
 }

@@ -1,0 +1,7 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Feed icon - Android style with stroke -->
+    <StreamGeometry x:Key="FeedIconData">
+        M17,16 L17,20 C17,21.105 16.105,22 15,22 L9,22 C7.895,22 7,21.105 7,20 L7,19 M7,9 L7,4 C7,2.895 7.895,2 9,2 L15,2 C16.105,2 17,2.895 17,4 L17,5 M2,12 L4.91,14.91 C5.552,15.552 6.547,15.681 7.332,15.223 L16.854,9.669 C17.548,9.263 18.418,9.314 19.062,9.796 L22,12
+    </StreamGeometry>
+</ResourceDictionary>

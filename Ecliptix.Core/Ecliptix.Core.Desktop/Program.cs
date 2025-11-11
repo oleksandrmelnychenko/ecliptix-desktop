@@ -23,8 +23,11 @@ using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Core.Desktop.Constants;
 using Ecliptix.Core.Features.Authentication;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
+using Ecliptix.Core.Features.Chats;
+using Ecliptix.Core.Features.Feed;
 using Ecliptix.Core.Features.Main;
 using Ecliptix.Core.Features.Main.ViewModels;
+using Ecliptix.Core.Features.Settings;
 using Ecliptix.Core.Features.Splash.ViewModels;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Data.SecureStorage;
@@ -458,7 +461,23 @@ public static class Program
         services.AddSingleton<ModuleResourceManager>();
 
         services.AddSingleton<IModuleMessageBus, ModuleMessageBus>();
-        services.AddSingleton<IModuleViewFactory, ModuleViewFactory>();
+        services.AddSingleton<IModuleViewFactory>(provider =>
+        {
+            ModuleViewFactory factory = new ModuleViewFactory(
+                provider.GetRequiredService<IModuleManager>(),
+                provider);
+
+            factory.RegisterView<Ecliptix.Core.Features.Feed.ViewModels.FeedViewModel,
+                Ecliptix.Core.Features.Feed.Views.FeedView>();
+            factory.RegisterView<Ecliptix.Core.Features.Chats.ViewModels.ChatsViewModel,
+                Ecliptix.Core.Features.Chats.Views.ChatsView>();
+            factory.RegisterView<Ecliptix.Core.Features.Settings.ViewModels.SettingsViewModel,
+                Ecliptix.Core.Features.Settings.Views.SettingsView>();
+
+            Log.Information("Registered {Count} module views during ModuleViewFactory creation", 3);
+
+            return factory;
+        });
 
         services.AddSingleton<IViewLocator, ViewLocator>();
         services.AddSingleton<ReactiveUiViewLocatorAdapter>();
@@ -469,11 +488,18 @@ public static class Program
         ModuleCatalog catalog = new();
         catalog.AddModule<AuthenticationModule>();
         catalog.AddModule<MainModule>();
+        catalog.AddModule<FeedModule>();
+        catalog.AddModule<ChatsModule>();
+        catalog.AddModule<SettingsModule>();
 
         services.AddSingleton<IModuleCatalog>(catalog);
         services.AddSingleton(catalog);
 
         services.AddSingleton<IModuleManager, ModuleManager>();
+
+        services.AddTransient<Ecliptix.Core.Features.Feed.ViewModels.FeedViewModel>();
+        services.AddTransient<Ecliptix.Core.Features.Chats.ViewModels.ChatsViewModel>();
+        services.AddTransient<Ecliptix.Core.Features.Settings.ViewModels.SettingsViewModel>();
 
         services.AddTransient<LanguageSelectorViewModel>();
         services.AddSingleton<BottomSheetViewModel>();

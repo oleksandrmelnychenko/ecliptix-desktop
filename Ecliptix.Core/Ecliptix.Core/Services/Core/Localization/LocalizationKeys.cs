@@ -247,6 +247,8 @@ public static class LocalizationKeys
         public const string TERMS_OF_SERVICE = "Footer.TermsOfService";
         public const string SUPPORT = "Footer.Support";
         public const string AGREEMENT_TEXT = "Footer.AgreementText";
+        public const string AGREEMENT_PREFIX = "Footer.AgreementPrefix";
+        public const string AGREEMENT_CONJUNCTION = "Footer.AgreementConjunction";
         public const string COPYRIGHT = "Footer.Copyright";
     }
 

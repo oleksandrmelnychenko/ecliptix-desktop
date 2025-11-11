@@ -3,12 +3,17 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
 
+using Avalonia.Controls;
+
 using Ecliptix.Core.Controls.Core;
+using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Features.Main.Views;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Models.Membership;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.Membership;
 using Ecliptix.Core.ViewModels.Core;
+using Ecliptix.Core.ViewModels.Navigation;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Membership;
 
@@ -24,13 +29,17 @@ namespace Ecliptix.Core.Features.Main.ViewModels;
 public sealed class MasterViewModel : Core.MVVM.ViewModelBase
 {
     private readonly ILogoutService _logoutService;
+    private readonly IModuleViewFactory _moduleViewFactory;
     private readonly CompositeDisposable _disposables = new();
     private CancellationTokenSource? _logoutCancellationTokenSource;
     private bool _isDisposed;
 
     [ObservableAsProperty] public bool IsBusy { get; }
+    [Reactive] public UserControl? CurrentView { get; set; }
+    [Reactive] public bool IsLoadingView { get; set; }
 
     public ConnectivityNotificationViewModel ConnectivityNotification { get; }
+    public NavigationSidebarViewModel NavigationSidebar { get; }
 
     public ReactiveCommand<SystemU, Result<Unit, LogoutFailure>> LogoutCommand { get; }
 
@@ -38,11 +47,16 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         ILogoutService logoutService,
+        IModuleViewFactory moduleViewFactory,
         MainWindowViewModel mainWindowViewModel)
         : base(networkProvider, localizationService, null)
     {
         _logoutService = logoutService;
+        _moduleViewFactory = moduleViewFactory;
         ConnectivityNotification = mainWindowViewModel.ConnectivityNotification;
+        NavigationSidebar = new NavigationSidebarViewModel(networkProvider, localizationService);
+
+        LoadInitialView();
 
         IObservable<bool> canLogout = this.WhenAnyValue(x => x.IsBusy, isBusy => !isBusy);
 
@@ -99,6 +113,57 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase
             })
             .DisposeWith(_disposables);
 
+        this.WhenAnyValue(x => x.NavigationSidebar.SelectedMenuItem)
+            .WhereNotNull()
+            .Subscribe(async menuItem =>
+            {
+                ModuleIdentifier? moduleId = menuItem.Id switch
+                {
+                    "home" => ModuleIdentifier.FEED,
+                    "chats" => ModuleIdentifier.CHATS,
+                    "settings" => ModuleIdentifier.SETTINGS,
+                    _ => (ModuleIdentifier?)null
+                };
+
+                if (moduleId.HasValue)
+                {
+                    await LoadModuleViewAsync(moduleId.Value);
+                }
+            })
+            .DisposeWith(_disposables);
+    }
+
+    private async void LoadInitialView()
+    {
+        await LoadModuleViewAsync(ModuleIdentifier.FEED);
+    }
+
+    private async System.Threading.Tasks.Task LoadModuleViewAsync(ModuleIdentifier moduleId)
+    {
+        IsLoadingView = true;
+
+        try
+        {
+            Option<UserControl> viewOption = await _moduleViewFactory.CreateViewForModuleAsync(moduleId);
+
+            if (viewOption.IsSome)
+            {
+                CurrentView = viewOption.Value;
+                Log.Information("Loaded view for module: {ModuleName}", moduleId.ToName());
+            }
+            else
+            {
+                Log.Warning("Failed to load view for module: {ModuleName}", moduleId.ToName());
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error loading view for module: {ModuleName}", moduleId.ToName());
+        }
+        finally
+        {
+            IsLoadingView = false;
+        }
     }
 
     protected override void Dispose(bool disposing)
@@ -112,6 +177,7 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase
         {
             CancelLogoutOperation();
             LogoutCommand?.Dispose();
+            NavigationSidebar?.Dispose();
             _disposables.Dispose();
         }
 
