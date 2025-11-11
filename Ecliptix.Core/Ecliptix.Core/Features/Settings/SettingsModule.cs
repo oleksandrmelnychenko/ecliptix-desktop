@@ -9,7 +9,7 @@ namespace Ecliptix.Core.Features.Settings;
 public record SettingsModuleManifest() : ModuleManifest(
     Priority: 40,
     LoadingStrategy: ModuleLoadingStrategy.LAZY,
-    Dependencies: []
+    Dependencies: [ModuleIdentifier.MAIN]
 );
 
 public class SettingsModule : ModuleBase<SettingsModuleManifest>

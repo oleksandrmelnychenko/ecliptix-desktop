@@ -63,6 +63,34 @@ public class ModuleManager : IModuleManager
             return Option<IModule>.None;
         }
 
+        IReadOnlyList<ModuleIdentifier> dependencies = module.Manifest.Dependencies;
+        if (dependencies.Count > 0)
+        {
+            Log.Information("Module '{ModuleName}' has {Count} dependencies, loading them first",
+                moduleName, dependencies.Count);
+
+            foreach (ModuleIdentifier dependencyId in dependencies)
+            {
+                string dependencyName = dependencyId.ToName();
+
+                if (!IsModuleLoaded(dependencyName))
+                {
+                    Log.Information("Loading dependency '{DependencyName}' for module '{ModuleName}'",
+                        dependencyName, moduleName);
+
+                    Option<IModule> dependencyResult = await LoadModuleAsync(dependencyName);
+
+                    if (!dependencyResult.IsSome)
+                    {
+                        _moduleStates[moduleName] = ModuleState.FAILED;
+                        Log.Error("Failed to load dependency '{DependencyName}' for module '{ModuleName}'",
+                            dependencyName, moduleName);
+                        return Option<IModule>.None;
+                    }
+                }
+            }
+        }
+
         if (!await module.CanLoadAsync())
         {
             _moduleStates[moduleName] = ModuleState.FAILED;
@@ -75,6 +103,7 @@ public class ModuleManager : IModuleManager
         _moduleStates[moduleName] = ModuleState.LOADED;
 
         await module.SetupMessageHandlersAsync(_messageBus);
+        Log.Information("Module '{ModuleName}' loaded successfully", moduleName);
         return Option<IModule>.Some(module);
     }
 

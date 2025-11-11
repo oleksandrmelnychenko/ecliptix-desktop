@@ -9,7 +9,7 @@ namespace Ecliptix.Core.Features.Feed;
 public record FeedModuleManifest() : ModuleManifest(
     Priority: 25,
     LoadingStrategy: ModuleLoadingStrategy.EAGER,
-    Dependencies: []
+    Dependencies: [ModuleIdentifier.MAIN]
 );
 
 public class FeedModule : ModuleBase<FeedModuleManifest>

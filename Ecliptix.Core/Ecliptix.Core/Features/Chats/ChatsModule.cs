@@ -9,7 +9,7 @@ namespace Ecliptix.Core.Features.Chats;
 public record ChatsModuleManifest() : ModuleManifest(
     Priority: 30,
     LoadingStrategy: ModuleLoadingStrategy.BACKGROUND,
-    Dependencies: []
+    Dependencies: [ModuleIdentifier.MAIN]
 );
 
 public class ChatsModule : ModuleBase<ChatsModuleManifest>
