@@ -39,11 +39,5 @@ public class MainModule : ModuleBase<MainModuleManifest>
         {
             ModuleName = Id.ToName()
         });
-
-        Log.Information("Main module controls {Count} content modules: {Modules}",
-            _allowedContentModules.Count,
-            string.Join(", ", _allowedContentModules.Select(m => m.ToName())));
-
-        Log.Information("Main module message handlers setup completed");
     }
 }

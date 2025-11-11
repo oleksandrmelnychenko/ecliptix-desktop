@@ -23,7 +23,5 @@ public class ChatsModule : ModuleBase<ChatsModuleManifest>
         {
             ModuleName = Id.ToName()
         });
-
-        Log.Information("Chats module message handlers setup completed");
     }
 }

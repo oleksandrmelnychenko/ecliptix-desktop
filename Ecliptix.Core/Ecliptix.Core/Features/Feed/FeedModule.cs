@@ -23,7 +23,5 @@ public class FeedModule : ModuleBase<FeedModuleManifest>
         {
             ModuleName = Id.ToName()
         });
-
-        Log.Information("Feed module message handlers setup completed");
     }
 }

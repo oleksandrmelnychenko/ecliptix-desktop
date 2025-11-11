@@ -23,7 +23,5 @@ public class SettingsModule : ModuleBase<SettingsModuleManifest>
         {
             ModuleName = Id.ToName()
         });
-
-        Log.Information("Settings module message handlers setup completed");
     }
 }
