@@ -2,12 +2,9 @@ using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
-
 using Avalonia.Controls;
-
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Core.Abstractions;
-using Ecliptix.Core.Features.Main.Views;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Models.Membership;
 using Ecliptix.Core.Services.Abstractions.Core;
@@ -16,12 +13,9 @@ using Ecliptix.Core.ViewModels.Core;
 using Ecliptix.Core.ViewModels.Navigation;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Membership;
-
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
-
 using Serilog;
-
 using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Main.ViewModels;
@@ -122,7 +116,7 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase
                     "home" => ModuleIdentifier.FEED,
                     "chats" => ModuleIdentifier.CHATS,
                     "settings" => ModuleIdentifier.SETTINGS,
-                    _ => (ModuleIdentifier?)null
+                    _ => null
                 };
 
                 if (moduleId.HasValue)
@@ -168,8 +162,8 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase
         if (disposing)
         {
             CancelLogoutOperation();
-            LogoutCommand?.Dispose();
-            NavigationSidebar?.Dispose();
+            LogoutCommand.Dispose();
+            NavigationSidebar.Dispose();
             _disposables.Dispose();
         }
 
