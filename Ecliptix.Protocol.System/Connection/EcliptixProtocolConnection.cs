@@ -774,6 +774,8 @@ internal sealed class EcliptixProtocolConnection : IDisposable
                 return Result<(RatchetChainKey, bool), EcliptixProtocolFailure>.Err(setIndexResult.UnwrapErr());
             }
 
+            _eventHandler?.OnProtocolStateChanged(_id);
+
             _sendingStep.PruneOldKeys();
             return Result<(RatchetChainKey, bool), EcliptixProtocolFailure>.Ok(
                 (derivedKey, includeDhKey));
