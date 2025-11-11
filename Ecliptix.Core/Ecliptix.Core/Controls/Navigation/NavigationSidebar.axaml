@@ -141,7 +141,6 @@
                                 Classes.selected="{Binding IsSelected}"
                                 Command="{Binding $parent[UserControl].((vm:NavigationSidebarViewModel)DataContext).NavigateCommand}"
                                 CommandParameter="{Binding}"
-                                ToolTip.Tip="{Binding TooltipText}"
                                 IsVisible="{Binding !Type}">
                             <StackPanel Spacing="6">
                                 <Panel Width="16" Height="16">
