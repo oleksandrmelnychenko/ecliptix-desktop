@@ -59,6 +59,12 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                         Position = position;
                     };
 
+                    viewModel.SyncViewModelWithActualWindowSize = () =>
+                    {
+                        viewModel.WindowWidth = ClientSize.Width;
+                        viewModel.WindowHeight = ClientSize.Height;
+                    };
+
                     viewModel.CurrentPosition = Position;
 
                     Observable.FromEventPattern<EventHandler<PixelPointEventArgs>, PixelPointEventArgs>(
