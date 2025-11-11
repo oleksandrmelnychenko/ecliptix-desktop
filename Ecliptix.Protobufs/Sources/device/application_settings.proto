@@ -33,4 +33,6 @@ message WindowPlacement {
   double client_width = 4;
 
   double client_height = 5;
+
+  bool is_valid_save = 6;
 }

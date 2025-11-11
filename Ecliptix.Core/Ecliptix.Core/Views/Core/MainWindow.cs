@@ -140,7 +140,6 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                         WindowState,
                         Position,
                         ClientSize);
-                    Log.Debug("[MAIN-WINDOW] Rx-based dynamic save complete.");
                 }
                 catch (Exception ex)
                 {
@@ -179,11 +178,10 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     private async Task LoadWindowPlacementAsync(MainWindowViewModel viewModel)
     {
         WindowPlacement? placement = await viewModel.LoadInitialPlacementAsync();
-        if (placement == null)
+        if (placement == null || !placement.IsValidSave)
         {
             return;
         }
-        Log.Information("[MAIN-WINDOW] Window placement loaded: {Placement}", placement);
 
         PixelPoint savedPosition = new(placement.PositionX, placement.PositionY);
 

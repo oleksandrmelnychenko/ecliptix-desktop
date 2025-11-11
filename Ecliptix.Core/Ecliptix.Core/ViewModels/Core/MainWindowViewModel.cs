@@ -94,6 +94,9 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     public async Task SetAuthenticationContentAsync(object content)
     {
         _isMainContentActive = false;
+
+        await InvalidateWindowPlacementAsync();
+
         await AnimateWindowResizeAsync(480, 720, TimeSpan.FromMilliseconds(300)).ConfigureAwait(false);
 
         CanResize = false;
@@ -302,7 +305,6 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
             await _storageProvider.GetApplicationInstanceSettingsAsync();
         if (settingsResult.IsOk)
         {
-            Log.Information("[MAIN-WINDOW-VM] Successfully loaded previous window state from secure storage");
             return settingsResult.Unwrap().WindowPlacement;
         }
 
@@ -311,11 +313,32 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         return null;
     }
 
+    public async Task InvalidateWindowPlacementAsync()
+    {
+        try
+        {
+            WindowPlacement? placement = (await LoadInitialPlacementAsync()) ?? new WindowPlacement();
+
+            placement.IsValidSave = false;
+
+            Result<Unit, InternalServiceApiFailure> result =
+                await _storageProvider.SetWindowPlacementAsync(placement);
+
+            if (result.IsErr)
+            {
+                Log.Warning("[MAIN-WINDOW-VM] Cannot invalidate the window state: {Error}", result.UnwrapErr().Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[MAIN-WINDOW-VM] Error during invalidation of the placement.");
+        }
+    }
+
     public async Task SavePlacementAsync(WindowState state, PixelPoint position, Size clientSize)
     {
         if (!_isMainContentActive)
         {
-            Log.Information("[MAIN-WINDOW-VM] Пропуск збереження стану вікна (активний екран автентифікації).");
             return;
         }
 
@@ -327,17 +350,15 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
             placement.PositionY = position.Y;
             placement.ClientWidth = clientSize.Width;
             placement.ClientHeight = clientSize.Height;
-            Log.Information("[MAIN-WINDOW-VM] Saved window size {Width}x{Height} and position {X}:{Y}",
-                clientSize.Width, clientSize.Height, position.X, position.Y);
         }
 
         placement.WindowState = (int)(state == WindowState.Minimized ? WindowState.Normal : state);
+        placement.IsValidSave = true;
 
         Result<Unit, InternalServiceApiFailure> result = await _storageProvider.SetWindowPlacementAsync(placement);
         if (result.IsErr)
         {
             Log.Warning("[MAIN-WINDOW-VM] Cannot save window state: {Error}", result.UnwrapErr().Message);
-            //TODO delete debug comments, keep only warging and error
         }
     }
 
