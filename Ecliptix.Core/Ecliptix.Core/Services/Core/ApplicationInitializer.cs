@@ -480,8 +480,10 @@ public sealed class ApplicationInitializer(
                 DeviceRegistrationResponse reply =
                     Helpers.ParseFromBytes<DeviceRegistrationResponse>(decryptedPayload);
 
-                settings.ServerPublicKey = SecureByteStringInterop.WithByteStringAsSpan(reply.ServerPublicKey,
+                ByteString serverPublicKey = SecureByteStringInterop.WithByteStringAsSpan(reply.ServerPublicKey,
                     ByteString.CopyFrom);
+
+                networkProvider.SetServerPublicKey(serverPublicKey);
 
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
             }, allowDuplicates: false, token: CancellationToken.None).ConfigureAwait(false);

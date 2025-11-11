@@ -377,6 +377,22 @@ public sealed class NetworkProvider(
         }
     }
 
+    public void SetServerPublicKey(ByteString serverPublicKey)
+    {
+        lock (_appInstanceSetterLock)
+        {
+            if (!_applicationInstanceSettings.IsSome)
+            {
+                return;
+            }
+
+            ApplicationInstanceSettings current = _applicationInstanceSettings.Value!;
+            ApplicationInstanceSettings updated = current.Clone();
+            updated.ServerPublicKey = serverPublicKey;
+            _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(updated);
+        }
+    }
+
     public void InitiateEcliptixProtocolSystem(ApplicationInstanceSettings applicationInstanceSettings, uint connectId)
     {
         _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(applicationInstanceSettings);
