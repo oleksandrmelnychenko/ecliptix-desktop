@@ -200,7 +200,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         {
             PixelPoint currentPos = CurrentPosition;
             OnWindowRepositionRequested?.Invoke(new PixelPoint(currentPos.X + 1, currentPos.Y + 1));
-            await Task.Delay(500);
+            await Task.Delay(200);
         }
     }
 
