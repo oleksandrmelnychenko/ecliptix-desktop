@@ -16,7 +16,6 @@
                 <ResourceInclude Source="/Assets/Icons/Navigation/FeedIcon.axaml" />
                 <ResourceInclude Source="/Assets/Icons/Navigation/ChatsIcon.axaml" />
                 <ResourceInclude Source="/Assets/Icons/Navigation/SettingsIcon.axaml" />
-                <ResourceInclude Source="/Assets/Icons/Navigation/ProfileIcon.axaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </UserControl.Resources>
@@ -155,9 +154,6 @@
                                     <Path Classes="copilot-path"
                                           Data="{StaticResource SettingsIconData}"
                                           IsVisible="{Binding Id, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=settings}" />
-                                    <PathIcon Classes="copilot-icon"
-                                              Data="{StaticResource ProfileIconData}"
-                                              IsVisible="{Binding Id, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=profile}" />
                                 </Panel>
                                 <TextBlock Classes="copilot-label"
                                            Text="{Binding Label}" />

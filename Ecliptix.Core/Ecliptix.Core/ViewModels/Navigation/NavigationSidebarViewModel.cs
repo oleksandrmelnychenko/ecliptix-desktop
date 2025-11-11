@@ -56,14 +56,6 @@ public sealed class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM.ViewMod
                 IconPath = "SettingsIconData",
                 TooltipText = "Settings",
                 Type = NavigationMenuItemType.Regular
-            },
-            new NavigationMenuItem
-            {
-                Id = "profile",
-                Label = "Profile",
-                IconPath = "ProfileIconData",
-                TooltipText = "Profile",
-                Type = NavigationMenuItemType.Regular
             }
         };
 

@@ -106,6 +106,8 @@ public static class Program
             ReactiveUI.IViewLocator reactiveViewLocator = serviceProvider.GetRequiredService<ReactiveUI.IViewLocator>();
             Splat.Locator.CurrentMutable.Register(() => reactiveViewLocator, typeof(ReactiveUI.IViewLocator));
 
+            RegisterModuleViews(serviceProvider);
+
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
         }
         catch (Exception ex)
@@ -481,6 +483,10 @@ public static class Program
 
         services.AddSingleton<IModuleManager, ModuleManager>();
 
+        services.AddTransient<Ecliptix.Core.Features.Feed.ViewModels.FeedViewModel>();
+        services.AddTransient<Ecliptix.Core.Features.Chats.ViewModels.ChatsViewModel>();
+        services.AddTransient<Ecliptix.Core.Features.Settings.ViewModels.SettingsViewModel>();
+
         services.AddTransient<LanguageSelectorViewModel>();
         services.AddSingleton<BottomSheetViewModel>();
         services.AddSingleton<ConnectivityNotificationViewModel>();
@@ -502,6 +508,20 @@ public static class Program
                 Settings = sp.GetRequiredService<DefaultSystemSettings>()
             }));
         services.AddTransient<MasterViewModel>();
+    }
+
+    private static void RegisterModuleViews(IServiceProvider serviceProvider)
+    {
+        IModuleViewFactory viewFactory = serviceProvider.GetRequiredService<IModuleViewFactory>();
+
+        viewFactory.RegisterView<Ecliptix.Core.Features.Feed.ViewModels.FeedViewModel,
+            Ecliptix.Core.Features.Feed.Views.FeedView>();
+        viewFactory.RegisterView<Ecliptix.Core.Features.Chats.ViewModels.ChatsViewModel,
+            Ecliptix.Core.Features.Chats.Views.ChatsView>();
+        viewFactory.RegisterView<Ecliptix.Core.Features.Settings.ViewModels.SettingsViewModel,
+            Ecliptix.Core.Features.Settings.Views.SettingsView>();
+
+        Log.Information("Registered {Count} module views", 3);
     }
 
     private static string GetPlatformAppDataDirectory()
