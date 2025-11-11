@@ -14,45 +14,51 @@
         Width="{Binding WindowWidth}"
         Height="{Binding WindowHeight}"
         CanResize="{Binding CanResize}"
+        WindowState="{Binding WindowState, Mode=TwoWay}"
         WindowStartupLocation="CenterScreen"
-        ExtendClientAreaToDecorationsHint="False"
-        SystemDecorations="None"
+
+        SystemDecorations="Full"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaTitleBarHeightHint="-1"
+
+
         TransparencyLevelHint="Transparent"
         Background="Transparent"
         Icon="avares://Ecliptix.Core/Assets/Branding/Logos/logo_256x256.png">
 
     <Grid x:Name="MainContentGrid" ClipToBounds="True">
-        <!-- 1. Animated Blur Background -->
-        <Border Classes="animated-background"
-                Background="{DynamicResource BlurBackgroundBrush}"
-                CornerRadius="{StaticResource WindowBorderRadius}"
-                Margin="12">
-            <Border.Effect>
-                <BlurEffect Radius="{StaticResource Blur.Radius}" />
-            </Border.Effect>
-        </Border>
 
-        <!-- 2. TitleBar - Window Controls (ZIndex=5) -->
+        <Grid.Styles>
+            <Style Selector="Window[WindowState=Normal] Grid#MainContentGrid">
+                <Setter Property="Margin" Value="0" />
+            </Style>
+
+            <Style Selector="Window[WindowState=Maximized] Grid#MainContentGrid">
+                <Setter Property="Margin" Value="8" />
+            </Style>
+
+        </Grid.Styles>
+
         <comp:TitleBar
             VerticalAlignment="Top"
             ZIndex="5"
-            DisableMinimizeButton="False"
-            DisableCloseButton="False"
-            Margin="8" />
+            DataContext="{Binding TitleBarViewModel}"
+            />
 
-        <!-- 3. LanguageSelector - Top Right (ZIndex=100) -->
+
+        <!-- DisableMaximizeButton="False" -->
+        <!-- DisableMinimizeButton="False" -->
+        <!-- DisableCloseButton="False" -->
         <Border x:Name="LanguageSelectorContainer"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Top"
-                Margin="0,16,16,0"
                 ZIndex="100"
                 Background="Transparent"
-                Padding="0" />
+                Padding="0"
+                Margin="0 50 10 0"/>
 
-        <!-- 4. BottomSheet - Modal Overlay (ZIndex=1000) -->
         <Border
-            Margin="8"
-            CornerRadius="12"
             ClipToBounds="True"
             ZIndex="1000"
             x:Name="BottomSheetContainer">
@@ -66,7 +72,6 @@
                 IsDismissableOnScrimClick="True" />
         </Border>
 
-        <!-- 5. NetworkStatusNotification - Top Center (ZIndex=1001) -->
         <coreControls:ConnectivityNotificationView
             x:Name="NetworkNotification"
             HorizontalAlignment="Center"
@@ -78,24 +83,11 @@
             ZIndex="1001"
             DataContext="{Binding ConnectivityNotification}" />
 
-        <!-- 6. MainBorder - Window Frame (contains module content) -->
         <Border Background="{DynamicResource Window.Background}"
                 BorderBrush="{DynamicResource Window.Border}"
-                BorderThickness="1"
                 CornerRadius="{StaticResource WindowBorderRadius}"
-                Margin="8"
-                ClipToBounds="True"
                 x:Name="MainBorder">
 
-            <Border.Effect>
-                <DropShadowEffect Color="Black"
-                                  BlurRadius="{StaticResource Shadow.Radius}"
-                                  Opacity="0.1"
-                                  OffsetX="0"
-                                  OffsetY="2" />
-            </Border.Effect>
-
-            <!-- Module Content Area -->
             <core:ModuleContentControl ViewModelContent="{Binding CurrentContent}"
                                        Background="Transparent"
                                        HorizontalAlignment="Stretch"

@@ -1,0 +1,111 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ecliptix.Core.Views.Memberships.Components"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Ecliptix.Core.Views.Memberships.Components.Platform.Windows.WindowsTitleBarLayout"
+             Height="35"
+             x:DataType="vm:TitleBarViewModel">
+
+   <DockPanel Background="Transparent">
+
+        <StackPanel Orientation="Horizontal"
+                    DockPanel.Dock="Left"
+                    Spacing="5"
+                    VerticalAlignment="Center">
+            <Image Source="avares://Ecliptix.Core/Assets/Branding/Logos/logo_32x32.png"
+                   Height="16" Width="16" Margin="8,0,0,0" />
+
+            <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}"
+                       FontSize="12"
+                       Foreground="{DynamicResource OnSurface}"
+                       VerticalAlignment="Center"
+                       IsHitTestVisible="False" />
+        </StackPanel>
+
+        <StackPanel Height="35"
+                    HorizontalAlignment="Right"
+                    DockPanel.Dock="Right"
+                    Orientation="Horizontal"
+                    Spacing="0"
+                    VerticalAlignment="Top">
+
+            <Button x:Name="MinimizeButton"
+                    Width="46"
+                    VerticalAlignment="Stretch"
+                    HorizontalContentAlignment="Center"
+                    BorderThickness="0"
+                    IsEnabled="{Binding DisableMinimizeButton, Converter={x:Static BoolConverters.Not}}">
+                <Button.Resources>
+                    <CornerRadius x:Key="ControlCornerRadius">0</CornerRadius>
+                </Button.Resources>
+                <Button.Styles>
+                    <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                        <Setter Property="Background" Value="#1A000000"/>
+                    </Style>
+                    <Style Selector="Button:not(:pointerover) /template/ ContentPresenter#PART_ContentPresenter">
+                        <Setter Property="Background" Value="Transparent"/>
+                    </Style>
+                </Button.Styles>
+                <Path Width="10" Height="2"
+                      Stretch="Uniform"
+                      VerticalAlignment="Center"
+                      Fill="{DynamicResource OnSurface}"
+                      Data="M2048 1229v-205h-2048v205h2048z"></Path>
+            </Button>
+
+            <Button x:Name="MaximizeButton"
+                    Width="46"
+                    VerticalAlignment="Stretch"
+                    BorderThickness="0"
+                    IsEnabled="{Binding DisableMaximizeButton, Converter={x:Static BoolConverters.Not}}">
+                <Button.Resources>
+                    <CornerRadius x:Key="ControlCornerRadius">0</CornerRadius>
+                </Button.Resources>
+                <Button.Styles>
+                    <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                        <Setter Property="Background" Value="#1A000000"/>
+                    </Style>
+                    <Style Selector="Button:not(:pointerover) /template/ ContentPresenter#PART_ContentPresenter">
+                        <Setter Property="Background" Value="Transparent"/>
+                    </Style>
+                </Button.Styles>
+                <Path Width="10" Height="10"
+                      Stretch="Uniform"
+                      Fill="{DynamicResource OnSurface}"
+                      Name="MaximizeIcon"
+                      Data="M2048 2048v-2048h-2048v2048h2048zM1843 1843h-1638v-1638h1638v1638z"></Path>
+            </Button>
+
+            <Button x:Name="CloseButton"
+                    Width="46"
+                    VerticalAlignment="Stretch"
+                    BorderThickness="0"
+                    IsEnabled="{Binding DisableCloseButton, Converter={x:Static BoolConverters.Not}}">
+                <Button.Resources>
+                    <CornerRadius x:Key="ControlCornerRadius">0</CornerRadius>
+                </Button.Resources>
+                <Button.Styles>
+                    <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                        <Setter Property="Background" Value="#C42B1C"/>
+                    </Style>
+                    <Style Selector="Button:not(:pointerover) /template/ ContentPresenter#PART_ContentPresenter">
+                        <Setter Property="Background" Value="Transparent"/>
+                    </Style>
+                    <Style Selector="Button:pointerover > Path">
+                        <Setter Property="Fill" Value="White"/>
+                    </Style>
+                    <Style Selector="Button:not(:pointerover) > Path">
+                        <Setter Property="Fill" Value="{DynamicResource OnSurface}"/>
+                    </Style>
+                </Button.Styles>
+                <Path Width="10" Height="10"
+                      Stretch="Uniform"
+                      Data="M1169 1024l879 -879l-145 -145l-879 879l-879 -879l-145 145l879 879l-879 879l145 145l879 -879l879 879l145 -145z"></Path>
+            </Button>
+
+        </StackPanel>
+    </DockPanel>
+</UserControl>
+
