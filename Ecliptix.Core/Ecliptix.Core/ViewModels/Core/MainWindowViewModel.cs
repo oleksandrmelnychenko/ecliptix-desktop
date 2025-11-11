@@ -137,11 +137,14 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     private async Task AnimateWindowResizeAsync(double targetWidth, double targetHeight, TimeSpan duration)
 {
-    if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
+    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () =>
     {
-        WindowState = WindowState.Normal;
-        await Task.Delay(500).ConfigureAwait(true);
-    }
+        if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
+        {
+            WindowState = WindowState.Normal;
+            await Task.Delay(500);
+        }
+    });
 
 
     double startWidth = WindowWidth;
@@ -182,25 +185,33 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         double progress = (double)i / steps;
         double easedProgress = EaseInOutCubic(progress);
 
-        WindowWidth = startWidth + (targetWidth - startWidth) * easedProgress;
-        WindowHeight = startHeight + (targetHeight - startHeight) * easedProgress;
-
-        if (targetPosition.HasValue)
+        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
         {
-            int currentX = (int)(startPosition.X + (targetPosition.Value.X - startPosition.X) * easedProgress);
-            int currentY = (int)(startPosition.Y + (targetPosition.Value.Y - startPosition.Y) * easedProgress);
-            OnWindowRepositionRequested?.Invoke(new PixelPoint(currentX, currentY));
-        }
+            WindowWidth = startWidth + (targetWidth - startWidth) * easedProgress;
+            WindowHeight = startHeight + (targetHeight - startHeight) * easedProgress;
+
+
+            if (targetPosition.HasValue)
+            {
+                int currentX = (int)(startPosition.X + (targetPosition.Value.X - startPosition.X) * easedProgress);
+                int currentY = (int)(startPosition.Y + (targetPosition.Value.Y - startPosition.Y) * easedProgress);
+                OnWindowRepositionRequested?.Invoke(new PixelPoint(currentX, currentY));
+            }
+        });
 
         await Task.Delay(stepDuration).ConfigureAwait(true);
     }
 
-    WindowWidth = targetWidth;
-    WindowHeight = targetHeight;
-    if (targetPosition.HasValue)
+    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
     {
-        OnWindowRepositionRequested?.Invoke(targetPosition.Value);
-    }
+        WindowWidth = targetWidth;
+        WindowHeight = targetHeight;
+
+        if (targetPosition.HasValue)
+        {
+            OnWindowRepositionRequested?.Invoke(targetPosition.Value);
+        }
+    });
 }
 
     public async Task<WindowPlacement?> LoadInitialPlacementAsync()
