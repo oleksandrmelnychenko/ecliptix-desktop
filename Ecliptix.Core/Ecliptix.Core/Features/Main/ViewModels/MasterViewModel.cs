@@ -6,6 +6,7 @@ using System.Threading;
 using Avalonia.Controls;
 
 using Ecliptix.Core.Controls.Core;
+using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Features.Main.Views;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Models.Membership;
@@ -28,12 +29,14 @@ namespace Ecliptix.Core.Features.Main.ViewModels;
 public sealed class MasterViewModel : Core.MVVM.ViewModelBase
 {
     private readonly ILogoutService _logoutService;
+    private readonly IModuleViewFactory _moduleViewFactory;
     private readonly CompositeDisposable _disposables = new();
     private CancellationTokenSource? _logoutCancellationTokenSource;
     private bool _isDisposed;
 
     [ObservableAsProperty] public bool IsBusy { get; }
     [Reactive] public UserControl? CurrentView { get; set; }
+    [Reactive] public bool IsLoadingView { get; set; }
 
     public ConnectivityNotificationViewModel ConnectivityNotification { get; }
     public NavigationSidebarViewModel NavigationSidebar { get; }
@@ -44,14 +47,16 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         ILogoutService logoutService,
+        IModuleViewFactory moduleViewFactory,
         MainWindowViewModel mainWindowViewModel)
         : base(networkProvider, localizationService, null)
     {
         _logoutService = logoutService;
+        _moduleViewFactory = moduleViewFactory;
         ConnectivityNotification = mainWindowViewModel.ConnectivityNotification;
         NavigationSidebar = new NavigationSidebarViewModel(networkProvider, localizationService);
 
-        CurrentView = new HomeView();
+        LoadInitialView();
 
         IObservable<bool> canLogout = this.WhenAnyValue(x => x.IsBusy, isBusy => !isBusy);
 
@@ -110,15 +115,55 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase
 
         this.WhenAnyValue(x => x.NavigationSidebar.SelectedMenuItem)
             .WhereNotNull()
-            .Subscribe(menuItem =>
+            .Subscribe(async menuItem =>
             {
-                CurrentView = menuItem.Id switch
+                ModuleIdentifier? moduleId = menuItem.Id switch
                 {
-                    "home" => new HomeView(),
-                    _ => CurrentView
+                    "home" => ModuleIdentifier.FEED,
+                    "chats" => ModuleIdentifier.CHATS,
+                    "settings" => ModuleIdentifier.SETTINGS,
+                    _ => (ModuleIdentifier?)null
                 };
+
+                if (moduleId.HasValue)
+                {
+                    await LoadModuleViewAsync(moduleId.Value);
+                }
             })
             .DisposeWith(_disposables);
+    }
+
+    private async void LoadInitialView()
+    {
+        await LoadModuleViewAsync(ModuleIdentifier.FEED);
+    }
+
+    private async System.Threading.Tasks.Task LoadModuleViewAsync(ModuleIdentifier moduleId)
+    {
+        IsLoadingView = true;
+
+        try
+        {
+            Option<UserControl> viewOption = await _moduleViewFactory.CreateViewForModuleAsync(moduleId);
+
+            if (viewOption.IsSome)
+            {
+                CurrentView = viewOption.Value;
+                Log.Information("Loaded view for module: {ModuleName}", moduleId.ToName());
+            }
+            else
+            {
+                Log.Warning("Failed to load view for module: {ModuleName}", moduleId.ToName());
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error loading view for module: {ModuleName}", moduleId.ToName());
+        }
+        finally
+        {
+            IsLoadingView = false;
+        }
     }
 
     protected override void Dispose(bool disposing)
