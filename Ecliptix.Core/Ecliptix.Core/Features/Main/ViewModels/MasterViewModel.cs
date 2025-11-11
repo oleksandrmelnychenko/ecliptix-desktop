@@ -49,7 +49,7 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase
         ILogoutService logoutService,
         IModuleViewFactory moduleViewFactory,
         MainWindowViewModel mainWindowViewModel)
-        : base(networkProvider, localizationService, null)
+        : base(networkProvider, localizationService)
     {
         _logoutService = logoutService;
         _moduleViewFactory = moduleViewFactory;
@@ -133,10 +133,7 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase
             .DisposeWith(_disposables);
     }
 
-    private async void LoadInitialView()
-    {
-        await LoadModuleViewAsync(ModuleIdentifier.FEED);
-    }
+    private async void LoadInitialView() => await LoadModuleViewAsync(ModuleIdentifier.FEED);
 
     private async System.Threading.Tasks.Task LoadModuleViewAsync(ModuleIdentifier moduleId)
     {
@@ -149,11 +146,6 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase
             if (viewOption.IsSome)
             {
                 CurrentView = viewOption.Value;
-                Log.Information("Loaded view for module: {ModuleName}", moduleId.ToName());
-            }
-            else
-            {
-                Log.Warning("Failed to load view for module: {ModuleName}", moduleId.ToName());
             }
         }
         catch (Exception ex)
