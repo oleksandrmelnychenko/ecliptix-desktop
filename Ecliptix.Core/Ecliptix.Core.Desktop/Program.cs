@@ -23,7 +23,6 @@ using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Core.Desktop.Constants;
 using Ecliptix.Core.Features.Authentication;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
-using Ecliptix.Core.Features.Chats;
 using Ecliptix.Core.Features.Main;
 using Ecliptix.Core.Features.Main.ViewModels;
 using Ecliptix.Core.Features.Splash.ViewModels;
@@ -470,7 +469,6 @@ public static class Program
         ModuleCatalog catalog = new();
         catalog.AddModule<AuthenticationModule>();
         catalog.AddModule<MainModule>();
-        catalog.AddModule<ChatModule>();
 
         services.AddSingleton<IModuleCatalog>(catalog);
         services.AddSingleton(catalog);

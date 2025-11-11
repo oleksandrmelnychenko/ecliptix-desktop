@@ -75,7 +75,7 @@
                     <!-- Shadow & Effects -->
                     <Color x:Key="Shadow.Color">#000000</Color>
                     <SolidColorBrush x:Key="Shadow" Color="{DynamicResource Shadow.Color}" />
-                    <Color x:Key="Blur.Background">#FF6a5acd</Color>
+                    <Color x:Key="Blur.Background">#FFFFFF</Color>
                     <SolidColorBrush x:Key="BlurBackgroundBrush" Color="{DynamicResource Blur.Background}" />
 
                     <!-- Special Colors -->

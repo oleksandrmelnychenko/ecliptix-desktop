@@ -8,7 +8,7 @@
              x:Class="Ecliptix.Core.Features.Main.Views.HomeView">
 
     <Grid>
-        <Border Background="#FFFFFF"
+        <Border Background="Transparent"
                 Margin="20"
                 CornerRadius="12"
                 Padding="40">
@@ -18,11 +18,6 @@
                 <TextBlock Text="Welcome to Ecliptix"
                            FontSize="32"
                            FontWeight="Bold"
-                           HorizontalAlignment="Center" />
-
-                <TextBlock Text="Your secure communication platform"
-                           FontSize="16"
-                           Foreground="#666666"
                            HorizontalAlignment="Center" />
             </StackPanel>
         </Border>

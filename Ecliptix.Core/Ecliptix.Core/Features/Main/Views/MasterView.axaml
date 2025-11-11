@@ -9,48 +9,54 @@
              d:DesignWidth="1200"
              d:DesignHeight="800"
              x:DataType="vm:MasterViewModel"
-             x:Class="Ecliptix.Core.Features.Main.Views.MasterView"
-             Background="#F6F7F9">
+             x:Class="Ecliptix.Core.Features.Main.Views.MasterView">
 
-    <!-- Module-Specific Content Only: 2-Column Layout (Sidebar + Content) -->
-    <Grid ColumnDefinitions="70,*"
-          ClipToBounds="True"
-          Margin="0,40,0,0">
+    <!--<UserControl.Background>
+        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Color="#E6F3FF" Offset="0.0" />
+            <GradientStop Color="#F0F8FF" Offset="0.25" />
+            <GradientStop Color="#FFF5E6" Offset="0.5" />
+            <GradientStop Color="#F0F8FF" Offset="0.75" />
+            <GradientStop Color="#E6F3FF" Offset="1.0" />
+        </LinearGradientBrush>
+    </UserControl.Background>-->
 
-        <!-- Navigation Sidebar -->
+    <Grid ColumnDefinitions="Auto,*"
+          Margin="0,0,0,0">
+
         <nav:NavigationSidebar Grid.Column="0"
-                               DataContext="{Binding NavigationSidebar}" />
+                               DataContext="{Binding NavigationSidebar}"
+                               VerticalAlignment="Stretch"
+                               ZIndex="1000" />
 
-        <!-- Main Content Area -->
-        <Border Grid.Column="1"
-                Background="Transparent">
-            <Grid RowDefinitions="*,Auto">
-                <!-- Content Area -->
-                <ContentControl Grid.Row="0"
-                                Content="{Binding CurrentView}" />
+        <ContentControl Grid.Column="1"
+                        Content="{Binding CurrentView}"
+                        VerticalAlignment="Stretch"
+                        HorizontalAlignment="Stretch"
+                        ZIndex="0" />
 
-                <!-- Logout Button at Bottom -->
-                <Button Grid.Row="1"
-                        Command="{Binding LogoutCommand}"
-                        HorizontalAlignment="Center"
-                        Margin="0,0,0,20"
-                        Width="120"
-                        Height="40"
-                        Background="{DynamicResource Error}"
-                        CornerRadius="8"
-                        ToolTip.Tip="Logout">
-                    <StackPanel Orientation="Horizontal"
-                                Spacing="8">
-                        <PathIcon Data="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14l5-5-5-5m5 5H9"
-                                  Foreground="{DynamicResource OnError}"
-                                  Width="20"
-                                  Height="20" />
-                        <TextBlock Text="Logout"
-                                   Foreground="{DynamicResource OnError}"
-                                   VerticalAlignment="Center" />
-                    </StackPanel>
-                </Button>
-            </Grid>
-        </Border>
+        <!-- Logout Button at Bottom Right - On top -->
+        <!--<Button Grid.Row="0"
+                Command="{Binding LogoutCommand}"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                Margin="0,0,20,20"
+                Width="120"
+                Height="40"
+                Background="{DynamicResource Error}"
+                CornerRadius="8"
+                ToolTip.Tip="Logout"
+                ZIndex="999">
+            <StackPanel Orientation="Horizontal"
+                        Spacing="8">
+                <PathIcon Data="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14l5-5-5-5m5 5H9"
+                          Foreground="{DynamicResource OnError}"
+                          Width="20"
+                          Height="20" />
+                <TextBlock Text="Logout"
+                           Foreground="{DynamicResource OnError}"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+        </Button>-->
     </Grid>
 </UserControl>

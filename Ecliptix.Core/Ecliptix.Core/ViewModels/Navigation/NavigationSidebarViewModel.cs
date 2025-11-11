@@ -36,9 +36,9 @@ public sealed class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM.ViewMod
             new NavigationMenuItem
             {
                 Id = "home",
-                Label = "Home",
-                IconPath = "HomeIconData",
-                TooltipText = "Home",
+                Label = "Feed",
+                IconPath = "FeedIconData",
+                TooltipText = "Feed",
                 Type = NavigationMenuItemType.Regular
             },
             new NavigationMenuItem
@@ -55,7 +55,15 @@ public sealed class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM.ViewMod
                 Label = "Settings",
                 IconPath = "SettingsIconData",
                 TooltipText = "Settings",
-                Type = NavigationMenuItemType.Bottom
+                Type = NavigationMenuItemType.Regular
+            },
+            new NavigationMenuItem
+            {
+                Id = "profile",
+                Label = "Profile",
+                IconPath = "ProfileIconData",
+                TooltipText = "Profile",
+                Type = NavigationMenuItemType.Regular
             }
         };
 

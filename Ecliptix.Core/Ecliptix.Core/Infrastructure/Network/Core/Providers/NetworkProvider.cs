@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using Ecliptix.Core.Core.Messaging.Connectivity;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Core.Infrastructure.Network.Core.Constants;
 using Ecliptix.Core.Infrastructure.Security.Storage;
+using Ecliptix.Core.Services.Network.Resilience;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Core.Settings.Constants;
 using Ecliptix.Protobuf.Common;
@@ -53,6 +55,7 @@ public sealed class NetworkProvider(
     private readonly Lock _outageLock = new();
     private readonly Lock _disposeLock = new();
     private readonly Lock _appInstanceSetterLock = new();
+    private readonly ConcurrentDictionary<uint, Task> _pendingPersistTasks = new();
 
     private CancellationTokenSource? _connectionRecoveryCts;
     private Option<ApplicationInstanceSettings> _applicationInstanceSettings = Option<ApplicationInstanceSettings>.None;
@@ -756,12 +759,12 @@ public sealed class NetworkProvider(
 
         if (restoreResponse.IsErr)
         {
-            return HandleRestoreFailure(
+            return await HandleRestoreFailureAsync(
                 restoreResponse.UnwrapErr(),
                 ecliptixSecrecyChannelState,
                 applicationInstanceSettings,
                 retryMode,
-                enablePendingRegistration);
+                enablePendingRegistration).ConfigureAwait(false);
         }
 
         return await ProcessRestoreResponseAsync(
@@ -875,13 +878,22 @@ public sealed class NetworkProvider(
             : CancellationTokenSource.CreateLinkedTokenSource(token1);
     }
 
-    private Result<bool, NetworkFailure> HandleRestoreFailure(
+    private async Task<Result<bool, NetworkFailure>> HandleRestoreFailureAsync(
         NetworkFailure failure,
         EcliptixSessionState sessionState,
         ApplicationInstanceSettings settings,
         RestoreRetryMode retryMode,
         bool enablePendingRegistration)
     {
+        if (FailureClassification.IsProtocolStateMismatch(failure))
+        {
+            Log.Warning(
+                "[NETWORK-PROVIDER] Protocol state mismatch during restore. Cleaning up stale state. ConnectId: {ConnectId}",
+                sessionState.ConnectId);
+
+            await CleanupFailedAuthenticationAsync(sessionState.ConnectId).ConfigureAwait(false);
+        }
+
         if (enablePendingRegistration && ShouldQueueSecrecyChannelRetry(failure))
         {
             QueueSecrecyChannelRestoreRetry(sessionState, settings, retryMode);
@@ -933,6 +945,12 @@ public sealed class NetworkProvider(
 
     private async Task<Result<bool, NetworkFailure>> HandleSessionNotFoundAsync(uint connectId)
     {
+        Log.Information(
+            "[NETWORK-PROVIDER] Session not found on server. Cleaning up stale state. ConnectId: {ConnectId}",
+            connectId);
+
+        await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
+
         Result<EcliptixSessionState, NetworkFailure> establishResult =
             await EstablishSecrecyChannelAsync(connectId);
 
@@ -1374,6 +1392,24 @@ public sealed class NetworkProvider(
         {
             Log.Error("[CLIENT-DECRYPT-ERROR] Decryption failed. ERROR: {Error}", decryptedData.UnwrapErr().Message);
             NetworkFailure decryptFailure = decryptedData.UnwrapErr().ToNetworkFailure();
+
+            if (FailureClassification.IsProtocolStateMismatch(decryptFailure))
+            {
+                Log.Warning(
+                    "[NETWORK-PROVIDER] Protocol state mismatch during message decryption. Cleaning up stale state. ConnectId: {ConnectId}",
+                    connectId);
+
+                await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
+
+                if (_connections.TryRemove(connectId, out EcliptixProtocolSystem? staleProtocol))
+                {
+                    staleProtocol.Dispose();
+                    Log.Information(
+                        "[NETWORK-PROVIDER] Disposed in-memory protocol system after state mismatch. ConnectId: {ConnectId}",
+                        connectId);
+                }
+            }
+
             decryptFailure = ApplyReinitIfNeeded(decryptFailure, serviceType, retryBehavior);
             return Result<Unit, NetworkFailure>.Err(decryptFailure);
         }
@@ -1951,10 +1987,19 @@ public sealed class NetworkProvider(
 
     private void PersistProtocolStateInBackground(uint connectId)
     {
-        Task.Run(async () =>
+        Task persistTask = Task.Run(async () =>
         {
-            await TryPersistProtocolStateAsync(connectId).ConfigureAwait(false);
+            try
+            {
+                await TryPersistProtocolStateAsync(connectId).ConfigureAwait(false);
+            }
+            finally
+            {
+                _pendingPersistTasks.TryRemove(connectId, out _);
+            }
         });
+
+        _pendingPersistTasks.AddOrUpdate(connectId, persistTask, (_, __) => persistTask);
     }
 
     private async Task TryPersistProtocolStateAsync(uint connectId)
@@ -2056,6 +2101,7 @@ public sealed class NetworkProvider(
 
             try
             {
+                WaitForPendingPersistTasks();
                 _shutdownCancellationToken.Cancel();
                 CleanupPendingRequests();
                 CleanupActiveStreams();
@@ -2068,6 +2114,35 @@ public sealed class NetworkProvider(
             {
                 // Suppressed
             }
+        }
+    }
+
+    private void WaitForPendingPersistTasks()
+    {
+        Task[] pendingTasks = _pendingPersistTasks.Values.ToArray();
+
+        if (pendingTasks.Length == 0)
+        {
+            return;
+        }
+
+        Log.Information(
+            "[NETWORK-PROVIDER] Waiting for {Count} pending protocol state persistence task(s) to complete before shutdown",
+            pendingTasks.Length);
+
+        try
+        {
+            Task.WaitAll(pendingTasks, TimeSpan.FromSeconds(5));
+            Log.Information("[NETWORK-PROVIDER] All pending protocol state persistence tasks completed successfully");
+        }
+        catch (AggregateException ex)
+        {
+            Log.Warning(ex,
+                "[NETWORK-PROVIDER] Some protocol state persistence tasks failed or timed out during shutdown");
+        }
+        finally
+        {
+            _pendingPersistTasks.Clear();
         }
     }
 

@@ -88,9 +88,9 @@
                 x:Name="MainBorder">
 
             <Border.Effect>
-                <DropShadowEffect Color="#FF6D00"
+                <DropShadowEffect Color="Black"
                                   BlurRadius="{StaticResource Shadow.Radius}"
-                                  Opacity="0.4"
+                                  Opacity="0.1"
                                   OffsetX="0"
                                   OffsetY="2" />
             </Border.Effect>

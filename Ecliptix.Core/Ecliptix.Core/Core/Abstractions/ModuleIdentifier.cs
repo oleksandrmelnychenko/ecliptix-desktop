@@ -7,7 +7,6 @@ public enum ModuleIdentifier
     AUTHENTICATION,
     MAIN,
     SETTINGS,
-    CHATS,
 }
 
 public static class ModuleIdentifierExtensions
@@ -17,7 +16,6 @@ public static class ModuleIdentifierExtensions
         ModuleIdentifier.AUTHENTICATION => "Authentication",
         ModuleIdentifier.MAIN => "Main",
         ModuleIdentifier.SETTINGS => "Settings",
-        ModuleIdentifier.CHATS => "Chats",
         _ => throw new ArgumentOutOfRangeException(nameof(identifier), identifier, "Unknown module identifier")
     };
 }

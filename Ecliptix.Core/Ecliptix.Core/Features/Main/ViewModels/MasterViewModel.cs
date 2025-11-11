@@ -6,8 +6,6 @@ using System.Threading;
 using Avalonia.Controls;
 
 using Ecliptix.Core.Controls.Core;
-using Ecliptix.Core.Features.Chats.ViewModels;
-using Ecliptix.Core.Features.Chats.Views;
 using Ecliptix.Core.Features.Main.Views;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Models.Membership;
@@ -39,7 +37,6 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase
 
     public ConnectivityNotificationViewModel ConnectivityNotification { get; }
     public NavigationSidebarViewModel NavigationSidebar { get; }
-    public MasterChatViewModel MasterChatViewModel { get; }
 
     public ReactiveCommand<SystemU, Result<Unit, LogoutFailure>> LogoutCommand { get; }
 
@@ -53,7 +50,6 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase
         _logoutService = logoutService;
         ConnectivityNotification = mainWindowViewModel.ConnectivityNotification;
         NavigationSidebar = new NavigationSidebarViewModel(networkProvider, localizationService);
-        MasterChatViewModel = new MasterChatViewModel(networkProvider, localizationService);
 
         CurrentView = new HomeView();
 
@@ -119,7 +115,6 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase
                 CurrentView = menuItem.Id switch
                 {
                     "home" => new HomeView(),
-                    "chats" => new ChatListView { DataContext = MasterChatViewModel },
                     _ => CurrentView
                 };
             })
@@ -138,7 +133,6 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase
             CancelLogoutOperation();
             LogoutCommand?.Dispose();
             NavigationSidebar?.Dispose();
-            MasterChatViewModel?.Dispose();
             _disposables.Dispose();
         }
 
