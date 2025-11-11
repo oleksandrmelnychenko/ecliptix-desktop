@@ -89,7 +89,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     public async Task SetAuthenticationContentAsync(object content)
     {
-        await AnimateWindowResizeAsync(480, 720, TimeSpan.FromMilliseconds(300)).ConfigureAwait(true);
+        await AnimateWindowResizeAsync(480, 720, TimeSpan.FromMilliseconds(300)).ConfigureAwait(false);
 
         CanResize = false;
         TitleBarViewModel.DisableMaximizeButton = true;
@@ -99,7 +99,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     public async Task SetMainContentAsync(object content)
     {
-        await AnimateWindowResizeAsync(1200, 800, TimeSpan.FromMilliseconds(300)).ConfigureAwait(true);
+        await AnimateWindowResizeAsync(1200, 800, TimeSpan.FromMilliseconds(300)).ConfigureAwait(false);
 
         CanResize = true;
         TitleBarViewModel.DisableMaximizeButton = false;
