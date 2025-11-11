@@ -28,6 +28,8 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     private bool _isDisposed;
 
+    private bool _isMainContentActive = false;
+
     [Reactive] public WindowState WindowState { get; set; } = WindowState.Normal;
     [Reactive] public object? CurrentContent { get; private set; }
 
@@ -91,6 +93,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     public async Task SetAuthenticationContentAsync(object content)
     {
+        _isMainContentActive = false;
         await AnimateWindowResizeAsync(480, 720, TimeSpan.FromMilliseconds(300)).ConfigureAwait(false);
 
         CanResize = false;
@@ -101,6 +104,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     public async Task SetMainContentAsync(object content)
     {
+        _isMainContentActive = true;
         await AnimateWindowResizeAsync(1200, 800, TimeSpan.FromMilliseconds(300)).ConfigureAwait(false);
 
         CanResize = true;
@@ -309,6 +313,12 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     public async Task SavePlacementAsync(WindowState state, PixelPoint position, Size clientSize)
     {
+        if (!_isMainContentActive)
+        {
+            Log.Information("[MAIN-WINDOW-VM] Пропуск збереження стану вікна (активний екран автентифікації).");
+            return;
+        }
+
         WindowPlacement? placement = (await LoadInitialPlacementAsync()) ?? new WindowPlacement();
 
         if (state == WindowState.Normal)
