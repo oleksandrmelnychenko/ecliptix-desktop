@@ -106,8 +106,6 @@ public static class Program
             ReactiveUI.IViewLocator reactiveViewLocator = serviceProvider.GetRequiredService<ReactiveUI.IViewLocator>();
             Splat.Locator.CurrentMutable.Register(() => reactiveViewLocator, typeof(ReactiveUI.IViewLocator));
 
-            RegisterModuleViews(serviceProvider);
-
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
         }
         catch (Exception ex)
@@ -463,7 +461,23 @@ public static class Program
         services.AddSingleton<ModuleResourceManager>();
 
         services.AddSingleton<IModuleMessageBus, ModuleMessageBus>();
-        services.AddSingleton<IModuleViewFactory, ModuleViewFactory>();
+        services.AddSingleton<IModuleViewFactory>(provider =>
+        {
+            ModuleViewFactory factory = new ModuleViewFactory(
+                provider.GetRequiredService<IModuleManager>(),
+                provider);
+
+            factory.RegisterView<Ecliptix.Core.Features.Feed.ViewModels.FeedViewModel,
+                Ecliptix.Core.Features.Feed.Views.FeedView>();
+            factory.RegisterView<Ecliptix.Core.Features.Chats.ViewModels.ChatsViewModel,
+                Ecliptix.Core.Features.Chats.Views.ChatsView>();
+            factory.RegisterView<Ecliptix.Core.Features.Settings.ViewModels.SettingsViewModel,
+                Ecliptix.Core.Features.Settings.Views.SettingsView>();
+
+            Log.Information("Registered {Count} module views during ModuleViewFactory creation", 3);
+
+            return factory;
+        });
 
         services.AddSingleton<IViewLocator, ViewLocator>();
         services.AddSingleton<ReactiveUiViewLocatorAdapter>();
@@ -508,20 +522,6 @@ public static class Program
                 Settings = sp.GetRequiredService<DefaultSystemSettings>()
             }));
         services.AddTransient<MasterViewModel>();
-    }
-
-    private static void RegisterModuleViews(IServiceProvider serviceProvider)
-    {
-        IModuleViewFactory viewFactory = serviceProvider.GetRequiredService<IModuleViewFactory>();
-
-        viewFactory.RegisterView<Ecliptix.Core.Features.Feed.ViewModels.FeedViewModel,
-            Ecliptix.Core.Features.Feed.Views.FeedView>();
-        viewFactory.RegisterView<Ecliptix.Core.Features.Chats.ViewModels.ChatsViewModel,
-            Ecliptix.Core.Features.Chats.Views.ChatsView>();
-        viewFactory.RegisterView<Ecliptix.Core.Features.Settings.ViewModels.SettingsViewModel,
-            Ecliptix.Core.Features.Settings.Views.SettingsView>();
-
-        Log.Information("Registered {Count} module views", 3);
     }
 
     private static string GetPlatformAppDataDirectory()
