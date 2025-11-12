@@ -1,301 +1,0 @@
-~
-Ecliptix.Utilities.ErrorCodeSystem.EnumSystem.ValueTypeobject7
-ErrorCode()(Ecliptix.Utilities.ErrorCode.ErrorCode()Ê
-&Ecliptix.Utilities.GrpcErrorDescriptorobjectSystem.IEquatable<T>‚
-[GrpcErrorDescriptor(Ecliptix.Utilities.ErrorCode, Grpc.Core.StatusCode, string, bool, int?)ÇEcliptix.Utilities.GrpcErrorDescriptor.GrpcErrorDescriptor(Ecliptix.Utilities.ErrorCode, Grpc.Core.StatusCode, string, bool, int?)S
-CreateStatus(string);Ecliptix.Utilities.GrpcErrorDescriptor.CreateStatus(string)?
-
-ToString()1Ecliptix.Utilities.GrpcErrorDescriptor.ToString()y
-'PrintMembers(System.Text.StringBuilder)NEcliptix.Utilities.GrpcErrorDescriptor.PrintMembers(System.Text.StringBuilder)E
-GetHashCode()4Ecliptix.Utilities.GrpcErrorDescriptor.GetHashCode()I
-Equals(object?)6Ecliptix.Utilities.GrpcErrorDescriptor.Equals(object?)â
-/Equals(Ecliptix.Utilities.GrpcErrorDescriptor?)VEcliptix.Utilities.GrpcErrorDescriptor.Equals(Ecliptix.Utilities.GrpcErrorDescriptor?)?
-
-<Clone>$()1Ecliptix.Utilities.GrpcErrorDescriptor.<Clone>$()°
-;GrpcErrorDescriptor(Ecliptix.Utilities.GrpcErrorDescriptor)bEcliptix.Utilities.GrpcErrorDescriptor.GrpcErrorDescriptor(Ecliptix.Utilities.GrpcErrorDescriptor)˙
-gDeconstruct(out Ecliptix.Utilities.ErrorCode, out Grpc.Core.StatusCode, out string, out bool, out int?)éEcliptix.Utilities.GrpcErrorDescriptor.Deconstruct(out Ecliptix.Utilities.ErrorCode, out Grpc.Core.StatusCode, out string, out bool, out int?)S
-EqualityContract.get;Ecliptix.Utilities.GrpcErrorDescriptor.EqualityContract.getS
-EqualityContract.set;Ecliptix.Utilities.GrpcErrorDescriptor.EqualityContract.setE
-ErrorCode.get4Ecliptix.Utilities.GrpcErrorDescriptor.ErrorCode.getG
-ErrorCode.init5Ecliptix.Utilities.GrpcErrorDescriptor.ErrorCode.initG
-StatusCode.get5Ecliptix.Utilities.GrpcErrorDescriptor.StatusCode.getI
-StatusCode.init6Ecliptix.Utilities.GrpcErrorDescriptor.StatusCode.initA
-I18NKey.get2Ecliptix.Utilities.GrpcErrorDescriptor.I18NKey.getC
-I18NKey.init3Ecliptix.Utilities.GrpcErrorDescriptor.I18NKey.initE
-Retryable.get4Ecliptix.Utilities.GrpcErrorDescriptor.Retryable.getG
-Retryable.init5Ecliptix.Utilities.GrpcErrorDescriptor.Retryable.init_
-RetryAfterMilliseconds.getAEcliptix.Utilities.GrpcErrorDescriptor.RetryAfterMilliseconds.geta
-RetryAfterMilliseconds.initBEcliptix.Utilities.GrpcErrorDescriptor.RetryAfterMilliseconds.initá
-LEcliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailureTypeSystem.EnumSystem.ValueTypeobjectè
-CertificatePinningFailureType()lEcliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailureType.CertificatePinningFailureType()*
-(Ecliptix.Utilities.Failures.IFailureBaseÓ
-DEcliptix.Utilities.Failures.Authentication.AuthenticationFailureTypeSystem.EnumSystem.ValueTypeobject
-AuthenticationFailureType()`Ecliptix.Utilities.Failures.Authentication.AuthenticationFailureType.AuthenticationFailureType()˚
-HEcliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailureTypeSystem.EnumSystem.ValueTypeobjectá
-EcliptixProtocolFailureType()fEcliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailureType.EcliptixProtocolFailureType()ı
-Ecliptix.Utilities.UnitSystem.ValueTypeobjectSystem.IEquatable<T>Z
-Equals(Ecliptix.Utilities.Unit)7Ecliptix.Utilities.Unit.Equals(Ecliptix.Utilities.Unit):
-Equals(object?)'Ecliptix.Utilities.Unit.Equals(object?)6
-GetHashCode()%Ecliptix.Utilities.Unit.GetHashCode()0
-
-ToString()"Ecliptix.Utilities.Unit.ToString()(
-Unit()Ecliptix.Utilities.Unit.Unit()≥
-4Ecliptix.Utilities.Failures.Membership.LogoutFailure'Ecliptix.Utilities.Failures.FailureBaseobjectSystem.IEquatable<T>˛
-bLogoutFailure(Ecliptix.Utilities.Failures.Membership.LogoutFailureType, string, System.Exception?)óEcliptix.Utilities.Failures.Membership.LogoutFailure.LogoutFailure(Ecliptix.Utilities.Failures.Membership.LogoutFailureType, string, System.Exception?)[
-ToStructuredLog()FEcliptix.Utilities.Failures.Membership.LogoutFailure.ToStructuredLog()]
-ToGrpcDescriptor()GEcliptix.Utilities.Failures.Membership.LogoutFailure.ToGrpcDescriptor()M
-
-ToString()?Ecliptix.Utilities.Failures.Membership.LogoutFailure.ToString()á
-'PrintMembers(System.Text.StringBuilder)\Ecliptix.Utilities.Failures.Membership.LogoutFailure.PrintMembers(System.Text.StringBuilder)S
-GetHashCode()BEcliptix.Utilities.Failures.Membership.LogoutFailure.GetHashCode()W
-Equals(object?)DEcliptix.Utilities.Failures.Membership.LogoutFailure.Equals(object?)ô
-0Equals(Ecliptix.Utilities.Failures.FailureBase?)eEcliptix.Utilities.Failures.Membership.LogoutFailure.Equals(Ecliptix.Utilities.Failures.FailureBase?)≥
-=Equals(Ecliptix.Utilities.Failures.Membership.LogoutFailure?)rEcliptix.Utilities.Failures.Membership.LogoutFailure.Equals(Ecliptix.Utilities.Failures.Membership.LogoutFailure?)M
-
-<Clone>$()?Ecliptix.Utilities.Failures.Membership.LogoutFailure.<Clone>$()ø
-CLogoutFailure(Ecliptix.Utilities.Failures.Membership.LogoutFailure)xEcliptix.Utilities.Failures.Membership.LogoutFailure.LogoutFailure(Ecliptix.Utilities.Failures.Membership.LogoutFailure)í
-lDeconstruct(out Ecliptix.Utilities.Failures.Membership.LogoutFailureType, out string, out System.Exception?)°Ecliptix.Utilities.Failures.Membership.LogoutFailure.Deconstruct(out Ecliptix.Utilities.Failures.Membership.LogoutFailureType, out string, out System.Exception?)a
-EqualityContract.getIEcliptix.Utilities.Failures.Membership.LogoutFailure.EqualityContract.geta
-EqualityContract.setIEcliptix.Utilities.Failures.Membership.LogoutFailure.EqualityContract.setW
-FailureType.getDEcliptix.Utilities.Failures.Membership.LogoutFailure.FailureType.getY
-FailureType.initEEcliptix.Utilities.Failures.Membership.LogoutFailure.FailureType.init§
-'Ecliptix.Utilities.Failures.FailureBaseobject(Ecliptix.Utilities.Failures.IFailureBaseSystem.IEquatable<T>x
-&FailureBase(string, System.Exception?)NEcliptix.Utilities.Failures.FailureBase.FailureBase(string, System.Exception?)H
-ToGrpcStatus()6Ecliptix.Utilities.Failures.FailureBase.ToGrpcStatus()@
-
-ToString()2Ecliptix.Utilities.Failures.FailureBase.ToString()z
-'PrintMembers(System.Text.StringBuilder)OEcliptix.Utilities.Failures.FailureBase.PrintMembers(System.Text.StringBuilder)F
-GetHashCode()5Ecliptix.Utilities.Failures.FailureBase.GetHashCode()J
-Equals(object?)7Ecliptix.Utilities.Failures.FailureBase.Equals(object?)å
-0Equals(Ecliptix.Utilities.Failures.FailureBase?)XEcliptix.Utilities.Failures.FailureBase.Equals(Ecliptix.Utilities.Failures.FailureBase?)î
-4FailureBase(Ecliptix.Utilities.Failures.FailureBase)\Ecliptix.Utilities.Failures.FailureBase.FailureBase(Ecliptix.Utilities.Failures.FailureBase)à
-.Deconstruct(out string, out System.Exception?)VEcliptix.Utilities.Failures.FailureBase.Deconstruct(out string, out System.Exception?)T
-EqualityContract.get<Ecliptix.Utilities.Failures.FailureBase.EqualityContract.getT
-EqualityContract.set<Ecliptix.Utilities.Failures.FailureBase.EqualityContract.setB
-Message.get3Ecliptix.Utilities.Failures.FailureBase.Message.getD
-Message.init4Ecliptix.Utilities.Failures.FailureBase.Message.initP
-InnerException.get:Ecliptix.Utilities.Failures.FailureBase.InnerException.getR
-InnerException.init;Ecliptix.Utilities.Failures.FailureBase.InnerException.initF
-Timestamp.get5Ecliptix.Utilities.Failures.FailureBase.Timestamp.getF
-Timestamp.set5Ecliptix.Utilities.Failures.FailureBase.Timestamp.set∆
-8Ecliptix.Utilities.Failures.Membership.LogoutFailureTypeSystem.EnumSystem.ValueTypeobjectc
-LogoutFailureType()LEcliptix.Utilities.Failures.Membership.LogoutFailureType.LogoutFailureType()È
-2Ecliptix.Utilities.Failures.Network.NetworkFailure'Ecliptix.Utilities.Failures.FailureBaseobjectSystem.IEquatable<T>˙
-aNetworkFailure(Ecliptix.Utilities.Failures.Network.NetworkFailureType, string, System.Exception?)îEcliptix.Utilities.Failures.Network.NetworkFailure.NetworkFailure(Ecliptix.Utilities.Failures.Network.NetworkFailureType, string, System.Exception?)Y
-ToStructuredLog()DEcliptix.Utilities.Failures.Network.NetworkFailure.ToStructuredLog()[
-ToGrpcDescriptor()EEcliptix.Utilities.Failures.Network.NetworkFailure.ToGrpcDescriptor()K
-
-ToString()=Ecliptix.Utilities.Failures.Network.NetworkFailure.ToString()Ö
-'PrintMembers(System.Text.StringBuilder)ZEcliptix.Utilities.Failures.Network.NetworkFailure.PrintMembers(System.Text.StringBuilder)Q
-GetHashCode()@Ecliptix.Utilities.Failures.Network.NetworkFailure.GetHashCode()U
-Equals(object?)BEcliptix.Utilities.Failures.Network.NetworkFailure.Equals(object?)ó
-0Equals(Ecliptix.Utilities.Failures.FailureBase?)cEcliptix.Utilities.Failures.Network.NetworkFailure.Equals(Ecliptix.Utilities.Failures.FailureBase?)≠
-;Equals(Ecliptix.Utilities.Failures.Network.NetworkFailure?)nEcliptix.Utilities.Failures.Network.NetworkFailure.Equals(Ecliptix.Utilities.Failures.Network.NetworkFailure?)K
-
-<Clone>$()=Ecliptix.Utilities.Failures.Network.NetworkFailure.<Clone>$()ª
-BNetworkFailure(Ecliptix.Utilities.Failures.Network.NetworkFailure)uEcliptix.Utilities.Failures.Network.NetworkFailure.NetworkFailure(Ecliptix.Utilities.Failures.Network.NetworkFailure)å
-jDeconstruct(out Ecliptix.Utilities.Failures.Network.NetworkFailureType, out string, out System.Exception?)ùEcliptix.Utilities.Failures.Network.NetworkFailure.Deconstruct(out Ecliptix.Utilities.Failures.Network.NetworkFailureType, out string, out System.Exception?)_
-EqualityContract.getGEcliptix.Utilities.Failures.Network.NetworkFailure.EqualityContract.get_
-EqualityContract.setGEcliptix.Utilities.Failures.Network.NetworkFailure.EqualityContract.setU
-FailureType.getBEcliptix.Utilities.Failures.Network.NetworkFailure.FailureType.getW
-FailureType.initCEcliptix.Utilities.Failures.Network.NetworkFailure.FailureType.initQ
-UserError.get@Ecliptix.Utilities.Failures.Network.NetworkFailure.UserError.getS
-UserError.initAEcliptix.Utilities.Failures.Network.NetworkFailure.UserError.init[
-RequiresReinit.getEEcliptix.Utilities.Failures.Network.NetworkFailure.RequiresReinit.get]
-RequiresReinit.initFEcliptix.Utilities.Failures.Network.NetworkFailure.RequiresReinit.init°
-=Ecliptix.Utilities.Failures.RpcMetaData.MetaDataSystemFailureobject´
-tMetaDataSystemFailure(Ecliptix.Utilities.Failures.RpcMetaData.MetaDataSystemFailureType, string?, System.Exception?)≤Ecliptix.Utilities.Failures.RpcMetaData.MetaDataSystemFailure.MetaDataSystemFailure(Ecliptix.Utilities.Failures.RpcMetaData.MetaDataSystemFailureType, string?, System.Exception?)R
-Type.getFEcliptix.Utilities.Failures.RpcMetaData.MetaDataSystemFailure.Type.getR
-Type.setFEcliptix.Utilities.Failures.RpcMetaData.MetaDataSystemFailure.Type.setX
-Message.getIEcliptix.Utilities.Failures.RpcMetaData.MetaDataSystemFailure.Message.getX
-Message.setIEcliptix.Utilities.Failures.RpcMetaData.MetaDataSystemFailure.Message.setf
-InnerException.getPEcliptix.Utilities.Failures.RpcMetaData.MetaDataSystemFailure.InnerException.getf
-InnerException.setPEcliptix.Utilities.Failures.RpcMetaData.MetaDataSystemFailure.InnerException.setƒ
-6Ecliptix.Utilities.Failures.Network.NetworkFailureTypeSystem.EnumSystem.ValueTypeobjectc
-NetworkFailureType()KEcliptix.Utilities.Failures.Network.NetworkFailureType.NetworkFailureType()ÿ
-
- Ecliptix.Utilities.Result<T, TE>System.ValueTypeobjectSystem.IEquatable<T>C
-Result(T, bool)0Ecliptix.Utilities.Result<T, TE>.Result(T, bool)9
-
-Result(TE)+Ecliptix.Utilities.Result<T, TE>.Result(TE)5
-Unwrap())Ecliptix.Utilities.Result<T, TE>.Unwrap();
-UnwrapErr(),Ecliptix.Utilities.Result<T, TE>.UnwrapErr()g
-!Map<TNext>(System.Func<T, TNext>)BEcliptix.Utilities.Result<T, TE>.Map<TNext>(System.Func<T, TNext>)ß
-ABind<TNext>(System.Func<T, Ecliptix.Utilities.Result<TNext, TE>>)bEcliptix.Utilities.Result<T, TE>.Bind<TNext>(System.Func<T, Ecliptix.Utilities.Result<TNext, TE>>)≠
-DAndThen<TNext>(System.Func<T, Ecliptix.Utilities.Result<TNext, TE>>)eEcliptix.Utilities.Result<T, TE>.AndThen<TNext>(System.Func<T, Ecliptix.Utilities.Result<TNext, TE>>)9
-
-ToString()+Ecliptix.Utilities.Result<T, TE>.ToString()u
-(Equals(Ecliptix.Utilities.Result<T, TE>)IEcliptix.Utilities.Result<T, TE>.Equals(Ecliptix.Utilities.Result<T, TE>)C
-Equals(object?)0Ecliptix.Utilities.Result<T, TE>.Equals(object?)?
-GetHashCode().Ecliptix.Utilities.Result<T, TE>.GetHashCode()5
-Result())Ecliptix.Utilities.Result<T, TE>.Result()5
-IsOk.get)Ecliptix.Utilities.Result<T, TE>.IsOk.get5
-IsOk.set)Ecliptix.Utilities.Result<T, TE>.IsOk.set7
-	IsErr.get*Ecliptix.Utilities.Result<T, TE>.IsErr.get7
-	IsErr.set*Ecliptix.Utilities.Result<T, TE>.IsErr.set˛
-0Ecliptix.Utilities.Failures.Sodium.SodiumFailureobjectÚ
-^SodiumFailure(Ecliptix.Utilities.Failures.Sodium.SodiumFailureType, string, System.Exception?)èEcliptix.Utilities.Failures.Sodium.SodiumFailure.SodiumFailure(Ecliptix.Utilities.Failures.Sodium.SodiumFailureType, string, System.Exception?)I
-
-ToString();Ecliptix.Utilities.Failures.Sodium.SodiumFailure.ToString()S
-Equals(object?)@Ecliptix.Utilities.Failures.Sodium.SodiumFailure.Equals(object?)O
-GetHashCode()>Ecliptix.Utilities.Failures.Sodium.SodiumFailure.GetHashCode()E
-Type.get9Ecliptix.Utilities.Failures.Sodium.SodiumFailure.Type.getE
-Type.set9Ecliptix.Utilities.Failures.Sodium.SodiumFailure.Type.setK
-Message.get<Ecliptix.Utilities.Failures.Sodium.SodiumFailure.Message.getK
-Message.set<Ecliptix.Utilities.Failures.Sodium.SodiumFailure.Message.setY
-InnerException.getCEcliptix.Utilities.Failures.Sodium.SodiumFailure.InnerException.getY
-InnerException.setCEcliptix.Utilities.Failures.Sodium.SodiumFailure.InnerException.setÁ
-3Ecliptix.Utilities.Failures.Network.UserFacingErrorobjectSystem.IEquatable<T>ü
-sUserFacingError(Ecliptix.Utilities.ErrorCode, string, string, bool?, int?, string?, string?, Grpc.Core.StatusCode?)ßEcliptix.Utilities.Failures.Network.UserFacingError.UserFacingError(Ecliptix.Utilities.ErrorCode, string, string, bool?, int?, string?, string?, Grpc.Core.StatusCode?)L
-
-ToString()>Ecliptix.Utilities.Failures.Network.UserFacingError.ToString()Ü
-'PrintMembers(System.Text.StringBuilder)[Ecliptix.Utilities.Failures.Network.UserFacingError.PrintMembers(System.Text.StringBuilder)R
-GetHashCode()AEcliptix.Utilities.Failures.Network.UserFacingError.GetHashCode()V
-Equals(object?)CEcliptix.Utilities.Failures.Network.UserFacingError.Equals(object?)∞
-<Equals(Ecliptix.Utilities.Failures.Network.UserFacingError?)pEcliptix.Utilities.Failures.Network.UserFacingError.Equals(Ecliptix.Utilities.Failures.Network.UserFacingError?)L
-
-<Clone>$()>Ecliptix.Utilities.Failures.Network.UserFacingError.<Clone>$()¿
-DUserFacingError(Ecliptix.Utilities.Failures.Network.UserFacingError)xEcliptix.Utilities.Failures.Network.UserFacingError.UserFacingError(Ecliptix.Utilities.Failures.Network.UserFacingError)ÿ
-èDeconstruct(out Ecliptix.Utilities.ErrorCode, out string, out string, out bool?, out int?, out string?, out string?, out Grpc.Core.StatusCode?)√Ecliptix.Utilities.Failures.Network.UserFacingError.Deconstruct(out Ecliptix.Utilities.ErrorCode, out string, out string, out bool?, out int?, out string?, out string?, out Grpc.Core.StatusCode?)`
-EqualityContract.getHEcliptix.Utilities.Failures.Network.UserFacingError.EqualityContract.get`
-EqualityContract.setHEcliptix.Utilities.Failures.Network.UserFacingError.EqualityContract.setR
-ErrorCode.getAEcliptix.Utilities.Failures.Network.UserFacingError.ErrorCode.getT
-ErrorCode.initBEcliptix.Utilities.Failures.Network.UserFacingError.ErrorCode.initN
-I18NKey.get?Ecliptix.Utilities.Failures.Network.UserFacingError.I18NKey.getP
-I18NKey.init@Ecliptix.Utilities.Failures.Network.UserFacingError.I18NKey.initN
-Message.get?Ecliptix.Utilities.Failures.Network.UserFacingError.Message.getP
-Message.init@Ecliptix.Utilities.Failures.Network.UserFacingError.Message.initR
-Retryable.getAEcliptix.Utilities.Failures.Network.UserFacingError.Retryable.getT
-Retryable.initBEcliptix.Utilities.Failures.Network.UserFacingError.Retryable.initl
-RetryAfterMilliseconds.getNEcliptix.Utilities.Failures.Network.UserFacingError.RetryAfterMilliseconds.getn
-RetryAfterMilliseconds.initOEcliptix.Utilities.Failures.Network.UserFacingError.RetryAfterMilliseconds.initZ
-CorrelationId.getEEcliptix.Utilities.Failures.Network.UserFacingError.CorrelationId.get\
-CorrelationId.initFEcliptix.Utilities.Failures.Network.UserFacingError.CorrelationId.initL
-
-Locale.get>Ecliptix.Utilities.Failures.Network.UserFacingError.Locale.getN
-Locale.init?Ecliptix.Utilities.Failures.Network.UserFacingError.Locale.init\
-GrpcStatusCode.getFEcliptix.Utilities.Failures.Network.UserFacingError.GrpcStatusCode.get^
-GrpcStatusCode.initGEcliptix.Utilities.Failures.Network.UserFacingError.GrpcStatusCode.initÿ
-=Ecliptix.Utilities.Failures.Validations.ValidationFailureTypeSystem.EnumSystem.ValueTypeobjectp
-ValidationFailureType()UEcliptix.Utilities.Failures.Validations.ValidationFailureType.ValidationFailureType()Ë
-AEcliptix.Utilities.Failures.RpcMetaData.MetaDataSystemFailureTypeSystem.EnumSystem.ValueTypeobject|
-MetaDataSystemFailureType()]Ecliptix.Utilities.Failures.RpcMetaData.MetaDataSystemFailureType.MetaDataSystemFailureType()æ
-4Ecliptix.Utilities.Failures.Sodium.SodiumFailureTypeSystem.EnumSystem.ValueTypeobject_
-SodiumFailureType()HEcliptix.Utilities.Failures.Sodium.SodiumFailureType.SodiumFailureType()¡
-9Ecliptix.Utilities.Failures.Validations.ValidationFailure'Ecliptix.Utilities.Failures.FailureBaseobjectSystem.IEquatable<T>ï
-kValidationFailure(Ecliptix.Utilities.Failures.Validations.ValidationFailureType, string, System.Exception?)•Ecliptix.Utilities.Failures.Validations.ValidationFailure.ValidationFailure(Ecliptix.Utilities.Failures.Validations.ValidationFailureType, string, System.Exception?)`
-ToStructuredLog()KEcliptix.Utilities.Failures.Validations.ValidationFailure.ToStructuredLog()b
-ToGrpcDescriptor()LEcliptix.Utilities.Failures.Validations.ValidationFailure.ToGrpcDescriptor()R
-
-ToString()DEcliptix.Utilities.Failures.Validations.ValidationFailure.ToString()å
-'PrintMembers(System.Text.StringBuilder)aEcliptix.Utilities.Failures.Validations.ValidationFailure.PrintMembers(System.Text.StringBuilder)X
-GetHashCode()GEcliptix.Utilities.Failures.Validations.ValidationFailure.GetHashCode()\
-Equals(object?)IEcliptix.Utilities.Failures.Validations.ValidationFailure.Equals(object?)û
-0Equals(Ecliptix.Utilities.Failures.FailureBase?)jEcliptix.Utilities.Failures.Validations.ValidationFailure.Equals(Ecliptix.Utilities.Failures.FailureBase?)¬
-BEquals(Ecliptix.Utilities.Failures.Validations.ValidationFailure?)|Ecliptix.Utilities.Failures.Validations.ValidationFailure.Equals(Ecliptix.Utilities.Failures.Validations.ValidationFailure?)R
-
-<Clone>$()DEcliptix.Utilities.Failures.Validations.ValidationFailure.<Clone>$()◊
-LValidationFailure(Ecliptix.Utilities.Failures.Validations.ValidationFailure)ÜEcliptix.Utilities.Failures.Validations.ValidationFailure.ValidationFailure(Ecliptix.Utilities.Failures.Validations.ValidationFailure)°
-qDeconstruct(out Ecliptix.Utilities.Failures.Validations.ValidationFailureType, out string, out System.Exception?)´Ecliptix.Utilities.Failures.Validations.ValidationFailure.Deconstruct(out Ecliptix.Utilities.Failures.Validations.ValidationFailureType, out string, out System.Exception?)f
-EqualityContract.getNEcliptix.Utilities.Failures.Validations.ValidationFailure.EqualityContract.getf
-EqualityContract.setNEcliptix.Utilities.Failures.Validations.ValidationFailure.EqualityContract.set\
-FailureType.getIEcliptix.Utilities.Failures.Validations.ValidationFailure.FailureType.get^
-FailureType.initJEcliptix.Utilities.Failures.Validations.ValidationFailure.FailureType.init‹	
-Ecliptix.Utilities.Option<T>System.ValueTypeobjectSystem.IEquatable<T>A
-Option(bool, T?)-Ecliptix.Utilities.Option<T>.Option(bool, T?)õ
-=Match<TResult>(System.Func<T, TResult>, System.Func<TResult>)ZEcliptix.Utilities.Option<T>.Match<TResult>(System.Func<T, TResult>, System.Func<TResult>)m
-&Match(System.Action<T>, System.Action)CEcliptix.Utilities.Option<T>.Match(System.Action<T>, System.Action)5
-
-ValueOr(T)'Ecliptix.Utilities.Option<T>.ValueOr(T)k
-%Map<TResult>(System.Func<T, TResult>)BEcliptix.Utilities.Option<T>.Map<TResult>(System.Func<T, TResult>)5
-
-ToString()'Ecliptix.Utilities.Option<T>.ToString()o
-'PrintMembers(System.Text.StringBuilder)DEcliptix.Utilities.Option<T>.PrintMembers(System.Text.StringBuilder);
-GetHashCode()*Ecliptix.Utilities.Option<T>.GetHashCode()=
-Equals(object)+Ecliptix.Utilities.Option<T>.Equals(object)i
-$Equals(Ecliptix.Utilities.Option<T>)AEcliptix.Utilities.Option<T>.Equals(Ecliptix.Utilities.Option<T>)1
-Option()%Ecliptix.Utilities.Option<T>.Option()5
-
-IsSome.get'Ecliptix.Utilities.Option<T>.IsSome.get5
-
-IsSome.set'Ecliptix.Utilities.Option<T>.IsSome.set3
-	Value.get&Ecliptix.Utilities.Option<T>.Value.get3
-	Value.set&Ecliptix.Utilities.Option<T>.Value.set‹
-DEcliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure'Ecliptix.Utilities.Failures.FailureBaseobjectSystem.IEquatable<T>¬
-|EcliptixProtocolFailure(Ecliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailureType, string, System.Exception?)¡Ecliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure.EcliptixProtocolFailure(Ecliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailureType, string, System.Exception?)k
-ToStructuredLog()VEcliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure.ToStructuredLog()m
-ToNetworkFailure()WEcliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure.ToNetworkFailure()m
-ToGrpcDescriptor()WEcliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure.ToGrpcDescriptor()]
-
-ToString()OEcliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure.ToString()ó
-'PrintMembers(System.Text.StringBuilder)lEcliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure.PrintMembers(System.Text.StringBuilder)c
-GetHashCode()REcliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure.GetHashCode()g
-Equals(object?)TEcliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure.Equals(object?)©
-0Equals(Ecliptix.Utilities.Failures.FailureBase?)uEcliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure.Equals(Ecliptix.Utilities.Failures.FailureBase?)‰
-MEquals(Ecliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure?)íEcliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure.Equals(Ecliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure?)]
-
-<Clone>$()OEcliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure.<Clone>$()Ñ
-]EcliptixProtocolFailure(Ecliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure)¢Ecliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure.EcliptixProtocolFailure(Ecliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure)¬
-|Deconstruct(out Ecliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailureType, out string, out System.Exception?)¡Ecliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure.Deconstruct(out Ecliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailureType, out string, out System.Exception?)q
-EqualityContract.getYEcliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure.EqualityContract.getq
-EqualityContract.setYEcliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure.EqualityContract.setg
-FailureType.getTEcliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure.FailureType.geti
-FailureType.initUEcliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure.FailureType.init€
-HEcliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure'Ecliptix.Utilities.Failures.FailureBaseobjectSystem.IEquatable<T>”
-ÇCertificatePinningFailure(Ecliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailureType, string, System.Exception?)ÀEcliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure.CertificatePinningFailure(Ecliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailureType, string, System.Exception?)o
-ToStructuredLog()ZEcliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure.ToStructuredLog()q
-ToGrpcDescriptor()[Ecliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure.ToGrpcDescriptor()a
-
-ToString()SEcliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure.ToString()õ
-'PrintMembers(System.Text.StringBuilder)pEcliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure.PrintMembers(System.Text.StringBuilder)g
-GetHashCode()VEcliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure.GetHashCode()k
-Equals(object?)XEcliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure.Equals(object?)≠
-0Equals(Ecliptix.Utilities.Failures.FailureBase?)yEcliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure.Equals(Ecliptix.Utilities.Failures.FailureBase?)
-QEquals(Ecliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure?)öEcliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure.Equals(Ecliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure?)a
-
-<Clone>$()SEcliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure.<Clone>$()î
-cCertificatePinningFailure(Ecliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure)¨Ecliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure.CertificatePinningFailure(Ecliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure)œ
-ÄDeconstruct(out Ecliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailureType, out string, out System.Exception?)…Ecliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure.Deconstruct(out Ecliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailureType, out string, out System.Exception?)u
-EqualityContract.get]Ecliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure.EqualityContract.getu
-EqualityContract.set]Ecliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure.EqualityContract.setk
-FailureType.getXEcliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure.FailureType.getm
-FailureType.initYEcliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure.FailureType.initÅ
-@Ecliptix.Utilities.Failures.Authentication.AuthenticationFailure'Ecliptix.Utilities.Failures.FailureBaseobjectSystem.IEquatable<T>≤
-vAuthenticationFailure(Ecliptix.Utilities.Failures.Authentication.AuthenticationFailureType, string, System.Exception?)∑Ecliptix.Utilities.Failures.Authentication.AuthenticationFailure.AuthenticationFailure(Ecliptix.Utilities.Failures.Authentication.AuthenticationFailureType, string, System.Exception?)g
-ToStructuredLog()REcliptix.Utilities.Failures.Authentication.AuthenticationFailure.ToStructuredLog()i
-ToGrpcDescriptor()SEcliptix.Utilities.Failures.Authentication.AuthenticationFailure.ToGrpcDescriptor()Y
-
-ToString()KEcliptix.Utilities.Failures.Authentication.AuthenticationFailure.ToString()ì
-'PrintMembers(System.Text.StringBuilder)hEcliptix.Utilities.Failures.Authentication.AuthenticationFailure.PrintMembers(System.Text.StringBuilder)_
-GetHashCode()NEcliptix.Utilities.Failures.Authentication.AuthenticationFailure.GetHashCode()c
-Equals(object?)PEcliptix.Utilities.Failures.Authentication.AuthenticationFailure.Equals(object?)•
-0Equals(Ecliptix.Utilities.Failures.FailureBase?)qEcliptix.Utilities.Failures.Authentication.AuthenticationFailure.Equals(Ecliptix.Utilities.Failures.FailureBase?)ÿ
-IEquals(Ecliptix.Utilities.Failures.Authentication.AuthenticationFailure?)äEcliptix.Utilities.Failures.Authentication.AuthenticationFailure.Equals(Ecliptix.Utilities.Failures.Authentication.AuthenticationFailure?)Y
-
-<Clone>$()KEcliptix.Utilities.Failures.Authentication.AuthenticationFailure.<Clone>$()Ù
-WAuthenticationFailure(Ecliptix.Utilities.Failures.Authentication.AuthenticationFailure)òEcliptix.Utilities.Failures.Authentication.AuthenticationFailure.AuthenticationFailure(Ecliptix.Utilities.Failures.Authentication.AuthenticationFailure)∂
-xDeconstruct(out Ecliptix.Utilities.Failures.Authentication.AuthenticationFailureType, out string, out System.Exception?)πEcliptix.Utilities.Failures.Authentication.AuthenticationFailure.Deconstruct(out Ecliptix.Utilities.Failures.Authentication.AuthenticationFailureType, out string, out System.Exception?)m
-EqualityContract.getUEcliptix.Utilities.Failures.Authentication.AuthenticationFailure.EqualityContract.getm
-EqualityContract.setUEcliptix.Utilities.Failures.Authentication.AuthenticationFailure.EqualityContract.setc
-FailureType.getPEcliptix.Utilities.Failures.Authentication.AuthenticationFailure.FailureType.gete
-FailureType.initQEcliptix.Utilities.Failures.Authentication.AuthenticationFailure.FailureType.init∂
-/Ecliptix.Utilities.Failures.KeySplittingFailure'Ecliptix.Utilities.Failures.FailureBaseobjectSystem.IEquatable<T>á
-iKeySplittingFailure(Ecliptix.Utilities.Failures.KeySplittingFailure.ErrorCode, string, System.Exception?)ôEcliptix.Utilities.Failures.KeySplittingFailure.KeySplittingFailure(Ecliptix.Utilities.Failures.KeySplittingFailure.ErrorCode, string, System.Exception?)V
-ToStructuredLog()AEcliptix.Utilities.Failures.KeySplittingFailure.ToStructuredLog()X
-ToGrpcDescriptor()BEcliptix.Utilities.Failures.KeySplittingFailure.ToGrpcDescriptor()H
-
-ToString():Ecliptix.Utilities.Failures.KeySplittingFailure.ToString()Ç
-'PrintMembers(System.Text.StringBuilder)WEcliptix.Utilities.Failures.KeySplittingFailure.PrintMembers(System.Text.StringBuilder)N
-GetHashCode()=Ecliptix.Utilities.Failures.KeySplittingFailure.GetHashCode()R
-Equals(object?)?Ecliptix.Utilities.Failures.KeySplittingFailure.Equals(object?)î
-0Equals(Ecliptix.Utilities.Failures.FailureBase?)`Ecliptix.Utilities.Failures.KeySplittingFailure.Equals(Ecliptix.Utilities.Failures.FailureBase?)§
-8Equals(Ecliptix.Utilities.Failures.KeySplittingFailure?)hEcliptix.Utilities.Failures.KeySplittingFailure.Equals(Ecliptix.Utilities.Failures.KeySplittingFailure?)H
-
-<Clone>$():Ecliptix.Utilities.Failures.KeySplittingFailure.<Clone>$()º
-DKeySplittingFailure(Ecliptix.Utilities.Failures.KeySplittingFailure)tEcliptix.Utilities.Failures.KeySplittingFailure.KeySplittingFailure(Ecliptix.Utilities.Failures.KeySplittingFailure)\
-EqualityContract.getDEcliptix.Utilities.Failures.KeySplittingFailure.EqualityContract.get\
-EqualityContract.setDEcliptix.Utilities.Failures.KeySplittingFailure.EqualityContract.setD
-Code.get8Ecliptix.Utilities.Failures.KeySplittingFailure.Code.getD
-Code.set8Ecliptix.Utilities.Failures.KeySplittingFailure.Code.set∏
-9Ecliptix.Utilities.Failures.KeySplittingFailure.ErrorCodeSystem.EnumSystem.ValueTypeobjectT
-ErrorCode()EEcliptix.Utilities.Failures.KeySplittingFailure.ErrorCode.ErrorCode()

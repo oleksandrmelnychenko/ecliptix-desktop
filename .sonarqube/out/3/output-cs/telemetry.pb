@@ -1,1 +1,0 @@
-‰Rs/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/Ecliptix.Opaque.Protocol.csproj¢net9.0òCSharp13

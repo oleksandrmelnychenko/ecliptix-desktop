@@ -1,7 +1,0 @@
-﻿/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/NativeLibraries/OpaqueNative.cs
-/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/OpaqueClient.cs
-/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/OpaqueTypes.cs
-/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/NativeLibraries/macos/libopaque_client.dylib
-/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/NativeLibraries/dependencies/libsodium.dll
-/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/NativeLibraries/macos/libopaque_client.dylib.backup
-/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/NativeLibraries/windows/libopaque_client.dll

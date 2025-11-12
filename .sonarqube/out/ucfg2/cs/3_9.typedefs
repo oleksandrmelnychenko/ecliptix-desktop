@@ -1,28 +1,0 @@
-–
-%Ecliptix.Opaque.Protocol.OpaqueResultSystem.EnumSystem.ValueTypeobjectF
-OpaqueResult()4Ecliptix.Opaque.Protocol.OpaqueResult.OpaqueResult()™
-+Ecliptix.Opaque.Protocol.RegistrationResultobjectSystem.IDisposableP
-GetRequestCopy()<Ecliptix.Opaque.Protocol.RegistrationResult.GetRequestCopy()p
- RegistrationResult(byte[], nint)LEcliptix.Opaque.Protocol.RegistrationResult.RegistrationResult(byte[], nint)B
-	Dispose()5Ecliptix.Opaque.Protocol.RegistrationResult.Dispose()J
-Dispose(bool)9Ecliptix.Opaque.Protocol.RegistrationResult.Dispose(bool)Z
-~RegistrationResult()AEcliptix.Opaque.Protocol.RegistrationResult.~RegistrationResult()N
-StateHandle.get;Ecliptix.Opaque.Protocol.RegistrationResult.StateHandle.getN
-StateHandle.set;Ecliptix.Opaque.Protocol.RegistrationResult.StateHandle.set
-*Ecliptix.Opaque.Protocol.KeyExchangeResultobjectSystem.IDisposable_
-GetKeyExchangeDataCopy()CEcliptix.Opaque.Protocol.KeyExchangeResult.GetKeyExchangeDataCopy()m
-KeyExchangeResult(byte[], nint)JEcliptix.Opaque.Protocol.KeyExchangeResult.KeyExchangeResult(byte[], nint)A
-	Dispose()4Ecliptix.Opaque.Protocol.KeyExchangeResult.Dispose()I
-Dispose(bool)8Ecliptix.Opaque.Protocol.KeyExchangeResult.Dispose(bool)W
-~KeyExchangeResult()?Ecliptix.Opaque.Protocol.KeyExchangeResult.~KeyExchangeResult()M
-StateHandle.get:Ecliptix.Opaque.Protocol.KeyExchangeResult.StateHandle.getM
-StateHandle.set:Ecliptix.Opaque.Protocol.KeyExchangeResult.StateHandle.setú
-%Ecliptix.Opaque.Protocol.OpaqueClientobjectSystem.IDisposableR
-OpaqueClient(byte[]):Ecliptix.Opaque.Protocol.OpaqueClient.OpaqueClient(byte[])l
-!CreateRegistrationRequest(byte[])GEcliptix.Opaque.Protocol.OpaqueClient.CreateRegistrationRequest(byte[])¼
-IFinalizeRegistration(byte[], Ecliptix.Opaque.Protocol.RegistrationResult)oEcliptix.Opaque.Protocol.OpaqueClient.FinalizeRegistration(byte[], Ecliptix.Opaque.Protocol.RegistrationResult)P
-GenerateKE1(byte[])9Ecliptix.Opaque.Protocol.OpaqueClient.GenerateKE1(byte[])ª
-@GenerateKe3(byte[]?, Ecliptix.Opaque.Protocol.KeyExchangeResult)fEcliptix.Opaque.Protocol.OpaqueClient.GenerateKe3(byte[]?, Ecliptix.Opaque.Protocol.KeyExchangeResult)¨
-?DeriveBaseMasterKey(Ecliptix.Opaque.Protocol.KeyExchangeResult)eEcliptix.Opaque.Protocol.OpaqueClient.DeriveBaseMasterKey(Ecliptix.Opaque.Protocol.KeyExchangeResult)L
-ThrowIfDisposed()7Ecliptix.Opaque.Protocol.OpaqueClient.ThrowIfDisposed()<
-	Dispose()/Ecliptix.Opaque.Protocol.OpaqueClient.Dispose()

@@ -34,7 +34,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
     private readonly IConnectivityService _connectivityService;
     private readonly CompositeDisposable _disposables = new();
 
-    private CancellationTokenSource? _currentOperationCts;
+    private CancellationTokenSource? _cancellationTokenSource;
     private bool _hasMobileNumberBeenTouched;
     private bool _isDisposed;
 
@@ -188,7 +188,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
 
         try
         {
-            CancellationTokenSource cancellationTokenSource = RecreateCancellationToken(ref _currentOperationCts);
+            CancellationTokenSource cancellationTokenSource = RecreateCancellationToken(ref _cancellationTokenSource);
 
             uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
             CancellationToken operationToken = cancellationTokenSource.Token;
@@ -460,7 +460,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
     private void CancelCurrentOperation()
     {
         CancellationTokenSource? operationSource = Interlocked.Exchange(
-            ref _currentOperationCts,
+            ref _cancellationTokenSource,
             null);
 
         if (operationSource == null)

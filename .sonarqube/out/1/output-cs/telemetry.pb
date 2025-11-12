@@ -1,1 +1,0 @@
-}Rg/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Utilities/Ecliptix.Utilities.csproj¢net9.0òCSharp13
