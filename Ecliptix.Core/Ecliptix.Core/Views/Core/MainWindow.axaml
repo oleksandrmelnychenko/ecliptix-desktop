@@ -108,7 +108,8 @@
 
         <Border Background="{DynamicResource Window.Background}"
                 BorderBrush="{DynamicResource Window.Border}"
-                x:Name="MainBorder">
+                x:Name="MainBorder"
+                Padding="0 35 0 0">
 
             <core:ModuleContentControl ViewModelContent="{Binding CurrentContent}"
                                        Background="Transparent"

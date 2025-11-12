@@ -20,8 +20,7 @@
     <!-- Module-Specific Content Only -->
     <Grid RowDefinitions="Auto,*,Auto"
           RowSpacing="2"
-          ClipToBounds="True"
-          Margin="0,20,0,0">
+          ClipToBounds="True">
 
         <!-- Back Button (Module Navigation) -->
         <Button HorizontalAlignment="Left"
