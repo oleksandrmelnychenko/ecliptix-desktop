@@ -16,18 +16,14 @@
         <x:Double x:Key="ControlWidth">85</x:Double>
         <x:Double x:Key="FontSize">12</x:Double>
         <CornerRadius x:Key="ControlCornerRadius">8</CornerRadius>
-
-        <!-- Colors moved to shared Core/Colors.axaml - use Button.Secondary.Hover and Button.Secondary.Pressed -->
-
-        <!-- Animation durations moved to shared Core/Animations.axaml -->
     </UserControl.Resources>
 
     <UserControl.Styles>
-        <!-- Custom ComboBox Style -->
         <Style Selector="ComboBox">
+            <Setter Property="Width" Value="80"></Setter>
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Padding" Value="4" />
+            <Setter Property="Padding" Value="4 " />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <ControlTemplate>
@@ -47,7 +43,8 @@
                                 </Transitions>
                             </Border.Transitions>
 
-                            <Grid ColumnDefinitions="*,Auto">
+                            <Grid ColumnDefinitions="*,Auto"
+                                  HorizontalAlignment="Center">
                                 <ContentPresenter x:Name="ContentPresenter"
                                                   Grid.Column="0"
                                                   Content="{TemplateBinding SelectionBoxItem}"
@@ -56,7 +53,6 @@
                                                   HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
                                                   VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
 
-                                <!-- Customized dropdown button -->
                                 <Border Grid.Column="1"
                                         Name="DropDownGlyph"
                                         Width="24"
@@ -135,13 +131,11 @@
             </Setter>
         </Style>
 
-        <!-- Popup Opening Animation - Scale + Fade from Top -->
         <Style Selector="ComboBox:dropdownopen /template/ Border#PopupContent">
             <Setter Property="Opacity" Value="1" />
             <Setter Property="RenderTransform" Value="scaleY(1) translateY(0px)" />
         </Style>
 
-        <!-- Dropdown Arrow Rotation Animation -->
         <Style Selector="ComboBox /template/ Path">
             <Setter Property="RenderTransform" Value="rotate(0)" />
         </Style>
@@ -150,18 +144,15 @@
             <Setter Property="RenderTransform" Value="rotate(180deg)" />
         </Style>
 
-        <!-- Hover state for ComboBox main button -->
         <Style Selector="ComboBox:pointerover /template/ Border#BACKGROUND">
             <Setter Property="Background" Value="{DynamicResource Button.Secondary.Hover}" />
         </Style>
 
-        <!-- Pressed state for ComboBox main button -->
         <Style Selector="ComboBox:pressed /template/ Border#BACKGROUND">
             <Setter Property="Background" Value="{DynamicResource Button.Secondary.Pressed}" />
             <Setter Property="Opacity" Value="0.9" />
         </Style>
 
-        <!-- Style for ComboBoxItem with Staggered Animation -->
         <Style Selector="ComboBoxItem">
             <Setter Property="Padding" Value="8,6" />
             <Setter Property="Background" Value="Transparent" />
@@ -193,29 +184,24 @@
             </Setter>
         </Style>
 
-        <!-- Animate Items when Dropdown Opens -->
         <Style Selector="ComboBox:dropdownopen ComboBoxItem">
             <Setter Property="Opacity" Value="1" />
             <Setter Property="RenderTransform" Value="translateX(0px)" />
         </Style>
 
-        <!-- Hover state for ComboBoxItem -->
         <Style Selector="ComboBoxItem:pointerover /template/ Border#ItemBorder">
             <Setter Property="Background" Value="{DynamicResource Button.Secondary.Hover}" />
         </Style>
 
-        <!-- Selected state for ComboBoxItem -->
         <Style Selector="ComboBoxItem:selected /template/ Border#ItemBorder">
             <Setter Property="Background" Value="{DynamicResource Button.Secondary.Pressed}" />
             <Setter Property="TextBlock.Foreground" Value="{DynamicResource Primary}" />
         </Style>
 
-        <!-- Pressed state for dropdown glyph -->
         <Style Selector="ComboBox:pressed /template/ Border#DropDownGlyph">
             <Setter Property="Background" Value="Transparent" />
         </Style>
 
-        <!-- Open state for ComboBox -->
         <Style Selector="ComboBox:dropdownopen /template/ Border#BACKGROUND">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
@@ -243,7 +229,7 @@
                          ClipToBounds="True"
                          HorizontalAlignment="Center"
                     />
-                    
+
                     <TextBlock Text="{Binding DisplayName}"
                                FontWeight="Light"
                                FontSize="12"
