@@ -25,13 +25,13 @@ using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Authentication;
 using Google.Protobuf;
 using ReactiveUI;
-using ReactiveUI.Fody.Helpers;
+using ReactiveUI.SourceGenerators;
 using Keys = Ecliptix.Core.Services.Authentication.Constants.AuthenticationConstants.SecureKeyConfirmationKeys;
 using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
-public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
+public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
 {
     private const int VALIDATION_THROTTLE_MS = 150;
 
@@ -118,8 +118,8 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
             .CombineLatest(isFormLogicallyValid, (canExecute, isValid) => canExecute && isValid);
 
         SubmitCommand = ReactiveCommand.CreateFromTask(SubmitAsync, canExecuteSubmit);
-        SubmitCommand.IsExecuting.ToPropertyEx(this, x => x.IsBusy);
-        canExecuteSubmit.ToPropertyEx(this, x => x.CanSubmit);
+        SubmitCommand.IsExecuting.ToProperty(this, x => x.IsBusy);
+        canExecuteSubmit.ToProperty(this, x => x.CanSubmit);
     }
 
     private void SetupSubscriptions()
@@ -302,16 +302,16 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
                 .Replay(1)
                 .RefCount();
 
-        secureKeyValidation.Select(v => v.Strength).ToPropertyEx(this, x => x.CurrentSecureKeyStrength);
+        secureKeyValidation.Select(v => v.Strength).ToProperty(this, x => x.CurrentSecureKeyStrength);
         secureKeyValidation.Select(v =>
                 _hasSecureKeyBeenTouched
                     ? FormatSecureKeyStrengthMessage(v.Strength, v.ERROR, v.Recommendations)
                     : string.Empty)
-            .ToPropertyEx(this, x => x.SecureKeyStrengthMessage);
+            .ToProperty(this, x => x.SecureKeyStrengthMessage);
 
         this.WhenAnyValue(x => x.CurrentSecureKeyLength)
             .Select(_ => _hasSecureKeyBeenTouched)
-            .ToPropertyEx(this, x => x.HasSecureKeyBeenTouched);
+            .ToProperty(this, x => x.HasSecureKeyBeenTouched);
 
         this.WhenAnyValue(x => x.SecureKeyStrengthMessage)
             .Subscribe(message => SecureKeyError = message);

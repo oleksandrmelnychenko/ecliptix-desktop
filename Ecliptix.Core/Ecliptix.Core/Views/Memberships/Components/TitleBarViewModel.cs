@@ -1,9 +1,9 @@
 using ReactiveUI;
-using ReactiveUI.Fody.Helpers;
+using ReactiveUI.SourceGenerators;
 
 namespace Ecliptix.Core.Views.Memberships.Components;
 
-public class TitleBarViewModel : ReactiveObject
+public partial class TitleBarViewModel : ReactiveObject
 {
 
     [Reactive] public bool DisableCloseButton { get; set; }

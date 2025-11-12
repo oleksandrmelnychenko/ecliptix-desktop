@@ -6,11 +6,11 @@ using System.Reactive.Linq;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Authentication.Constants;
 using ReactiveUI;
-using ReactiveUI.Fody.Helpers;
+using ReactiveUI.SourceGenerators;
 
 namespace Ecliptix.Core.Controls.Modals;
 
-public sealed class RedirectNotificationViewModel : ReactiveObject, IDisposable, IActivatableViewModel
+public sealed partial class RedirectNotificationViewModel : ReactiveObject, IDisposable, IActivatableViewModel
 {
     public ViewModelActivator Activator { get; } = new();
 

@@ -8,13 +8,13 @@ using Ecliptix.Core.Models.Navigation;
 using Ecliptix.Core.Services.Abstractions.Core;
 
 using ReactiveUI;
-using ReactiveUI.Fody.Helpers;
+using ReactiveUI.SourceGenerators;
 
 using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.ViewModels.Navigation;
 
-public sealed class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM.ViewModelBase
+public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM.ViewModelBase
 {
     private readonly CompositeDisposable _disposables = new();
     private bool _isDisposed;
@@ -64,13 +64,9 @@ public sealed class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM.ViewMod
         NavigateCommand = ReactiveCommand.Create<NavigationMenuItem, SystemU>(
             menuItem =>
             {
-                if (menuItem != null && SelectedMenuItem != menuItem)
+                if (SelectedMenuItem != menuItem)
                 {
-                    if (SelectedMenuItem != null)
-                    {
-                        SelectedMenuItem.IsSelected = false;
-                    }
-
+                    SelectedMenuItem?.IsSelected = false;
                     SelectedMenuItem = menuItem;
                     menuItem.IsSelected = true;
                 }
@@ -82,10 +78,7 @@ public sealed class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM.ViewMod
             .Subscribe()
             .DisposeWith(_disposables);
 
-        if (SelectedMenuItem != null)
-        {
-            SelectedMenuItem.IsSelected = true;
-        }
+        SelectedMenuItem?.IsSelected = true;
     }
 
     protected override void Dispose(bool disposing)

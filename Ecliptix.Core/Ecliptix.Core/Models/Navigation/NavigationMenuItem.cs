@@ -1,9 +1,9 @@
 using ReactiveUI;
-using ReactiveUI.Fody.Helpers;
+using ReactiveUI.SourceGenerators;
 
 namespace Ecliptix.Core.Models.Navigation;
 
-public sealed class NavigationMenuItem : ReactiveObject
+public sealed partial class NavigationMenuItem : ReactiveObject
 {
     public string Id { get; init; } = string.Empty;
     public string Label { get; init; } = string.Empty;

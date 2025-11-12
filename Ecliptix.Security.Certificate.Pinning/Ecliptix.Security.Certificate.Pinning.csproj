@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -10,6 +9,7 @@
         <PlatformTarget Condition="$([MSBuild]::IsOSPlatform('Windows'))">x64</PlatformTarget>
         <PlatformTarget Condition="$([MSBuild]::IsOSPlatform('OSX'))">arm64</PlatformTarget>
         <PlatformTarget Condition="$([MSBuild]::IsOSPlatform('Linux'))">x64</PlatformTarget>
+        <LangVersion>14</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
@@ -37,10 +37,6 @@
             <Link>libecliptix.client.so</Link>
         </Content>
         
-    </ItemGroup>
-
-    <ItemGroup>
-        <PackageReference Include="System.Runtime.InteropServices" Version="4.3.0" />
     </ItemGroup>
 
 </Project>

@@ -15,13 +15,13 @@ using Ecliptix.Core.Views.Memberships.Components;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Utilities;
 using ReactiveUI;
-using ReactiveUI.Fody.Helpers;
+using ReactiveUI.SourceGenerators;
 
 using Serilog;
 
 namespace Ecliptix.Core.ViewModels.Core;
 
-public sealed class MainWindowViewModel : ReactiveObject, IDisposable
+public sealed partial class MainWindowViewModel : ReactiveObject, IDisposable
 {
     private readonly IBottomSheetService _bottomSheetService;
     private readonly IApplicationSecureStorageProvider _storageProvider;

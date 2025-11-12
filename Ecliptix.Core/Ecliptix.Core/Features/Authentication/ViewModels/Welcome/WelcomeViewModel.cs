@@ -8,11 +8,11 @@ using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
 using ReactiveUI;
-using ReactiveUI.Fody.Helpers;
+using ReactiveUI.SourceGenerators;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Welcome;
 
-public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
+public sealed partial class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
 {
     private const string CREATE_ACCOUNT_KEY = "CreateAccount";
     private const string SIGN_IN_KEY = "SignIn";
@@ -48,8 +48,8 @@ public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewMod
             return hostWindow.Navigate.Execute(viewType);
         });
 
-        NavToCreateAccountCommand.IsExecuting.ToPropertyEx(this, x => x.IsCreateAccountBusy).DisposeWith(_disposables);
-        NavToSignInCommand.IsExecuting.ToPropertyEx(this, x => x.IsSignInBusy).DisposeWith(_disposables);
+        NavToCreateAccountCommand.IsExecuting.ToProperty(this, x => x.IsCreateAccountBusy).DisposeWith(_disposables);
+        NavToSignInCommand.IsExecuting.ToProperty(this, x => x.IsSignInBusy).DisposeWith(_disposables);
 
         _disposables.Add(NavToCreateAccountCommand);
         _disposables.Add(NavToSignInCommand);

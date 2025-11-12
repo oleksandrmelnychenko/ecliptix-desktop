@@ -35,9 +35,14 @@ public abstract class RpcFlow
         return new BidirectionalStream(inbound, outboundSink);
     }
 
-    private static IAsyncEnumerable<Result<SecureEnvelope, NetworkFailure>> ToOkStream(
-        ChannelReader<SecureEnvelope> reader) =>
-        reader.ReadAllAsync().Select(payload => Result<SecureEnvelope, NetworkFailure>.Ok(payload));
+    private static async IAsyncEnumerable<Result<SecureEnvelope, NetworkFailure>> ToOkStream(
+        ChannelReader<SecureEnvelope> reader)
+    {
+        await foreach (SecureEnvelope payload in reader.ReadAllAsync())
+        {
+            yield return Result<SecureEnvelope, NetworkFailure>.Ok(payload);
+        }
+    }
 
     public sealed class SingleCall(Task<Result<SecureEnvelope, NetworkFailure>> result) : RpcFlow
     {

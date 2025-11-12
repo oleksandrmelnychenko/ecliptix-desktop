@@ -18,14 +18,14 @@ using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
 using Google.Protobuf;
 using ReactiveUI;
-using ReactiveUI.Fody.Helpers;
+using ReactiveUI.SourceGenerators;
 using Serilog;
 using Keys = Ecliptix.Core.Services.Authentication.Constants.AuthenticationConstants.MobileVerificationKeys;
 using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
-public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable, IDisposable
+public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable, IDisposable
 {
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IOpaqueRegistrationService _registrationService;
@@ -173,7 +173,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
         VerifyMobileNumberCommand = ReactiveCommand.CreateFromTask(ExecuteVerificationAsync, canVerify);
         VerifyMobileNumberCommand.IsExecuting
-            .ToPropertyEx(this, x => x.IsBusy)
+            .ToProperty(this, x => x.IsBusy)
             .DisposeWith(_disposables);
 
         _disposables.Add(VerifyMobileNumberCommand);

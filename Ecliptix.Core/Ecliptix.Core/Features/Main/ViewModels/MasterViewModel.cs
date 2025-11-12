@@ -14,13 +14,13 @@ using Ecliptix.Core.ViewModels.Navigation;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Membership;
 using ReactiveUI;
-using ReactiveUI.Fody.Helpers;
+using ReactiveUI.SourceGenerators;
 using Serilog;
 using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Main.ViewModels;
 
-public sealed class MasterViewModel : Core.MVVM.ViewModelBase
+public sealed partial class MasterViewModel : Core.MVVM.ViewModelBase
 {
     private readonly ILogoutService _logoutService;
     private readonly IModuleViewFactory _moduleViewFactory;
@@ -96,7 +96,7 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase
             },
             canLogout);
 
-        LogoutCommand.IsExecuting.ToPropertyEx(this, x => x.IsBusy).DisposeWith(_disposables);
+        LogoutCommand.IsExecuting.ToProperty(this, x => x.IsBusy).DisposeWith(_disposables);
 
         LogoutCommand
             .Where(result => result.IsErr)

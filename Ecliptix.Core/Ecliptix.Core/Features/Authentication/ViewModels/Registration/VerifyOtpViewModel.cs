@@ -21,13 +21,13 @@ using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
 using Google.Protobuf;
 using ReactiveUI;
-using ReactiveUI.Fody.Helpers;
+using ReactiveUI.SourceGenerators;
 using Serilog;
 using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
-public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
+public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
 {
     private readonly ByteString _mobileNumberIdentifier;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
@@ -119,11 +119,11 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             .DisposeWith(_disposables);
 
         SendVerificationCodeCommand.IsExecuting
-            .ToPropertyEx(this, x => x.IsBusy)
+            .ToProperty(this, x => x.IsBusy)
             .DisposeWith(_disposables);
 
         ResendSendVerificationCodeCommand.IsExecuting
-            .ToPropertyEx(this, x => x.IsResending)
+            .ToProperty(this, x => x.IsResending)
             .DisposeWith(_disposables);
 
         this.WhenActivated(disposables =>

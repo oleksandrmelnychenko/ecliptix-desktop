@@ -11,18 +11,17 @@ namespace Ecliptix.Core.Features.Splash.ViewModels;
 
 public sealed class SplashWindowViewModel : Core.MVVM.ViewModelBase
 {
-    private ConnectivitySnapshot _connectivity = ConnectivitySnapshot.Initial with { Status = ConnectivityStatus.CONNECTING };
     private bool _isShuttingDown;
 
     public ConnectivitySnapshot Connectivity
     {
-        get => _connectivity;
+        get;
         private set
         {
-            this.RaiseAndSetIfChanged(ref _connectivity, value);
+            this.RaiseAndSetIfChanged(ref field, value);
             this.RaisePropertyChanged(nameof(ConnectivityStatus));
         }
-    }
+    } = ConnectivitySnapshot.Initial with { Status = ConnectivityStatus.CONNECTING };
 
     public ConnectivityStatus ConnectivityStatus => Connectivity.Status;
 

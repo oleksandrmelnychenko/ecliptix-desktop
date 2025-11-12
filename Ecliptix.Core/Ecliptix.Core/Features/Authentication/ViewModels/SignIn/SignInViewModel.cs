@@ -19,7 +19,7 @@ using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Authentication;
 
 using ReactiveUI;
-using ReactiveUI.Fody.Helpers;
+using ReactiveUI.SourceGenerators;
 
 using Serilog;
 
@@ -27,7 +27,7 @@ using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
 
-public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable, IDisposable
+public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable, IDisposable
 {
     private readonly IAuthenticationService _authService;
     private readonly SecureTextBuffer _secureKeyBuffer = new();
@@ -279,7 +279,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             },
             canSignIn);
 
-        SignInCommand.IsExecuting.ToPropertyEx(this, x => x.IsBusy);
+        SignInCommand.IsExecuting.ToProperty(this, x => x.IsBusy);
 
         AccountRecoveryCommand = ReactiveCommand.Create(() =>
         {

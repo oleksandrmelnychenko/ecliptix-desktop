@@ -7,7 +7,6 @@ public static class CryptographicConstants
     public const int AES_KEY_SIZE = 32;
     public const int HASH_FINGERPRINT_LENGTH = 16;
 
-
     public static class Buffer
     {
         public const int MAX_INFO_SIZE = 128;

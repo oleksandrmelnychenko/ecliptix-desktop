@@ -16,12 +16,12 @@ using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
 using ReactiveUI;
-using ReactiveUI.Fody.Helpers;
+using ReactiveUI.SourceGenerators;
 using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Core.MVVM;
 
-public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableViewModel
+public abstract partial class ViewModelBase : ReactiveObject, IDisposable, IActivatableViewModel
 {
     private bool _disposedValue;
     private ObservableAsPropertyHelper<bool>? _connectivitySubscription;
@@ -48,7 +48,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
                 .StartWith(IsNetworkInOutage(connectivityService.CurrentSnapshot))
                 .DistinctUntilChanged();
 
-            _connectivitySubscription = networkStatusStream.ToPropertyEx(this, x => x.IsInNetworkOutage);
+            _connectivitySubscription = networkStatusStream.ToProperty(this, x => x.IsInNetworkOutage);
         }
 
         this.WhenActivated(disposables =>

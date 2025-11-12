@@ -52,23 +52,8 @@ public record AuthenticationFailure(
     public static AuthenticationFailure InvalidMembershipIdentifier(string details, Exception? inner = null) =>
         new(AuthenticationFailureType.INVALID_MEMBERSHIP_IDENTIFIER, details, inner);
 
-    public static AuthenticationFailure HmacKeyGenerationFailed(string details, Exception? inner = null) =>
-        new(AuthenticationFailureType.HMAC_KEY_GENERATION_FAILED, details, inner);
-
-    public static AuthenticationFailure KeySplittingFailed(string details, Exception? inner = null) =>
-        new(AuthenticationFailureType.KEY_SPLITTING_FAILED, details, inner);
-
-    public static AuthenticationFailure KeyStorageFailed(string details, Exception? inner = null) =>
-        new(AuthenticationFailureType.KEY_STORAGE_FAILED, details, inner);
-
     public static AuthenticationFailure IdentityStorageFailed(string details, Exception? inner = null) =>
         new(AuthenticationFailureType.IDENTITY_STORAGE_FAILED, details, inner);
-
-    public static AuthenticationFailure IdentityNotFound(string membershipId, Exception? inner = null) =>
-        new(AuthenticationFailureType.IDENTITY_NOT_FOUND, $"Identity not found for membership: {membershipId}", inner);
-
-    public static AuthenticationFailure IdentityLoadFailed(string details, Exception? inner = null) =>
-        new(AuthenticationFailureType.IDENTITY_LOAD_FAILED, details, inner);
 
     public static AuthenticationFailure CriticalAuthenticationError(string details, Exception? inner = null) =>
         new(AuthenticationFailureType.CRITICAL_AUTHENTICATION_ERROR, details, inner);

@@ -1,11 +1,11 @@
 using System.Reactive.Disposables;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
-using ReactiveUI.Fody.Helpers;
+using ReactiveUI.SourceGenerators;
 
 namespace Ecliptix.Core.Features.Feed.ViewModels;
 
-public sealed class FeedViewModel : Core.MVVM.ViewModelBase
+public sealed partial class FeedViewModel : Core.MVVM.ViewModelBase
 {
     private readonly CompositeDisposable _disposables = new();
     private bool _isDisposed;

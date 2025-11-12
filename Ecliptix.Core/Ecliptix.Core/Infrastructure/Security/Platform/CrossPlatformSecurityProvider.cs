@@ -689,13 +689,12 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
     {
         ReadOnlySpan<byte> salt = SHA256.HashData(Encoding.UTF8.GetBytes(MACHINE_KEY_SALT));
 
-        using Rfc2898DeriveBytes pbkdf2 = new(
+        return Rfc2898DeriveBytes.Pbkdf2(
             machineId,
             salt.ToArray(),
             PBKDF_2_ITERATIONS,
-            HashAlgorithmName.SHA256);
-
-        return pbkdf2.GetBytes(AES_KEY_SIZE);
+            HashAlgorithmName.SHA256,
+            AES_KEY_SIZE);
     }
 
     private static bool CheckLinuxTpm() =>
