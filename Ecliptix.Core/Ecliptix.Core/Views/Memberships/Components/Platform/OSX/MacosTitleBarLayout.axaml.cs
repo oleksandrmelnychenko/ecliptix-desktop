@@ -13,6 +13,8 @@ public sealed partial class MacosTitleBarLayout : UserControl, ITitleBar
     private Window? _hostWindow;
     private Border? _mainBorder;
 
+    private MacosTitleBarButtons? _buttonsControl;
+
     public MacosTitleBarLayout()
     {
         InitializeComponent();
@@ -24,9 +26,14 @@ public sealed partial class MacosTitleBarLayout : UserControl, ITitleBar
 
         _hostWindow = VisualRoot as Window;
 
-        _minimizeButton = this.FindControl<Button>("PART_Minimize");
-        _maximizeButton = this.FindControl<Button>("PART_Maximize");
-        _closeButton = this.FindControl<Button>("PART_Close");
+        _buttonsControl = this.FindControl<MacosTitleBarButtons>("PART_WindowButtons");
+
+        if (_buttonsControl != null)
+        {
+            _minimizeButton = _buttonsControl.FindControl<Button>("PART_Minimize");
+            _maximizeButton = _buttonsControl.FindControl<Button>("PART_Maximize");
+            _closeButton = _buttonsControl.FindControl<Button>("PART_Close");
+        }
 
 
         if (_hostWindow != null)

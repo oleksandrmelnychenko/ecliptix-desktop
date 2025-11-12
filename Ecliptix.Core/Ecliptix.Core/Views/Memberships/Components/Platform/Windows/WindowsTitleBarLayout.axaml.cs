@@ -18,6 +18,8 @@ public sealed partial class WindowsTitleBarLayout : UserControl, ITitleBar
     private Window? _hostWindow;
     private Border? _mainBorder;
 
+    private WindowsTitleBarButtons? _buttonsControl;
+
     public WindowsTitleBarLayout()
     {
         InitializeComponent();
@@ -29,11 +31,15 @@ public sealed partial class WindowsTitleBarLayout : UserControl, ITitleBar
 
         _hostWindow = VisualRoot as Window;
 
-        _minimizeButton = this.FindControl<Button>("MinimizeButton");
-        _maximizeButton = this.FindControl<Button>("MaximizeButton");
-        _closeButton = this.FindControl<Button>("CloseButton");
-        _maximizeIcon = this.FindControl<Path>("MaximizeIcon");
+        _buttonsControl = this.FindControl<WindowsTitleBarButtons>("PART_WindowButtons");
 
+        if (_buttonsControl != null)
+        {
+            _minimizeButton = _buttonsControl.FindControl<Button>("MinimizeButton");
+            _maximizeButton = _buttonsControl.FindControl<Button>("MaximizeButton");
+            _closeButton = _buttonsControl.FindControl<Button>("CloseButton");
+            _maximizeIcon = _buttonsControl.FindControl<Path>("MaximizeIcon");
+        }
 
         if (_hostWindow != null)
         {
