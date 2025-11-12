@@ -185,7 +185,7 @@
             <Setter Property="Orientation" Value="Horizontal" />
             <Setter Property="HorizontalAlignment" Value="Right" />
             <Setter Property="VerticalAlignment" Value="Top" />
-            <Setter Property="Margin" Value="0,-9,-5,0"/>
+            <Setter Property="Margin" Value="0,-7,-5,0"/>
             <Setter Property="Transitions">
                 <Transitions>
                     <DoubleTransition Property="Opacity" Duration="{StaticResource Duration.Fast}" />
