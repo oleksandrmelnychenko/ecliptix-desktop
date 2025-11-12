@@ -98,7 +98,7 @@ public sealed class MasterViewModel : ViewModelBase
             },
             canLogout);
 
-        LogoutCommand.IsExecuting.ToProperty(this, x => x.IsBusy).DisposeWith(_disposables);
+        LogoutCommand.IsExecuting.ToPropertyEx(this, x => x.IsBusy).DisposeWith(_disposables);
 
         LogoutCommand
             .Where(result => result.IsErr)

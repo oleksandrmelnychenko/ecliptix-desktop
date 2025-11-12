@@ -173,7 +173,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
 
         VerifyMobileNumberCommand = ReactiveCommand.CreateFromTask(ExecuteVerificationAsync, canVerify);
         VerifyMobileNumberCommand.IsExecuting
-            .ToProperty(this, x => x.IsBusy)
+            .ToPropertyEx(this, x => x.IsBusy)
             .DisposeWith(_disposables);
 
         _disposables.Add(VerifyMobileNumberCommand);

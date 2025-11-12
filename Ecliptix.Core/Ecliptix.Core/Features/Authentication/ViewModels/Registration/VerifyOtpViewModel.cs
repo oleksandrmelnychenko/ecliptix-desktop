@@ -83,7 +83,6 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
         SendVerificationCodeCommand.ThrownExceptions
             .Subscribe(ex =>
             {
-                Log.Error(ex, "[OTP-VERIFICATION] Unhandled exception in SendVerificationCodeCommand");
                 if (_isDisposed)
                 {
                     return;
@@ -119,11 +118,11 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
             .DisposeWith(_disposables);
 
         SendVerificationCodeCommand.IsExecuting
-            .ToProperty(this, x => x.IsBusy)
+            .ToPropertyEx(this, x => x.IsBusy)
             .DisposeWith(_disposables);
 
         ResendSendVerificationCodeCommand.IsExecuting
-            .ToProperty(this, x => x.IsResending)
+            .ToPropertyEx(this, x => x.IsResending)
             .DisposeWith(_disposables);
 
         this.WhenActivated(disposables =>

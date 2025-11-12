@@ -279,7 +279,7 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
             },
             canSignIn);
 
-        SignInCommand.IsExecuting.ToProperty(this, x => x.IsBusy);
+        SignInCommand.IsExecuting.ToPropertyEx(this, x => x.IsBusy);
 
         AccountRecoveryCommand = ReactiveCommand.Create(() =>
         {

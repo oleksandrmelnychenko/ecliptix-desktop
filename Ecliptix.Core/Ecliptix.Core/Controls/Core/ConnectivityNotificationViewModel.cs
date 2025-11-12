@@ -22,6 +22,7 @@ using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Network.Infrastructure;
 using ReactiveUI;
+using ReactiveUI.Fody.Helpers;
 using Serilog;
 using Unit = System.Reactive.Unit;
 
@@ -56,32 +57,15 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
     public TimeSpan DisappearDuration { get; set; } =
         TimeSpan.FromMilliseconds(NetworkStatusConstants.DEFAULT_DISAPPEAR_DURATION_MS);
 
-    private readonly ObservableAsPropertyHelper<string> _retryButtonText;
-    public string RetryButtonText => _retryButtonText.Value;
-
-    private readonly ObservableAsPropertyHelper<bool> _isVisible;
-    public bool IsVisible => _isVisible.Value;
-
-    private readonly ObservableAsPropertyHelper<bool> _isAnimating;
-    public bool IsAnimating => _isAnimating.Value;
-
-    private readonly ObservableAsPropertyHelper<string> _statusText;
-    public string StatusText => _statusText.Value;
-
-    private readonly ObservableAsPropertyHelper<string> _statusDescription;
-    public string StatusDescription => _statusDescription.Value;
-
-    private readonly ObservableAsPropertyHelper<Bitmap?> _statusIconSource;
-    public Bitmap? StatusIconSource => _statusIconSource.Value;
-
-    private readonly ObservableAsPropertyHelper<bool> _showRetryButton;
-    public bool ShowRetryButton => _showRetryButton.Value;
-
-    private readonly ObservableAsPropertyHelper<ConnectivityErrorType> _issueCategory;
-    public ConnectivityErrorType ErrorType => _issueCategory.Value;
-
-    private readonly ObservableAsPropertyHelper<DetailedConnectivityStatus> _detailedStatus;
-    public DetailedConnectivityStatus DetailedStatus => _detailedStatus.Value;
+    [ObservableAsProperty] public string RetryButtonText { get; }
+    [ObservableAsProperty] public bool IsVisible { get; }
+    [ObservableAsProperty] public bool IsAnimating { get; }
+    [ObservableAsProperty] public string StatusText { get; }
+    [ObservableAsProperty] public string StatusDescription { get; }
+    [ObservableAsProperty] public Bitmap? StatusIconSource { get; }
+    [ObservableAsProperty] public bool ShowRetryButton { get; }
+    [ObservableAsProperty] public ConnectivityErrorType IssueCategory { get; }
+    [ObservableAsProperty] public DetailedConnectivityStatus DetailedStatus { get; }
 
     public ReactiveCommand<Unit, Unit> RetryCommand { get; }
 
@@ -106,20 +90,15 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         VisibilityObservables visibilityObservables =
             CreateVisibilityObservables(connectivityObservables.Snapshots, connectivityObservables.ManualRetryEvents);
 
-        _issueCategory = statusObservables.IssueCategory.ToProperty(this, x => x.ErrorType).DisposeWith(_disposables);
-        _detailedStatus = statusObservables.DetailedStatus.ToProperty(this, x => x.DetailedStatus)
-            .DisposeWith(_disposables);
-        _statusText = statusObservables.StatusText.ToProperty(this, x => x.StatusText).DisposeWith(_disposables);
-        _statusDescription = statusObservables.StatusDescription.ToProperty(this, x => x.StatusDescription)
-            .DisposeWith(_disposables);
-        _statusIconSource = statusObservables.StatusIcon.ToProperty(this, x => x.StatusIconSource)
-            .DisposeWith(_disposables);
-        _showRetryButton = visibilityObservables.ShowRetryButton.ToProperty(this, x => x.ShowRetryButton)
-            .DisposeWith(_disposables);
-        _isVisible = visibilityObservables.IsVisible.ToProperty(this, x => x.IsVisible).DisposeWith(_disposables);
-        _isAnimating = Observable.Return(false).ToProperty(this, x => x.IsAnimating).DisposeWith(_disposables);
-        _retryButtonText = statusObservables.RetryButtonText.ToProperty(this, x => x.RetryButtonText)
-            .DisposeWith(_disposables);
+        statusObservables.IssueCategory.ToPropertyEx(this, x => x.IssueCategory).DisposeWith(_disposables);
+        statusObservables.DetailedStatus.ToPropertyEx(this, x => x.DetailedStatus).DisposeWith(_disposables);
+        statusObservables.StatusText.ToPropertyEx(this, x => x.StatusText).DisposeWith(_disposables);
+        statusObservables.StatusDescription.ToPropertyEx(this, x => x.StatusDescription).DisposeWith(_disposables);
+        statusObservables.StatusIcon.ToPropertyEx(this, x => x.StatusIconSource).DisposeWith(_disposables);
+        visibilityObservables.ShowRetryButton.ToPropertyEx(this, x => x.ShowRetryButton).DisposeWith(_disposables);
+        visibilityObservables.IsVisible.ToPropertyEx(this, x => x.IsVisible).DisposeWith(_disposables);
+        Observable.Return(false).ToPropertyEx(this, x => x.IsAnimating).DisposeWith(_disposables);
+        statusObservables.RetryButtonText.ToPropertyEx(this, x => x.RetryButtonText).DisposeWith(_disposables);
 
         RetryCommand = CreateRetryCommand(
             connectivityService, pendingRequestManager, visibilityObservables.ShowRetryButton);

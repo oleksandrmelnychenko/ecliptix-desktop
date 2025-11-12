@@ -50,8 +50,8 @@ public sealed class WelcomeViewModel : ViewModelBase, IRoutableViewModel, IReset
             return hostWindow.Navigate.Execute(viewType);
         });
 
-        NavToCreateAccountCommand.IsExecuting.ToProperty(this, x => x.IsCreateAccountBusy).DisposeWith(_disposables);
-        NavToSignInCommand.IsExecuting.ToProperty(this, x => x.IsSignInBusy).DisposeWith(_disposables);
+        NavToCreateAccountCommand.IsExecuting.ToPropertyEx(this, x => x.IsCreateAccountBusy).DisposeWith(_disposables);
+        NavToSignInCommand.IsExecuting.ToPropertyEx(this, x => x.IsSignInBusy).DisposeWith(_disposables);
 
         _disposables.Add(NavToCreateAccountCommand);
         _disposables.Add(NavToSignInCommand);

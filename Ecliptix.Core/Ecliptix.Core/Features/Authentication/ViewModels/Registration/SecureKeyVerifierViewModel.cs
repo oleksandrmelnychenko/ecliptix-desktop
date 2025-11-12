@@ -114,12 +114,20 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
                 x => x.IsBusy,
                 x => x.IsInNetworkOutage,
                 x => x.IsMembershipLoading,
-                (isBusy, isInOutage, isMembershipLoading) => !isBusy && !isInOutage && !isMembershipLoading)
-            .CombineLatest(isFormLogicallyValid, (canExecute, isValid) => canExecute && isValid);
+                (isBusy, isInOutage, isMembershipLoading) =>
+                {
+                    bool canExecute = !isBusy && !isInOutage && !isMembershipLoading;
+                    return canExecute;
+                })
+            .CombineLatest(isFormLogicallyValid, (canExecute, isValid) =>
+            {
+                bool finalResult = canExecute && isValid;
+                return finalResult;
+            });
 
         SubmitCommand = ReactiveCommand.CreateFromTask(SubmitAsync, canExecuteSubmit);
-        SubmitCommand.IsExecuting.ToProperty(this, x => x.IsBusy);
-        canExecuteSubmit.ToProperty(this, x => x.CanSubmit);
+        SubmitCommand.IsExecuting.ToPropertyEx(this, x => x.IsBusy);
+        canExecuteSubmit.ToPropertyEx(this, x => x.CanSubmit);
     }
 
     private void SetupSubscriptions()
@@ -282,6 +290,9 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
 
         IObservable<SystemU> lengthTrigger = this
             .WhenAnyValue(x => x.CurrentSecureKeyLength, x => x.CurrentVerifySecureKeyLength)
+            .Do(lengths => Serilog.Log.Information(
+                "[SECURE-KEY-VM] Key lengths changed: SecureKey={SecureKeyLength}, VerifyKey={VerifyKeyLength}",
+                lengths.Item1, lengths.Item2))
             .Select(_ => SystemU.Default);
 
         IObservable<SystemU> validationTrigger = lengthTrigger.Merge(languageTrigger);
@@ -290,7 +301,11 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
         IObservable<bool> secureKeysMatch = SetupVerifyKeyValidation(validationTrigger);
 
         return isSecureKeyLogicallyValid
-            .CombineLatest(secureKeysMatch, (isSecureKeyValid, areMatching) => isSecureKeyValid && areMatching)
+            .CombineLatest(secureKeysMatch, (isSecureKeyValid, areMatching) =>
+            {
+                bool result = isSecureKeyValid && areMatching;
+                return result;
+            })
             .DistinctUntilChanged();
     }
 
@@ -302,16 +317,16 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
                 .Replay(1)
                 .RefCount();
 
-        secureKeyValidation.Select(v => v.Strength).ToProperty(this, x => x.CurrentSecureKeyStrength);
+        secureKeyValidation.Select(v => v.Strength).ToPropertyEx(this, x => x.CurrentSecureKeyStrength);
         secureKeyValidation.Select(v =>
                 _hasSecureKeyBeenTouched
                     ? FormatSecureKeyStrengthMessage(v.Strength, v.ERROR, v.Recommendations)
                     : string.Empty)
-            .ToProperty(this, x => x.SecureKeyStrengthMessage);
+            .ToPropertyEx(this, x => x.SecureKeyStrengthMessage);
 
         this.WhenAnyValue(x => x.CurrentSecureKeyLength)
             .Select(_ => _hasSecureKeyBeenTouched)
-            .ToProperty(this, x => x.HasSecureKeyBeenTouched);
+            .ToPropertyEx(this, x => x.HasSecureKeyBeenTouched);
 
         this.WhenAnyValue(x => x.SecureKeyStrengthMessage)
             .Subscribe(message => SecureKeyError = message);
