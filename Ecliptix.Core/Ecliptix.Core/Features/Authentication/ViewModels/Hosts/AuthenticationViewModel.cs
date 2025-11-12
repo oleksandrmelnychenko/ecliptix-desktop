@@ -77,7 +77,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
 
     private readonly Stack<IRoutableViewModel> _navigationStack = new();
 
-    private bool _canNavigateBack;
     private IDisposable? _languageSubscription;
     private IDisposable? _bottomSheetHiddenSubscription;
     private IRoutableViewModel? _currentView;
@@ -116,8 +115,8 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
 
     public bool CanNavigateBack
     {
-        get => _canNavigateBack;
-        private set => this.RaiseAndSetIfChanged(ref _canNavigateBack, value);
+        get;
+        private set => this.RaiseAndSetIfChanged(ref field, value);
     }
 
     public RoutingState Router => new();
@@ -174,7 +173,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
 
         CanNavigateBack = _navigationStack.Count > 0;
     }
-
 
     public void NavigateToViewModel(IRoutableViewModel viewModel)
     {
@@ -536,8 +534,12 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
 
     private void SetupActivationBehavior()
     {
+        Log.Information("[AUTH-VM] SetupActivationBehavior called, registering WhenActivated");
+
         this.WhenActivated(disposables =>
         {
+            Log.Information("[AUTH-VM] ✅ WhenActivated TRIGGERED! Activation successful!");
+
             _connectivityService.OnManualRetryRequested(HandleManualRetryRequestedAsync)
                 .DisposeWith(disposables);
             Observable.Timer(TimeSpan.FromSeconds(2), RxApp.MainThreadScheduler)
@@ -548,6 +550,8 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
                 .Subscribe(_ => { })
                 .DisposeWith(disposables);
         });
+
+        Log.Information("[AUTH-VM] WhenActivated registered, waiting for activation...");
     }
 
     private async Task HandleManualRetryRequestedAsync(ManualRetryRequestedEvent e)

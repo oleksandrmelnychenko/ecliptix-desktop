@@ -19,7 +19,7 @@ using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Authentication;
 
 using ReactiveUI;
-using ReactiveUI.SourceGenerators;
+using ReactiveUI.Fody.Helpers;
 
 using Serilog;
 

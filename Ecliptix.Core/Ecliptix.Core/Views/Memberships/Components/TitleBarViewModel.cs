@@ -1,5 +1,5 @@
 using ReactiveUI;
-using ReactiveUI.SourceGenerators;
+using ReactiveUI.Fody.Helpers;
 
 namespace Ecliptix.Core.Views.Memberships.Components;
 

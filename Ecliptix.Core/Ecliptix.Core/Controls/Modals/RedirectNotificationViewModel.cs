@@ -6,7 +6,7 @@ using System.Reactive.Linq;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Authentication.Constants;
 using ReactiveUI;
-using ReactiveUI.SourceGenerators;
+using ReactiveUI.Fody.Helpers;
 
 namespace Ecliptix.Core.Controls.Modals;
 

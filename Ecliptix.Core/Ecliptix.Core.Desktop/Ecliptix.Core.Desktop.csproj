@@ -5,20 +5,16 @@
         One for Windows with net8.0-windows TFM, one for MacOS with net8.0-macos and one with net8.0 TFM for Linux.-->
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
-        <PublishAot>true</PublishAot>
         <!-- Enable Avalonia Hot Reload in Debug mode -->
         <AvaloniaUseCompiledBindingsByDefault Condition="'$(Configuration)' == 'Debug'">false</AvaloniaUseCompiledBindingsByDefault>
-        <!-- Recommended Avalonia trimming settings for Native AOT -->
-        <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
-        <TrimMode>link</TrimMode>
         <ApplicationIcon Condition="'$(RuntimeIdentifier)' == 'win-x64' OR '$(RuntimeIdentifier)' == 'win-x86'">../Ecliptix.Core/Assets/Branding/Platform/Windows/ecliptix.ico</ApplicationIcon>
         <AssemblyName>Ecliptix</AssemblyName>
-        
+
         <!-- Single-file deployment -->
         <PublishSingleFile>true</PublishSingleFile>
         <SelfContained>true</SelfContained>
-        
-        
+
+
         <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Windows')) AND '$(PlatformTarget)' != 'x86'">win-x64</RuntimeIdentifier>
         <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Windows')) AND '$(PlatformTarget)' == 'x86'">win-x86</RuntimeIdentifier>
         <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('OSX')) AND $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()) == 'Arm64'">osx-arm64</RuntimeIdentifier>
@@ -31,44 +27,8 @@
         <UseAppHost>true</UseAppHost>
         <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
         <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-        
-        <!-- AOT optimizations -->
-        <InvariantGlobalization>false</InvariantGlobalization>
-        <EventSourceSupport>false</EventSourceSupport>
-        <UseSystemResourceKeys>true</UseSystemResourceKeys>
-        <IlcOptimizationPreference>Size</IlcOptimizationPreference>
-        <IlcFoldIdenticalMethodBodies>true</IlcFoldIdenticalMethodBodies>
-        
-        <!-- AOT Performance Optimizations -->
-        <OptimizationPreference>Size</OptimizationPreference>
-        <StackTraceSupport>false</StackTraceSupport>
     </PropertyGroup>
-    <ItemGroup>
-        <!-- Core UI Framework -->
-        <TrimmerRootAssembly Include="Avalonia.Themes.Fluent" />
-        <TrimmerRootAssembly Include="Avalonia.Base" />
-        <TrimmerRootAssembly Include="Avalonia.Controls" />
-        <TrimmerRootAssembly Include="Ecliptix.Core" />
-        <TrimmerRootAssembly Include="ReactiveUI" />
-        <TrimmerRootAssembly Include="System.Reactive" />
 
-        <!-- gRPC and Networking -->
-        <TrimmerRootAssembly Include="Grpc.Net.Client" />
-        <TrimmerRootAssembly Include="Grpc.Core.Api" />
-        <TrimmerRootAssembly Include="Google.Protobuf" />
-        <TrimmerRootAssembly Include="Ecliptix.Protobufs" />
-
-        <!-- Essential Dependencies -->
-        <TrimmerRootAssembly Include="Microsoft.Extensions.Configuration" />
-        <TrimmerRootAssembly Include="Microsoft.Extensions.DependencyInjection" />
-
-        <!-- Security -->
-        <TrimmerRootAssembly Include="Ecliptix.Protocol.System" />
-        <TrimmerRootAssembly Include="Ecliptix.Opaque.Protocol" />
-        <TrimmerRootAssembly Include="Ecliptix.Security.Certificate.Pinning" />
-    </ItemGroup>
-    
-    <!-- gRPC AOT compatibility -->
     <PropertyGroup>
         <ApplicationManifest>app.manifest</ApplicationManifest>
     </PropertyGroup>

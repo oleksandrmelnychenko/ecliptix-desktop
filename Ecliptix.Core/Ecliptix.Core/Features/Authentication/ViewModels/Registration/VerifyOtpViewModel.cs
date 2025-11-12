@@ -21,7 +21,7 @@ using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
 using Google.Protobuf;
 using ReactiveUI;
-using ReactiveUI.SourceGenerators;
+using ReactiveUI.Fody.Helpers;
 using Serilog;
 using Unit = System.Reactive.Unit;
 

@@ -3,16 +3,17 @@ using System.Collections.Generic;
 using System.Reactive;
 using System.Reactive.Disposables;
 using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Core.Features.Authentication.Common;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
 using ReactiveUI;
-using ReactiveUI.SourceGenerators;
+using ReactiveUI.Fody.Helpers;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Welcome;
 
-public sealed partial class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
+public sealed class WelcomeViewModel : ViewModelBase, IRoutableViewModel, IResettable
 {
     private const string CREATE_ACCOUNT_KEY = "CreateAccount";
     private const string SIGN_IN_KEY = "SignIn";
@@ -27,7 +28,8 @@ public sealed partial class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutabl
     private readonly CompositeDisposable _disposables = new();
     private bool _isDisposed;
 
-    public WelcomeViewModel(IScreen hostScreen, ILocalizationService localizationService, NetworkProvider networkProvider)
+    public WelcomeViewModel(IScreen hostScreen, ILocalizationService localizationService,
+        NetworkProvider networkProvider)
         : base(networkProvider, localizationService)
     {
         HostScreen = hostScreen;
@@ -63,11 +65,9 @@ public sealed partial class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutabl
 
     public ReactiveCommand<Unit, IRoutableViewModel> NavToSignInCommand { get; }
 
-    [ObservableAsProperty]
-    public bool IsCreateAccountBusy { get; }
+    [ObservableAsProperty] public bool IsCreateAccountBusy { get; }
 
-    [ObservableAsProperty]
-    public bool IsSignInBusy { get; }
+    [ObservableAsProperty] public bool IsSignInBusy { get; }
 
     public void ResetState()
     {

@@ -25,7 +25,7 @@ using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Authentication;
 using Google.Protobuf;
 using ReactiveUI;
-using ReactiveUI.SourceGenerators;
+using ReactiveUI.Fody.Helpers;
 using Keys = Ecliptix.Core.Services.Authentication.Constants.AuthenticationConstants.SecureKeyConfirmationKeys;
 using SystemU = System.Reactive.Unit;
 

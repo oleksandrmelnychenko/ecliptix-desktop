@@ -41,8 +41,11 @@ public sealed class ModuleContentControl : ContentControl
 
     private void OnViewModelContentChanged(object? newViewModel)
     {
+        Serilog.Log.Information("[MODULE-CONTENT-CONTROL] OnViewModelContentChanged called with: {Type}", newViewModel?.GetType().Name ?? "null");
+
         if (newViewModel == null)
         {
+            Serilog.Log.Information("[MODULE-CONTENT-CONTROL] ViewModel is null, clearing content");
             Content = null;
             return;
         }
@@ -52,11 +55,15 @@ public sealed class ModuleContentControl : ContentControl
             .Match(
                 view =>
                 {
+                    Serilog.Log.Information("[MODULE-CONTENT-CONTROL] ✅ View created: {ViewType} for ViewModel: {VMType}", view.GetType().Name, newViewModel.GetType().Name);
                     view.DataContext = newViewModel;
+                    Serilog.Log.Information("[MODULE-CONTENT-CONTROL] DataContext set on view");
                     Content = view;
+                    Serilog.Log.Information("[MODULE-CONTENT-CONTROL] Content property set");
                 },
                 () =>
                 {
+                    Serilog.Log.Warning("[MODULE-CONTENT-CONTROL] ⚠️ No view found for ViewModel: {Type}, using fallback", newViewModel.GetType().Name);
                     Content = CreateFallbackView();
                 });
     }

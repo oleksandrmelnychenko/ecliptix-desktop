@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Core.Messaging;
@@ -15,20 +16,19 @@ using Ecliptix.Core.Views.Memberships.Components;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Utilities;
 using ReactiveUI;
-using ReactiveUI.SourceGenerators;
-
+using ReactiveUI.Fody.Helpers;
 using Serilog;
 
 namespace Ecliptix.Core.ViewModels.Core;
 
-public sealed partial class MainWindowViewModel : ReactiveObject, IDisposable
+public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 {
     private readonly IBottomSheetService _bottomSheetService;
     private readonly IApplicationSecureStorageProvider _storageProvider;
 
     private bool _isDisposed;
 
-    private bool _isMainContentActive = false;
+    private bool _isMainContentActive;
 
     [Reactive] public WindowState WindowState { get; set; } = WindowState.Normal;
     [Reactive] public object? CurrentContent { get; private set; }
@@ -51,9 +51,7 @@ public sealed partial class MainWindowViewModel : ReactiveObject, IDisposable
     public Func<Rect>? GetPrimaryScreenWorkingArea { get; set; }
     public Action? SyncViewModelWithActualWindowSize { get; set; }
 
-
     public event Action<PixelPoint>? OnWindowRepositionRequested;
-
 
     public MainWindowViewModel(
         IBottomSheetService bottomSheetService,
@@ -71,7 +69,7 @@ public sealed partial class MainWindowViewModel : ReactiveObject, IDisposable
         CanResize = false;
         WindowTitle = string.Empty;
 
-        TitleBarViewModel = new();
+        TitleBarViewModel = new TitleBarViewModel();
 
         LanguageSelector = new LanguageSelectorViewModel(
             localizationService,
@@ -142,7 +140,6 @@ public sealed partial class MainWindowViewModel : ReactiveObject, IDisposable
 
     private static double EaseInOutCubic(double t) => t < 0.5 ? 4 * t * t * t : 1 - Math.Pow(-2 * t + 2, 3) / 2;
 
-
     private bool IsWindowSnapped()
     {
         if (GetPrimaryScreenWorkingArea == null)
@@ -156,7 +153,6 @@ public sealed partial class MainWindowViewModel : ReactiveObject, IDisposable
         double height = WindowHeight;
 
         const int tolerance = 10;
-        bool IsNear(double val1, double val2) => Math.Abs(val1 - val2) <= tolerance;
 
         bool leftAligned = IsNear(position.X, workingArea.Left);
         bool rightAligned = IsNear(position.X + width, workingArea.Right);
@@ -197,6 +193,8 @@ public sealed partial class MainWindowViewModel : ReactiveObject, IDisposable
         }
 
         return false;
+
+        bool IsNear(double val1, double val2) => Math.Abs(val1 - val2) <= tolerance;
     }
 
     private static Task SetupHandlersAsync() => Task.CompletedTask;
@@ -213,7 +211,7 @@ public sealed partial class MainWindowViewModel : ReactiveObject, IDisposable
 
     private async Task HandleFullScreenStateAsync()
     {
-        if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
+        if (WindowState is WindowState.Maximized or WindowState.FullScreen)
         {
             WindowState = WindowState.Normal;
             await Task.Delay(500);
@@ -222,7 +220,7 @@ public sealed partial class MainWindowViewModel : ReactiveObject, IDisposable
 
     private async Task AnimateWindowResizeAsync(double targetWidth, double targetHeight, TimeSpan duration)
     {
-        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () =>
+        await Dispatcher.UIThread.InvokeAsync(async () =>
         {
             await HandleFullScreenStateAsync();
 
@@ -270,24 +268,26 @@ public sealed partial class MainWindowViewModel : ReactiveObject, IDisposable
             double progress = (double)i / steps;
             double easedProgress = EaseInOutCubic(progress);
 
-            await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+            await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 WindowWidth = startWidth + (targetWidth - startWidth) * easedProgress;
                 WindowHeight = startHeight + (targetHeight - startHeight) * easedProgress;
 
 
-                if (targetPosition.HasValue)
+                if (!targetPosition.HasValue)
                 {
-                    int currentX = (int)(startPosition.X + (targetPosition.Value.X - startPosition.X) * easedProgress);
-                    int currentY = (int)(startPosition.Y + (targetPosition.Value.Y - startPosition.Y) * easedProgress);
-                    OnWindowRepositionRequested?.Invoke(new PixelPoint(currentX, currentY));
+                    return;
                 }
+
+                int currentX = (int)(startPosition.X + (targetPosition.Value.X - startPosition.X) * easedProgress);
+                int currentY = (int)(startPosition.Y + (targetPosition.Value.Y - startPosition.Y) * easedProgress);
+                OnWindowRepositionRequested?.Invoke(new PixelPoint(currentX, currentY));
             });
 
             await Task.Delay(stepDuration).ConfigureAwait(true);
         }
 
-        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+        await Dispatcher.UIThread.InvokeAsync(() =>
         {
             WindowWidth = targetWidth;
             WindowHeight = targetHeight;
@@ -313,11 +313,11 @@ public sealed partial class MainWindowViewModel : ReactiveObject, IDisposable
         return null;
     }
 
-    public async Task InvalidateWindowPlacementAsync()
+    private async Task InvalidateWindowPlacementAsync()
     {
         try
         {
-            WindowPlacement? placement = (await LoadInitialPlacementAsync()) ?? new WindowPlacement();
+            WindowPlacement placement = (await LoadInitialPlacementAsync()) ?? new WindowPlacement();
 
             placement.IsValidSave = false;
 
@@ -331,7 +331,7 @@ public sealed partial class MainWindowViewModel : ReactiveObject, IDisposable
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "[MAIN-WINDOW-VM] Error during invalidation of the placement.");
+            Log.Error(ex, "[MAIN-WINDOW-VM] Error during invalidation of the placement");
         }
     }
 
@@ -364,15 +364,17 @@ public sealed partial class MainWindowViewModel : ReactiveObject, IDisposable
 
     private async Task SetContentWithFadeAsync(object content)
     {
+        Serilog.Log.Information("[MAIN-WINDOW-VM] SetContentWithFadeAsync called with content: {Type}", content?.GetType().Name ?? "null");
+
         if (CurrentContent != null)
         {
+            Serilog.Log.Information("[MAIN-WINDOW-VM] Clearing existing content: {Type}", CurrentContent.GetType().Name);
             await Task.Delay(100).ConfigureAwait(false);
         }
 
         CurrentContent = content;
+        Serilog.Log.Information("[MAIN-WINDOW-VM] CurrentContent set to: {Type}", content?.GetType().Name ?? "null");
 
         await Task.Delay(100).ConfigureAwait(false);
     }
-
-
 }

@@ -1,7 +1,7 @@
 using System.Reactive.Disposables;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
-using ReactiveUI.SourceGenerators;
+using ReactiveUI.Fody.Helpers;
 
 namespace Ecliptix.Core.Features.Feed.ViewModels;
 

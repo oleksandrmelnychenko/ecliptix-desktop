@@ -8,7 +8,7 @@ using Ecliptix.Core.Models.Navigation;
 using Ecliptix.Core.Services.Abstractions.Core;
 
 using ReactiveUI;
-using ReactiveUI.SourceGenerators;
+using ReactiveUI.Fody.Helpers;
 
 using SystemU = System.Reactive.Unit;
 

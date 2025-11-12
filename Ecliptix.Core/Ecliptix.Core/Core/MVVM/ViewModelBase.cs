@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
@@ -16,12 +17,13 @@ using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
 using ReactiveUI;
-using ReactiveUI.SourceGenerators;
+using ReactiveUI.Fody.Helpers;
+using Serilog;
 using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Core.MVVM;
 
-public abstract partial class ViewModelBase : ReactiveObject, IDisposable, IActivatableViewModel
+public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableViewModel
 {
     private bool _disposedValue;
     private ObservableAsPropertyHelper<bool>? _connectivitySubscription;
@@ -48,7 +50,7 @@ public abstract partial class ViewModelBase : ReactiveObject, IDisposable, IActi
                 .StartWith(IsNetworkInOutage(connectivityService.CurrentSnapshot))
                 .DistinctUntilChanged();
 
-            _connectivitySubscription = networkStatusStream.ToProperty(this, x => x.IsInNetworkOutage);
+            _connectivitySubscription = networkStatusStream.ToPropertyEx(this, x => x.IsInNetworkOutage);
         }
 
         this.WhenActivated(disposables =>
@@ -115,14 +117,14 @@ public abstract partial class ViewModelBase : ReactiveObject, IDisposable, IActi
             }
             catch (Exception ex)
             {
-                Serilog.Log.Error(ex, "[VIEWMODEL-BASE] Exception showing user request error bottom sheet");
+                Log.Error(ex, "[VIEWMODEL-BASE] Exception showing user request error bottom sheet");
             }
         }).ContinueWith(
             task =>
             {
                 if (task.IsFaulted && task.Exception != null)
                 {
-                    Serilog.Log.Error(task.Exception, "[VIEWMODEL-BASE] Unhandled exception in ShowServerErrorNotification background task");
+                    Log.Error(task.Exception, "[VIEWMODEL-BASE] Unhandled exception in ShowServerErrorNotification background task");
                 }
             },
             TaskScheduler.Default);
@@ -156,7 +158,7 @@ public abstract partial class ViewModelBase : ReactiveObject, IDisposable, IActi
             }
             catch (Exception ex)
             {
-                Serilog.Log.Error(ex, "[VIEWMODEL-BASE] Exception showing redirect notification bottom sheet");
+                Log.Error(ex, "[VIEWMODEL-BASE] Exception showing redirect notification bottom sheet");
                 onComplete();
             }
         }).ContinueWith(
@@ -164,7 +166,7 @@ public abstract partial class ViewModelBase : ReactiveObject, IDisposable, IActi
             {
                 if (task.IsFaulted && task.Exception != null)
                 {
-                    Serilog.Log.Error(task.Exception, "[VIEWMODEL-BASE] Unhandled exception in ShowRedirectNotification background task");
+                    Log.Error(task.Exception, "[VIEWMODEL-BASE] Unhandled exception in ShowRedirectNotification background task");
                     onComplete();
                 }
             },
@@ -184,14 +186,14 @@ public abstract partial class ViewModelBase : ReactiveObject, IDisposable, IActi
             }
             catch (Exception ex)
             {
-                Serilog.Log.Error(ex, "[VIEWMODEL-BASE] Exception hiding bottom sheet during cleanup");
+                Log.Error(ex, "[VIEWMODEL-BASE] Exception hiding bottom sheet during cleanup");
             }
         }).ContinueWith(
             task =>
             {
                 if (task.IsFaulted && task.Exception != null)
                 {
-                    Serilog.Log.Error(task.Exception, "[VIEWMODEL-BASE] Unhandled exception in CleanupAndNavigate background task");
+                    Log.Error(task.Exception, "[VIEWMODEL-BASE] Unhandled exception in CleanupAndNavigate background task");
                 }
             },
             TaskScheduler.Default);
@@ -219,7 +221,7 @@ public abstract partial class ViewModelBase : ReactiveObject, IDisposable, IActi
         }
         catch (ObjectDisposedException ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[VIEWMODEL-BASE] CTS already disposed during recreation: {ex.Message}");
+            Debug.WriteLine($"[VIEWMODEL-BASE] CTS already disposed during recreation: {ex.Message}");
         }
 
         cts?.Dispose();
@@ -237,7 +239,7 @@ public abstract partial class ViewModelBase : ReactiveObject, IDisposable, IActi
             }
             catch (ObjectDisposedException ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[VIEWMODEL-BASE] CTS already disposed during recreation (Option): {ex.Message}");
+                Debug.WriteLine($"[VIEWMODEL-BASE] CTS already disposed during recreation (Option): {ex.Message}");
             }
             cts.Dispose();
         });
