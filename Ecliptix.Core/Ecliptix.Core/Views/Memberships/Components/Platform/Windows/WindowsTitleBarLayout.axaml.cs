@@ -9,7 +9,7 @@ using Avalonia.Media;
 
 namespace Ecliptix.Core.Views.Memberships.Components.Platform.Windows;
 
-public partial class WindowsTitleBarLayout : UserControl
+public sealed partial class WindowsTitleBarLayout : UserControl, ITitleBar
 {
     private Button? _minimizeButton;
     private Button? _maximizeButton;
@@ -80,12 +80,12 @@ public partial class WindowsTitleBarLayout : UserControl
         _hostWindow = null;
     }
 
-    private void CloseWindow(object? sender, RoutedEventArgs e)
+    public void CloseWindow(object? sender, RoutedEventArgs e)
     {
         _hostWindow?.Close();
     }
 
-    private void MaximizeWindow(object? sender, RoutedEventArgs e)
+    public void MaximizeWindow(object? sender, RoutedEventArgs e)
     {
         if (_hostWindow == null || _mainBorder == null)
         {
@@ -103,7 +103,7 @@ public partial class WindowsTitleBarLayout : UserControl
             : new CornerRadius(0);
     }
 
-    private void MinimizeWindow(object? sender, RoutedEventArgs e)
+    public void MinimizeWindow(object? sender, RoutedEventArgs e)
     {
         if (_hostWindow == null)
         {

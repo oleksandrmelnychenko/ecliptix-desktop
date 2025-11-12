@@ -5,7 +5,7 @@ using Avalonia.Markup.Xaml;
 
 namespace Ecliptix.Core.Views.Memberships.Components.Platform.OSX;
 
-public partial class MacosTitleBarLayout : UserControl
+public sealed partial class MacosTitleBarLayout : UserControl, ITitleBar
 {
     private Button? _minimizeButton;
     private Button? _maximizeButton;
@@ -72,9 +72,9 @@ public partial class MacosTitleBarLayout : UserControl
         _hostWindow = null;
     }
 
-    private void CloseWindow(object? sender, RoutedEventArgs e) => _hostWindow?.Close();
+    public void CloseWindow(object? sender, RoutedEventArgs e) => _hostWindow?.Close();
 
-    private void MaximizeWindow(object? sender, RoutedEventArgs e)
+    public void MaximizeWindow(object? sender, RoutedEventArgs e)
     {
         if (_hostWindow == null || _mainBorder == null)
         {
@@ -92,7 +92,7 @@ public partial class MacosTitleBarLayout : UserControl
             : new CornerRadius(0);
     }
 
-    private void MinimizeWindow(object? sender, RoutedEventArgs e)
+    public void MinimizeWindow(object? sender, RoutedEventArgs e)
     {
         if (_hostWindow == null)
         {
