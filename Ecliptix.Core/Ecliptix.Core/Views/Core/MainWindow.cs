@@ -20,7 +20,6 @@ namespace Ecliptix.Core.Views.Core;
 
 public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 {
-    private bool _languageSelectorLoaded;
     private readonly Border? _languageSelectorContainer;
     private bool _isSaveInProgress;
 
@@ -75,12 +74,6 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                         .ObserveOn(RxApp.MainThreadScheduler)
                         .Subscribe(pos => viewModel.CurrentPosition = pos)
                         .DisposeWith(disposables);
-
-
-                    if (!_languageSelectorLoaded)
-                    {
-                        LoadLanguageSelector(viewModel);
-                    }
 
                     LoadWindowPlacementAsync(viewModel).ContinueWith(t =>
                     {
@@ -226,22 +219,6 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                 })
                 .DisposeWith(disposables);
         });
-    }
-
-    private void LoadLanguageSelector(MainWindowViewModel viewModel)
-    {
-        if (_languageSelectorLoaded || _languageSelectorContainer == null)
-        {
-            return;
-        }
-
-        LanguageSelectorView languageSelector = new()
-        {
-            DataContext = viewModel.LanguageSelector
-        };
-
-        _languageSelectorContainer.Child = languageSelector;
-        _languageSelectorLoaded = true;
     }
 
     private async void OnWindowClosing(object? sender, WindowClosingEventArgs e)

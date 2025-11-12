@@ -7,10 +7,9 @@
              x:Class="Ecliptix.Core.Views.Memberships.Components.Platform.OSX.MacosTitleBarLayout"
              x:DataType="vm:TitleBarViewModel"
              Height="35">
-    <DockPanel Background="Transparent">
+    <Grid Background="Transparent" ColumnDefinitions="Auto, *, Auto">
 
         <StackPanel
-            DockPanel.Dock="Left"
             Orientation="Horizontal"
             Spacing="8"
             Margin="8,0,0,0"
@@ -42,13 +41,12 @@
 
         </StackPanel>
 
-        <TextBlock
-            Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}"
-            Foreground="{DynamicResource OnSurface}"
-            FontWeight="Medium"
-            FontSize="{StaticResource Title.FontSize}"
-            VerticalAlignment="Center"
-            HorizontalAlignment="Center"
-            IsHitTestVisible="False" /> </DockPanel>
+        <ContentControl Grid.Column="2"
+                        Content="{Binding AccessoryViewModel}"
+                        VerticalAlignment="Center"
+                        Margin="10,0,10,0" />
+
+
+    </Grid>
 </UserControl>
 

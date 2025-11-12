@@ -105,7 +105,7 @@ public static class Program
             IServiceProvider serviceProvider = services.BuildServiceProvider();
             ReactiveUI.IViewLocator reactiveViewLocator = serviceProvider.GetRequiredService<ReactiveUI.IViewLocator>();
             Splat.Locator.CurrentMutable.Register(() => reactiveViewLocator, typeof(ReactiveUI.IViewLocator));
-
+            Splat.Locator.CurrentMutable.Register(() => new LanguageSelectorView(), typeof(ReactiveUI.IViewFor<LanguageSelectorViewModel>));
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
         }
         catch (Exception ex)

@@ -3,33 +3,25 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Ecliptix.Core.Views.Memberships.Components"
+             xmlns:reactiveUi="http://reactiveui.net"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ecliptix.Core.Views.Memberships.Components.Platform.Windows.WindowsTitleBarLayout"
              Height="35"
              x:DataType="vm:TitleBarViewModel">
 
-   <DockPanel Background="Transparent">
+   <Grid Background="Transparent" ColumnDefinitions="Auto, *, Auto">
 
-        <StackPanel Orientation="Horizontal"
-                    DockPanel.Dock="Left"
-                    Spacing="5"
-                    VerticalAlignment="Center">
-            <Image Source="avares://Ecliptix.Core/Assets/Branding/Logos/logo_32x32.png"
-                   Height="16" Width="16" Margin="8,0,0,0" />
-
-            <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}"
-                       FontSize="12"
-                       Foreground="{DynamicResource OnSurface}"
-                       VerticalAlignment="Center"
-                       IsHitTestVisible="False" />
-        </StackPanel>
+       <reactiveUi:ViewModelViewHost Grid.Column="0" ViewModel="{Binding AccessoryViewModel}"
+                                     VerticalAlignment="Center"
+                                     HorizontalAlignment="Right"
+                                     Margin="10 0 10 0"/>
 
         <StackPanel Height="35"
                     HorizontalAlignment="Right"
-                    DockPanel.Dock="Right"
                     Orientation="Horizontal"
                     Spacing="0"
-                    VerticalAlignment="Top">
+                    VerticalAlignment="Top"
+                    Grid.Column="2">
 
             <Button x:Name="MinimizeButton"
                     Width="46"
@@ -106,6 +98,8 @@
             </Button>
 
         </StackPanel>
-    </DockPanel>
+
+
+    </Grid>
 </UserControl>
 

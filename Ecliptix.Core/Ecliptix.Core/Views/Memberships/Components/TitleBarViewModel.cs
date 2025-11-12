@@ -10,4 +10,6 @@ public partial class TitleBarViewModel : ReactiveObject
     [Reactive] public bool DisableMinimizeButton { get; set; }
     [Reactive] public bool DisableMaximizeButton { get; set; }
 
+    [Reactive] public object? AccessoryViewModel { get; set; }
+
 }

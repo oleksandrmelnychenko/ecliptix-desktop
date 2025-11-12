@@ -99,6 +99,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
         CanResize = false;
         TitleBarViewModel.DisableMaximizeButton = true;
+        TitleBarViewModel.AccessoryViewModel = LanguageSelector;
 
         await SetContentWithFadeAsync(content).ConfigureAwait(false);
     }
@@ -110,6 +111,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
         CanResize = true;
         TitleBarViewModel.DisableMaximizeButton = false;
+        TitleBarViewModel.AccessoryViewModel = null;
 
         await SetContentWithFadeAsync(content).ConfigureAwait(false);
     }

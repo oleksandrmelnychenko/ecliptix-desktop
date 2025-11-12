@@ -46,18 +46,6 @@
             DataContext="{Binding TitleBarViewModel}"
             />
 
-
-        <!-- DisableMaximizeButton="False" -->
-        <!-- DisableMinimizeButton="False" -->
-        <!-- DisableCloseButton="False" -->
-        <Border x:Name="LanguageSelectorContainer"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Top"
-                ZIndex="100"
-                Background="Transparent"
-                Padding="0"
-                Margin="0 50 10 0"/>
-
         <Border
             ClipToBounds="True"
             ZIndex="1000"
