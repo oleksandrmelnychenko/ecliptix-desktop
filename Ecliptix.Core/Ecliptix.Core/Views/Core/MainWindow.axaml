@@ -37,23 +37,24 @@
 
     <Window.Styles>
 
-        <Style Selector="Window[WindowState=Normal] Grid#MainContentGrid Border#MainBorder">
+        <Style Selector="Window[WindowState=Normal] Border#MainBorder">
             <Setter Property="CornerRadius" Value="{StaticResource WindowBorderRadius}" />
         </Style>
 
-        <Style Selector="Window[WindowState=Maximized] Grid#MainContentGrid Border#MainBorder">
+        <Style Selector="Window[WindowState=Maximized] Border#MainBorder">
             <Setter Property="CornerRadius"
                     Value="{OnPlatform {StaticResource WindowBorderRadiusZero},
-                                   Windows={StaticResource WindowBorderRadiusZero},
-                                   macOS={StaticResource WindowBorderRadius}}" />
+                               Windows={StaticResource WindowBorderRadiusZero},
+                               macOS={StaticResource WindowBorderRadius}}" />
         </Style>
 
-        <Style Selector="Window[WindowState=FullScreen] Grid#MainContentGrid Border#MainBorder">
+        <Style Selector="Window[WindowState=FullScreen] Border#MainBorder">
             <Setter Property="CornerRadius"
                     Value="{OnPlatform {StaticResource WindowBorderRadiusZero},
-                                   Windows={StaticResource WindowBorderRadiusZero},
-                                   macOS={StaticResource WindowBorderRadius}}" />
+                               Windows={StaticResource WindowBorderRadiusZero},
+                               macOS={StaticResource WindowBorderRadius}}" />
         </Style>
+
 
         <Style Selector="Window[WindowState=Normal] Grid#MainContentGrid">
             <Setter Property="Margin" Value="{StaticResource MarginZero}" />
@@ -70,7 +71,7 @@
             <Setter Property="Margin" Value="{StaticResource MarginZero}" />
         </Style>
 
-</Window.Styles>
+    </Window.Styles>
 
     <Grid x:Name="MainContentGrid" ClipToBounds="True">
 
@@ -107,7 +108,6 @@
 
         <Border Background="{DynamicResource Window.Background}"
                 BorderBrush="{DynamicResource Window.Border}"
-                CornerRadius="{StaticResource WindowBorderRadius}"
                 x:Name="MainBorder">
 
             <core:ModuleContentControl ViewModelContent="{Binding CurrentContent}"

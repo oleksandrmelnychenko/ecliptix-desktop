@@ -93,10 +93,6 @@ public sealed partial class MacosTitleBarLayout : UserControl, ITitleBar
         _hostWindow.WindowState = isCurrentlyFullScreen
             ? WindowState.Normal
             : WindowState.FullScreen;
-        //
-        // _mainBorder.CornerRadius = isCurrentlyFullScreen
-        //     ? new CornerRadius(12)
-        //     : new CornerRadius(0);
     }
 
     public void MinimizeWindow(object? sender, RoutedEventArgs e)
