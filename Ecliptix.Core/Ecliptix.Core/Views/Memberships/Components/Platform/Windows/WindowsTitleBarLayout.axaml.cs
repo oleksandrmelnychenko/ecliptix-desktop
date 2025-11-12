@@ -104,9 +104,9 @@ public sealed partial class WindowsTitleBarLayout : UserControl, ITitleBar
             ? WindowState.Normal
             : WindowState.Maximized;
 
-        _mainBorder.CornerRadius = isCurrentlyMaximized
-            ? new CornerRadius(12)
-            : new CornerRadius(0);
+        // _mainBorder.CornerRadius = isCurrentlyMaximized
+        //     ? new CornerRadius(12)
+        //     : new CornerRadius(0);
     }
 
     public void MinimizeWindow(object? sender, RoutedEventArgs e)

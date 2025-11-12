@@ -143,12 +143,12 @@ public partial class TitleBar : ReactiveUserControl<TitleBarViewModel>
             ? WindowState.Normal
             : WindowState.Maximized;
 
-        if (_mainBorder != null)
-        {
-            _mainBorder.CornerRadius = isCurrentlyMaximized
-                ? new CornerRadius(12)
-                : new CornerRadius(0);
-        }
+        // if (_mainBorder != null)
+        // {
+        //     _mainBorder.CornerRadius = isCurrentlyMaximized
+        //         ? new CornerRadius(12)
+        //         : new CornerRadius(0);
+        // }
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)

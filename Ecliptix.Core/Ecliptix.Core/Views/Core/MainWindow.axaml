@@ -27,18 +27,52 @@
         Background="Transparent"
         Icon="avares://Ecliptix.Core/Assets/Branding/Logos/logo_256x256.png">
 
+    <Window.Resources>
+        <CornerRadius x:Key="WindowBorderRadiusZero">0</CornerRadius>
+
+        <Thickness x:Key="MarginZero">0</Thickness>
+        <Thickness x:Key="MarginMaximizedWindows">8</Thickness>
+
+    </Window.Resources>
+
+    <Window.Styles>
+
+        <Style Selector="Window[WindowState=Normal] Grid#MainContentGrid Border#MainBorder">
+            <Setter Property="CornerRadius" Value="{StaticResource WindowBorderRadius}" />
+        </Style>
+
+        <Style Selector="Window[WindowState=Maximized] Grid#MainContentGrid Border#MainBorder">
+            <Setter Property="CornerRadius"
+                    Value="{OnPlatform {StaticResource WindowBorderRadiusZero},
+                                   Windows={StaticResource WindowBorderRadiusZero},
+                                   macOS={StaticResource WindowBorderRadius}}" />
+        </Style>
+
+        <Style Selector="Window[WindowState=FullScreen] Grid#MainContentGrid Border#MainBorder">
+            <Setter Property="CornerRadius"
+                    Value="{OnPlatform {StaticResource WindowBorderRadiusZero},
+                                   Windows={StaticResource WindowBorderRadiusZero},
+                                   macOS={StaticResource WindowBorderRadius}}" />
+        </Style>
+
+        <Style Selector="Window[WindowState=Normal] Grid#MainContentGrid">
+            <Setter Property="Margin" Value="{StaticResource MarginZero}" />
+        </Style>
+
+        <Style Selector="Window[WindowState=Maximized] Grid#MainContentGrid">
+            <Setter Property="Margin"
+                    Value="{OnPlatform {StaticResource MarginZero},
+                               Windows={StaticResource MarginMaximizedWindows},
+                               macOS={StaticResource MarginZero}}" />
+        </Style>
+
+        <Style Selector="Window[WindowState=FullScreen] Grid#MainContentGrid">
+            <Setter Property="Margin" Value="{StaticResource MarginZero}" />
+        </Style>
+
+</Window.Styles>
+
     <Grid x:Name="MainContentGrid" ClipToBounds="True">
-
-        <Grid.Styles>
-            <Style Selector="Window[WindowState=Normal] Grid#MainContentGrid">
-                <Setter Property="Margin" Value="0" />
-            </Style>
-
-            <Style Selector="Window[WindowState=Maximized] Grid#MainContentGrid">
-                <Setter Property="Margin" Value="8" />
-            </Style>
-
-        </Grid.Styles>
 
         <comp:TitleBar
             VerticalAlignment="Top"
