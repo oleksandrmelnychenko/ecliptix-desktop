@@ -95,7 +95,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
         await InvalidateWindowPlacementAsync();
 
-        await AnimateWindowResizeAsync(480, 720, TimeSpan.FromMilliseconds(300)).ConfigureAwait(false);
+        await AnimateWindowResizeAsync(480, 720, TimeSpan.FromMilliseconds(200)).ConfigureAwait(false);
 
         CanResize = false;
         TitleBarViewModel.DisableMaximizeButton = true;
@@ -106,7 +106,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     public async Task SetMainContentAsync(object content)
     {
         _isMainContentActive = true;
-        await AnimateWindowResizeAsync(1200, 800, TimeSpan.FromMilliseconds(300)).ConfigureAwait(false);
+        await AnimateWindowResizeAsync(1200, 800, TimeSpan.FromMilliseconds(200)).ConfigureAwait(false);
 
         CanResize = true;
         TitleBarViewModel.DisableMaximizeButton = false;
@@ -260,7 +260,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        const int steps = 30;
+        const int steps = 60;
         TimeSpan stepDuration = TimeSpan.FromMilliseconds(duration.TotalMilliseconds / steps);
 
         for (int i = 1; i <= steps; i++)
