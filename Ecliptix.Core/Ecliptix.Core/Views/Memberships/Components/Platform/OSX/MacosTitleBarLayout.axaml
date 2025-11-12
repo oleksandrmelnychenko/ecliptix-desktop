@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Ecliptix.Core.Views.Memberships.Components"
              xmlns:osx="clr-namespace:Ecliptix.Core.Views.Memberships.Components.Platform.OSX"
+             xmlns:reactiveUi="http://reactiveui.net"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ecliptix.Core.Views.Memberships.Components.Platform.OSX.MacosTitleBarLayout"
              x:DataType="vm:TitleBarViewModel"
@@ -14,10 +15,10 @@
                                     Grid.Column="0"
                                     DataContext="{Binding}" />
 
-        <ContentControl Grid.Column="2"
-                        Content="{Binding AccessoryViewModel}"
-                        VerticalAlignment="Center"
-                        Margin="10,0,10,0" />
+        <reactiveUi:ViewModelViewHost Grid.Column="2"
+                                      ViewModel="{Binding AccessoryViewModel}"
+                                      VerticalAlignment="Center"
+                                      Margin="10,0,10,0" />
 
 
     </Grid>
