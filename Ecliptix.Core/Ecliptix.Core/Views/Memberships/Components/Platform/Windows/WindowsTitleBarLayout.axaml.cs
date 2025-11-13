@@ -16,7 +16,6 @@ public sealed partial class WindowsTitleBarLayout : UserControl, ITitleBar
     private Button? _closeButton;
     private Path? _maximizeIcon;
     private Window? _hostWindow;
-    private Border? _mainBorder;
 
     private WindowsTitleBarButtons? _buttonsControl;
 
@@ -39,11 +38,6 @@ public sealed partial class WindowsTitleBarLayout : UserControl, ITitleBar
             _maximizeButton = _buttonsControl.FindControl<Button>("MaximizeButton");
             _closeButton = _buttonsControl.FindControl<Button>("CloseButton");
             _maximizeIcon = _buttonsControl.FindControl<Path>("MaximizeIcon");
-        }
-
-        if (_hostWindow != null)
-        {
-            _mainBorder = _hostWindow.FindControl<Border>("MainBorder");
         }
 
         if (_minimizeButton != null)
@@ -93,7 +87,7 @@ public sealed partial class WindowsTitleBarLayout : UserControl, ITitleBar
 
     public void MaximizeWindow(object? sender, RoutedEventArgs e)
     {
-        if (_hostWindow == null || _mainBorder == null)
+        if (_hostWindow == null)
         {
             return;
         }

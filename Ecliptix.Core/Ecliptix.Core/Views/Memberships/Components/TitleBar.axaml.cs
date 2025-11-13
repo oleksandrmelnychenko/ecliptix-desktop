@@ -16,7 +16,6 @@ namespace Ecliptix.Core.Views.Memberships.Components;
 public partial class TitleBar : ReactiveUserControl<TitleBarViewModel>
 {
     private readonly ContentControl? _rootControl;
-    private Border? _mainBorder;
     private CompositeDisposable _pointerSubscriptions = new();
 
     private const double DRAG_THRESHOLD = 3;
@@ -142,23 +141,6 @@ public partial class TitleBar : ReactiveUserControl<TitleBarViewModel>
         Window.WindowState = isCurrentlyMaximized
             ? WindowState.Normal
             : WindowState.Maximized;
-
-        // if (_mainBorder != null)
-        // {
-        //     _mainBorder.CornerRadius = isCurrentlyMaximized
-        //         ? new CornerRadius(12)
-        //         : new CornerRadius(0);
-        // }
-    }
-
-    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        base.OnAttachedToVisualTree(e);
-
-        if (Window != null)
-        {
-            _mainBorder = Window.FindControl<Border>("MainBorder");
-        }
     }
 
     private Window? Window => VisualRoot as Window;
