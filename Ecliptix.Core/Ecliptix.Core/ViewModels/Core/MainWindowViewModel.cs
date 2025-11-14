@@ -34,8 +34,10 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     [Reactive] public object? CurrentContent { get; private set; }
 
     [Reactive] public double WindowWidth { get; set; }
-
     [Reactive] public double WindowHeight { get; set; }
+
+    [Reactive] public double MinWindowWidth { get; set; }
+    [Reactive] public double MinWindowHeight { get; set; }
 
     [Reactive] public PixelPoint CurrentPosition { get; set; } = new(0, 0);
 
@@ -63,9 +65,12 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         _bottomSheetService = bottomSheetService;
         _storageProvider = storageProvider;
 
+        MinWindowWidth = 200;
+        MinWindowHeight = 300;
 
         WindowWidth = 520;
         WindowHeight = 800;
+
         CanResize = false;
         WindowTitle = string.Empty;
 
@@ -95,7 +100,10 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
         await InvalidateWindowPlacementAsync();
 
-        await AnimateWindowResizeAsync(480, 720, TimeSpan.FromMilliseconds(200)).ConfigureAwait(false);
+        MinWindowWidth = 520;
+        MinWindowHeight = 800;
+
+        await AnimateWindowResizeAsync(520, 800, TimeSpan.FromMilliseconds(200)).ConfigureAwait(false);
 
         CanResize = false;
         TitleBarViewModel.DisableMaximizeButton = true;
@@ -107,9 +115,13 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     public async Task SetMainContentAsync(object content)
     {
         _isMainContentActive = true;
+
+        MinWindowWidth = 800;
+        MinWindowHeight = 600;
         await AnimateWindowResizeAsync(1200, 800, TimeSpan.FromMilliseconds(200)).ConfigureAwait(false);
 
         CanResize = true;
+
         TitleBarViewModel.DisableMaximizeButton = false;
         TitleBarViewModel.AccessoryViewModel = null;
 

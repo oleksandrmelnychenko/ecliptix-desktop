@@ -13,10 +13,11 @@
         Title="{Binding WindowTitle}"
         Width="{Binding WindowWidth}"
         Height="{Binding WindowHeight}"
+        MinWidth="{Binding MinWindowWidth}"
+        MinHeight="{Binding MinWindowHeight}"
         CanResize="{Binding CanResize}"
         WindowState="{Binding WindowState, Mode=TwoWay}"
         WindowStartupLocation="CenterScreen"
-
         SystemDecorations="Full"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaChromeHints="NoChrome"
