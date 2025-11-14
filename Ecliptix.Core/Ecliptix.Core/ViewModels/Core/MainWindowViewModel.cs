@@ -1,4 +1,6 @@
 using System;
+using System.Reactive.Linq;
+using System.Reactive.Threading.Tasks;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -96,44 +98,97 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     public async Task SetAuthenticationContentAsync(object content)
     {
-        _isMainContentActive = false;
-
-        await InvalidateWindowPlacementAsync();
-
-        Dispatcher.UIThread.Post(() =>
+        await Dispatcher.UIThread.InvokeAsync(() =>
         {
-            CanResize = false;
-            MinWindowWidth = 0;
-            MinWindowHeight = 0;
+            TitleBarViewModel.IsDraggingEnabled = false;
+        });
 
-        }, DispatcherPriority.Loaded);
+        await WaitUntilNotDragging().ConfigureAwait(false);
 
-        await AnimateWindowResizeAsync(520, 800, TimeSpan.FromMilliseconds(200)).ConfigureAwait(false);
+        try
+        {
+            _isMainContentActive = false;
+
+            await InvalidateWindowPlacementAsync();
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                CanResize = false;
+                MinWindowWidth = 0;
+                MinWindowHeight = 0;
+
+            }, DispatcherPriority.Loaded);
+
+            await AnimateWindowResizeAsync(520, 800, TimeSpan.FromMilliseconds(200)).ConfigureAwait(false);
 
 
-        TitleBarViewModel.DisableMaximizeButton = true;
-        TitleBarViewModel.AccessoryViewModel = LanguageSelector;
+            TitleBarViewModel.DisableMaximizeButton = true;
+            TitleBarViewModel.AccessoryViewModel = LanguageSelector;
 
-        await SetContentWithFadeAsync(content).ConfigureAwait(false);
+            await SetContentWithFadeAsync(content).ConfigureAwait(false);
+        }
+        finally
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                TitleBarViewModel.IsDraggingEnabled = true;
+            });
+        }
+
     }
 
     public async Task SetMainContentAsync(object content)
     {
-        _isMainContentActive = true;
-
-        await AnimateWindowResizeAsync(1200, 800, TimeSpan.FromMilliseconds(200)).ConfigureAwait(false);
-
-        Dispatcher.UIThread.Post(() =>
+        await Dispatcher.UIThread.InvokeAsync(() =>
         {
-            CanResize = true;
-            MinWindowWidth = 800;
-            MinWindowHeight = 600;
+            TitleBarViewModel.IsDraggingEnabled = false;
+        });
 
-            TitleBarViewModel.DisableMaximizeButton = false;
-            TitleBarViewModel.AccessoryViewModel = null;
-        }, DispatcherPriority.Loaded);
+        await WaitUntilNotDragging().ConfigureAwait(false);
 
-        await SetContentWithFadeAsync(content).ConfigureAwait(false);
+        try
+        {
+            _isMainContentActive = true;
+
+            await AnimateWindowResizeAsync(1200, 800, TimeSpan.FromMilliseconds(200)).ConfigureAwait(false);
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                CanResize = true;
+                MinWindowWidth = 800;
+                MinWindowHeight = 600;
+
+                TitleBarViewModel.DisableMaximizeButton = false;
+                TitleBarViewModel.AccessoryViewModel = null;
+            }, DispatcherPriority.Loaded);
+
+            await SetContentWithFadeAsync(content).ConfigureAwait(false);
+        }
+        finally
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                TitleBarViewModel.IsDraggingEnabled = true;
+            });
+        }
+
+    }
+
+    private async Task WaitUntilNotDragging()
+    {
+        if (!TitleBarViewModel.IsDragging)
+        {
+            return;
+        }
+
+        Log.Debug("[MAIN-WINDOW-VM] Drag in progress, waiting for it to finish...");
+
+        await TitleBarViewModel.WhenAnyValue(x => x.IsDragging)
+            .Where(isDragging => !isDragging)
+            .Take(1)
+            .ToTask();
+
+        Log.Debug("[MAIN-WINDOW-VM] Drag finished, proceeding.");
     }
 
     public async Task ShowBottomSheetAsync(

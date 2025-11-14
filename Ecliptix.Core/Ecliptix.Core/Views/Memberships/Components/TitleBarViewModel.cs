@@ -12,4 +12,7 @@ public partial class TitleBarViewModel : ReactiveObject
 
     [Reactive] public object? AccessoryViewModel { get; set; }
 
+    [Reactive] public bool IsDragging { get; set; }
+    [Reactive] public bool IsDraggingEnabled { get; set; } = true;
+
 }
