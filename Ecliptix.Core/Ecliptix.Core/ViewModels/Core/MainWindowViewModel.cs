@@ -100,12 +100,17 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
         await InvalidateWindowPlacementAsync();
 
-        MinWindowWidth = 520;
-        MinWindowHeight = 800;
+        Dispatcher.UIThread.Post(() =>
+        {
+            CanResize = false;
+            MinWindowWidth = 0;
+            MinWindowHeight = 0;
+
+        }, DispatcherPriority.Loaded);
 
         await AnimateWindowResizeAsync(520, 800, TimeSpan.FromMilliseconds(200)).ConfigureAwait(false);
 
-        CanResize = false;
+
         TitleBarViewModel.DisableMaximizeButton = true;
         TitleBarViewModel.AccessoryViewModel = LanguageSelector;
 
@@ -116,14 +121,17 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     {
         _isMainContentActive = true;
 
-        MinWindowWidth = 800;
-        MinWindowHeight = 600;
         await AnimateWindowResizeAsync(1200, 800, TimeSpan.FromMilliseconds(200)).ConfigureAwait(false);
 
-        CanResize = true;
+        Dispatcher.UIThread.Post(() =>
+        {
+            CanResize = true;
+            MinWindowWidth = 800;
+            MinWindowHeight = 600;
 
-        TitleBarViewModel.DisableMaximizeButton = false;
-        TitleBarViewModel.AccessoryViewModel = null;
+            TitleBarViewModel.DisableMaximizeButton = false;
+            TitleBarViewModel.AccessoryViewModel = null;
+        }, DispatcherPriority.Loaded);
 
         await SetContentWithFadeAsync(content).ConfigureAwait(false);
     }
