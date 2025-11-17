@@ -11,7 +11,8 @@ public sealed partial class MacosTitleBarLayout : UserControl, ITitleBar
     private Button? _maximizeButton;
     private Button? _closeButton;
     private Window? _hostWindow;
-    private Border? _mainBorder;
+
+    private MacosTitleBarButtons? _buttonsControl;
 
     public MacosTitleBarLayout()
     {
@@ -24,14 +25,13 @@ public sealed partial class MacosTitleBarLayout : UserControl, ITitleBar
 
         _hostWindow = VisualRoot as Window;
 
-        _minimizeButton = this.FindControl<Button>("PART_Minimize");
-        _maximizeButton = this.FindControl<Button>("PART_Maximize");
-        _closeButton = this.FindControl<Button>("PART_Close");
+        _buttonsControl = this.FindControl<MacosTitleBarButtons>("PART_WindowButtons");
 
-
-        if (_hostWindow != null)
+        if (_buttonsControl != null)
         {
-            _mainBorder = _hostWindow.FindControl<Border>("MainBorder");
+            _minimizeButton = _buttonsControl.FindControl<Button>("PART_Minimize");
+            _maximizeButton = _buttonsControl.FindControl<Button>("PART_Maximize");
+            _closeButton = _buttonsControl.FindControl<Button>("PART_Close");
         }
 
         if (_minimizeButton != null)
@@ -76,7 +76,7 @@ public sealed partial class MacosTitleBarLayout : UserControl, ITitleBar
 
     public void MaximizeWindow(object? sender, RoutedEventArgs e)
     {
-        if (_hostWindow == null || _mainBorder == null)
+        if (_hostWindow == null)
         {
             return;
         }
@@ -86,10 +86,6 @@ public sealed partial class MacosTitleBarLayout : UserControl, ITitleBar
         _hostWindow.WindowState = isCurrentlyFullScreen
             ? WindowState.Normal
             : WindowState.FullScreen;
-
-        _mainBorder.CornerRadius = isCurrentlyFullScreen
-            ? new CornerRadius(12)
-            : new CornerRadius(0);
     }
 
     public void MinimizeWindow(object? sender, RoutedEventArgs e)

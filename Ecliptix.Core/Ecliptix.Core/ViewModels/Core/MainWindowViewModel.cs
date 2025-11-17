@@ -1,4 +1,6 @@
 using System;
+using System.Reactive.Linq;
+using System.Reactive.Threading.Tasks;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -34,8 +36,10 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     [Reactive] public object? CurrentContent { get; private set; }
 
     [Reactive] public double WindowWidth { get; set; }
-
     [Reactive] public double WindowHeight { get; set; }
+
+    [Reactive] public double MinWindowWidth { get; set; }
+    [Reactive] public double MinWindowHeight { get; set; }
 
     [Reactive] public PixelPoint CurrentPosition { get; set; } = new(0, 0);
 
@@ -63,9 +67,12 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         _bottomSheetService = bottomSheetService;
         _storageProvider = storageProvider;
 
+        MinWindowWidth = 200;
+        MinWindowHeight = 300;
 
         WindowWidth = 520;
         WindowHeight = 800;
+
         CanResize = false;
         WindowTitle = string.Empty;
 
@@ -91,27 +98,97 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     public async Task SetAuthenticationContentAsync(object content)
     {
-        _isMainContentActive = false;
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            TitleBarViewModel.IsDraggingEnabled = false;
+        });
 
-        await InvalidateWindowPlacementAsync();
+        await WaitUntilNotDragging().ConfigureAwait(false);
 
-        await AnimateWindowResizeAsync(480, 720, TimeSpan.FromMilliseconds(200)).ConfigureAwait(false);
+        try
+        {
+            _isMainContentActive = false;
 
-        CanResize = false;
-        TitleBarViewModel.DisableMaximizeButton = true;
+            await InvalidateWindowPlacementAsync();
 
-        await SetContentWithFadeAsync(content).ConfigureAwait(false);
+            Dispatcher.UIThread.Post(() =>
+            {
+                CanResize = false;
+                MinWindowWidth = 0;
+                MinWindowHeight = 0;
+
+            }, DispatcherPriority.Loaded);
+
+            await AnimateWindowResizeAsync(520, 800, TimeSpan.FromMilliseconds(200)).ConfigureAwait(false);
+
+
+            TitleBarViewModel.DisableMaximizeButton = true;
+            TitleBarViewModel.AccessoryViewModel = LanguageSelector;
+
+            await SetContentWithFadeAsync(content).ConfigureAwait(false);
+        }
+        finally
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                TitleBarViewModel.IsDraggingEnabled = true;
+            });
+        }
+
     }
 
     public async Task SetMainContentAsync(object content)
     {
-        _isMainContentActive = true;
-        await AnimateWindowResizeAsync(1200, 800, TimeSpan.FromMilliseconds(200)).ConfigureAwait(false);
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            TitleBarViewModel.IsDraggingEnabled = false;
+        });
 
-        CanResize = true;
-        TitleBarViewModel.DisableMaximizeButton = false;
+        await WaitUntilNotDragging().ConfigureAwait(false);
 
-        await SetContentWithFadeAsync(content).ConfigureAwait(false);
+        try
+        {
+            _isMainContentActive = true;
+
+            await AnimateWindowResizeAsync(1200, 800, TimeSpan.FromMilliseconds(200)).ConfigureAwait(false);
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                CanResize = true;
+                MinWindowWidth = 800;
+                MinWindowHeight = 600;
+
+                TitleBarViewModel.DisableMaximizeButton = false;
+                TitleBarViewModel.AccessoryViewModel = null;
+            }, DispatcherPriority.Loaded);
+
+            await SetContentWithFadeAsync(content).ConfigureAwait(false);
+        }
+        finally
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                TitleBarViewModel.IsDraggingEnabled = true;
+            });
+        }
+
+    }
+
+    private async Task WaitUntilNotDragging()
+    {
+        if (!TitleBarViewModel.IsDragging)
+        {
+            return;
+        }
+
+        Log.Debug("[MAIN-WINDOW-VM] Drag in progress, waiting for it to finish...");
+
+        await TitleBarViewModel.WhenAnyValue(x => x.IsDragging)
+            .Where(isDragging => !isDragging)
+            .Take(1)
+            .ToTask();
+
+        Log.Debug("[MAIN-WINDOW-VM] Drag finished, proceeding.");
     }
 
     public async Task ShowBottomSheetAsync(

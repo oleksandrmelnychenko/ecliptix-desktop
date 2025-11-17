@@ -16,7 +16,8 @@ public sealed partial class WindowsTitleBarLayout : UserControl, ITitleBar
     private Button? _closeButton;
     private Path? _maximizeIcon;
     private Window? _hostWindow;
-    private Border? _mainBorder;
+
+    private WindowsTitleBarButtons? _buttonsControl;
 
     public WindowsTitleBarLayout()
     {
@@ -29,15 +30,14 @@ public sealed partial class WindowsTitleBarLayout : UserControl, ITitleBar
 
         _hostWindow = VisualRoot as Window;
 
-        _minimizeButton = this.FindControl<Button>("MinimizeButton");
-        _maximizeButton = this.FindControl<Button>("MaximizeButton");
-        _closeButton = this.FindControl<Button>("CloseButton");
-        _maximizeIcon = this.FindControl<Path>("MaximizeIcon");
+        _buttonsControl = this.FindControl<WindowsTitleBarButtons>("PART_WindowButtons");
 
-
-        if (_hostWindow != null)
+        if (_buttonsControl != null)
         {
-            _mainBorder = _hostWindow.FindControl<Border>("MainBorder");
+            _minimizeButton = _buttonsControl.FindControl<Button>("MinimizeButton");
+            _maximizeButton = _buttonsControl.FindControl<Button>("MaximizeButton");
+            _closeButton = _buttonsControl.FindControl<Button>("CloseButton");
+            _maximizeIcon = _buttonsControl.FindControl<Path>("MaximizeIcon");
         }
 
         if (_minimizeButton != null)
@@ -87,7 +87,7 @@ public sealed partial class WindowsTitleBarLayout : UserControl, ITitleBar
 
     public void MaximizeWindow(object? sender, RoutedEventArgs e)
     {
-        if (_hostWindow == null || _mainBorder == null)
+        if (_hostWindow == null)
         {
             return;
         }
@@ -97,10 +97,6 @@ public sealed partial class WindowsTitleBarLayout : UserControl, ITitleBar
         _hostWindow.WindowState = isCurrentlyMaximized
             ? WindowState.Normal
             : WindowState.Maximized;
-
-        _mainBorder.CornerRadius = isCurrentlyMaximized
-            ? new CornerRadius(12)
-            : new CornerRadius(0);
     }
 
     public void MinimizeWindow(object? sender, RoutedEventArgs e)

@@ -130,22 +130,22 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         AvaloniaProperty.Register<HintedTextBox, int>(nameof(WarningDisplayDurationMs),
             HintedTextBoxConstants.DEFAULT_WARNING_DISPLAY_DURATION_MS);
 
-    public static readonly RoutedEvent<CharacterRejectedEventArgs> CharacterRejectedEvent =
+    public readonly RoutedEvent<CharacterRejectedEventArgs> CharacterRejectedEvent =
         RoutedEvent.Register<HintedTextBox, CharacterRejectedEventArgs>(nameof(CharacterRejected),
             RoutingStrategies.Bubble);
 
-    public static readonly RoutedEvent<SecureKeyCharactersAddedEventArgs> SecureKeyCharactersAddedEvent =
+    public readonly RoutedEvent<SecureKeyCharactersAddedEventArgs> SecureKeyCharactersAddedEvent =
         RoutedEvent.Register<HintedTextBox, SecureKeyCharactersAddedEventArgs>(nameof(SecureKeyCharactersAdded),
             RoutingStrategies.Bubble);
 
-    public static readonly RoutedEvent<SecureKeyCharactersRemovedEventArgs> SecureKeyCharactersRemovedEvent =
+    public readonly RoutedEvent<SecureKeyCharactersRemovedEventArgs> SecureKeyCharactersRemovedEvent =
         RoutedEvent.Register<HintedTextBox, SecureKeyCharactersRemovedEventArgs>(nameof(SecureKeyCharactersRemoved),
             RoutingStrategies.Bubble);
 
-    private static readonly Dictionary<string, SolidColorBrush> BrushCache = new();
-    private static readonly Dictionary<string, Color> ColorCache = new();
-    private static readonly Dictionary<string, BoxShadows> ResourceCache = new();
-    private static readonly Dictionary<string, int> TextElementCountCache = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, SolidColorBrush> BrushCache = new();
+    private readonly Dictionary<string, Color> ColorCache = new();
+    private readonly Dictionary<string, BoxShadows> ResourceCache = new();
+    private readonly Dictionary<string, int> TextElementCountCache = new(StringComparer.Ordinal);
     private const int MAX_TEXT_ELEMENT_CACHE_SIZE = 1000;
 
     private const int INPUT_DEBOUNCE_DELAY_MS = HintedTextBoxConstants.INPUT_DEBOUNCE_DELAY_MS;
@@ -479,7 +479,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
     }
 
-    private static CharacterWarningType GetWarningType(char c)
+    private CharacterWarningType GetWarningType(char c)
     {
         if (char.IsLetter(c) && !(c is >= 'A' and <= 'Z' || c is >= 'a' and <= 'z'))
         {
@@ -489,7 +489,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         return CharacterWarningType.INVALID_CHARACTER;
     }
 
-    private static bool IsAllowedCharacter(char c)
+    private bool IsAllowedCharacter(char c)
     {
         if (char.IsDigit(c))
         {
@@ -504,7 +504,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         return !char.IsLetter(c) && !char.IsDigit(c);
     }
 
-    private static (Color BorderColor, string ShadowKey, Color IconColor) GetSecureKeyStrengthColors(
+    private (Color BorderColor, string ShadowKey, Color IconColor) GetSecureKeyStrengthColors(
         SecureKeyStrength strength)
     {
         return strength switch
@@ -533,7 +533,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         };
     }
 
-    private static int GetTextElementCount(string text)
+    private int GetTextElementCount(string text)
     {
         if (string.IsNullOrEmpty(text))
         {
@@ -577,7 +577,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
     }
 
-    private static string SafeSubstring(string text, int startIndex, int length)
+    private string SafeSubstring(string text, int startIndex, int length)
     {
         if (string.IsNullOrEmpty(text) || startIndex < 0)
         {
@@ -616,7 +616,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
     }
 
-    private static string GetAddedTextElements(string? currentText, string lastText, int caretIndex)
+    private string GetAddedTextElements(string? currentText, string lastText, int caretIndex)
     {
         if (string.IsNullOrEmpty(currentText) || string.IsNullOrEmpty(lastText))
         {
@@ -656,7 +656,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
     }
 
-    private static Color GetCachedColor(string colorHex)
+    private Color GetCachedColor(string colorHex)
     {
         if (ColorCache.TryGetValue(colorHex, out Color color))
         {
@@ -669,7 +669,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         return color;
     }
 
-    private static SolidColorBrush GetCachedBrush(Color color)
+    private SolidColorBrush GetCachedBrush(Color color)
     {
         string key = color.ToString();
         if (BrushCache.TryGetValue(key, out SolidColorBrush? brush))
@@ -1306,7 +1306,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private void UpdateBorderState()
     {
-        if (_mainTextBox == null || _focusBorder == null || _mainBorder == null || _shadowBorder == null)
+        if (_isDisposed || _mainTextBox == null || _focusBorder == null || _mainBorder == null || _shadowBorder == null)
         {
             return;
         }
@@ -1314,79 +1314,77 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         bool currentHasError = HasError;
         SecureKeyStrength currentSecureKeyStrength = SecureKeyStrength;
         bool currentIsSecureKeyStrengthMode = IsSecureKeyStrengthMode;
+        bool isFocused = _mainTextBox.IsFocused;
 
-        Dispatcher.UIThread.Post(() =>
-        {
-            if (_isDisposed)
-            {
-                return;
-            }
-
-            if (_mainTextBox == null || _focusBorder == null || _mainBorder == null || _shadowBorder == null)
-            {
-                return;
-            }
-
-            bool isFocused = _mainTextBox.IsFocused;
-            if (isFocused == _lastIsFocused
-                && currentHasError == _lastHasError
-                && currentSecureKeyStrength == _lastSecureKeyStrength
-                && currentIsSecureKeyStrengthMode == _lastIsSecureKeyStrengthMode)
-            {
-                return;
-            }
-
-            _lastIsFocused = isFocused;
-            _lastHasError = currentHasError;
-            _lastSecureKeyStrength = currentSecureKeyStrength;
-            _lastIsSecureKeyStrengthMode = currentIsSecureKeyStrengthMode;
-
-            UpdateBorderStateInternal(isFocused, currentHasError, currentSecureKeyStrength,
-                currentIsSecureKeyStrengthMode);
-        }, DispatcherPriority.Render);
-    }
-
-    private void UpdateBorderStateInternal(bool isFocused, bool hasError, SecureKeyStrength secureKeyStrength,
-        bool isSecureKeyStrengthMode)
-    {
-        if (_focusBorder == null || _mainBorder == null || _shadowBorder == null)
+        if (isFocused == _lastIsFocused
+            && currentHasError == _lastHasError
+            && currentSecureKeyStrength == _lastSecureKeyStrength
+            && currentIsSecureKeyStrengthMode == _lastIsSecureKeyStrengthMode)
         {
             return;
         }
 
-        if (isSecureKeyStrengthMode)
-        {
-            (Color borderColor, string shadowKey, Color iconColor) = GetSecureKeyStrengthColors(secureKeyStrength);
+        _lastIsFocused = isFocused;
+        _lastHasError = currentHasError;
+        _lastSecureKeyStrength = currentSecureKeyStrength;
+        _lastIsSecureKeyStrengthMode = currentIsSecureKeyStrengthMode;
 
-            _focusBorder.BorderBrush = GetCachedBrush(borderColor);
-            _focusBorder.Opacity = HintedTextBoxConstants.FULL_OPACITY;
-            _mainBorder.BorderBrush = GetCachedBrush(Colors.Transparent);
-            _shadowBorder.BoxShadow = GetCachedResource(shadowKey);
+        UpdateBorderStateInternal(isFocused, currentHasError, currentSecureKeyStrength,
+            currentIsSecureKeyStrengthMode);
+    }
 
-            SecureKeyStrengthIconBrush = GetCachedBrush(iconColor);
-            SecureKeyStrengthTextBrush = GetCachedBrush(iconColor);
-        }
-        else if (hasError)
+    private void UpdateBorderStateInternal(bool isFocused, bool hasError, SecureKeyStrength secureKeyStrength,
+    bool isSecureKeyStrengthMode)
+{
+    if (_focusBorder == null || _mainBorder == null || _shadowBorder == null)
+    {
+        return;
+    }
+
+    if (isSecureKeyStrengthMode)
+    {
+        (Color borderColor, string shadowKey, Color iconColor) = GetSecureKeyStrengthColors(secureKeyStrength);
+
+        _focusBorder.BorderBrush = GetCachedBrush(borderColor);
+        _focusBorder.Opacity = HintedTextBoxConstants.FULL_OPACITY;
+        _mainBorder.BorderBrush = GetCachedBrush(Colors.Transparent);
+        _shadowBorder.BoxShadow = GetCachedResource(shadowKey);
+
+        SecureKeyStrengthIconBrush = GetCachedBrush(iconColor);
+        SecureKeyStrengthTextBrush = GetCachedBrush(iconColor);
+    }
+    else if (isFocused)
+    {
+        if (hasError)
         {
             _focusBorder.BorderBrush = GetCachedBrush(GetCachedColor(HintedTextBoxConstants.ERROR_COLOR_HEX));
-            _focusBorder.Opacity = HintedTextBoxConstants.FULL_OPACITY;
-            _mainBorder.BorderBrush = GetCachedBrush(Colors.Transparent);
             _shadowBorder.BoxShadow = GetCachedResource(HintedTextBoxConstants.ERROR_SHADOW_KEY);
-        }
-        else if (isFocused)
-        {
-            _focusBorder.BorderBrush = FocusBorderBrush;
-            _focusBorder.Opacity = HintedTextBoxConstants.FULL_OPACITY;
-            _mainBorder.BorderBrush = GetCachedBrush(Colors.Transparent);
-            _shadowBorder.BoxShadow = GetCachedResource(HintedTextBoxConstants.FOCUS_SHADOW_KEY);
         }
         else
         {
-            _focusBorder.Opacity = HintedTextBoxConstants.ZERO_OPACITY;
+            _focusBorder.BorderBrush = FocusBorderBrush;
+            _shadowBorder.BoxShadow = GetCachedResource(HintedTextBoxConstants.FOCUS_SHADOW_KEY);
+        }
+
+        _focusBorder.Opacity = HintedTextBoxConstants.FULL_OPACITY;
+        _mainBorder.BorderBrush = GetCachedBrush(Colors.Transparent);
+    }
+    else
+    {
+        if (hasError)
+        {
+            _mainBorder.BorderBrush = GetCachedBrush(GetCachedColor(HintedTextBoxConstants.ERROR_COLOR_HEX));
+            _shadowBorder.BoxShadow = GetCachedResource(HintedTextBoxConstants.ERROR_SHADOW_KEY);
+        }
+        else
+        {
             _mainBorder.BorderBrush = MainBorderBrush;
             _shadowBorder.BoxShadow = GetCachedResource(HintedTextBoxConstants.DEFAULT_SHADOW_KEY);
         }
+
+        _focusBorder.Opacity = HintedTextBoxConstants.ZERO_OPACITY;
     }
+}
 
     private void UnsubscribeTextBoxEvents()
     {
@@ -1440,6 +1438,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         {
             if (!_isDisposed)
             {
+
                 UpdateBorderState();
             }
         }
@@ -1458,6 +1457,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 (hasError, secureKeyStrength, isSecureKeyStrengthMode) =>
                     (hasError, secureKeyStrength, isSecureKeyStrengthMode))
             .DistinctUntilChanged()
+            .Throttle(TimeSpan.FromMilliseconds(50), RxApp.MainThreadScheduler)
             .Subscribe(_ => SafeExecute(UpdateBorderState, "UpdateBorderState subscription"))
             .DisposeWith(_disposables);
 
@@ -1561,6 +1561,11 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private void TriggerTypingAnimation()
     {
         if (_mainTextBox == null || _isDisposed || _focusBorder == null)
+        {
+            return;
+        }
+
+        if (!_mainTextBox.IsFocused)
         {
             return;
         }

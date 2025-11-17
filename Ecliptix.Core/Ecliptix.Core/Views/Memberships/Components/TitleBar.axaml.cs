@@ -16,7 +16,6 @@ namespace Ecliptix.Core.Views.Memberships.Components;
 public partial class TitleBar : ReactiveUserControl<TitleBarViewModel>
 {
     private readonly ContentControl? _rootControl;
-    private Border? _mainBorder;
     private CompositeDisposable _pointerSubscriptions = new();
 
     private const double DRAG_THRESHOLD = 3;
@@ -45,9 +44,17 @@ public partial class TitleBar : ReactiveUserControl<TitleBarViewModel>
         };
     }
 
-    private void OnRootPointerPressed(object? sender, PointerPressedEventArgs e)
+   private void OnRootPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (Window == null || Window.WindowState == WindowState.FullScreen)
+        Window? window = Window;
+        TitleBarViewModel? viewModel = ViewModel;
+
+        if (window == null || window.WindowState == WindowState.FullScreen || viewModel == null)
+        {
+            return;
+        }
+
+        if (!viewModel.IsDraggingEnabled)
         {
             return;
         }
@@ -57,17 +64,20 @@ public partial class TitleBar : ReactiveUserControl<TitleBarViewModel>
 
         if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
         {
-            bool isDragStarted = false;
             Point startPosition = e.GetPosition(this);
 
-            Observable.FromEventPattern<PointerEventArgs>(
+            viewModel.IsDragging = false;
+
+            IDisposable? moveSubscription = null;
+
+            moveSubscription = Observable.FromEventPattern<PointerEventArgs>(
                 h => _rootControl!.PointerMoved += h,
                 h => _rootControl!.PointerMoved -= h
             )
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(args =>
             {
-                if (isDragStarted)
+                if (viewModel.IsDragging)
                 {
                     return;
                 }
@@ -77,25 +87,29 @@ public partial class TitleBar : ReactiveUserControl<TitleBarViewModel>
 
                 if (Math.Abs(delta.X) > DRAG_THRESHOLD || Math.Abs(delta.Y) > DRAG_THRESHOLD)
                 {
-                    isDragStarted = true;
-                    Window.BeginMoveDrag(e);
-                    _pointerSubscriptions.Dispose();
+                    viewModel.IsDragging = true;
+                    window.BeginMoveDrag(e);
+
+                    moveSubscription?.Dispose();
                 }
             })
             .DisposeWith(_pointerSubscriptions);
 
             Observable.FromEventPattern<PointerReleasedEventArgs>(
-                h => _rootControl!.PointerReleased += h,
-                h => _rootControl!.PointerReleased -= h
+                h => window.PointerReleased += h,
+                h => window.PointerReleased -= h
             )
             .Take(1)
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(args =>
             {
-                if (!isDragStarted && e.ClickCount == 2 && DataContext is TitleBarViewModel vm && !vm.DisableMaximizeButton)
+                if (!viewModel.IsDragging && e.ClickCount == 2 && !viewModel.DisableMaximizeButton)
                 {
                     HandleDoubleClickMaximize();
                 }
+
+                viewModel.IsDragging = false;
+
                 _pointerSubscriptions.Dispose();
             })
             .DisposeWith(_pointerSubscriptions);
@@ -142,23 +156,6 @@ public partial class TitleBar : ReactiveUserControl<TitleBarViewModel>
         Window.WindowState = isCurrentlyMaximized
             ? WindowState.Normal
             : WindowState.Maximized;
-
-        if (_mainBorder != null)
-        {
-            _mainBorder.CornerRadius = isCurrentlyMaximized
-                ? new CornerRadius(12)
-                : new CornerRadius(0);
-        }
-    }
-
-    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        base.OnAttachedToVisualTree(e);
-
-        if (Window != null)
-        {
-            _mainBorder = Window.FindControl<Border>("MainBorder");
-        }
     }
 
     private Window? Window => VisualRoot as Window;
