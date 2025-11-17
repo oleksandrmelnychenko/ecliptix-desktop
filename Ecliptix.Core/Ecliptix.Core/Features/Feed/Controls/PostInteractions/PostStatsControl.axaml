@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:models="clr-namespace:Ecliptix.Core.Features.Feed.Models"
+             mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="40"
+             x:Class="Ecliptix.Core.Features.Feed.Controls.PostInteractions.PostStatsControl"
+             x:DataType="models:PostInteraction">
+
+    <Border Padding="16,8">
+        <StackPanel Orientation="Horizontal" Spacing="16">
+
+            <!-- Likes Count -->
+            <TextBlock IsVisible="{Binding LikesCount, Converter={StaticResource GreaterThanZeroConverter}}">
+                <Run Text="{Binding LikesCount, Converter={StaticResource NumberAbbreviationConverter}}" FontWeight="SemiBold" Foreground="#1A1A1A" />
+                <Run Text="{Binding LikesCount, Converter={StaticResource PluralConverter}, ConverterParameter='like'}" Foreground="#6B7280" />
+            </TextBlock>
+
+            <!-- Comments Count -->
+            <TextBlock IsVisible="{Binding CommentsCount, Converter={StaticResource GreaterThanZeroConverter}}">
+                <Run Text="{Binding CommentsCount, Converter={StaticResource NumberAbbreviationConverter}}" FontWeight="SemiBold" Foreground="#1A1A1A" />
+                <Run Text="{Binding CommentsCount, Converter={StaticResource PluralConverter}, ConverterParameter='comment'}" Foreground="#6B7280" />
+            </TextBlock>
+
+            <!-- Shares Count -->
+            <TextBlock IsVisible="{Binding SharesCount, Converter={StaticResource GreaterThanZeroConverter}}">
+                <Run Text="{Binding SharesCount, Converter={StaticResource NumberAbbreviationConverter}}" FontWeight="SemiBold" Foreground="#1A1A1A" />
+                <Run Text="{Binding SharesCount, Converter={StaticResource PluralConverter}, ConverterParameter='share'}" Foreground="#6B7280" />
+            </TextBlock>
+
+        </StackPanel>
+    </Border>
+
+</UserControl>

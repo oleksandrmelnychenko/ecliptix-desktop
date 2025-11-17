@@ -191,6 +191,7 @@ public static class Program
         ConfigureSecurityServices(services, configuration);
         ConfigureMessagingServices(services);
         ConfigureAuthenticationServices(services);
+        ConfigureFeedServices(services);
         ConfigureGrpc(services);
         ConfigureModules(services);
 
@@ -588,6 +589,18 @@ public static class Program
         SetSecurePermissionsIfUnix(directory);
 
         return path;
+    }
+
+    private static void ConfigureFeedServices(IServiceCollection services)
+    {
+        services.AddSingleton<Ecliptix.Core.Features.Feed.Services.Abstractions.IFeedService,
+            Ecliptix.Core.Features.Feed.Services.Implementation.FeedService>();
+        services.AddSingleton<Ecliptix.Core.Features.Feed.Services.Abstractions.IPostInteractionService,
+            Ecliptix.Core.Features.Feed.Services.Implementation.PostInteractionService>();
+        services.AddSingleton<Ecliptix.Core.Features.Feed.Services.Abstractions.ICommentService,
+            Ecliptix.Core.Features.Feed.Services.Implementation.CommentService>();
+
+        Log.Information("Feed services configured successfully");
     }
 
     private static AppBuilder BuildAvaloniaApp() =>

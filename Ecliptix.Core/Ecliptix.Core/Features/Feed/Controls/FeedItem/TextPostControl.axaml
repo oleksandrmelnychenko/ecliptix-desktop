@@ -1,0 +1,61 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ecliptix.Core.Features.Feed.ViewModels"
+             xmlns:header="clr-namespace:Ecliptix.Core.Features.Feed.Controls.PostHeader"
+             xmlns:interactions="clr-namespace:Ecliptix.Core.Features.Feed.Controls.PostInteractions"
+             mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="400"
+             x:Class="Ecliptix.Core.Features.Feed.Controls.FeedItem.TextPostControl"
+             x:DataType="vm:TextPostViewModel">
+
+    <Border Background="#FFFFFF"
+            BorderBrush="#E5E7EB"
+            BorderThickness="0,0,0,1"
+            Margin="0,0,0,12">
+
+        <StackPanel Spacing="0">
+
+            <!-- Post Header -->
+            <header:PostHeaderControl DataContext="{Binding Post.Author}" />
+
+            <!-- Text Content -->
+            <Border Padding="16,8">
+                <TextBlock Text="{Binding TextContent.Text}"
+                           TextWrapping="Wrap"
+                           FontSize="15"
+                           LineHeight="22"
+                           Foreground="#1A1A1A" />
+            </Border>
+
+            <!-- Hashtags -->
+            <Border Padding="16,0,16,8"
+                    IsVisible="{Binding TextContent.Hashtags, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <ItemsControl ItemsSource="{Binding TextContent.Hashtags}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding StringFormat='#{0} '}"
+                                       Foreground="#3B82F6"
+                                       FontSize="14"
+                                       Margin="0,0,6,4" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
+
+            <!-- Post Stats -->
+            <interactions:PostStatsControl DataContext="{Binding Interactions.Interaction}" />
+
+            <!-- Post Actions -->
+            <interactions:PostActionsControl DataContext="{Binding Interactions}" />
+
+        </StackPanel>
+
+    </Border>
+
+</UserControl>

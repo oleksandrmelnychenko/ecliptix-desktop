@@ -1,0 +1,96 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ecliptix.Core.Features.Feed.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="600"
+             x:Class="Ecliptix.Core.Features.Feed.Controls.Media.VideoPlayerControl"
+             x:DataType="vm:VideoPostViewModel">
+
+    <Grid RowDefinitions="*,Auto">
+
+        <!-- Video Player Area -->
+        <Panel Grid.Row="0" Background="#000000">
+            <!-- Thumbnail -->
+            <Image Source="{Binding VideoContent.ThumbnailUrl}"
+                   Stretch="UniformToFill"
+                   IsVisible="{Binding !IsPlaying}" />
+
+            <!-- Play Button Overlay -->
+            <Button HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Width="64"
+                    Height="64"
+                    Background="#80000000"
+                    CornerRadius="32"
+                    BorderThickness="0"
+                    IsVisible="{Binding !IsPlaying}"
+                    Command="{Binding TogglePlayPauseCommand}">
+                <Path Width="24"
+                      Height="24"
+                      Fill="#FFFFFF"
+                      Data="M8 5v14l11-7z" />
+            </Button>
+
+            <!-- Video Controls -->
+            <Border VerticalAlignment="Bottom"
+                    Background="#80000000"
+                    Padding="12"
+                    IsVisible="{Binding ShowControls}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                <!-- Play/Pause -->
+                <Button Grid.Column="0"
+                        Width="32"
+                        Height="32"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Command="{Binding TogglePlayPauseCommand}">
+                    <Path Width="16"
+                          Height="16"
+                          Fill="#FFFFFF"
+                          Data="{Binding IsPlaying, Converter={StaticResource PlayPauseIconConverter}}" />
+                </Button>
+
+                <!-- Progress -->
+                <Slider Grid.Column="1"
+                        Margin="12,0"
+                        Minimum="0"
+                        Maximum="{Binding Duration}"
+                        Value="{Binding CurrentPosition}"
+                        VerticalAlignment="Center" />
+
+                <!-- Mute -->
+                <Button Grid.Column="2"
+                        Width="32"
+                        Height="32"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Command="{Binding ToggleMuteCommand}">
+                    <Path Width="16"
+                          Height="16"
+                          Fill="#FFFFFF"
+                          Data="{Binding IsMuted, Converter={StaticResource MuteIconConverter}}" />
+                </Button>
+                </Grid>
+            </Border>
+        </Panel>
+
+        <!-- Caption -->
+        <Border Grid.Row="1"
+                Padding="16,8"
+                IsVisible="{Binding VideoContent.Caption, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <TextBlock Text="{Binding VideoContent.Caption}"
+                       TextWrapping="Wrap"
+                       FontSize="14"
+                       Foreground="#1A1A1A" />
+        </Border>
+
+    </Grid>
+
+</UserControl>
