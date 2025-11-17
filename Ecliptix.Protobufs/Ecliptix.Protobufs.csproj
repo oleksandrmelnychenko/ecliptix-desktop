@@ -9,6 +9,7 @@
   <ItemGroup>
     <!-- Account proto files -->
     <Protobuf Include="Sources\account\account_models.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
+    <Protobuf Include="Sources\account\user_profile.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
 
     <!-- Authentication proto files -->
     <Protobuf Include="Sources\authentication\auth_services.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
@@ -37,7 +38,7 @@
 
     <!-- Security proto files -->
   </ItemGroup>
-   
+
     <ItemGroup>
       <PackageReference Include="Google.Protobuf" Version="3.33.0" />
       <PackageReference Include="Grpc.Net.Client" Version="2.71.0" />
