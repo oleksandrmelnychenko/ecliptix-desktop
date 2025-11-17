@@ -19,6 +19,8 @@
             <feedConverters:MuteIconConverter x:Key="MuteIconConverter" />
             <feedConverters:InitialsConverter x:Key="InitialsConverter" />
             <feedConverters:GreaterThanOneConverter x:Key="GreaterThanOneConverter" />
+            <feedConverters:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter" />
+            <feedConverters:PluralConverter x:Key="PluralConverter" />
 
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="Assets/Icons/UI/LampIcon.axaml"></ResourceInclude>
