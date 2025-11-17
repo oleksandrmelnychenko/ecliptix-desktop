@@ -33,7 +33,6 @@ public sealed class PostInteractionService : IPostInteractionService
                 {
                     LikesCount = Random.Shared.Next(10, 1000),
                     CommentsCount = Random.Shared.Next(0, 500),
-                    SharesCount = Random.Shared.Next(0, 100),
                     SavesCount = Random.Shared.Next(0, 200),
                     IsLikedByCurrentUser = false,
                     IsSavedByCurrentUser = false
@@ -73,7 +72,6 @@ public sealed class PostInteractionService : IPostInteractionService
                 {
                     LikesCount = Random.Shared.Next(10, 1000),
                     CommentsCount = Random.Shared.Next(0, 500),
-                    SharesCount = Random.Shared.Next(0, 100),
                     SavesCount = Random.Shared.Next(0, 200),
                     IsLikedByCurrentUser = false,
                     IsSavedByCurrentUser = false
@@ -99,44 +97,4 @@ public sealed class PostInteractionService : IPostInteractionService
         }
     }
 
-    public async Task<Result<ShareResult, string>> SharePostAsync(string postId, ShareDestination destination, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            _logger.LogInformation("Sharing post {PostId} to {Destination}", postId, destination);
-
-            await Task.Delay(300, cancellationToken);
-
-            string sharedUrl = $"https://ecliptix.app/post/{postId}";
-
-            ShareResult result = new ShareResult
-            {
-                Success = true,
-                SharedUrl = sharedUrl,
-                Message = destination switch
-                {
-                    ShareDestination.CopyLink => "Link copied to clipboard",
-                    ShareDestination.ShareToChat => "Shared to chat",
-                    ShareDestination.ShareToStory => "Shared to your story",
-                    ShareDestination.ShareExternal => "Shared externally",
-                    _ => "Shared successfully"
-                }
-            };
-
-            if (_interactionCache.TryGetValue(postId, out PostInteraction? currentInteraction))
-            {
-                _interactionCache[postId] = currentInteraction with
-                {
-                    SharesCount = currentInteraction.SharesCount + 1
-                };
-            }
-
-            return Result<ShareResult, string>.Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to share post {PostId}", postId);
-            return Result<ShareResult, string>.Err($"Failed to share post: {ex.Message}");
-        }
-    }
 }

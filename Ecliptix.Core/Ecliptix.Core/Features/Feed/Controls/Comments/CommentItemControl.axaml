@@ -3,7 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:models="clr-namespace:Ecliptix.Core.Features.Feed.Models"
-             mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="80"
+             mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="80"
              x:Class="Ecliptix.Core.Features.Feed.Controls.Comments.CommentItemControl"
              x:DataType="models:Comment">
 

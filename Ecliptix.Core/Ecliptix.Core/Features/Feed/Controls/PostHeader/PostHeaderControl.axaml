@@ -3,11 +3,19 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:models="clr-namespace:Ecliptix.Core.Features.Feed.Models"
-             mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="60"
+             mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="60"
              x:Class="Ecliptix.Core.Features.Feed.Controls.PostHeader.PostHeaderControl"
              x:DataType="models:PostAuthor">
 
-    <Border Padding="16,12">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="/Features/Feed/Resources/IconGeometries.axaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Border Padding="20,16">
         <Grid ColumnDefinitions="Auto,*,Auto">
 
             <!-- Avatar -->
@@ -37,18 +45,18 @@
                         Spacing="2">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <TextBlock Text="{Binding DisplayName}"
-                               FontSize="14"
-                               FontWeight="SemiBold"
+                               FontSize="15"
+                               FontWeight="Bold"
                                Foreground="#1A1A1A" />
                     <Path Width="16"
                           Height="16"
                           Fill="#1DA1F2"
-                          Data="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"
+                          Data="{StaticResource VerifiedIconGeometry}"
                           IsVisible="{Binding IsVerified}" />
                 </StackPanel>
                 <TextBlock Text="{Binding Username, StringFormat='@{0}'}"
                            FontSize="12"
-                           Foreground="#6B7280" />
+                           Foreground="#9CA3AF" />
             </StackPanel>
 
             <!-- Menu Button -->
@@ -61,8 +69,8 @@
                     VerticalAlignment="Center">
                 <Path Width="4"
                       Height="16"
-                      Fill="#6B7280"
-                      Data="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+                      Fill="#9CA3AF"
+                      Data="{StaticResource MenuIconGeometry}" />
             </Button>
 
         </Grid>

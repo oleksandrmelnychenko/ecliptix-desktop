@@ -3,29 +3,25 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:models="clr-namespace:Ecliptix.Core.Features.Feed.Models"
-             mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="40"
+             mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="40"
              x:Class="Ecliptix.Core.Features.Feed.Controls.PostInteractions.PostStatsControl"
              x:DataType="models:PostInteraction">
 
-    <Border Padding="16,8">
+    <Border Padding="20,12"
+            BorderBrush="#F3F4F6"
+            BorderThickness="0,1,0,0">
         <StackPanel Orientation="Horizontal" Spacing="16">
 
             <!-- Likes Count -->
             <TextBlock IsVisible="{Binding LikesCount, Mode=OneWay, Converter={StaticResource GreaterThanZeroConverter}}">
-                <Run Text="{Binding LikesCount, Mode=OneWay, Converter={StaticResource NumberAbbreviationConverter}}" FontWeight="SemiBold" Foreground="#1A1A1A" />
-                <Run Text="{Binding LikesCount, Mode=OneWay, Converter={StaticResource PluralConverter}, ConverterParameter='like'}" Foreground="#6B7280" />
+                <Run Text="{Binding LikesCount, Mode=OneWay, Converter={StaticResource NumberAbbreviationConverter}}" FontSize="15" FontWeight="Bold" Foreground="#1A1A1A" />
+                <Run Text="{Binding LikesCount, Mode=OneWay, Converter={StaticResource PluralConverter}, ConverterParameter='like'}" FontSize="14" Foreground="#6B7280" />
             </TextBlock>
 
             <!-- Comments Count -->
             <TextBlock IsVisible="{Binding CommentsCount, Mode=OneWay, Converter={StaticResource GreaterThanZeroConverter}}">
-                <Run Text="{Binding CommentsCount, Mode=OneWay, Converter={StaticResource NumberAbbreviationConverter}}" FontWeight="SemiBold" Foreground="#1A1A1A" />
-                <Run Text="{Binding CommentsCount, Mode=OneWay, Converter={StaticResource PluralConverter}, ConverterParameter='comment'}" Foreground="#6B7280" />
-            </TextBlock>
-
-            <!-- Shares Count -->
-            <TextBlock IsVisible="{Binding SharesCount, Mode=OneWay, Converter={StaticResource GreaterThanZeroConverter}}">
-                <Run Text="{Binding SharesCount, Mode=OneWay, Converter={StaticResource NumberAbbreviationConverter}}" FontWeight="SemiBold" Foreground="#1A1A1A" />
-                <Run Text="{Binding SharesCount, Mode=OneWay, Converter={StaticResource PluralConverter}, ConverterParameter='share'}" Foreground="#6B7280" />
+                <Run Text="{Binding CommentsCount, Mode=OneWay, Converter={StaticResource NumberAbbreviationConverter}}" FontSize="15" FontWeight="Bold" Foreground="#1A1A1A" />
+                <Run Text="{Binding CommentsCount, Mode=OneWay, Converter={StaticResource PluralConverter}, ConverterParameter='comment'}" FontSize="14" Foreground="#6B7280" />
             </TextBlock>
 
         </StackPanel>

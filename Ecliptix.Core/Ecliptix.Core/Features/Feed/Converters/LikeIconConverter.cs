@@ -1,23 +1,26 @@
 using System;
 using System.Globalization;
+using Avalonia;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
 
 namespace Ecliptix.Core.Features.Feed.Converters;
 
-public sealed class LikeColorConverter : IValueConverter
+public sealed class LikeIconConverter : IValueConverter
 {
-    private static readonly SolidColorBrush LikedColor = new SolidColorBrush(Color.Parse("#FF6D00"));
-    private static readonly SolidColorBrush NotLikedColor = new SolidColorBrush(Color.Parse("#6B7280"));
-
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is bool isLiked)
         {
-            return isLiked ? LikedColor : NotLikedColor;
+            string resourceKey = isLiked ? "LikeIconFilledGeometry" : "LikeIconGeometry";
+
+            if (Application.Current?.Resources.TryGetResource(resourceKey, null, out object? resource) == true)
+            {
+                return resource as StreamGeometry;
+            }
         }
 
-        return NotLikedColor;
+        return Application.Current?.Resources["LikeIconGeometry"] as StreamGeometry;
     }
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>

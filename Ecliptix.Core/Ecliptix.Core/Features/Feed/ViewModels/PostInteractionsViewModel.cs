@@ -24,7 +24,6 @@ public sealed class PostInteractionsViewModel : ViewModelBase
 
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> ToggleLikeCommand { get; }
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> ToggleSaveCommand { get; }
-    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> ShareCommand { get; }
 
     public PostInteractionsViewModel(
         string postId,
@@ -40,7 +39,6 @@ public sealed class PostInteractionsViewModel : ViewModelBase
 
         ToggleLikeCommand = ReactiveCommand.CreateFromTask(ToggleLikeAsync);
         ToggleSaveCommand = ReactiveCommand.CreateFromTask(ToggleSaveAsync);
-        ShareCommand = ReactiveCommand.CreateFromTask(ShareAsync);
     }
 
     private async Task ToggleLikeAsync()
@@ -83,32 +81,6 @@ public sealed class PostInteractionsViewModel : ViewModelBase
             if (result.IsOk && result.Unwrap() != null)
             {
                 Interaction = result.Unwrap();
-            }
-        }
-        finally
-        {
-            IsProcessing = false;
-        }
-    }
-
-    private async Task ShareAsync()
-    {
-        if (IsProcessing)
-        {
-            return;
-        }
-
-        IsProcessing = true;
-
-        try
-        {
-            Result<ShareResult, string> result = await _interactionService.SharePostAsync(
-                _postId,
-                ShareDestination.CopyLink
-            );
-
-            if (result.IsOk && result.Unwrap() != null)
-            {
             }
         }
         finally

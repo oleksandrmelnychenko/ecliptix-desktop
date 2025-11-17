@@ -104,7 +104,6 @@ public sealed class FeedService : IFeedService
                 {
                     LikesCount = Random.Shared.Next(10, 10000),
                     CommentsCount = Random.Shared.Next(0, 500),
-                    SharesCount = Random.Shared.Next(0, 100),
                     SavesCount = Random.Shared.Next(0, 200),
                     IsLikedByCurrentUser = postIndex % 5 == 0,
                     IsSavedByCurrentUser = postIndex % 7 == 0

@@ -13,79 +13,86 @@
     <Grid Background="#F9FAFB">
         <ScrollViewer HorizontalScrollBarVisibility="Disabled"
                       VerticalScrollBarVisibility="Auto">
-            <Grid RowDefinitions="Auto,*,Auto">
+            <!-- Twitter-like centered feed container -->
+            <Border MaxWidth="1020"
+                    HorizontalAlignment="Center"
+                    Padding="20,0">
+                <Grid RowDefinitions="Auto,*,Auto">
 
-                <!-- Loading Indicator -->
-                <Border Grid.Row="0"
-                        Padding="16"
-                        IsVisible="{Binding IsLoadingPosts}">
-                    <TextBlock Text="Loading feed..."
-                               FontSize="14"
-                               Foreground="#6B7280"
-                               HorizontalAlignment="Center" />
-                </Border>
-
-                <!-- Feed Posts -->
-                <ItemsControl Grid.Row="1"
-                              ItemsSource="{Binding Posts}"
-                              Margin="0,8">
-                    <ItemsControl.DataTemplates>
-                        <DataTemplate DataType="vm:ImageCarouselPostViewModel">
-                            <feedItem:ImageCarouselPostControl />
-                        </DataTemplate>
-                        <DataTemplate DataType="vm:VideoPostViewModel">
-                            <feedItem:VideoPostControl />
-                        </DataTemplate>
-                        <DataTemplate DataType="vm:TextPostViewModel">
-                            <feedItem:TextPostControl />
-                        </DataTemplate>
-                    </ItemsControl.DataTemplates>
-                </ItemsControl>
-
-                <!-- Load More Button -->
-                <Border Grid.Row="2"
-                        Padding="16"
-                        IsVisible="{Binding HasMorePosts}">
-                    <Button Content="Load More"
-                            Command="{Binding LoadMorePostsCommand}"
-                            HorizontalAlignment="Center"
-                            Background="#3B82F6"
-                            Foreground="#FFFFFF"
-                            BorderThickness="0"
-                            CornerRadius="8"
-                            Padding="24,12"
-                            FontSize="14"
-                            FontWeight="SemiBold" />
-                </Border>
-
-                <!-- Error Message -->
-                <Border Grid.Row="2"
-                        Padding="16"
-                        IsVisible="{Binding ErrorMessage, Converter={StaticResource NotNullOrEmptyConverter}}">
-                    <Border Background="#FEF2F2"
-                            BorderBrush="#FCA5A5"
-                            BorderThickness="1"
-                            CornerRadius="8"
-                            Padding="16">
-                        <StackPanel Spacing="8">
-                            <TextBlock Text="Error"
-                                       FontSize="14"
-                                       FontWeight="SemiBold"
-                                       Foreground="#DC2626" />
-                            <TextBlock Text="{Binding ErrorMessage}"
-                                       FontSize="13"
-                                       Foreground="#991B1B"
-                                       TextWrapping="Wrap" />
-                        </StackPanel>
+                    <!-- Loading Indicator -->
+                    <Border Grid.Row="0"
+                            Padding="16"
+                            IsVisible="{Binding IsLoadingPosts}">
+                        <TextBlock Text="Loading feed..."
+                                   FontSize="14"
+                                   Foreground="#6B7280"
+                                   HorizontalAlignment="Center" />
                     </Border>
-                </Border>
 
-            </Grid>
+                    <!-- Feed Posts -->
+                    <ItemsControl Grid.Row="1"
+                                  ItemsSource="{Binding Posts}"
+                                  Margin="0,8">
+                        <ItemsControl.DataTemplates>
+                            <DataTemplate DataType="vm:ImageCarouselPostViewModel">
+                                <feedItem:ImageCarouselPostControl />
+                            </DataTemplate>
+                            <DataTemplate DataType="vm:VideoPostViewModel">
+                                <feedItem:VideoPostControl />
+                            </DataTemplate>
+                            <DataTemplate DataType="vm:TextPostViewModel">
+                                <feedItem:TextPostControl />
+                            </DataTemplate>
+                        </ItemsControl.DataTemplates>
+                    </ItemsControl>
+
+                    <!-- Load More Button -->
+                    <Border Grid.Row="2"
+                            Padding="16"
+                            IsVisible="{Binding HasMorePosts}">
+                        <Button Content="Load More"
+                                Command="{Binding LoadMorePostsCommand}"
+                                HorizontalAlignment="Center"
+                                Background="#3B82F6"
+                                Foreground="#FFFFFF"
+                                BorderThickness="0"
+                                CornerRadius="8"
+                                Padding="24,12"
+                                FontSize="14"
+                                FontWeight="SemiBold" />
+                    </Border>
+
+                    <!-- Error Message -->
+                    <Border Grid.Row="2"
+                            Padding="16"
+                            IsVisible="{Binding ErrorMessage, Converter={StaticResource NotNullOrEmptyConverter}}">
+                        <Border Background="#FEF2F2"
+                                BorderBrush="#FCA5A5"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="16">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Error"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Foreground="#DC2626" />
+                                <TextBlock Text="{Binding ErrorMessage}"
+                                           FontSize="13"
+                                           Foreground="#991B1B"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                    </Border>
+
+                </Grid>
+            </Border>
         </ScrollViewer>
 
         <!-- Empty State -->
         <Border IsVisible="{Binding !Posts.Count}"
                 Background="Transparent"
+                MaxWidth="1020"
+                HorizontalAlignment="Center"
                 Margin="20"
                 CornerRadius="12"
                 Padding="40">
