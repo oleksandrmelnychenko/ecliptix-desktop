@@ -11,21 +11,21 @@
         <StackPanel Orientation="Horizontal" Spacing="16">
 
             <!-- Likes Count -->
-            <TextBlock IsVisible="{Binding LikesCount, Converter={StaticResource GreaterThanZeroConverter}}">
-                <Run Text="{Binding LikesCount, Converter={StaticResource NumberAbbreviationConverter}}" FontWeight="SemiBold" Foreground="#1A1A1A" />
-                <Run Text="{Binding LikesCount, Converter={StaticResource PluralConverter}, ConverterParameter='like'}" Foreground="#6B7280" />
+            <TextBlock IsVisible="{Binding LikesCount, Mode=OneWay, Converter={StaticResource GreaterThanZeroConverter}}">
+                <Run Text="{Binding LikesCount, Mode=OneWay, Converter={StaticResource NumberAbbreviationConverter}}" FontWeight="SemiBold" Foreground="#1A1A1A" />
+                <Run Text="{Binding LikesCount, Mode=OneWay, Converter={StaticResource PluralConverter}, ConverterParameter='like'}" Foreground="#6B7280" />
             </TextBlock>
 
             <!-- Comments Count -->
-            <TextBlock IsVisible="{Binding CommentsCount, Converter={StaticResource GreaterThanZeroConverter}}">
-                <Run Text="{Binding CommentsCount, Converter={StaticResource NumberAbbreviationConverter}}" FontWeight="SemiBold" Foreground="#1A1A1A" />
-                <Run Text="{Binding CommentsCount, Converter={StaticResource PluralConverter}, ConverterParameter='comment'}" Foreground="#6B7280" />
+            <TextBlock IsVisible="{Binding CommentsCount, Mode=OneWay, Converter={StaticResource GreaterThanZeroConverter}}">
+                <Run Text="{Binding CommentsCount, Mode=OneWay, Converter={StaticResource NumberAbbreviationConverter}}" FontWeight="SemiBold" Foreground="#1A1A1A" />
+                <Run Text="{Binding CommentsCount, Mode=OneWay, Converter={StaticResource PluralConverter}, ConverterParameter='comment'}" Foreground="#6B7280" />
             </TextBlock>
 
             <!-- Shares Count -->
-            <TextBlock IsVisible="{Binding SharesCount, Converter={StaticResource GreaterThanZeroConverter}}">
-                <Run Text="{Binding SharesCount, Converter={StaticResource NumberAbbreviationConverter}}" FontWeight="SemiBold" Foreground="#1A1A1A" />
-                <Run Text="{Binding SharesCount, Converter={StaticResource PluralConverter}, ConverterParameter='share'}" Foreground="#6B7280" />
+            <TextBlock IsVisible="{Binding SharesCount, Mode=OneWay, Converter={StaticResource GreaterThanZeroConverter}}">
+                <Run Text="{Binding SharesCount, Mode=OneWay, Converter={StaticResource NumberAbbreviationConverter}}" FontWeight="SemiBold" Foreground="#1A1A1A" />
+                <Run Text="{Binding SharesCount, Mode=OneWay, Converter={StaticResource PluralConverter}, ConverterParameter='share'}" Foreground="#6B7280" />
             </TextBlock>
 
         </StackPanel>
