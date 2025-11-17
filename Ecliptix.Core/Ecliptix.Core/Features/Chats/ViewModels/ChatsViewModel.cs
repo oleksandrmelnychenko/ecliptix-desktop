@@ -4,9 +4,12 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.Network.Rpc;
+using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.User;
 using Ecliptix.Protocol.System.Utilities;
@@ -15,6 +18,7 @@ using Ecliptix.Utilities.Failures.Network;
 using Google.Protobuf;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
+using Serilog;
 using Unit = System.Reactive.Unit;
 using EUnit = Ecliptix.Utilities.Unit;
 
@@ -31,6 +35,7 @@ public sealed partial class ChatsViewModel : Core.MVVM.ViewModelBase
 {
     private readonly CompositeDisposable _disposables = new();
     private bool _isDisposed;
+    private readonly IApplicationSecureStorageProvider _secureStorage;
 
     [Reactive] public string Title { get; set; }
     public ObservableCollection<string> Conversations { get; }
@@ -47,9 +52,12 @@ public sealed partial class ChatsViewModel : Core.MVVM.ViewModelBase
 
     public ChatsViewModel(
         NetworkProvider networkProvider,
-        ILocalizationService localizationService)
+        ILocalizationService localizationService,
+        IApplicationSecureStorageProvider secureStorageProvider)
         : base(networkProvider, localizationService, null)
     {
+        _secureStorage = secureStorageProvider;
+
         Title = "Your Chats";
         Conversations = new ObservableCollection<string>
         {
@@ -63,6 +71,22 @@ public sealed partial class ChatsViewModel : Core.MVVM.ViewModelBase
         FindCommand = ReactiveCommand.CreateFromTask(ExecuteFindAsync, canFind);
     }
 
+    private async Task<Option<Guid>> GetCurrentAccountIdAsync()
+    {
+        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
+            await _secureStorage.GetApplicationInstanceSettingsAsync();
+
+        if (settingsResult.IsOk)
+        {
+            Guid accountId = Helpers.FromByteStringToGuid(settingsResult.Unwrap().CurrentAccountId);
+            return Option<Guid>.Some(accountId);
+        }
+
+        Log.Warning("[CHAT-VM] Cannot load the account id from secure storage: {Error}",
+            settingsResult.UnwrapErr().Message);
+        return Option<Guid>.None;
+    }
+
     private async Task ExecuteFindAsync(CancellationToken cancellationToken)
     {
         IsLoading = true;
@@ -71,9 +95,20 @@ public sealed partial class ChatsViewModel : Core.MVVM.ViewModelBase
 
         try
         {
+            Option<Guid> accountIdOpt = await GetCurrentAccountIdAsync();
+
+            if (!accountIdOpt.IsSome)
+            {
+                ErrorMessage = "Current user session is invalid.";
+                return;
+            }
+
+            Guid currentAccountId = accountIdOpt.Value;
+
             GetUserByMobileRequest request = new()
             {
-                MobileNumber = PhoneNumberInput
+                MobileNumber = PhoneNumberInput,
+                CurrentAccountId = Helpers.GuidToByteString(currentAccountId)
             };
 
             TaskCompletionSource<GetUserByMobileResponse> responseSource =

@@ -142,7 +142,7 @@
                                 </StackPanel>
                             </StackPanel>
                         </Border>
-                        
+
                         <Border Background="#F0F0F0"
                                 CornerRadius="8"
                                 Padding="20"
