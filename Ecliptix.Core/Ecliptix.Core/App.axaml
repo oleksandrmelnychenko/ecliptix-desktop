@@ -21,6 +21,8 @@
             <feedConverters:GreaterThanOneConverter x:Key="GreaterThanOneConverter" />
             <feedConverters:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter" />
             <feedConverters:PluralConverter x:Key="PluralConverter" />
+            <feedConverters:LikeColorConverter x:Key="LikeColorConverter" />
+            <feedConverters:SaveColorConverter x:Key="SaveColorConverter" />
 
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="Assets/Icons/UI/LampIcon.axaml"></ResourceInclude>
