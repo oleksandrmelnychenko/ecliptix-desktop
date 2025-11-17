@@ -18,6 +18,7 @@
             <feedConverters:PlayPauseIconConverter x:Key="PlayPauseIconConverter" />
             <feedConverters:MuteIconConverter x:Key="MuteIconConverter" />
             <feedConverters:InitialsConverter x:Key="InitialsConverter" />
+            <feedConverters:GreaterThanOneConverter x:Key="GreaterThanOneConverter" />
 
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="Assets/Icons/UI/LampIcon.axaml"></ResourceInclude>
