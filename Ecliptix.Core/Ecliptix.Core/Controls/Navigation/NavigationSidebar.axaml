@@ -217,5 +217,88 @@
             </StackPanel>
         </Button>
 
+        <!-- Profile Menu Popup -->
+        <Popup Grid.Row="2"
+               x:Name="ProfileMenuPopup"
+               IsOpen="False"
+               PlacementTarget="{Binding #ProfileButton}"
+               Placement="TopEdgeAlignedLeft"
+               HorizontalOffset="0"
+               VerticalOffset="-5"
+               WindowManagerAddShadowHint="False">
+            <Border Width="280"
+                    Background="Transparent"
+                    BorderBrush="Transparent"
+                    BorderThickness="0"
+                    Padding="12"
+                    Opacity="0"
+                    RenderTransform="translateY(10px)">
+                <Border.Effect>
+                    <DropShadowEffect Color="#000000"
+                                      BlurRadius="20"
+                                      Opacity="0.15"
+                                      OffsetX="0"
+                                      OffsetY="4" />
+                </Border.Effect>
+                <Border Background="#FCFEFF"
+                        BorderBrush="Transparent"
+                        BorderThickness="0"
+                        CornerRadius="12"
+                        Padding="8"
+                        ClipToBounds="True">
+                <Border.Transitions>
+                    <Transitions>
+                        <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+                        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15" Easing="CubicEaseOut" />
+                    </Transitions>
+                </Border.Transitions>
+
+                <StackPanel Spacing="8">
+                    <!-- Add Account Option -->
+                    <Button Background="Transparent"
+                            BorderThickness="0"
+                            Padding="12,10"
+                            HorizontalContentAlignment="Left"
+                            CornerRadius="8"
+                            Cursor="Hand">
+                        <Button.Styles>
+                            <Style Selector="Button:pointerover">
+                                <Setter Property="Background" Value="#F2F6F7" />
+                            </Style>
+                        </Button.Styles>
+                        <TextBlock Text="{Binding AddAccountText}"
+                                   FontSize="13"
+                                   Foreground="#242424"
+                                   TextWrapping="Wrap" />
+                    </Button>
+
+                    <!-- Separator -->
+                    <Border Height="1" Background="#E8E8E8" Margin="8,4" />
+
+                    <!-- Logout Option -->
+                    <Button Background="Transparent"
+                            BorderThickness="0"
+                            Padding="12,10"
+                            HorizontalContentAlignment="Left"
+                            CornerRadius="8"
+                            Cursor="Hand"
+                            Command="{Binding LogoutCommand}"
+                            x:Name="LogoutButton">
+                        <Button.Styles>
+                            <Style Selector="Button:pointerover">
+                                <Setter Property="Background" Value="#F2F6F7" />
+                            </Style>
+                        </Button.Styles>
+                        <TextBlock FontSize="13" Foreground="#242424">
+                            <Run Text="{Binding LogoutText}" />
+                            <LineBreak />
+                            <Run Text="{Binding UserDisplayName}" Foreground="#5C5C5C" />
+                        </TextBlock>
+                    </Button>
+                </StackPanel>
+                </Border>
+            </Border>
+        </Popup>
+
     </Grid>
 </UserControl>

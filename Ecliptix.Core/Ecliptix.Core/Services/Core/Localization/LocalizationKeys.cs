@@ -260,6 +260,13 @@ public static class LocalizationKeys
         public const string MAXIMIZE = "Navigation.Maximize";
     }
 
+    public static class ProfileMenu
+    {
+        public const string ADD_ACCOUNT = "ProfileMenu.AddAccount";
+        public const string LOGOUT = "ProfileMenu.Logout";
+        public const string LOGOUT_FROM = "ProfileMenu.LogoutFrom";
+    }
+
     public static class Common
     {
         public const string LOADING = "Common.Loading";

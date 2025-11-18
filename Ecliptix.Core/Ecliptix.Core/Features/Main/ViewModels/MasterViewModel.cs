@@ -4,7 +4,9 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Core.MVVM;
+using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.Membership;
@@ -34,12 +36,14 @@ public sealed class MasterViewModel : ViewModelBase
         ILocalizationService localizationService,
         IModuleViewFactory moduleViewFactory,
         ILogoutService logoutService,
+        IProfileMenuService profileMenuService,
+        IApplicationSecureStorageProvider storageProvider,
         MainWindowViewModel mainWindowViewModel)
         : base(networkProvider, localizationService)
     {
         _moduleViewFactory = moduleViewFactory;
         ConnectivityNotification = mainWindowViewModel.ConnectivityNotification;
-        NavigationSidebar = new NavigationSidebarViewModel(networkProvider, localizationService, logoutService);
+        NavigationSidebar = new NavigationSidebarViewModel(networkProvider, localizationService, logoutService, profileMenuService, storageProvider);
 
         LoadInitialView();
 

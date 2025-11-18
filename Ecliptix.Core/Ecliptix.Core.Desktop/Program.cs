@@ -348,6 +348,7 @@ public static class Program
         services.AddSingleton<IMessageBus, MessageBus>();
         services.AddSingleton<IConnectivityService, ConnectivityService>();
         services.AddSingleton<IBottomSheetService, BottomSheetService>();
+        services.AddSingleton<IProfileMenuService, ProfileMenuService>();
         services.AddSingleton<ILanguageDetectionService, LanguageDetectionService>();
         services.AddSingleton<ILocalizationService, LocalizationService>();
         services.AddTransient<ILogoutService, LogoutService>();

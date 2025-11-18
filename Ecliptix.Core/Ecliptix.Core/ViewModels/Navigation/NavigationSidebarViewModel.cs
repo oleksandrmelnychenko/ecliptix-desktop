@@ -5,13 +5,20 @@ using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
+using Ecliptix.Core.Core.Messaging.Services;
+using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Models.Navigation;
 using Ecliptix.Core.Models.Membership;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.Membership;
+using Ecliptix.Core.Services.Common;
+using Ecliptix.Core.Services.Core.Localization;
+using Ecliptix.Protobuf.Device;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Membership;
+using Ecliptix.Utilities.Failures.Network;
+using Google.Protobuf;
 
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
@@ -24,29 +31,37 @@ namespace Ecliptix.Core.ViewModels.Navigation;
 public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM.ViewModelBase
 {
     private readonly ILogoutService _logoutService;
+    private readonly IProfileMenuService _profileMenuService;
+    private readonly IApplicationSecureStorageProvider _storageProvider;
     private readonly CompositeDisposable _disposables = new();
     private CancellationTokenSource? _logoutCancellationTokenSource;
     private bool _isDisposed;
 
     [Reactive] public NavigationMenuItem? SelectedMenuItem { get; set; }
     [Reactive] public bool IsExpanded { get; set; }
-    [Reactive] public bool IsProfileMenuOpen { get; set; }
+    [Reactive] public string UserDisplayName { get; set; } = "@user";
     [ObservableAsProperty] public bool IsBusy { get; }
+
+    public string AddAccountText => LocalizationService.GetString(LocalizationKeys.ProfileMenu.ADD_ACCOUNT);
+    public string LogoutText => LocalizationService.GetString(LocalizationKeys.ProfileMenu.LOGOUT);
 
     public ObservableCollection<NavigationMenuItem> MenuItems { get; }
 
     public ReactiveCommand<NavigationMenuItem, SystemU> NavigateCommand { get; }
     public ReactiveCommand<SystemU, SystemU> ToggleProfileMenuCommand { get; }
-    public ReactiveCommand<SystemU, SystemU> CloseProfileMenuCommand { get; }
     public ReactiveCommand<SystemU, Result<Ecliptix.Utilities.Unit, LogoutFailure>> LogoutCommand { get; }
 
     public NavigationSidebarViewModel(
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
-        ILogoutService logoutService)
+        ILogoutService logoutService,
+        IProfileMenuService profileMenuService,
+        IApplicationSecureStorageProvider storageProvider)
         : base(networkProvider, localizationService, null)
     {
         _logoutService = logoutService;
+        _profileMenuService = profileMenuService;
+        _storageProvider = storageProvider;
 
         MenuItems = new ObservableCollection<NavigationMenuItem>
         {
@@ -97,15 +112,9 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
 
         SelectedMenuItem?.IsSelected = true;
 
-        ToggleProfileMenuCommand = ReactiveCommand.Create(() =>
+        ToggleProfileMenuCommand = ReactiveCommand.CreateFromTask(async () =>
         {
-            IsProfileMenuOpen = !IsProfileMenuOpen;
-            return SystemU.Default;
-        });
-
-        CloseProfileMenuCommand = ReactiveCommand.Create(() =>
-        {
-            IsProfileMenuOpen = false;
+            await _profileMenuService.ToggleAsync();
             return SystemU.Default;
         });
 
@@ -165,6 +174,43 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
             .DisposeWith(_disposables);
 
         _disposables.Add(LogoutCommand);
+
+        LoadUserDataAsync().ConfigureAwait(false);
+    }
+
+    private async Task LoadUserDataAsync()
+    {
+        try
+        {
+            Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
+                await _storageProvider.GetApplicationInstanceSettingsAsync();
+
+            if (settingsResult.IsOk)
+            {
+                ApplicationInstanceSettings settings = settingsResult.Unwrap();
+
+                if (settings.CurrentAccountId != null && !settings.CurrentAccountId.IsEmpty)
+                {
+                    UserDisplayName = $"@{settings.CurrentAccountId.ToStringUtf8().Substring(0, 8)}";
+                }
+                else
+                {
+                    UserDisplayName = "@user";
+                }
+
+                Log.Information("[NAVIGATION-SIDEBAR-VM] User data loaded successfully");
+            }
+            else
+            {
+                Log.Warning("[NAVIGATION-SIDEBAR-VM] Failed to load user data: {Error}", settingsResult.UnwrapErr().Message);
+                UserDisplayName = "@user";
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[NAVIGATION-SIDEBAR-VM] Error loading user data");
+            UserDisplayName = "@user";
+        }
     }
 
     protected override void Dispose(bool disposing)
@@ -179,7 +225,6 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
             CancelLogoutOperation();
             NavigateCommand?.Dispose();
             ToggleProfileMenuCommand?.Dispose();
-            CloseProfileMenuCommand?.Dispose();
             LogoutCommand?.Dispose();
             _disposables.Dispose();
         }

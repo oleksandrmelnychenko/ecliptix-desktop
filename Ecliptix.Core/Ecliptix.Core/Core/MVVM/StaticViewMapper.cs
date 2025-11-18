@@ -9,6 +9,8 @@ using Ecliptix.Core.Features.Authentication.ViewModels.Welcome;
 using Ecliptix.Core.Features.Authentication.Views.Registration;
 using Ecliptix.Core.Features.Authentication.Views.SignIn;
 using Ecliptix.Core.Features.Authentication.Views.Welcome;
+using Ecliptix.Core.Features.Main.ViewModels;
+using Ecliptix.Core.Features.Main.Views;
 
 namespace Ecliptix.Core.Core.MVVM;
 
@@ -27,6 +29,7 @@ internal static class StaticViewMapper
             [typeof(SecureKeyVerifierViewModel)] = new(() => () => new SecureKeyConfirmationView()),
             [typeof(PassPhaseViewModel)] = new(() => () => new PassPhaseView()),
             [typeof(WelcomeViewModel)] = new(() => () => new WelcomeView()),
+            [typeof(MasterViewModel)] = new(() => () => new MasterView()),
         };
     }
 

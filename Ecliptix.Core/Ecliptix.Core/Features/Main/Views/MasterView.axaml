@@ -38,8 +38,9 @@
 
         <!-- Profile Menu Overlay -->
         <Border Grid.ColumnSpan="2"
-                Background="#33000000"
-                IsVisible="{Binding NavigationSidebar.IsProfileMenuOpen}"
+                x:Name="ProfileMenuOverlay"
+                Background="#0D000000"
+                IsVisible="False"
                 Opacity="0"
                 ZIndex="2000"
                 Cursor="Hand"
@@ -57,83 +58,6 @@
                     <Setter Property="Opacity" Value="0" />
                 </Style>
             </Border.Styles>
-        </Border>
-
-        <!-- Profile Menu Popup -->
-        <Border Grid.ColumnSpan="2"
-                IsVisible="{Binding NavigationSidebar.IsProfileMenuOpen}"
-                HorizontalAlignment="Left"
-                VerticalAlignment="Bottom"
-                Margin="100,0,0,60"
-                Width="280"
-                Background="#FCFEFF"
-                BorderBrush="#E8E8E8"
-                BorderThickness="1"
-                CornerRadius="12"
-                Padding="8"
-                ZIndex="3000">
-            <Border.Effect>
-                <DropShadowEffect Color="#000000"
-                                  BlurRadius="20"
-                                  Opacity="0.15"
-                                  OffsetX="0"
-                                  OffsetY="4" />
-            </Border.Effect>
-            <Border.Transitions>
-                <Transitions>
-                    <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
-                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.25" Easing="CubicEaseOut" />
-                </Transitions>
-            </Border.Transitions>
-            <Border.Styles>
-                <Style Selector="Border">
-                    <Setter Property="Opacity" Value="1" />
-                    <Setter Property="RenderTransform" Value="translateY(0)" />
-                </Style>
-            </Border.Styles>
-
-            <StackPanel Spacing="8">
-                <!-- Add Account Option -->
-                <Button Background="Transparent"
-                        BorderThickness="0"
-                        Padding="12,10"
-                        HorizontalContentAlignment="Left"
-                        CornerRadius="8"
-                        Cursor="Hand">
-                    <Button.Styles>
-                        <Style Selector="Button:pointerover">
-                            <Setter Property="Background" Value="#F2F6F7" />
-                        </Style>
-                    </Button.Styles>
-                    <TextBlock Text="Добавить существующую учетную запись"
-                               FontSize="13"
-                               Foreground="#242424"
-                               TextWrapping="Wrap" />
-                </Button>
-
-                <!-- Separator -->
-                <Border Height="1" Background="#E8E8E8" Margin="8,4" />
-
-                <!-- Logout Option -->
-                <Button Background="Transparent"
-                        BorderThickness="0"
-                        Padding="12,10"
-                        HorizontalContentAlignment="Left"
-                        CornerRadius="8"
-                        Cursor="Hand"
-                        Command="{Binding NavigationSidebar.LogoutCommand}">
-                    <Button.Styles>
-                        <Style Selector="Button:pointerover">
-                            <Setter Property="Background" Value="#F2F6F7" />
-                        </Style>
-                    </Button.Styles>
-                    <TextBlock FontSize="13" Foreground="#242424">
-                        <Run Text="Выйти из учетной записи" />
-                        <LineBreak />
-                        <Run Text="@oleksandr55555" Foreground="#5C5C5C" />
-                    </TextBlock>
-                </Button>
-            </StackPanel>
         </Border>
 
         <!-- Logout Button at Bottom Right - On top -->
