@@ -25,5 +25,5 @@ public enum RpcServiceType : short
 
     Logout,
     AnonymousLogout,
-    GetUserInfoByMobileNumber,
+    GetAccountProfileByMobile,
 }
