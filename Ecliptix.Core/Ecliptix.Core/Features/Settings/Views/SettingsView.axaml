@@ -135,8 +135,9 @@
             <Setter Property="Padding" Value="0" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
+
         <Style Selector="Border.modern-input-wrapper TextBox:disabled">
-            <Setter Property="Foreground" Value="#888888"/>
+             <Setter Property="Foreground" Value="#888888"/>
         </Style>
 
         <Style Selector="Button.accent-button">
@@ -183,12 +184,14 @@
 
     </UserControl.Styles>
 
-    <Grid ColumnDefinitions="280,*" >
-         <Border Grid.Column="0"
-                 Background="{StaticResource SidebarBackground}"
-                 Padding="12,16"
-                 BorderBrush="#80E0E0E0"
-                 BorderThickness="0,0,1,0">
+    <Grid ColumnDefinitions="280,*" Background="#F5F7FA">
+
+        <Border Grid.Column="0"
+                Background="{StaticResource SidebarBackground}"
+                BorderBrush="#80E0E0E0"
+                BorderThickness="0,0,1,0"
+                Padding="12,16">
+
             <Grid RowDefinitions="Auto,*,Auto">
                 <StackPanel Grid.Row="0" Spacing="0">
                     <Button Classes="nav-item selected">
@@ -211,10 +214,15 @@
                     </Button>
                 </StackPanel>
 
-                <Button Grid.Row="2" Classes="exit-button">
+                <Button Grid.Row="2"
+                        Classes="exit-button"
+                        Command="{Binding LogoutCommand}">
                     <StackPanel Orientation="Horizontal" Spacing="10">
-                        <PathIcon Data="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5z" Foreground="Red" />
-                        <TextBlock Text="Exit" Classes="nav-text" Foreground="Red" />
+                        <PathIcon Data="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5z"
+                                  Foreground="{DynamicResource Error}" />
+                        <TextBlock Text="Logout"
+                                   Classes="nav-text"
+                                   Foreground="{DynamicResource Error}" />
                     </StackPanel>
                 </Button>
             </Grid>
@@ -223,7 +231,7 @@
         <ScrollViewer Grid.Column="1" Padding="40,30">
             <StackPanel MaxWidth="800" Spacing="24">
 
-                <TextBlock Text="Account Settings" Classes="section-title" />
+                <TextBlock Text="{Binding Title}" Classes="section-title" />
 
                 <Grid ColumnDefinitions="*, 300">
                     <TextBlock Grid.Column="0"
@@ -231,11 +239,12 @@
                                Classes="form-label"/>
 
                     <Border Grid.Column="1" Classes="modern-input-wrapper">
-                        <TextBox Text="User123" Watermark="Enter display name"/>
+                        <TextBox Text="{Binding DisplayName}"
+                                 Watermark="Enter display name"/>
                     </Border>
                 </Grid>
 
-                <Separator Margin="0 1 0 1" Background="#E0E0E0" Height="1" Opacity="0.5"/>
+                <Separator Background="#E0E0E0" Height="1" Opacity="0.5"/>
 
                 <Grid ColumnDefinitions="*, 300">
                     <TextBlock Grid.Column="0"
@@ -243,11 +252,18 @@
                                Classes="form-label"/>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="15">
+
                         <Border Width="48" Height="48" CornerRadius="24" ClipToBounds="True"
+                                Background="#FFF0E0"
                                 BorderBrush="#FF6D00" BorderThickness="2">
-                            <Panel Background="#FFF0E0">
-                                <PathIcon Data="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
-                                          Width="24" Height="24" Foreground="#FF6D00"/>
+
+                            <Panel>
+                                <TextBlock Text="{Binding ProfileInitials}"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Center"
+                                           FontWeight="Bold"
+                                           FontSize="18"
+                                           Foreground="#FF6D00"/>
                             </Panel>
                         </Border>
 
@@ -261,7 +277,7 @@
                     </StackPanel>
                 </Grid>
 
-                <Separator Margin="0 1 0 1" Background="#E0E0E0" Height="1" Opacity="0.5"/>
+                <Separator Background="#E0E0E0" Height="1" Opacity="0.5"/>
 
                 <Grid ColumnDefinitions="*, 300">
                     <TextBlock Grid.Column="0"
@@ -269,13 +285,13 @@
                                Classes="form-label"/>
 
                     <Border Grid.Column="1" Classes="modern-input-wrapper" Background="#FAFAFA">
-                        <TextBox Text="Official_User_Profile"
+                        <TextBox Text="{Binding ProfileName}"
                                  IsReadOnly="True"
                                  Foreground="#777"/>
                     </Border>
                 </Grid>
 
-                <Separator Margin="0 1 0 1" Background="#E0E0E0" Height="1" Opacity="0.5"/>
+                <Separator Background="#E0E0E0" Height="1" Opacity="0.5"/>
 
                 <Grid ColumnDefinitions="*, 300">
                     <TextBlock Grid.Column="0"
@@ -283,14 +299,14 @@
                                Classes="form-label"/>
 
                     <Border Grid.Column="1" Classes="modern-input-wrapper" Background="#FAFAFA">
-                        <TextBox Text="acc_847382910"
+                        <TextBox Text="{Binding AccountId}"
                                  IsReadOnly="True"
                                  FontFamily="Consolas, Monospace"
                                  Foreground="#777"/>
                     </Border>
                 </Grid>
 
-                <Separator Margin="0 1 0 1" Background="#E0E0E0" Height="1" Opacity="0.5"/>
+                <Separator Background="#E0E0E0" Height="1" Opacity="0.5"/>
 
                 <Grid ColumnDefinitions="*, 300">
                     <TextBlock Grid.Column="0"
@@ -298,7 +314,7 @@
                                Classes="form-label"/>
 
                     <Border Grid.Column="1" Classes="modern-input-wrapper" Background="#FAFAFA">
-                        <TextBox Text="prf_9928374"
+                        <TextBox Text="{Binding ProfileId}"
                                  IsReadOnly="True"
                                  FontFamily="Consolas, Monospace"
                                  Foreground="#777"/>
@@ -306,7 +322,8 @@
                 </Grid>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
-                    <Button Classes="accent-button">
+                    <Button Classes="accent-button"
+                            Command="{Binding SaveChangesCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="Save Changes" VerticalAlignment="Center"/>
                             <PathIcon Data="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
