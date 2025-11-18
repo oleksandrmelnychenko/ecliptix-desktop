@@ -154,23 +154,25 @@ public sealed partial class SettingsViewModel : Core.MVVM.ViewModelBase, IActiva
 
             Guid currentAccountId = accountIdOpt.Value;
 
-            GetAccountProfileByIdRequest request = new()
+            ByteString accountId = Helpers.GuidToByteString(currentAccountId);
+            GetAccountProfileRequest request = new()
             {
-                AccountId = Helpers.GuidToByteString(currentAccountId)
+                CurrentAccountId = accountId,
+                ByAccountId = accountId
             };
 
-            TaskCompletionSource<GetAccountProfileByIdResponse> responseSource =
+            TaskCompletionSource<GetAccountProfileResponse> responseSource =
                 new(TaskCreationOptions.RunContinuationsAsynchronously);
 
             uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
 
             Result<EUnit, NetworkFailure> networkResult = await NetworkProvider.ExecuteUnaryRequestAsync(
                 connectId,
-                RpcServiceType.GetAccountProfileById,
+                RpcServiceType.GetAccountProfile,
                 SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()),
                 payload =>
                 {
-                    GetAccountProfileByIdResponse response = Helpers.ParseFromBytes<GetAccountProfileByIdResponse>(payload);
+                    GetAccountProfileResponse response = Helpers.ParseFromBytes<GetAccountProfileResponse>(payload);
                     responseSource.TrySetResult(response);
                     return Task.FromResult(Result<EUnit, NetworkFailure>.Ok(EUnit.Value));
                 },
@@ -184,7 +186,7 @@ public sealed partial class SettingsViewModel : Core.MVVM.ViewModelBase, IActiva
                 return;
             }
 
-            GetAccountProfileByIdResponse response = await responseSource.Task.ConfigureAwait(false);
+            GetAccountProfileResponse response = await responseSource.Task.ConfigureAwait(false);
 
             if (response.Profile != null)
             {

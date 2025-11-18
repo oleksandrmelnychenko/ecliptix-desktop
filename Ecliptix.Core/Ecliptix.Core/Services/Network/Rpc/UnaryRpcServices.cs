@@ -54,12 +54,11 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
             [RpcServiceType.SignInCompleteRequest] = OpaqueSignInCompleteRequestAsync,
             [RpcServiceType.Logout] = LogoutAsync,
             [RpcServiceType.AnonymousLogout] = AnonymousLogoutAsync,
-            [RpcServiceType.GetAccountProfileByMobile] = GetAccountProfileByMobileAsync,
-            [RpcServiceType.GetAccountProfileById] = GetAccountProfileByIdAsync,
+            [RpcServiceType.GetAccountProfile] = GetAccountProfile,
         };
         return;
 
-        async Task<Result<SecureEnvelope, NetworkFailure>> GetAccountProfileByIdAsync(
+        async Task<Result<SecureEnvelope, NetworkFailure>> GetAccountProfile(
             SecureEnvelope payload,
             RpcRequestContext? requestContext,
             IConnectivityService connectivityService,
@@ -67,37 +66,16 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         )
         {
             return await ExecuteGrpcCallAsync(
-                RpcServiceType.GetAccountProfileById,
+                RpcServiceType.GetAccountProfile,
                 connectivityService,
                 requestContext,
                 token,
                 callOptions =>
-                    _membershipServicesClient.GetAccountProfileByIdAsync(
+                    _membershipServicesClient.GetAccountProfileAsync(
                         payload,
                         callOptions
                     )
             ).ConfigureAwait(false);
-        }
-
-        async Task<Result<SecureEnvelope, NetworkFailure>> GetAccountProfileByMobileAsync(
-            SecureEnvelope payload,
-            RpcRequestContext? requestContext,
-            IConnectivityService connectivityService,
-            CancellationToken token
-        )
-        {
-            return await ExecuteGrpcCallAsync(
-                RpcServiceType.GetAccountProfileByMobile,
-                connectivityService,
-                requestContext,
-                token,
-                callOptions =>
-                    _membershipServicesClient.GetAccountProfileByMobileAsync(
-                        payload,
-                        callOptions
-                    )
-            ).ConfigureAwait(false);
-
         }
 
         async Task<Result<SecureEnvelope, NetworkFailure>> LogoutAsync(
