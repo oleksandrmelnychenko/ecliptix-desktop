@@ -23,7 +23,7 @@
             <header:PostHeaderControl DataContext="{Binding Post.Author}" />
 
             <!-- Text Content -->
-            <Border Padding="20,16">
+            <Border Padding="16,12">
                 <TextBlock Text="{Binding TextContent.Text}"
                            TextWrapping="Wrap"
                            FontSize="16"
@@ -32,7 +32,7 @@
             </Border>
 
             <!-- Hashtags -->
-            <Border Padding="20,0,20,12"
+            <Border Padding="16,0,16,10"
                     IsVisible="{Binding TextContent.Hashtags, Converter={x:Static ObjectConverters.IsNotNull}}">
                 <ItemsControl ItemsSource="{Binding TextContent.Hashtags}">
                     <ItemsControl.ItemsPanel>
@@ -50,9 +50,6 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </Border>
-
-            <!-- Post Stats -->
-            <interactions:PostStatsControl DataContext="{Binding Interactions.Interaction}" />
 
             <!-- Post Actions -->
             <interactions:PostActionsControl DataContext="{Binding Interactions}" />

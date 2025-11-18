@@ -15,7 +15,7 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <Border Padding="20,16">
+    <Border Padding="16,12">
         <Grid ColumnDefinitions="Auto,Auto,*,Auto">
 
             <!-- Like Button -->
@@ -28,7 +28,10 @@
                     Command="{Binding ToggleLikeCommand}">
                 <Path Width="20"
                       Height="20"
-                      Fill="{Binding Interaction.IsLikedByCurrentUser, Converter={StaticResource LikeColorConverter}}"
+                      Stroke="{Binding Interaction.IsLikedByCurrentUser, Converter={StaticResource LikeColorConverter}}"
+                      StrokeThickness="1.5"
+                      Fill="Transparent"
+                      Stretch="Uniform"
                       Data="{Binding Interaction.IsLikedByCurrentUser, Converter={StaticResource LikeIconConverter}}" />
             </Button>
 
@@ -41,7 +44,10 @@
                     MinHeight="40">
                 <Path Width="20"
                       Height="20"
-                      Fill="#6B7280"
+                      Stroke="#6B7280"
+                      StrokeThickness="1.5"
+                      Fill="Transparent"
+                      Stretch="Uniform"
                       Data="{StaticResource CommentIconGeometry}" />
             </Button>
 

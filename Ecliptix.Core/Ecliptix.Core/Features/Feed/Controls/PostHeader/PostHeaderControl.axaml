@@ -15,7 +15,7 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <Border Padding="20,16">
+    <Border Padding="16,12">
         <Grid ColumnDefinitions="Auto,*,Auto">
 
             <!-- Avatar -->

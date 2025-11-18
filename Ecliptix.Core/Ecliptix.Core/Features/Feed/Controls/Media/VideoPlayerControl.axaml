@@ -87,7 +87,7 @@
 
         <!-- Caption -->
         <Border Grid.Row="1"
-                Padding="20,12"
+                Padding="16,10"
                 IsVisible="{Binding VideoContent.Caption, Converter={x:Static ObjectConverters.IsNotNull}}">
             <TextBlock Text="{Binding VideoContent.Caption}"
                        TextWrapping="Wrap"

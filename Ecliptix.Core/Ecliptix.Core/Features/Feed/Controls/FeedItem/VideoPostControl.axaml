@@ -26,9 +26,6 @@
             <!-- Video Player -->
             <media:VideoPlayerControl />
 
-            <!-- Post Stats -->
-            <interactions:PostStatsControl DataContext="{Binding Interactions.Interaction}" />
-
             <!-- Post Actions -->
             <interactions:PostActionsControl DataContext="{Binding Interactions}" />
 
