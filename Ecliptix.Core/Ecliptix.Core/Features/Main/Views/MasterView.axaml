@@ -38,8 +38,9 @@
 
         <!-- Profile Menu Overlay -->
         <Border Grid.ColumnSpan="2"
-                Background="#80000000"
+                Background="#33000000"
                 IsVisible="{Binding NavigationSidebar.IsProfileMenuOpen}"
+                Opacity="0"
                 ZIndex="2000"
                 Cursor="Hand"
                 PointerPressed="OnOverlayClicked">
@@ -48,6 +49,14 @@
                     <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
                 </Transitions>
             </Border.Transitions>
+            <Border.Styles>
+                <Style Selector="Border[IsVisible=True]">
+                    <Setter Property="Opacity" Value="1" />
+                </Style>
+                <Style Selector="Border[IsVisible=False]">
+                    <Setter Property="Opacity" Value="0" />
+                </Style>
+            </Border.Styles>
         </Border>
 
         <!-- Profile Menu Popup -->
