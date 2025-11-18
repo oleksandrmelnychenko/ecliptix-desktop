@@ -76,13 +76,6 @@
             <Setter Property="Foreground" Value="#242424" />
         </Style>
 
-        <Style Selector="TextBlock.section-title">
-            <Setter Property="FontSize" Value="20" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{DynamicResource OnSurface}" />
-            <Setter Property="Margin" Value="0,0,0,25" />
-        </Style>
-
         <Style Selector="Button.exit-button">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
@@ -104,7 +97,6 @@
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="HorizontalAlignment" Value="Left" />
             <Setter Property="FontSize" Value="14" />
-            <Setter Property="FontWeight" Value="Bold" />
             <Setter Property="Foreground" Value="#333333" />
         </Style>
 
@@ -184,7 +176,7 @@
 
     </UserControl.Styles>
 
-    <Grid ColumnDefinitions="280,*" Background="#F5F7FA">
+    <Grid ColumnDefinitions="280,*">
 
         <Border Grid.Column="0"
                 Background="{StaticResource SidebarBackground}"
@@ -229,99 +221,95 @@
         </Border>
 
         <ScrollViewer Grid.Column="1" Padding="40,30">
-            <StackPanel MaxWidth="800" Spacing="24">
 
-                <TextBlock Text="{Binding Title}" Classes="section-title" />
+            <Grid ColumnDefinitions="*, 175"
+                  RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto"
+                  MaxWidth="800">
 
-                <Grid ColumnDefinitions="*, 300">
-                    <TextBlock Grid.Column="0"
-                               Text="Display Name"
-                               Classes="form-label"/>
+                <TextBlock Grid.Row="1" Grid.Column="0"
+                           Text="Profile Icon"
+                           Classes="form-label"/>
 
-                    <Border Grid.Column="1" Classes="modern-input-wrapper">
-                        <TextBox Text="{Binding DisplayName}"
-                                 Watermark="Enter display name"/>
+                <StackPanel Grid.Row="1" Grid.Column="1"
+                            Orientation="Horizontal" HorizontalAlignment="Right" Spacing="15">
+
+                    <Border Width="48" Height="48" CornerRadius="24" ClipToBounds="True"
+                            Background="#FFF0E0"
+                            BorderBrush="#FF6D00" BorderThickness="2">
+                        <Panel>
+                            <TextBlock Text="{Binding ProfileInitials}"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Center"
+                                       FontWeight="Bold"
+                                       FontSize="18"
+                                       Foreground="#FF6D00"/>
+                        </Panel>
                     </Border>
-                </Grid>
 
-                <Separator Background="#E0E0E0" Height="1" Opacity="0.5"/>
+                    <Button Content="Change"
+                            VerticalAlignment="Center"
+                            Background="Transparent"
+                            BorderBrush="#D0D0D0" BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="12,6"
+                            Foreground="#555"/>
+                </StackPanel>
 
-                <Grid ColumnDefinitions="*, 300">
-                    <TextBlock Grid.Column="0"
-                               Text="Profile Icon"
-                               Classes="form-label"/>
+                <Separator Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                           Background="#E0E0E0" Height="1" Opacity="0.5" Margin="0,20"/>
 
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="15">
+                <TextBlock Grid.Row="3" Grid.Column="0"
+                           Text="Display Name"
+                           Classes="form-label"/>
 
-                        <Border Width="48" Height="48" CornerRadius="24" ClipToBounds="True"
-                                Background="#FFF0E0"
-                                BorderBrush="#FF6D00" BorderThickness="2">
+                <Border Grid.Row="3" Grid.Column="1" Classes="modern-input-wrapper">
+                    <TextBox Text="{Binding DisplayName}"
+                             Watermark="Enter display name"/>
+                </Border>
 
-                            <Panel>
-                                <TextBlock Text="{Binding ProfileInitials}"
-                                           VerticalAlignment="Center"
-                                           HorizontalAlignment="Center"
-                                           FontWeight="Bold"
-                                           FontSize="18"
-                                           Foreground="#FF6D00"/>
-                            </Panel>
-                        </Border>
+                <Separator Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
+                           Background="#E0E0E0" Height="1" Opacity="0.5" Margin="0,20"/>
 
-                        <Button Content="Change"
-                                VerticalAlignment="Center"
-                                Background="Transparent"
-                                BorderBrush="#D0D0D0" BorderThickness="1"
-                                CornerRadius="6"
-                                Padding="12,6"
-                                Foreground="#555"/>
-                    </StackPanel>
-                </Grid>
+                <TextBlock Grid.Row="5" Grid.Column="0"
+                           Text="Profile Name"
+                           Classes="form-label"/>
 
-                <Separator Background="#E0E0E0" Height="1" Opacity="0.5"/>
+                <Border Grid.Row="5" Grid.Column="1" Classes="modern-input-wrapper" Background="#FAFAFA">
+                    <TextBox Text="{Binding ProfileName}"
+                             IsReadOnly="True"
+                             Foreground="#777"/>
+                </Border>
 
-                <Grid ColumnDefinitions="*, 300">
-                    <TextBlock Grid.Column="0"
-                               Text="Profile Name"
-                               Classes="form-label"/>
+                <Separator Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2"
+                           Background="#E0E0E0" Height="1" Opacity="0.5" Margin="0,20"/>
 
-                    <Border Grid.Column="1" Classes="modern-input-wrapper" Background="#FAFAFA">
-                        <TextBox Text="{Binding ProfileName}"
-                                 IsReadOnly="True"
-                                 Foreground="#777"/>
-                    </Border>
-                </Grid>
+                <TextBlock Grid.Row="7" Grid.Column="0"
+                           Text="Account ID"
+                           Classes="form-label"/>
 
-                <Separator Background="#E0E0E0" Height="1" Opacity="0.5"/>
+                <Border Grid.Row="7" Grid.Column="1" Classes="modern-input-wrapper" Background="#FAFAFA">
+                    <TextBox Text="{Binding AccountId}"
+                             IsReadOnly="True"
+                             FontFamily="Consolas, Monospace"
+                             Foreground="#777"/>
+                </Border>
 
-                <Grid ColumnDefinitions="*, 300">
-                    <TextBlock Grid.Column="0"
-                               Text="Account ID"
-                               Classes="form-label"/>
+                <Separator Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="2"
+                           Background="#E0E0E0" Height="1" Opacity="0.5" Margin="0,20"/>
 
-                    <Border Grid.Column="1" Classes="modern-input-wrapper" Background="#FAFAFA">
-                        <TextBox Text="{Binding AccountId}"
-                                 IsReadOnly="True"
-                                 FontFamily="Consolas, Monospace"
-                                 Foreground="#777"/>
-                    </Border>
-                </Grid>
+                <TextBlock Grid.Row="9" Grid.Column="0"
+                           Text="Profile ID"
+                           Classes="form-label"/>
 
-                <Separator Background="#E0E0E0" Height="1" Opacity="0.5"/>
+                <Border Grid.Row="9" Grid.Column="1" Classes="modern-input-wrapper" Background="#FAFAFA">
+                    <TextBox Text="{Binding ProfileId}"
+                             IsReadOnly="True"
+                             FontFamily="Consolas, Monospace"
+                             Foreground="#777"/>
+                </Border>
 
-                <Grid ColumnDefinitions="*, 300">
-                    <TextBlock Grid.Column="0"
-                               Text="Profile ID"
-                               Classes="form-label"/>
-
-                    <Border Grid.Column="1" Classes="modern-input-wrapper" Background="#FAFAFA">
-                        <TextBox Text="{Binding ProfileId}"
-                                 IsReadOnly="True"
-                                 FontFamily="Consolas, Monospace"
-                                 Foreground="#777"/>
-                    </Border>
-                </Grid>
-
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+                <StackPanel Grid.Row="10" Grid.Column="1"
+                            Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,30,0,0">
                     <Button Classes="accent-button"
                             Command="{Binding SaveChangesCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="8">
@@ -332,7 +320,7 @@
                     </Button>
                 </StackPanel>
 
-            </StackPanel>
+            </Grid>
         </ScrollViewer>
 
     </Grid>
