@@ -192,8 +192,8 @@
                 VerticalAlignment="Bottom">
             <StackPanel Spacing="3">
                 <Svg Path="../../Assets/plus_icon.svg"
-                     Width="16"
-                     Height="16"
+                     Width="20"
+                     Height="20"
                      Stretch="Uniform" />
                 <TextBlock Classes="copilot-label"
                            Text="Create" />
@@ -204,11 +204,13 @@
         <Button Grid.Row="2"
                 Classes="copilot-sidebar-button"
                 Margin="3,1,3,8"
-                VerticalAlignment="Bottom">
+                VerticalAlignment="Bottom"
+                x:Name="ProfileButton"
+                Command="{Binding ToggleProfileMenuCommand}">
             <StackPanel Spacing="3">
                 <Svg Path="../../Assets/profile.svg"
-                     Width="16"
-                     Height="16"
+                     Width="20"
+                     Height="20"
                      Stretch="Uniform" />
                 <TextBlock Classes="copilot-label"
                            Text="Profile" />

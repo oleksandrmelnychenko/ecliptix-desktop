@@ -7,6 +7,7 @@ using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Services.Abstractions.Membership;
 using Ecliptix.Core.ViewModels.Core;
 using Ecliptix.Core.ViewModels.Navigation;
 using Ecliptix.Utilities;
@@ -32,12 +33,13 @@ public sealed class MasterViewModel : ViewModelBase
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IModuleViewFactory moduleViewFactory,
+        ILogoutService logoutService,
         MainWindowViewModel mainWindowViewModel)
         : base(networkProvider, localizationService)
     {
         _moduleViewFactory = moduleViewFactory;
         ConnectivityNotification = mainWindowViewModel.ConnectivityNotification;
-        NavigationSidebar = new NavigationSidebarViewModel(networkProvider, localizationService);
+        NavigationSidebar = new NavigationSidebarViewModel(networkProvider, localizationService, logoutService);
 
         LoadInitialView();
 
