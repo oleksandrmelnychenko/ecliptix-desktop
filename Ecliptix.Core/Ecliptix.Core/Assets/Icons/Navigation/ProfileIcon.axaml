@@ -1,0 +1,7 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Profile Icon - User avatar with head and shoulders -->
+    <StreamGeometry x:Key="ProfileIconData">
+        M12,4 A3,3 0 1 1 12,10 A3,3 0 1 1 12,4 M12,14 L15.5,14 L17.809,14 C17.914,14 18,14.086 18,14.191 C18,17.399 15.399,20 12.191,20 L11.809,20 C8.601,20 6,17.399 6,14.191 C6,14.086 6.086,14 6.191,14 L10.6,14 L12,14 Z
+    </StreamGeometry>
+</ResourceDictionary>

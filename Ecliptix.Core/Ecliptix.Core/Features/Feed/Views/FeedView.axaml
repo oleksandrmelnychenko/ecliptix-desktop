@@ -10,7 +10,7 @@
              x:DataType="vm:FeedViewModel"
              x:Class="Ecliptix.Core.Features.Feed.Views.FeedView">
 
-    <Grid Background="#F9FAFB">
+    <Grid Background="#FFFFFF">
         <ScrollViewer HorizontalScrollBarVisibility="Disabled"
                       VerticalScrollBarVisibility="Auto">
             <!-- Twitter-like centered feed container -->

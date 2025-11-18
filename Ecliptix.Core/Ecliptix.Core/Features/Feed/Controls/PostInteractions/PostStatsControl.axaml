@@ -7,7 +7,7 @@
              x:Class="Ecliptix.Core.Features.Feed.Controls.PostInteractions.PostStatsControl"
              x:DataType="models:PostInteraction">
 
-    <Border Padding="20,12"
+    <Border Padding="16,10"
             BorderBrush="#F3F4F6"
             BorderThickness="0,1,0,0">
         <StackPanel Orientation="Horizontal" Spacing="16">

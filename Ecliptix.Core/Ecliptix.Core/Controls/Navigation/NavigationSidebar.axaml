@@ -93,6 +93,24 @@
             <Setter Property="Stroke" Value="#242424" />
         </Style>
 
+        <!-- Fill Path Style -->
+        <Style Selector="Path.copilot-fill">
+            <Setter Property="Fill" Value="#5C5C5C" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Fill" Duration="0:0:0.15" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Button.copilot-sidebar-button.selected Path.copilot-fill">
+            <Setter Property="Fill" Value="#242424" />
+        </Style>
+
+        <Style Selector="Button.copilot-sidebar-button:pointerover Path.copilot-fill">
+            <Setter Property="Fill" Value="#242424" />
+        </Style>
+
         <!-- Label Style -->
         <Style Selector="TextBlock.copilot-label">
             <Setter Property="FontSize" Value="11" />
@@ -117,50 +135,85 @@
         </Style>
     </UserControl.Styles>
 
-    <Border Background="#FCFEFF"
-            BorderBrush="#E8E8E8"
-            BorderThickness="1"
-            CornerRadius="24"
-            Padding="8"
-            Margin="8,0,0,0"
-            VerticalAlignment="Center">
+    <Grid RowDefinitions="*,Auto,Auto" Margin="8,0,0,0">
 
-        <Border.Effect>
-            <DropShadowEffect Color="#000000"
-                              BlurRadius="16"
-                              Opacity="0.05"
-                              OffsetX="2"
-                              OffsetY="0" />
-        </Border.Effect>
+        <!-- Main Menu Items (Bordered Container) -->
+        <Border Grid.Row="0"
+                Background="#FCFEFF"
+                BorderBrush="#E8E8E8"
+                BorderThickness="1"
+                CornerRadius="24"
+                Padding="8"
+                VerticalAlignment="Center">
 
-        <StackPanel Spacing="4">
-            <ItemsControl ItemsSource="{Binding MenuItems}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="models:NavigationMenuItem">
-                        <Button Classes="copilot-sidebar-button"
-                                Classes.selected="{Binding IsSelected}"
-                                Command="{Binding $parent[UserControl].((vm:NavigationSidebarViewModel)DataContext).NavigateCommand}"
-                                CommandParameter="{Binding}"
-                                IsVisible="{Binding !Type}">
-                            <StackPanel Spacing="6">
-                                <Panel Width="16" Height="16">
-                                    <Path Classes="copilot-path"
-                                          Data="{StaticResource FeedIconData}"
-                                          IsVisible="{Binding Id, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=home}" />
-                                    <Path Classes="copilot-path"
-                                          Data="{StaticResource ChatsIconData}"
-                                          IsVisible="{Binding Id, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=chats}" />
-                                    <Path Classes="copilot-path"
-                                          Data="{StaticResource SettingsIconData}"
-                                          IsVisible="{Binding Id, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=settings}" />
-                                </Panel>
-                                <TextBlock Classes="copilot-label"
-                                           Text="{Binding Label}" />
-                            </StackPanel>
-                        </Button>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </StackPanel>
-    </Border>
+            <Border.Effect>
+                <DropShadowEffect Color="#000000"
+                                  BlurRadius="16"
+                                  Opacity="0.05"
+                                  OffsetX="2"
+                                  OffsetY="0" />
+            </Border.Effect>
+
+            <StackPanel Spacing="4">
+                <ItemsControl ItemsSource="{Binding MenuItems}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:NavigationMenuItem">
+                            <Button Classes="copilot-sidebar-button"
+                                    Classes.selected="{Binding IsSelected}"
+                                    Command="{Binding $parent[UserControl].((vm:NavigationSidebarViewModel)DataContext).NavigateCommand}"
+                                    CommandParameter="{Binding}"
+                                    IsVisible="{Binding !Type}">
+                                <StackPanel Spacing="3">
+                                    <Panel Width="16" Height="16">
+                                        <Path Classes="copilot-path"
+                                              Data="{StaticResource FeedIconData}"
+                                              IsVisible="{Binding Id, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=home}" />
+                                        <Path Classes="copilot-path"
+                                              Data="{StaticResource ChatsIconData}"
+                                              IsVisible="{Binding Id, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=chats}" />
+                                        <Path Classes="copilot-path"
+                                              Data="{StaticResource SettingsIconData}"
+                                              IsVisible="{Binding Id, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=settings}" />
+                                    </Panel>
+                                    <TextBlock Classes="copilot-label"
+                                               Text="{Binding Label}" />
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+
+        <!-- Create/Add Button (Independent) -->
+        <Button Grid.Row="1"
+                Classes="copilot-sidebar-button"
+                Margin="3,12,3,1"
+                VerticalAlignment="Bottom">
+            <StackPanel Spacing="3">
+                <Svg Path="../../Assets/plus_icon.svg"
+                     Width="16"
+                     Height="16"
+                     Stretch="Uniform" />
+                <TextBlock Classes="copilot-label"
+                           Text="Create" />
+            </StackPanel>
+        </Button>
+
+        <!-- User Profile Button (Independent) -->
+        <Button Grid.Row="2"
+                Classes="copilot-sidebar-button"
+                Margin="3,1,3,8"
+                VerticalAlignment="Bottom">
+            <StackPanel Spacing="3">
+                <Svg Path="../../Assets/profile.svg"
+                     Width="16"
+                     Height="16"
+                     Stretch="Uniform" />
+                <TextBlock Classes="copilot-label"
+                           Text="Profile" />
+            </StackPanel>
+        </Button>
+
+    </Grid>
 </UserControl>
