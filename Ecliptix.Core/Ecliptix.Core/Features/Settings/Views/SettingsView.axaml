@@ -126,6 +126,8 @@
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Normal" />
         </Style>
 
         <Style Selector="Border.modern-input-wrapper TextBox:disabled">
@@ -223,7 +225,7 @@
         <ScrollViewer Grid.Column="1" Padding="40,30">
 
             <Grid ColumnDefinitions="*, 175"
-                  RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto"
+                  RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto"
                   MaxWidth="800">
 
                 <TextBlock Grid.Row="1" Grid.Column="0"
@@ -280,45 +282,6 @@
                              Foreground="#777"/>
                 </Border>
 
-                <Separator Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2"
-                           Background="#E0E0E0" Height="1" Opacity="0.5" Margin="0,20"/>
-
-                <TextBlock Grid.Row="7" Grid.Column="0"
-                           Text="Account ID"
-                           Classes="form-label"/>
-
-                <Border Grid.Row="7" Grid.Column="1" Classes="modern-input-wrapper" Background="#FAFAFA">
-                    <TextBox Text="{Binding AccountId}"
-                             IsReadOnly="True"
-                             FontFamily="Consolas, Monospace"
-                             Foreground="#777"/>
-                </Border>
-
-                <Separator Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="2"
-                           Background="#E0E0E0" Height="1" Opacity="0.5" Margin="0,20"/>
-
-                <TextBlock Grid.Row="9" Grid.Column="0"
-                           Text="Profile ID"
-                           Classes="form-label"/>
-
-                <Border Grid.Row="9" Grid.Column="1" Classes="modern-input-wrapper" Background="#FAFAFA">
-                    <TextBox Text="{Binding ProfileId}"
-                             IsReadOnly="True"
-                             FontFamily="Consolas, Monospace"
-                             Foreground="#777"/>
-                </Border>
-
-                <StackPanel Grid.Row="10" Grid.Column="1"
-                            Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,30,0,0">
-                    <Button Classes="accent-button"
-                            Command="{Binding SaveChangesCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Text="Save Changes" VerticalAlignment="Center"/>
-                            <PathIcon Data="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
-                                      Width="16" Height="16" Foreground="White"/>
-                        </StackPanel>
-                    </Button>
-                </StackPanel>
 
             </Grid>
         </ScrollViewer>
