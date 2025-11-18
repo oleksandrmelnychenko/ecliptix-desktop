@@ -9,9 +9,9 @@ using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.Network.Rpc;
+using Ecliptix.Protobuf.Account;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Protocol;
-using Ecliptix.Protobuf.User;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
@@ -105,13 +105,13 @@ public sealed partial class ChatsViewModel : Core.MVVM.ViewModelBase
 
             Guid currentAccountId = accountIdOpt.Value;
 
-            GetUserByMobileRequest request = new()
+            GetAccountProfileByMobileRequest request = new()
             {
                 MobileNumber = PhoneNumberInput,
-                CurrentAccountId = Helpers.GuidToByteString(currentAccountId)
+                AccountId = Helpers.GuidToByteString(currentAccountId)
             };
 
-            TaskCompletionSource<GetUserByMobileResponse> responseSource =
+            TaskCompletionSource<GetAccountProfileByMobileResponse> responseSource =
                 new(TaskCreationOptions.RunContinuationsAsynchronously);
 
             uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
@@ -123,7 +123,7 @@ public sealed partial class ChatsViewModel : Core.MVVM.ViewModelBase
                 SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()),
                 payload =>
                 {
-                    GetUserByMobileResponse response = Helpers.ParseFromBytes<GetUserByMobileResponse>(payload);
+                    GetAccountProfileByMobileResponse response = Helpers.ParseFromBytes<GetAccountProfileByMobileResponse>(payload);
                     responseSource.TrySetResult(response);
                     return Task.FromResult(Result<EUnit, NetworkFailure>.Ok(EUnit.Value));
                 },
@@ -137,15 +137,15 @@ public sealed partial class ChatsViewModel : Core.MVVM.ViewModelBase
                 return;
             }
 
-            GetUserByMobileResponse response = await responseSource.Task.ConfigureAwait(false);
+            GetAccountProfileByMobileResponse response = await responseSource.Task.ConfigureAwait(false);
 
-            if (response.User != null)
+            if (response.Profile != null)
             {
                 FoundUser = new FoundUserViewModel
                 {
-                    Nickname = response.User.DisplayName,
+                    Nickname = response.Profile.DisplayName,
                     PhoneNumber = PhoneNumberInput,
-                    Initials = GetInitials(response.User.DisplayName)
+                    Initials = GetInitials(response.Profile.DisplayName)
                 };
             }
 
