@@ -376,25 +376,31 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         });
     }
 
-    public async Task<WindowPlacement?> LoadInitialPlacementAsync()
+    public async Task<Option<WindowPlacement>> LoadInitialPlacementAsync()
     {
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
             await _storageProvider.GetApplicationInstanceSettingsAsync();
+
         if (settingsResult.IsOk)
         {
-            return settingsResult.Unwrap().WindowPlacement;
+            WindowPlacement placement = settingsResult.Unwrap().WindowPlacement;
+            return Option<WindowPlacement>.Some(placement);
         }
 
         Log.Warning("[MAIN-WINDOW-VM] Cannot load the previous window state from secure storage: {Error}",
             settingsResult.UnwrapErr().Message);
-        return null;
+        return Option<WindowPlacement>.None;
     }
 
     private async Task InvalidateWindowPlacementAsync()
     {
         try
         {
-            WindowPlacement placement = (await LoadInitialPlacementAsync()) ?? new WindowPlacement();
+            Option<WindowPlacement> placementOpt = await LoadInitialPlacementAsync();
+
+            WindowPlacement placement = placementOpt.IsSome
+                ? placementOpt.Value!
+                : new WindowPlacement();
 
             placement.IsValidSave = false;
 
@@ -419,7 +425,11 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        WindowPlacement? placement = (await LoadInitialPlacementAsync()) ?? new WindowPlacement();
+        Option<WindowPlacement> placementOpt = await LoadInitialPlacementAsync();
+
+        WindowPlacement placement = placementOpt.IsSome
+            ? placementOpt.Value!
+            : new WindowPlacement();
 
         if (state == WindowState.Normal)
         {
@@ -441,16 +451,16 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     private async Task SetContentWithFadeAsync(object content)
     {
-        Serilog.Log.Information("[MAIN-WINDOW-VM] SetContentWithFadeAsync called with content: {Type}", content?.GetType().Name ?? "null");
+        Log.Information("[MAIN-WINDOW-VM] SetContentWithFadeAsync called with content: {Type}", content?.GetType().Name ?? "null");
 
         if (CurrentContent != null)
         {
-            Serilog.Log.Information("[MAIN-WINDOW-VM] Clearing existing content: {Type}", CurrentContent.GetType().Name);
+            Log.Information("[MAIN-WINDOW-VM] Clearing existing content: {Type}", CurrentContent.GetType().Name);
             await Task.Delay(100).ConfigureAwait(false);
         }
 
         CurrentContent = content;
-        Serilog.Log.Information("[MAIN-WINDOW-VM] CurrentContent set to: {Type}", content?.GetType().Name ?? "null");
+        Log.Information("[MAIN-WINDOW-VM] CurrentContent set to: {Type}", content?.GetType().Name ?? "null");
 
         await Task.Delay(100).ConfigureAwait(false);
     }

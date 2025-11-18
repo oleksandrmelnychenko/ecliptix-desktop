@@ -37,7 +37,7 @@
 
     <!-- Security proto files -->
   </ItemGroup>
-   
+
     <ItemGroup>
       <PackageReference Include="Google.Protobuf" Version="3.33.0" />
       <PackageReference Include="Grpc.Net.Client" Version="2.71.0" />

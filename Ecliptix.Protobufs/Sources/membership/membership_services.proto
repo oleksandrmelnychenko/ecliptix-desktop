@@ -13,4 +13,5 @@ service MembershipServices {
   rpc OpaqueSignInCompleteRequest(ecliptix.proto.common.SecureEnvelope) returns (ecliptix.proto.common.SecureEnvelope);
   rpc Logout(ecliptix.proto.common.SecureEnvelope) returns (ecliptix.proto.common.SecureEnvelope);
   rpc AnonymousLogout(ecliptix.proto.common.SecureEnvelope) returns (ecliptix.proto.common.SecureEnvelope);
+  rpc GetUserByMobile(ecliptix.proto.common.SecureEnvelope) returns (ecliptix.proto.common.SecureEnvelope);
 }

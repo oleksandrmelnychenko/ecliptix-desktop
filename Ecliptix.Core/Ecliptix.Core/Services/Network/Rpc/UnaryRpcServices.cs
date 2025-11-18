@@ -53,9 +53,30 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
             [RpcServiceType.SignInInitRequest] = OpaqueSignInInitRequestAsync,
             [RpcServiceType.SignInCompleteRequest] = OpaqueSignInCompleteRequestAsync,
             [RpcServiceType.Logout] = LogoutAsync,
-            [RpcServiceType.AnonymousLogout] = AnonymousLogoutAsync
+            [RpcServiceType.AnonymousLogout] = AnonymousLogoutAsync,
+            [RpcServiceType.GetUserInfoByMobileNumber] = GetUserByMobileNumberAsync,
         };
         return;
+
+        async Task<Result<SecureEnvelope, NetworkFailure>> GetUserByMobileNumberAsync(
+            SecureEnvelope payload,
+            RpcRequestContext? requestContext,
+            IConnectivityService connectivityService,
+            CancellationToken token
+        )
+        {
+            return await ExecuteGrpcCallAsync(
+                RpcServiceType.GetUserInfoByMobileNumber,
+                connectivityService,
+                requestContext,
+                token,
+                callOptions =>
+                    _membershipServicesClient.GetUserByMobileAsync(
+                        payload,
+                        callOptions
+                    )
+            ).ConfigureAwait(false);
+        }
 
         async Task<Result<SecureEnvelope, NetworkFailure>> LogoutAsync(
             SecureEnvelope payload,

@@ -9,29 +9,289 @@
              x:DataType="vm:ChatsViewModel"
              x:Class="Ecliptix.Core.Features.Chats.Views.ChatsView">
 
+
+    <UserControl.Resources>
+        <BoxShadows x:Key="DefaultShadow">0 0 6 1 #00000000</BoxShadows>
+
+        <BoxShadows x:Key="FocusShadow">0 0 6 1 #99FF6D00</BoxShadows>
+
+    </UserControl.Resources>
+
+
+    <UserControl.Styles>
+        <Style Selector="Border.shimmer-gradient">
+            <Setter Property="Background">
+                <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
+                    <GradientStop Color="#E0E0E0" Offset="0.0"/>
+                    <GradientStop Color="#F5F5F5" Offset="0.5"/>
+                    <GradientStop Color="#E0E0E0" Offset="1.0"/>
+                </LinearGradientBrush>
+            </Setter>
+
+            <Style.Animations>
+                <Animation Duration="0:0:1.5" IterationCount="INFINITE">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="Background">
+                            <LinearGradientBrush StartPoint="-100%,50%" EndPoint="0%,50%">
+                                <GradientStop Color="#E0E0E0" Offset="0.0"/>
+                                <GradientStop Color="#F5F5F5" Offset="0.5"/>
+                                <GradientStop Color="#E0E0E0" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Setter>
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="Background">
+                            <LinearGradientBrush StartPoint="100%,50%" EndPoint="200%,50%">
+                                <GradientStop Color="#E0E0E0" Offset="0.0"/>
+                                <GradientStop Color="#F5F5F5" Offset="0.5"/>
+                                <GradientStop Color="#E0E0E0" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Setter>
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+
+        <Style Selector="Border.shimmer-pulse">
+            <Style.Animations>
+                <Animation Duration="0:0:1.5" IterationCount="INFINITE">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="Opacity" Value="0.4"/>
+                    </KeyFrame>
+                    <KeyFrame Cue="50%">
+                        <Setter Property="Opacity" Value="1.0"/>
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="Opacity" Value="0.4"/>
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+
+        <Style Selector="Border.modern-input-wrapper">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="#E0E0E0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12,8" />
+
+            <Setter Property="BoxShadow" Value="{StaticResource DefaultShadow}" />
+
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.2" Easing="CubicEaseInOut"/>
+                    <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.2" Easing="CubicEaseInOut"/>
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Border.modern-input-wrapper:pointerover">
+            <Setter Property="BorderBrush" Value="#C0C0C0" />
+        </Style>
+
+        <Style Selector="Border.modern-input-wrapper:focus-within">
+            <Setter Property="BorderBrush" Value="#FF6D00" />
+            <Setter Property="BoxShadow" Value="{StaticResource FocusShadow}" />
+        </Style>
+
+        <Style Selector="Border.modern-input-wrapper > TextBox">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+             <Style Selector="Button.accent-button">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="16,10" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+
+        <Style Selector="Button.accent-button /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background">
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                    <GradientStop Color="#FF6B35" Offset="0.0"/>
+                    <GradientStop Color="#F7931E" Offset="1.0"/>
+                </LinearGradientBrush>
+            </Setter>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.3" Easing="CubicEaseInOut"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" Easing="CubicEaseOut"/>
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Button.accent-button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background">
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                    <GradientStop Color="#FF8C52" Offset="0.0"/>
+                    <GradientStop Color="#FFB84D" Offset="1.0"/>
+                </LinearGradientBrush>
+            </Setter>
+        </Style>
+
+        <Style Selector="Button.accent-button:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background">
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                    <GradientStop Color="#CC5529" Offset="0.0"/>
+                    <GradientStop Color="#E07A1A" Offset="1.0"/>
+                </LinearGradientBrush>
+            </Setter>
+            <Setter Property="RenderTransform" Value="scale(0.95)" />
+        </Style>
+
+        <Style Selector="Button.accent-button:focus /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background">
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                    <GradientStop Color="#FF6B35" Offset="0.0"/>
+                    <GradientStop Color="#F7931E" Offset="1.0"/>
+                </LinearGradientBrush>
+            </Setter>
+        </Style>
+
+        <Style Selector="Button.accent-button:focus:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background">
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                    <GradientStop Color="#FF8C52" Offset="0.0"/>
+                    <GradientStop Color="#FFB84D" Offset="1.0"/>
+                </LinearGradientBrush>
+            </Setter>
+        </Style>
+
+        <Style Selector="Button.accent-button:focus:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background">
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                    <GradientStop Color="#CC5529" Offset="0.0"/>
+                    <GradientStop Color="#E07A1A" Offset="1.0"/>
+                </LinearGradientBrush>
+            </Setter>
+            <Setter Property="RenderTransform" Value="scale(0.95)" />
+        </Style>
+
+        <Style Selector="Button.accent-button:disabled /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background">
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                    <GradientStop Color="#CCCCCC" Offset="0.0"/>
+                    <GradientStop Color="#E0E0E0" Offset="1.0"/>
+                </LinearGradientBrush>
+            </Setter>
+        </Style>
+
+        <Style Selector="Button.accent-button:disabled">
+            <Setter Property="Foreground" Value="#999999" />
+            <Setter Property="Cursor" Value="Arrow" />
+        </Style>
+    </UserControl.Styles>
+
+
+
     <Grid>
         <Border Background="Transparent"
                 Margin="20"
                 CornerRadius="12"
                 Padding="40">
+
             <StackPanel Spacing="20"
                         VerticalAlignment="Top">
-                <TextBlock Text="{Binding Title}"
-                           FontSize="32"
-                           FontWeight="Bold"
-                           HorizontalAlignment="Left" />
-                <ListBox ItemsSource="{Binding Conversations}"
-                         Background="Transparent"
-                         BorderThickness="0">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding}"
-                                       FontSize="14"
-                                       Foreground="#666666"
-                                       Padding="10" />
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+
+
+
+                <Separator Margin="0, 20" />
+
+                <Grid ColumnDefinitions="1*, 2*">
+
+                    <StackPanel Grid.Column="0"
+                                Spacing="15"
+                                VerticalAlignment="Top"
+                                Margin="0 0 20 0">
+
+                        <StackPanel Grid.Column="0"
+                                    Spacing="15"
+                                    VerticalAlignment="Top"
+                                    Margin="0 0 20 0">
+
+                            <TextBlock Text="Find a contact by mobile number"
+                                       FontSize="18"
+                                       FontWeight="SemiBold" />
+
+                            <Border Classes="modern-input-wrapper"
+                                    MinWidth="250">
+                                <TextBox Text="{Binding PhoneNumberInput}"
+                                         Watermark="Enter phone number..."
+                                         FontSize="14" />
+                            </Border>
+                            <Button Content="Find"
+                                    Command="{Binding FindCommand}"
+                                    HorizontalAlignment="Stretch"
+                                    Classes="accent-button"/>
+                        </StackPanel>
+
+                    </StackPanel>
+
+                    <Grid Grid.Column="1"
+                          VerticalAlignment="Top"
+                          HorizontalAlignment="Left">
+
+                        <Border Background="#F0F0F0"
+                                CornerRadius="8"
+                                Padding="20"
+                                BorderThickness="1"
+                                BorderBrush="#E0E0E0"
+                                MinWidth="300"
+                                IsVisible="{Binding IsLoading}">
+
+                            <StackPanel Orientation="Horizontal" Spacing="15">
+                                <Border Width="60"
+                                        Height="60"
+                                        CornerRadius="30"
+                                        Background="#E0E0E0"
+                                        Classes="shimmer-pulse"/>
+
+                                <StackPanel Spacing="8" VerticalAlignment="Center">
+                                    <Border Width="120"
+                                            Height="20"
+                                            CornerRadius="4"
+                                            Classes="shimmer-gradient"/>
+
+                                    <Border Width="90"
+                                            Height="16"
+                                            CornerRadius="4"
+                                            Classes="shimmer-gradient"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="#F0F0F0"
+                                CornerRadius="8"
+                                Padding="20"
+                                BorderThickness="1"
+                                BorderBrush="#E0E0E0"
+                                MinWidth="300"
+                                IsVisible="{Binding FoundUser, Converter={x:Static ObjectConverters.IsNotNull}}">
+
+                            <StackPanel Orientation="Horizontal" Spacing="15" DataContext="{Binding FoundUser}">
+                                <Border Width="60" Height="60" CornerRadius="30" Background="Gray">
+                                    <TextBlock Text="{Binding Initials}"
+                                               FontSize="24" FontWeight="Bold" Foreground="White"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <StackPanel Spacing="5" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Nickname}" FontSize="18" FontWeight="Bold" />
+                                    <TextBlock Text="{Binding PhoneNumber}" FontSize="14" Foreground="#555" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                    </Grid>
+
+                </Grid>
+
             </StackPanel>
         </Border>
     </Grid>

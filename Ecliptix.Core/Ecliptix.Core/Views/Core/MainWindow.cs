@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
@@ -13,8 +12,10 @@ using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Services.Core;
 using Ecliptix.Core.ViewModels.Core;
 using Ecliptix.Protobuf.Device;
+using Ecliptix.Utilities;
 using ReactiveUI;
 using Serilog;
+using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Views.Core;
 
@@ -171,11 +172,14 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
     private async Task LoadWindowPlacementAsync(MainWindowViewModel viewModel)
     {
-        WindowPlacement? placement = await viewModel.LoadInitialPlacementAsync();
-        if (placement == null || !placement.IsValidSave)
+        Option<WindowPlacement> placementOpt = await viewModel.LoadInitialPlacementAsync();
+
+        if (!placementOpt.IsSome || !placementOpt.Value!.IsValidSave)
         {
             return;
         }
+
+        WindowPlacement placement = placementOpt.Value;
 
         PixelPoint savedPosition = new(placement.PositionX, placement.PositionY);
 
