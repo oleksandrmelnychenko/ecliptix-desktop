@@ -1,0 +1,65 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ecliptix.Core.Features.Feed.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="60"
+             x:Class="Ecliptix.Core.Features.Feed.Controls.PostInteractions.PostActionsControl"
+             x:DataType="vm:PostInteractionsViewModel">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="/Features/Feed/Resources/IconGeometries.axaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Border Padding="20,16">
+        <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+
+            <!-- Like Button -->
+            <Button Grid.Column="0"
+                    HorizontalAlignment="Left"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="8"
+                    MinHeight="40"
+                    Command="{Binding ToggleLikeCommand}">
+                <Path Width="20"
+                      Height="20"
+                      Fill="{Binding Interaction.IsLikedByCurrentUser, Converter={StaticResource LikeColorConverter}}"
+                      Data="{Binding Interaction.IsLikedByCurrentUser, Converter={StaticResource LikeIconConverter}}" />
+            </Button>
+
+            <!-- Comment Button -->
+            <Button Grid.Column="1"
+                    HorizontalAlignment="Left"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="8"
+                    MinHeight="40">
+                <Path Width="20"
+                      Height="20"
+                      Fill="#6B7280"
+                      Data="{StaticResource CommentIconGeometry}" />
+            </Button>
+
+            <!-- Save Button -->
+            <Button Grid.Column="3"
+                    HorizontalAlignment="Right"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="8"
+                    MinHeight="40"
+                    Command="{Binding ToggleSaveCommand}">
+                <Path Width="20"
+                      Height="20"
+                      Fill="{Binding Interaction.IsSavedByCurrentUser, Converter={StaticResource SaveColorConverter}}"
+                      Data="{StaticResource SaveIconGeometry}" />
+            </Button>
+
+        </Grid>
+    </Border>
+
+</UserControl>

@@ -2,14 +2,32 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
              xmlns:coreControls="clr-namespace:Ecliptix.Core.Controls.Core"
+             xmlns:feedConverters="clr-namespace:Ecliptix.Core.Features.Feed.Converters"
              x:Class="Ecliptix.Core.App"
              RequestedThemeVariant="Light">
 
     <Application.Resources>
         <ResourceDictionary>
             <FontFamily x:Key="Geist">avares://Ecliptix.Core/Assets/Fonts/Geist/#Geist</FontFamily>
+
+            <!-- Feed Converters -->
+            <feedConverters:BoolToColorConverter x:Key="BoolToColorConverter" />
+            <feedConverters:NumberAbbreviationConverter x:Key="NumberAbbreviationConverter" />
+            <feedConverters:RelativeTimeConverter x:Key="RelativeTimeConverter" />
+            <feedConverters:NotNullOrEmptyConverter x:Key="NotNullOrEmptyConverter" />
+            <feedConverters:PlayPauseIconConverter x:Key="PlayPauseIconConverter" />
+            <feedConverters:MuteIconConverter x:Key="MuteIconConverter" />
+            <feedConverters:InitialsConverter x:Key="InitialsConverter" />
+            <feedConverters:GreaterThanOneConverter x:Key="GreaterThanOneConverter" />
+            <feedConverters:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter" />
+            <feedConverters:PluralConverter x:Key="PluralConverter" />
+            <feedConverters:LikeColorConverter x:Key="LikeColorConverter" />
+            <feedConverters:LikeIconConverter x:Key="LikeIconConverter" />
+            <feedConverters:SaveColorConverter x:Key="SaveColorConverter" />
+
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="Assets/Icons/UI/LampIcon.axaml"></ResourceInclude>
+                <ResourceInclude Source="/Features/Feed/Resources/IconGeometries.axaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
