@@ -105,13 +105,13 @@ public sealed partial class ChatsViewModel : Core.MVVM.ViewModelBase
 
             Guid currentAccountId = accountIdOpt.Value;
 
-            GetAccountProfileByMobileRequest request = new()
+            GetAccountProfileRequest request = new()
             {
-                MobileNumber = PhoneNumberInput,
-                AccountId = Helpers.GuidToByteString(currentAccountId)
+                CurrentAccountId = Helpers.GuidToByteString(currentAccountId),
+                ByMobileNumber = PhoneNumberInput,
             };
 
-            TaskCompletionSource<GetAccountProfileByMobileResponse> responseSource =
+            TaskCompletionSource<GetAccountProfileResponse> responseSource =
                 new(TaskCreationOptions.RunContinuationsAsynchronously);
 
             uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
@@ -119,11 +119,11 @@ public sealed partial class ChatsViewModel : Core.MVVM.ViewModelBase
 
             Result<EUnit, NetworkFailure> networkResult = await NetworkProvider.ExecuteUnaryRequestAsync(
                 connectId,
-                RpcServiceType.GetAccountProfileByMobile,
+                RpcServiceType.GetAccountProfile,
                 SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()),
                 payload =>
                 {
-                    GetAccountProfileByMobileResponse response = Helpers.ParseFromBytes<GetAccountProfileByMobileResponse>(payload);
+                    GetAccountProfileResponse response = Helpers.ParseFromBytes<GetAccountProfileResponse>(payload);
                     responseSource.TrySetResult(response);
                     return Task.FromResult(Result<EUnit, NetworkFailure>.Ok(EUnit.Value));
                 },
@@ -137,7 +137,7 @@ public sealed partial class ChatsViewModel : Core.MVVM.ViewModelBase
                 return;
             }
 
-            GetAccountProfileByMobileResponse response = await responseSource.Task.ConfigureAwait(false);
+            GetAccountProfileResponse response = await responseSource.Task.ConfigureAwait(false);
 
             if (response.Profile != null)
             {
