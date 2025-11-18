@@ -184,7 +184,11 @@
     </UserControl.Styles>
 
     <Grid ColumnDefinitions="280,*" >
-         <Border Grid.Column="0" Background="{StaticResource SidebarBackground}" Padding="12,16">
+         <Border Grid.Column="0"
+                 Background="{StaticResource SidebarBackground}"
+                 Padding="12,16"
+                 BorderBrush="#80E0E0E0"
+                 BorderThickness="0,0,1,0">
             <Grid RowDefinitions="Auto,*,Auto">
                 <StackPanel Grid.Row="0" Spacing="0">
                     <Button Classes="nav-item selected">
