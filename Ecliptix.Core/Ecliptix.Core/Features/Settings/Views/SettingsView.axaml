@@ -4,18 +4,22 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Ecliptix.Core.Features.Settings.ViewModels"
              mc:Ignorable="d"
-             d:DesignWidth="1200"
+             d:DesignWidth="1000"
              d:DesignHeight="800"
              x:DataType="vm:SettingsViewModel"
              x:Class="Ecliptix.Core.Features.Settings.Views.SettingsView">
 
     <UserControl.Resources>
-        <!-- Almost White Background for Sidebar -->
         <SolidColorBrush x:Key="SidebarBackground" Color="#FEFEFE" />
+        <SolidColorBrush x:Key="Primary" Color="#FF6D00"/>
+        <SolidColorBrush x:Key="OnSurface" Color="#242424"/>
+        <SolidColorBrush x:Key="SurfaceVariant" Color="#F2F6F7"/>
+
+        <BoxShadows x:Key="DefaultShadow">0 1 3 0 #20000000</BoxShadows>
+        <BoxShadows x:Key="FocusShadow">0 0 0 2 #40FF6D00</BoxShadows>
     </UserControl.Resources>
 
     <UserControl.Styles>
-        <!-- Sidebar Navigation Item -->
         <Style Selector="Button.nav-item">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
@@ -37,7 +41,6 @@
             <Setter Property="Background" Value="#F2F6F7" />
         </Style>
 
-        <!-- Navigation Item Icons -->
         <Style Selector="Button.nav-item PathIcon">
             <Setter Property="Width" Value="16" />
             <Setter Property="Height" Value="16" />
@@ -55,7 +58,6 @@
             <Setter Property="Foreground" Value="#242424" />
         </Style>
 
-        <!-- Nav Item Text -->
         <Style Selector="TextBlock.nav-text">
             <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="Normal" />
@@ -74,56 +76,13 @@
             <Setter Property="Foreground" Value="#242424" />
         </Style>
 
-        <!-- Section Header Text -->
-        <Style Selector="TextBlock.section-header">
-            <Setter Property="FontSize" Value="11" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="#5C5C5C" />
-            <Setter Property="Margin" Value="16,16,16,8" />
-            <Setter Property="Opacity" Value="0.7" />
-        </Style>
-
-        <!-- Section Title -->
         <Style Selector="TextBlock.section-title">
             <Setter Property="FontSize" Value="20" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{DynamicResource OnBackground}" />
-            <Setter Property="Margin" Value="0,0,0,20" />
-        </Style>
-
-        <!-- Settings Card -->
-        <Style Selector="Border.settings-card">
-            <Setter Property="Background" Value="{DynamicResource Surface}" />
-            <Setter Property="CornerRadius" Value="12" />
-            <Setter Property="Padding" Value="20" />
-            <Setter Property="Margin" Value="0,0,0,16" />
-        </Style>
-
-        <!-- Profile Avatar Circle -->
-        <Style Selector="Border.avatar-circle">
-            <Setter Property="Width" Value="50" />
-            <Setter Property="Height" Value="50" />
-            <Setter Property="CornerRadius" Value="25" />
-            <Setter Property="Background" Value="{DynamicResource Primary}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryVariant}" />
-            <Setter Property="BorderThickness" Value="2" />
-        </Style>
-
-        <!-- Profile Name -->
-        <Style Selector="TextBlock.profile-name">
-            <Setter Property="FontSize" Value="14" />
-            <Setter Property="FontWeight" Value="Normal" />
             <Setter Property="Foreground" Value="{DynamicResource OnSurface}" />
+            <Setter Property="Margin" Value="0,0,0,25" />
         </Style>
 
-        <!-- Profile Mobile -->
-        <Style Selector="TextBlock.profile-mobile">
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="FontWeight" Value="Light" />
-            <Setter Property="Foreground" Value="#5C5C5C" />
-        </Style>
-
-        <!-- Exit Button -->
         <Style Selector="Button.exit-button">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
@@ -141,230 +100,237 @@
             <Setter Property="Background" Value="#F2F6F7" />
         </Style>
 
-        <!-- Exit Button Icons and Text -->
-        <Style Selector="Button.exit-button PathIcon">
-            <Setter Property="Width" Value="16" />
-            <Setter Property="Height" Value="16" />
-        </Style>
-
-        <!-- Settings Title -->
-        <Style Selector="TextBlock.settings-title">
-            <Setter Property="Padding" Value="0,10" />
-            <Setter Property="HorizontalAlignment" Value="Left" />
-            <Setter Property="FontWeight" Value="Normal" />
-            <Setter Property="FontSize" Value="20" />
-        </Style>
-
-        <!-- Settings Edit Button -->
-        <Style Selector="Button.settings-edit-button">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="FontSize" Value="14" />
-            <Setter Property="FontWeight" Value="Normal" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="HorizontalAlignment" Value="Left" />
-            <Setter Property="Padding" Value="8,6" />
-            <Setter Property="CornerRadius" Value="6" />
-        </Style>
-        <Style Selector="Button.settings-edit-button:pointerover">
-            <Setter Property="Background" Value="#F0F0F0" />
-        </Style>
-
-        <!-- Search Text Box -->
-        <Style Selector="TextBox.search-box">
-            <Setter Property="FontSize" Value="14" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Background" Value="{DynamicResource SurfaceVariant}" />
-        </Style>
-
-        <!-- Search Box Search Watermark  -->
-        <Style Selector="TextBlock.search-watermark">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource OnSurface}" />
-            <Setter Property="FontSize" Value="14" />
+        <Style Selector="TextBlock.form-label">
             <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="#333333" />
+        </Style>
+
+        <Style Selector="Border.modern-input-wrapper">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="#E0E0E0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="BoxShadow" Value="{StaticResource DefaultShadow}" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.2" Easing="CubicEaseInOut"/>
+                    <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.2" Easing="CubicEaseInOut"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border.modern-input-wrapper:pointerover">
+            <Setter Property="BorderBrush" Value="#C0C0C0" />
+        </Style>
+        <Style Selector="Border.modern-input-wrapper:focus-within">
+            <Setter Property="BorderBrush" Value="#FF6D00" />
+            <Setter Property="BoxShadow" Value="{StaticResource FocusShadow}" />
+        </Style>
+        <Style Selector="Border.modern-input-wrapper > TextBox">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="Border.modern-input-wrapper TextBox:disabled">
+             <Setter Property="Foreground" Value="#888888"/>
+        </Style>
+
+        <Style Selector="Button.accent-button">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="16,10" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.accent-button /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background">
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                    <GradientStop Color="#FF6B35" Offset="0.0"/>
+                    <GradientStop Color="#F7931E" Offset="1.0"/>
+                </LinearGradientBrush>
+            </Setter>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.3" Easing="CubicEaseInOut"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" Easing="CubicEaseOut"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.accent-button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background">
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                    <GradientStop Color="#FF8C52" Offset="0.0"/>
+                    <GradientStop Color="#FFB84D" Offset="1.0"/>
+                </LinearGradientBrush>
+            </Setter>
+        </Style>
+        <Style Selector="Button.accent-button:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background">
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                    <GradientStop Color="#CC5529" Offset="0.0"/>
+                    <GradientStop Color="#E07A1A" Offset="1.0"/>
+                </LinearGradientBrush>
+            </Setter>
+            <Setter Property="RenderTransform" Value="scale(0.95)" />
         </Style>
 
     </UserControl.Styles>
 
-    <Grid ColumnDefinitions="280,*"
-          Background="{DynamicResource Background}">
+    <Grid ColumnDefinitions="280,*" Background="#F5F7FA">
 
-        <!-- Left Sidebar -->
         <Border Grid.Column="0"
                 Background="{StaticResource SidebarBackground}"
+                BorderBrush="#80E0E0E0"
+                BorderThickness="0,0,1,0"
                 Padding="12,16">
-            <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
 
-                <!-- Title and Edit Button -->
-                <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,10">
-
-                    <!-- Settings Title -->
-                    <TextBlock Classes="settings-title"
-                               Text="Settings"
-                               VerticalAlignment="Center"/>
-
-                    <!-- Edit Button -->
-                    <Button Classes="settings-edit-button"
-                            VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                            <Canvas Width="16" Height="16" VerticalAlignment="Center">
-                                <!-- Filled paths -->
-                                <Path Data="M4.206,1.556C4.957,1.199 5.799,1 6.685,1H9.402V3H6.685C6.101,3 5.552,3.131 5.064,3.363L4.206,1.556ZM13.283,1H16V3H13.283V1ZM1,6.562C1,5.665 1.218,4.816 1.605,4.064L3.383,4.98C3.138,5.457 3,5.993 3,6.562V9.734H1V6.562ZM1,17.438V14.266H3V17.438C3,18.007 3.138,18.544 3.383,19.02L1.605,19.936C1.218,19.184 1,18.335 1,17.438ZM6.685,23C5.799,23 4.957,22.801 4.206,22.444L5.064,20.637C5.552,20.869 6.101,21 6.685,21H9.402V23H6.685ZM16,23H13.283V21H16V23Z"
-                                      Fill="#1C1C1C" />
-                                <Path Data="M17.313,3H12V1H17.313C20.426,1 23,3.467 23,6.562V17.438C23,20.533 20.426,23 17.313,23H12V21H17.313C19.373,21 21,19.378 21,17.438V6.562C21,4.622 19.373,3 17.313,3Z"
-                                      Fill="#1C1C1C" />
-                                <!-- Stroked path -->
-                                <Path Data="M16,6L15,7.5M8,13V18L12,12L13,10.5L14,9"
-                                      Stroke="#1C1C1C"
-                                      StrokeThickness="1.5"
-                                      StrokeJoin="Round"
-                                      Fill="Transparent" />
-                            </Canvas>
-                            <TextBlock Text="Edit"
-                                       FontSize="12"
-                                       FontWeight="Medium"
-                                       VerticalAlignment="Center"
-                                       Foreground="#1C1C1C" />
-                        </StackPanel>
-                    </Button>
-
-                </StackPanel>
-
-                <!-- Search TextBox -->
-                <Grid Grid.Row="1" Margin="0,0,0,25">
-
-                    <TextBox Classes="search-box" />
-
-                    <StackPanel Orientation="Horizontal"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                IsHitTestVisible="False" Spacing="5">
-
-                        <!-- Search Icon -->
-                        <PathIcon Data="M15.5,14H14.71l-0.43-0.43
-                                        A6.471,6.471,0,0,0,16,8.5
-                                        6.5,6.5,0,1,0,9.5,15
-                                        a6.471,6.471,0,0,0,5.07-2.28l0.43,0.43V14l5,4.99L20.49,19ZM9.5,14
-                                        A5.5,5.5,0,1,1,15,8.5
-                                        5.507,5.507,0,0,1,9.5,14Z"
-                                  Foreground="{DynamicResource OnSurface}"
-                                  Width="14"
-                                  Height="14"/>
-
-                        <!-- Search Watermark -->
-                        <TextBlock Text="Search" Classes="search-watermark" VerticalAlignment="Center" />
-
-                    </StackPanel>
-
-                </Grid>
-
-                <!-- Profile Card at Top -->
-                <Border Grid.Row="2"
-                        Classes="settings-card"
-                        Margin="0,0,0,20">
-                    <Grid ColumnDefinitions="Auto,*">
-
-                        <!-- Avatar Circle -->
-                        <Border Classes="avatar-circle"
-                                Grid.Column="0"
-                                VerticalAlignment="Center"
-                                Margin="0,0,12,0">
-                            <PathIcon Data="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
-                                      Width="26"
-                                      Height="26"
-                                      Foreground="White" />
-                        </Border>
-
-                        <!-- Profile Info -->
-                        <StackPanel Grid.Column="1"
-                                    VerticalAlignment="Center"
-                                    Spacing="3">
-                            <TextBlock Text="{Binding Nickname}"
-                                       Classes="profile-name" />
-                            <TextBlock Text="{Binding MobileNumber}"
-                                       Classes="profile-mobile" />
-                        </StackPanel>
-
-                    </Grid>
-                </Border>
-
-                <!-- Navigation Items -->
-                <StackPanel Grid.Row="3" Spacing="0">
-
-                    <!-- Account Section Header -->
-                    <TextBlock Text="ACCOUNT" Classes="section-header" />
-
-                    <!-- Account -->
+            <Grid RowDefinitions="Auto,*,Auto">
+                <StackPanel Grid.Row="0" Spacing="0">
                     <Button Classes="nav-item selected">
                         <StackPanel Orientation="Horizontal" Spacing="10">
                             <PathIcon Data="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                             <TextBlock Text="Account" Classes="nav-text" />
                         </StackPanel>
                     </Button>
-
-                    <!-- Appearance -->
                     <Button Classes="nav-item">
                         <StackPanel Orientation="Horizontal" Spacing="10">
                             <PathIcon Data="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z" />
                             <TextBlock Text="Appearance" Classes="nav-text" />
                         </StackPanel>
                     </Button>
-
-                    <!-- Language & Region -->
-                    <Button Classes="nav-item">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <PathIcon Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
-                            <TextBlock Text="Language &amp; Region" Classes="nav-text" />
-                        </StackPanel>
-                    </Button>
-
-                    <!-- Security -->
                     <Button Classes="nav-item">
                         <StackPanel Orientation="Horizontal" Spacing="10">
                             <PathIcon Data="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z" />
                             <TextBlock Text="Security" Classes="nav-text" />
                         </StackPanel>
                     </Button>
-
-                    <!-- Notifications -->
-                    <Button Classes="nav-item">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <PathIcon Data="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
-                            <TextBlock Text="Notifications" Classes="nav-text" />
-                        </StackPanel>
-                    </Button>
-
                 </StackPanel>
 
-                <!-- Exit Button -->
-                <Button Grid.Row="5"
+                <Button Grid.Row="2"
                         Classes="exit-button"
                         Command="{Binding LogoutCommand}">
                     <StackPanel Orientation="Horizontal" Spacing="10">
-                        <PathIcon Data="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"
+                        <PathIcon Data="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5z"
                                   Foreground="{DynamicResource Error}" />
-                        <TextBlock Text="Exit"
+                        <TextBlock Text="Logout"
                                    Classes="nav-text"
                                    Foreground="{DynamicResource Error}" />
                     </StackPanel>
                 </Button>
-
             </Grid>
         </Border>
 
-        <!-- Right Content Area -->
-        <ScrollViewer Grid.Column="1"
-                      VerticalScrollBarVisibility="Auto"
-                      HorizontalScrollBarVisibility="Disabled"
-                      Padding="32,20">
-            <StackPanel MaxWidth="700">
+        <ScrollViewer Grid.Column="1" Padding="40,30">
+            <StackPanel MaxWidth="800" Spacing="24">
 
-                <!-- Section Title -->
-                <TextBlock Text="Account" Classes="section-title" />
+                <TextBlock Text="{Binding Title}" Classes="section-title" />
 
-                <!-- Content will be added here for different settings sections -->
+                <Grid ColumnDefinitions="*, 300">
+                    <TextBlock Grid.Column="0"
+                               Text="Display Name"
+                               Classes="form-label"/>
+
+                    <Border Grid.Column="1" Classes="modern-input-wrapper">
+                        <TextBox Text="{Binding DisplayName}"
+                                 Watermark="Enter display name"/>
+                    </Border>
+                </Grid>
+
+                <Separator Background="#E0E0E0" Height="1" Opacity="0.5"/>
+
+                <Grid ColumnDefinitions="*, 300">
+                    <TextBlock Grid.Column="0"
+                               Text="Profile Icon"
+                               Classes="form-label"/>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="15">
+
+                        <Border Width="48" Height="48" CornerRadius="24" ClipToBounds="True"
+                                Background="#FFF0E0"
+                                BorderBrush="#FF6D00" BorderThickness="2">
+
+                            <Panel>
+                                <TextBlock Text="{Binding ProfileInitials}"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Center"
+                                           FontWeight="Bold"
+                                           FontSize="18"
+                                           Foreground="#FF6D00"/>
+                            </Panel>
+                        </Border>
+
+                        <Button Content="Change"
+                                VerticalAlignment="Center"
+                                Background="Transparent"
+                                BorderBrush="#D0D0D0" BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="12,6"
+                                Foreground="#555"/>
+                    </StackPanel>
+                </Grid>
+
+                <Separator Background="#E0E0E0" Height="1" Opacity="0.5"/>
+
+                <Grid ColumnDefinitions="*, 300">
+                    <TextBlock Grid.Column="0"
+                               Text="Profile Name"
+                               Classes="form-label"/>
+
+                    <Border Grid.Column="1" Classes="modern-input-wrapper" Background="#FAFAFA">
+                        <TextBox Text="{Binding ProfileName}"
+                                 IsReadOnly="True"
+                                 Foreground="#777"/>
+                    </Border>
+                </Grid>
+
+                <Separator Background="#E0E0E0" Height="1" Opacity="0.5"/>
+
+                <Grid ColumnDefinitions="*, 300">
+                    <TextBlock Grid.Column="0"
+                               Text="Account ID"
+                               Classes="form-label"/>
+
+                    <Border Grid.Column="1" Classes="modern-input-wrapper" Background="#FAFAFA">
+                        <TextBox Text="{Binding AccountId}"
+                                 IsReadOnly="True"
+                                 FontFamily="Consolas, Monospace"
+                                 Foreground="#777"/>
+                    </Border>
+                </Grid>
+
+                <Separator Background="#E0E0E0" Height="1" Opacity="0.5"/>
+
+                <Grid ColumnDefinitions="*, 300">
+                    <TextBlock Grid.Column="0"
+                               Text="Profile ID"
+                               Classes="form-label"/>
+
+                    <Border Grid.Column="1" Classes="modern-input-wrapper" Background="#FAFAFA">
+                        <TextBox Text="{Binding ProfileId}"
+                                 IsReadOnly="True"
+                                 FontFamily="Consolas, Monospace"
+                                 Foreground="#777"/>
+                    </Border>
+                </Grid>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+                    <Button Classes="accent-button"
+                            Command="{Binding SaveChangesCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="Save Changes" VerticalAlignment="Center"/>
+                            <PathIcon Data="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
+                                      Width="16" Height="16" Foreground="White"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
 
             </StackPanel>
         </ScrollViewer>
