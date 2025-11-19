@@ -121,19 +121,6 @@
 
             <Border Classes="setting-row">
                 <Grid ColumnDefinitions="*, Auto">
-                    <TextBlock Text="Current Password" Classes="setting-label"/>
-
-                    <TextBox Grid.Column="1"
-                             Classes="setting-input"
-                             PasswordChar="•"
-                             RevealPassword="True"
-                             Text="{Binding CurrentPassword}"
-                             Watermark="********"/>
-                </Grid>
-            </Border>
-
-            <Border Classes="setting-row">
-                <Grid ColumnDefinitions="*, Auto">
                     <TextBlock Text="New Password" Classes="setting-label"/>
 
                     <TextBox Grid.Column="1"
