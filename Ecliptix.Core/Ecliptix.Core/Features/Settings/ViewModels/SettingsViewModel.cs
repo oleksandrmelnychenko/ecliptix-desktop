@@ -1,24 +1,16 @@
 using System;
-using System.Reactive;
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Models.Membership;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.Membership;
-using Ecliptix.Core.Services.Common;
-using Ecliptix.Core.Services.Network.Rpc;
-using Ecliptix.Protobuf.Account;
-using Ecliptix.Protobuf.Device;
-using Ecliptix.Protobuf.Protocol;
-using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Membership;
-using Ecliptix.Utilities.Failures.Network;
-using Google.Protobuf;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Serilog;
@@ -27,29 +19,33 @@ using EUnit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.Features.Settings.ViewModels;
 
+//TODO temp
+
+public class SettingsMenuItem : ReactiveObject
+{
+    public string Title { get; set; }
+    public string IconData { get; set; }
+
+    public object ViewModel { get; set; }
+
+    [Reactive] public bool IsSelected { get; set; }
+}
+
 public sealed partial class SettingsViewModel : Core.MVVM.ViewModelBase, IActivatableViewModel
 {
     private readonly ILogoutService _logoutService;
-    private readonly IApplicationSecureStorageProvider _secureStorage;
     private readonly CompositeDisposable _disposables = new();
     private CancellationTokenSource? _logoutCancellationTokenSource;
     private bool _isDisposed;
 
+    [Reactive] public object CurrentSettingsPage { get; set; }
+    public ObservableCollection<SettingsMenuItem> MenuItems { get; }
+    public ReactiveCommand<SettingsMenuItem, SystemU> NavigateCommand { get; private set; }
 
-    [Reactive] public string Title { get; set; }
-    [Reactive] public string DisplayName { get; set; }
-    [Reactive] public string ProfileName { get; set; }
-    [Reactive] public string AccountId { get; set; }
-    [Reactive] public string ProfileId { get; set; }
-    [Reactive] public string ProfileInitials { get; set; }
+    public ReactiveCommand<SystemU, Result<EUnit, LogoutFailure>> LogoutCommand { get; }
 
     [ObservableAsProperty] public bool IsBusy { get; }
-    [Reactive] public bool IsLoadingProfile { get; set; }
-
     public ViewModelActivator Activator { get; } = new();
-
-    public ReactiveCommand<SystemU, SystemU> SaveChangesCommand { get; }
-    public ReactiveCommand<SystemU, Result<EUnit, LogoutFailure>> LogoutCommand { get; }
 
     public SettingsViewModel(
         NetworkProvider networkProvider,
@@ -59,37 +55,59 @@ public sealed partial class SettingsViewModel : Core.MVVM.ViewModelBase, IActiva
         : base(networkProvider, localizationService, null)
     {
         _logoutService = logoutService;
-        _secureStorage = secureStorageProvider;
-
-        this.WhenActivated(disposables =>
-        {
-            this.WhenAnyValue(x => x.DisplayName)
-                .Select(GetInitials)
-                .Subscribe(initials => ProfileInitials = initials)
-                .DisposeWith(_disposables);
-
-            LoadUserProfileAsync(CancellationToken.None)
-                .ConfigureAwait(false);
-            Disposable.Create(() => { /* Cleanup if needed */ })
-                .DisposeWith(disposables);
-        });
-
-        SaveChangesCommand = ReactiveCommand.CreateFromTask(async () =>
-        {
-            // TODO: Implement save logic
-            await Task.Delay(500);
-            Log.Information("Settings saved: {DisplayName}", DisplayName);
-        });
 
         IObservable<bool> canLogout = this.WhenAnyValue(x => x.IsBusy, isBusy => !isBusy);
+
+        AccountSettingsViewModel accountVm = new (networkProvider, localizationService, secureStorageProvider);
+        AppearanceSettingsViewModel appearanceVm = new ();
+        SecuritySettingsViewModel securityVm = new ();
+
+
+        MenuItems = new ObservableCollection<SettingsMenuItem>
+        {
+            new()
+            {
+                Title = "Account",
+                IconData = "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z",
+                ViewModel = accountVm,
+                IsSelected = true
+            },
+            new()
+            {
+                Title = "Appearance",
+                IconData = "M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z",
+                ViewModel = appearanceVm
+            },
+            new()
+            {
+                Title = "Security",
+                IconData = "M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z",
+                ViewModel = securityVm
+            }
+        };
+
+        CurrentSettingsPage = MenuItems.First(x => x.IsSelected).ViewModel;
+
+        NavigateCommand = ReactiveCommand.Create<SettingsMenuItem>(item =>
+        {
+            foreach (SettingsMenuItem menuItem in MenuItems)
+            {
+                menuItem.IsSelected = false;
+            }
+
+            item.IsSelected = true;
+
+            CurrentSettingsPage = item.ViewModel;
+
+        });
 
         LogoutCommand = ReactiveCommand.CreateFromTask(
             async () =>
             {
                 CancelLogoutOperation();
-
                 CancellationTokenSource operationCts = new();
                 _logoutCancellationTokenSource = operationCts;
+
 
                 try
                 {
@@ -139,92 +157,6 @@ public sealed partial class SettingsViewModel : Core.MVVM.ViewModelBase, IActiva
         _disposables.Add(LogoutCommand);
     }
 
-    private async Task LoadUserProfileAsync(CancellationToken cancellationToken)
-    {
-        IsLoadingProfile = true;
-        try
-        {
-            Option<Guid> accountIdOpt = await GetCurrentAccountIdAsync();
-
-            if (!accountIdOpt.IsSome)
-            {
-                Log.Warning("[SETTINGS-VM] Cannot load profile: No active account session.");
-                return;
-            }
-
-            Guid currentAccountId = accountIdOpt.Value;
-
-            ByteString accountId = Helpers.GuidToByteString(currentAccountId);
-            GetAccountProfileRequest request = new()
-            {
-                CurrentAccountId = accountId,
-                ByAccountId = accountId
-            };
-
-            TaskCompletionSource<GetAccountProfileResponse> responseSource =
-                new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
-
-            Result<EUnit, NetworkFailure> networkResult = await NetworkProvider.ExecuteUnaryRequestAsync(
-                connectId,
-                RpcServiceType.GetAccountProfile,
-                SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()),
-                payload =>
-                {
-                    GetAccountProfileResponse response = Helpers.ParseFromBytes<GetAccountProfileResponse>(payload);
-                    responseSource.TrySetResult(response);
-                    return Task.FromResult(Result<EUnit, NetworkFailure>.Ok(EUnit.Value));
-                },
-                allowDuplicates: true,
-                token: cancellationToken
-            ).ConfigureAwait(false);
-
-            if (networkResult.IsErr)
-            {
-                Log.Error("[SETTINGS-VM] Failed to load profile: {Error}", networkResult.UnwrapErr().Message);
-                return;
-            }
-
-            GetAccountProfileResponse response = await responseSource.Task.ConfigureAwait(false);
-
-            if (response.Profile != null)
-            {
-                Guid accId = Helpers.FromByteStringToGuid(response.Profile.AccountId);
-                Guid profId = Helpers.FromByteStringToGuid(response.Profile.ProfileId);
-
-                DisplayName = response.Profile.DisplayName;
-                ProfileName = response.Profile.ProfileName;
-                AccountId = accId.ToString();
-                ProfileId = profId.ToString();
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "[SETTINGS-VM] Unexpected error loading profile");
-        }
-        finally
-        {
-            IsLoadingProfile = false;
-        }
-    }
-
-    private async Task<Option<Guid>> GetCurrentAccountIdAsync()
-    {
-        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
-            await _secureStorage.GetApplicationInstanceSettingsAsync();
-
-        if (settingsResult.IsOk)
-        {
-            Guid accountId = Helpers.FromByteStringToGuid(settingsResult.Unwrap().CurrentAccountId);
-            return Option<Guid>.Some(accountId);
-        }
-
-        Log.Warning("[CHAT-VM] Cannot load the account id from secure storage: {Error}",
-            settingsResult.UnwrapErr().Message);
-        return Option<Guid>.None;
-    }
-
     protected override void Dispose(bool disposing)
     {
         if (_isDisposed)
@@ -236,7 +168,6 @@ public sealed partial class SettingsViewModel : Core.MVVM.ViewModelBase, IActiva
         {
             CancelLogoutOperation();
             LogoutCommand.Dispose();
-            SaveChangesCommand.Dispose();
             _disposables.Dispose();
         }
 
@@ -266,28 +197,4 @@ public sealed partial class SettingsViewModel : Core.MVVM.ViewModelBase, IActiva
         }
     }
 
-    private static string GetInitials(string? displayName)
-    {
-        if (string.IsNullOrWhiteSpace(displayName))
-        {
-            return "?";
-        }
-
-        string[] parts = displayName.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-        if (parts.Length == 0)
-        {
-            return "?";
-        }
-
-        if (parts.Length == 1)
-        {
-            return parts[0].Length >= 2
-                ? parts[0].Substring(0, 2).ToUpper()
-                : parts[0].ToUpper();
-        }
-
-        string initials = $"{parts[0][0]}{parts[^1][0]}";
-        return initials.ToUpper();
-    }
 }

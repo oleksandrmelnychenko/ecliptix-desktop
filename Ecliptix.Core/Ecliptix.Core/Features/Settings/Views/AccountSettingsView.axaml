@@ -1,0 +1,142 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:viewModels="clr-namespace:Ecliptix.Core.Features.Settings.ViewModels"
+             mc:Ignorable="d"
+             d:DesignWidth="800"
+             d:DesignHeight="600"
+             x:DataType="viewModels:AccountSettingsViewModel"
+             x:Class="Ecliptix.Core.Features.Settings.Views.AccountSettingsView">
+
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="OnSurface" Color="#242424"/>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+
+        <Style Selector="TextBlock.setting-label">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="#242424" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontWeight" Value="Normal" />
+        </Style>
+
+        <Style Selector="Border.setting-row">
+            <Setter Property="BorderBrush" Value="#F0F0F0" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="Padding" Value="0,16" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+
+        <Style Selector="TextBox.setting-input">
+            <Setter Property="Width" Value="175" /> <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="BorderBrush" Value="#E0E0E0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
+
+        <Style Selector="TextBox.setting-input:pointerover /template/ Border#PART_BorderElement">
+            <Setter Property="BorderBrush" Value="#C0C0C0" />
+            <Setter Property="Background" Value="#FAFAFA" />
+        </Style>
+        <Style Selector="TextBox.setting-input:focus /template/ Border#PART_BorderElement">
+            <Setter Property="BorderBrush" Value="#FF6D00" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+
+        <Style Selector="TextBox.setting-input:disabled /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="#F5F5F5" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="TextBox.setting-input:disabled">
+            <Setter Property="Foreground" Value="#777" />
+        </Style>
+
+        <Style Selector="Button.ghost-button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="#E0E0E0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="Foreground" Value="#555" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.ghost-button:pointerover">
+            <Setter Property="Background" Value="#F5F5F5" />
+            <Setter Property="Foreground" Value="#333" />
+        </Style>
+
+    </UserControl.Styles>
+
+    <ScrollViewer Padding="40,20">
+        <StackPanel MaxWidth="1800">
+            <Border Classes="setting-row">
+                <Grid ColumnDefinitions="*, Auto">
+                    <TextBlock Text="Profile Icon" Classes="setting-label"/>
+
+                    <StackPanel Grid.Column="1"
+                                Orientation="Horizontal"
+                                Spacing="15">
+
+                        <Border Width="40" Height="40"
+                                CornerRadius="20"
+                                ClipToBounds="True"
+                                Background="#FFF0E0"
+                                BorderBrush="#FF6D00"
+                                BorderThickness="2">
+                            <Panel>
+                                <TextBlock Text="{Binding ProfileInitials}"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Center"
+                                           FontWeight="Bold"
+                                           FontSize="16"
+                                           Foreground="#FF6D00"/>
+                            </Panel>
+                        </Border>
+
+                        <Button Classes="ghost-button" Content="Change" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border Classes="setting-row">
+                <Grid ColumnDefinitions="*, Auto">
+                    <TextBlock Text="Display Name" Classes="setting-label"/>
+
+                    <TextBox Grid.Column="1"
+                             Classes="setting-input"
+                             Text="{Binding DisplayName}"
+                             Watermark="Enter display name"/>
+                </Grid>
+            </Border>
+
+            <Border Classes="setting-row">
+                <Grid ColumnDefinitions="*, Auto">
+                    <TextBlock Text="Profile Name" Classes="setting-label"/>
+
+                    <TextBox Grid.Column="1"
+                             Classes="setting-input"
+                             Text="{Binding ProfileName}"
+                             IsEnabled="False"/> </Grid>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,30,0,0">
+                <Button Classes="ghost-button"
+                        Command="{Binding SaveChangesCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <PathIcon Data="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
+                                  Width="14" Height="14"/>
+                        <TextBlock Text="Save Changes" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
