@@ -9,7 +9,7 @@
              x:DataType="viewModels:AccountSettingsViewModel"
              x:Class="Ecliptix.Core.Features.Settings.Views.AccountSettingsView">
 
-   <UserControl.Resources>
+    <UserControl.Resources>
         <SolidColorBrush x:Key="OnSurface" Color="#242424"/>
     </UserControl.Resources>
 
@@ -86,64 +86,62 @@
 
 
 
-            <StackPanel Grid.Column="0">
-
-                <StackPanel Margin="0,0,0,30" HorizontalAlignment="Center">
-                    <Button Classes="avatar-button" Command="{Binding ChangeAvatarCommand}" Width="96" Height="96">
-                        <Panel>
-                            <Border Width="96" Height="96" CornerRadius="48" ClipToBounds="True"
-                                    Background="#FFF0E0" BorderBrush="#FF6D00" BorderThickness="2">
-                                <TextBlock Text="{Binding ProfileInitials}" VerticalAlignment="Center"
-                                           HorizontalAlignment="Center" FontWeight="Bold" FontSize="32"
-                                           Foreground="#FF6D00"/>
-                            </Border>
-                            <Border Classes="avatar-overlay" Width="96" Height="96" CornerRadius="48">
-                                <PathIcon Data="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"
-                                          Width="28" Height="28" Foreground="White"/>
-                            </Border>
-                        </Panel>
-                    </Button>
-                </StackPanel>
-
-                <Border Classes="setting-row">
-                    <Grid ColumnDefinitions="Auto, *">
-                        <TextBlock Grid.Column="0" Text="Display Name" Classes="setting-label"/>
-
-                        <TextBox Grid.Column="1" Classes="setting-input"
-                                 Text="{Binding DisplayName}" Watermark="Enter display name"/>
-                    </Grid>
-                </Border>
-
-                <Border Classes="setting-row">
-                    <Grid ColumnDefinitions="Auto, *">
-                        <TextBlock Grid.Column="0" Text="Profile Name" Classes="setting-label"/>
-
-                        <TextBox Grid.Column="1" Classes="setting-input"
-                                 Text="{Binding ProfileName}" IsEnabled="False"/>
-                    </Grid>
-                </Border>
-
-                <Border Classes="setting-row">
-                    <Grid ColumnDefinitions="Auto, *">
-                        <TextBlock Grid.Column="0" Text="Account ID" Classes="setting-label"/>
-
-                        <TextBox Grid.Column="1" Classes="setting-input"
-                                 Text="{Binding AccountId}" IsEnabled="False"/>
-                    </Grid>
-                </Border>
-
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0" Height="32">
-                    <Border Classes="success-toast" Classes.visible="{Binding IsSavedMessageVisible}">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <PathIcon Data="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
-                                      Width="14" Height="14" Foreground="#1E8E3E"/>
-                            <TextBlock Text="Settings saved" VerticalAlignment="Center"
-                                       FontSize="12" FontWeight="Medium" Foreground="#1E8E3E"/>
-                        </StackPanel>
+    <StackPanel>
+        <StackPanel Margin="0,0,0,30" HorizontalAlignment="Center">
+            <Button Classes="avatar-button" Command="{Binding ChangeAvatarCommand}" Width="96" Height="96">
+                <Panel>
+                    <Border Width="96" Height="96" CornerRadius="48" ClipToBounds="True"
+                            Background="#FFF0E0" BorderBrush="#FF6D00" BorderThickness="2">
+                        <TextBlock Text="{Binding ProfileInitials}" VerticalAlignment="Center"
+                                   HorizontalAlignment="Center" FontWeight="Bold" FontSize="32"
+                                   Foreground="#FF6D00"/>
                     </Border>
+                    <Border Classes="avatar-overlay" Width="96" Height="96" CornerRadius="48">
+                        <PathIcon Data="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"
+                                  Width="28" Height="28" Foreground="White"/>
+                    </Border>
+                </Panel>
+            </Button>
+        </StackPanel>
+
+        <Border Classes="setting-row">
+            <Grid ColumnDefinitions="Auto, *">
+                <TextBlock Grid.Column="0" Text="Display Name" Classes="setting-label"/>
+
+                <TextBox Grid.Column="1" Classes="setting-input"
+                         Text="{Binding DisplayName}" Watermark="Enter display name"/>
+            </Grid>
+        </Border>
+
+        <Border Classes="setting-row">
+            <Grid ColumnDefinitions="Auto, *">
+                <TextBlock Grid.Column="0" Text="Profile Name" Classes="setting-label"/>
+
+                <TextBox Grid.Column="1" Classes="setting-input"
+                         Text="{Binding ProfileName}" IsEnabled="False"/>
+            </Grid>
+        </Border>
+
+        <Border Classes="setting-row">
+            <Grid ColumnDefinitions="Auto, *">
+                <TextBlock Grid.Column="0" Text="Account ID" Classes="setting-label"/>
+
+                <TextBox Grid.Column="1" Classes="setting-input"
+                         Text="{Binding AccountId}" IsEnabled="False"/>
+            </Grid>
+        </Border>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0" Height="32">
+            <Border Classes="success-toast" Classes.visible="{Binding IsSavedMessageVisible}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <PathIcon Data="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
+                              Width="14" Height="14" Foreground="#1E8E3E"/>
+                    <TextBlock Text="Settings saved" VerticalAlignment="Center"
+                               FontSize="12" FontWeight="Medium" Foreground="#1E8E3E"/>
                 </StackPanel>
+            </Border>
+        </StackPanel>
 
-            </StackPanel>
-
+    </StackPanel>
 
 </UserControl>

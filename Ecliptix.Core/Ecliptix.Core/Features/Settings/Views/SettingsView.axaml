@@ -137,7 +137,7 @@
         </Border>
 
 
-            <ScrollViewer Grid.Column="1" Padding="40,20">
+            <ScrollViewer Grid.Column="1" Padding="12,16">
 
                 <Grid>
                     <Grid.ColumnDefinitions>
