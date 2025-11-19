@@ -376,31 +376,25 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         });
     }
 
-    public async Task<Option<WindowPlacement>> LoadInitialPlacementAsync()
+    public async Task<WindowPlacement?> LoadInitialPlacementAsync()
     {
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
             await _storageProvider.GetApplicationInstanceSettingsAsync();
-
         if (settingsResult.IsOk)
         {
-            WindowPlacement placement = settingsResult.Unwrap().WindowPlacement;
-            return Option<WindowPlacement>.Some(placement);
+            return settingsResult.Unwrap().WindowPlacement;
         }
 
         Log.Warning("[MAIN-WINDOW-VM] Cannot load the previous window state from secure storage: {Error}",
             settingsResult.UnwrapErr().Message);
-        return Option<WindowPlacement>.None;
+        return null;
     }
 
     private async Task InvalidateWindowPlacementAsync()
     {
         try
         {
-            Option<WindowPlacement> placementOpt = await LoadInitialPlacementAsync();
-
-            WindowPlacement placement = placementOpt.IsSome
-                ? placementOpt.Value!
-                : new WindowPlacement();
+            WindowPlacement placement = (await LoadInitialPlacementAsync()) ?? new WindowPlacement();
 
             placement.IsValidSave = false;
 
@@ -425,11 +419,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        Option<WindowPlacement> placementOpt = await LoadInitialPlacementAsync();
-
-        WindowPlacement placement = placementOpt.IsSome
-            ? placementOpt.Value!
-            : new WindowPlacement();
+        WindowPlacement? placement = (await LoadInitialPlacementAsync()) ?? new WindowPlacement();
 
         if (state == WindowState.Normal)
         {

@@ -172,14 +172,11 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
     private async Task LoadWindowPlacementAsync(MainWindowViewModel viewModel)
     {
-        Option<WindowPlacement> placementOpt = await viewModel.LoadInitialPlacementAsync();
-
-        if (!placementOpt.IsSome || !placementOpt.Value!.IsValidSave)
+        WindowPlacement? placement = await viewModel.LoadInitialPlacementAsync();
+        if (placement == null || !placement.IsValidSave)
         {
             return;
         }
-
-        WindowPlacement placement = placementOpt.Value;
 
         PixelPoint savedPosition = new(placement.PositionX, placement.PositionY);
 
@@ -203,6 +200,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         WindowState = windowState;
         viewModel.WindowState = windowState;
     }
+
 
     private void SetupLanguageSelectorVisibility()
     {

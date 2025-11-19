@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:Ecliptix.Core.Features.Settings.ViewModels"
+             xmlns:core="clr-namespace:Ecliptix.Core.Controls.Core"
              mc:Ignorable="d"
              d:DesignWidth="800"
              d:DesignHeight="600"
@@ -88,7 +89,9 @@
 
     <StackPanel>
         <StackPanel Margin="0,0,0,30" HorizontalAlignment="Center">
-            <Button Classes="avatar-button" Command="{Binding ChangeAvatarCommand}" Width="96" Height="96">
+            <Button Classes="avatar-button"
+                    Command="{Binding ChangeAvatarCommand}"
+                    Width="96" Height="96">
                 <Panel>
                     <Border Width="96" Height="96" CornerRadius="48" ClipToBounds="True"
                             Background="#FFF0E0" BorderBrush="#FF6D00" BorderThickness="2">
@@ -96,40 +99,63 @@
                                    HorizontalAlignment="Center" FontWeight="Bold" FontSize="32"
                                    Foreground="#FF6D00"/>
                     </Border>
-                    <Border Classes="avatar-overlay" Width="96" Height="96" CornerRadius="48">
-                        <PathIcon Data="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"
-                                  Width="28" Height="28" Foreground="White"/>
-                    </Border>
-                </Panel>
+                    </Panel>
             </Button>
         </StackPanel>
+
 
         <Border Classes="setting-row">
             <Grid ColumnDefinitions="Auto, *">
                 <TextBlock Grid.Column="0" Text="Display Name" Classes="setting-label"/>
 
-                <TextBox Grid.Column="1" Classes="setting-input"
-                         Text="{Binding DisplayName}" Watermark="Enter display name"/>
+                <core:HintedTextBox Grid.Column="1"
+                                    Text="{Binding DisplayName}"
+                                    Watermark="Enter display name"
+                                    Hint="Visible to other users"
+
+                                    HorizontalAlignment="Right"
+                                    Width="260"
+                                    Height="56"
+
+                                    TextForeground="#242424"
+                                    HintForeground="#888888"
+                                    MainBorderBrush="Transparent"
+                                    Background="#fff8f8f8"
+                                    CornerRadius="8"
+                                    FontSize="14"
+                                    WatermarkFontSize="14"
+                                    FontWeight="Normal"
+
+                                    HasError="False"
+                                    ErrorText="Name is too short"
+                                    />
             </Grid>
         </Border>
+
 
         <Border Classes="setting-row">
             <Grid ColumnDefinitions="Auto, *">
                 <TextBlock Grid.Column="0" Text="Profile Name" Classes="setting-label"/>
 
-                <TextBox Grid.Column="1" Classes="setting-input"
-                         Text="{Binding ProfileName}" IsEnabled="False"/>
+                <core:HintedTextBox Grid.Column="1"
+                                    Text="{Binding ProfileName}"
+                                    Hint="Unique profile identifier"
+
+                                    HorizontalAlignment="Right"
+                                    Width="260"
+                                    Height="56"
+
+                                    TextForeground="#555555"
+                                    HintForeground="#888888"
+                                    MainBorderBrush="Transparent"
+                                    Background="#F5F5F5"
+                                    CornerRadius="8"
+                                    FontSize="14"
+                                    IsEnabled="False"/>
             </Grid>
         </Border>
 
-        <Border Classes="setting-row">
-            <Grid ColumnDefinitions="Auto, *">
-                <TextBlock Grid.Column="0" Text="Account ID" Classes="setting-label"/>
 
-                <TextBox Grid.Column="1" Classes="setting-input"
-                         Text="{Binding AccountId}" IsEnabled="False"/>
-            </Grid>
-        </Border>
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0" Height="32">
             <Border Classes="success-toast" Classes.visible="{Binding IsSavedMessageVisible}">
