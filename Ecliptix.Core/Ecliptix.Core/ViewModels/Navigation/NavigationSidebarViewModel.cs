@@ -191,7 +191,10 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
 
                 if (settings.CurrentAccountId != null && !settings.CurrentAccountId.IsEmpty)
                 {
-                    UserDisplayName = $"@{settings.CurrentAccountId.ToStringUtf8().Substring(0, 8)}";
+                    string guidString = settings.CurrentAccountId.ToByteArray().Length == 16
+                        ? new Guid(settings.CurrentAccountId.ToByteArray()).ToString("N").Substring(0, 8)
+                        : "user";
+                    UserDisplayName = $"@{guidString}";
                 }
                 else
                 {

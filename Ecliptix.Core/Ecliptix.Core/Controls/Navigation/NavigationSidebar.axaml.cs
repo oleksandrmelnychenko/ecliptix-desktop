@@ -3,7 +3,6 @@ using System.Reactive.Disposables;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -20,8 +19,8 @@ public partial class NavigationSidebar : UserControl, IDisposable
     private readonly IProfileMenuService? _profileMenuService;
     private readonly IMessageBus? _messageBus;
     private readonly CompositeDisposable _disposables = new();
-    private Popup? _profileMenuPopup;
-    private Border? _popupContentBorder;
+    private Canvas? _profileMenuCanvas;
+    private Border? _profileMenuContainer;
     private Button? _logoutButton;
     private bool _disposed;
 
@@ -57,8 +56,8 @@ public partial class NavigationSidebar : UserControl, IDisposable
     {
         base.OnAttachedToVisualTree(e);
 
-        _profileMenuPopup = this.FindControl<Popup>("ProfileMenuPopup");
-        _popupContentBorder = _profileMenuPopup?.Child as Border;
+        _profileMenuCanvas = this.FindControl<Canvas>("ProfileMenuCanvas");
+        _profileMenuContainer = this.FindControl<Border>("ProfileMenuContainer");
         _logoutButton = this.FindControl<Button>("LogoutButton");
 
         if (_logoutButton != null)
@@ -78,43 +77,43 @@ public partial class NavigationSidebar : UserControl, IDisposable
         {
             bool isVisible = evt.AnimationType == ProfileMenuAnimationType.SHOW;
 
-            Log.Information("[NAVIGATION-SIDEBAR] Profile menu event: {AnimationType}, setting IsOpen={IsOpen}",
+            Log.Information("[NAVIGATION-SIDEBAR] Profile menu event: {AnimationType}, setting IsVisible={IsVisible}",
                 evt.AnimationType, isVisible);
 
             if (isVisible)
             {
-                if (_profileMenuPopup != null)
+                if (_profileMenuCanvas != null)
                 {
-                    _profileMenuPopup.IsOpen = true;
+                    _profileMenuCanvas.IsVisible = true;
                 }
 
-                if (_popupContentBorder != null)
+                if (_profileMenuContainer != null)
                 {
-                    _popupContentBorder.Opacity = 1.0;
+                    _profileMenuContainer.Opacity = 1.0;
                     Avalonia.Media.TranslateTransform transform = new Avalonia.Media.TranslateTransform
                     {
                         Y = 0.0
                     };
-                    _popupContentBorder.RenderTransform = transform;
+                    _profileMenuContainer.RenderTransform = transform;
                 }
             }
             else
             {
-                if (_popupContentBorder != null)
+                if (_profileMenuContainer != null)
                 {
-                    _popupContentBorder.Opacity = 0.0;
+                    _profileMenuContainer.Opacity = 0.0;
                     Avalonia.Media.TranslateTransform transform = new Avalonia.Media.TranslateTransform
                     {
                         Y = 10.0
                     };
-                    _popupContentBorder.RenderTransform = transform;
+                    _profileMenuContainer.RenderTransform = transform;
                 }
 
                 await Task.Delay(150);
 
-                if (_profileMenuPopup != null)
+                if (_profileMenuCanvas != null)
                 {
-                    _profileMenuPopup.IsOpen = false;
+                    _profileMenuCanvas.IsVisible = false;
                 }
             }
 

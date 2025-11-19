@@ -217,22 +217,22 @@
             </StackPanel>
         </Button>
 
-        <!-- Profile Menu Popup -->
-        <Popup Grid.Row="2"
-               x:Name="ProfileMenuPopup"
-               IsOpen="False"
-               PlacementTarget="{Binding #ProfileButton}"
-               Placement="TopEdgeAlignedLeft"
-               HorizontalOffset="0"
-               VerticalOffset="-5"
-               WindowManagerAddShadowHint="False">
+        <!-- Profile Menu Overlay -->
+        <Canvas Grid.Row="2"
+                x:Name="ProfileMenuCanvas"
+                IsVisible="False"
+                VerticalAlignment="Bottom"
+                HorizontalAlignment="Left">
             <Border Width="280"
+                    Canvas.Left="88"
+                    Canvas.Bottom="5"
                     Background="Transparent"
                     BorderBrush="Transparent"
                     BorderThickness="0"
                     Padding="12"
                     Opacity="0"
-                    RenderTransform="translateY(10px)">
+                    RenderTransform="translateY(10px)"
+                    x:Name="ProfileMenuContainer">
                 <Border.Effect>
                     <DropShadowEffect Color="#000000"
                                       BlurRadius="20"
@@ -240,18 +240,18 @@
                                       OffsetX="0"
                                       OffsetY="4" />
                 </Border.Effect>
-                <Border Background="#FCFEFF"
-                        BorderBrush="Transparent"
-                        BorderThickness="0"
-                        CornerRadius="12"
-                        Padding="8"
-                        ClipToBounds="True">
                 <Border.Transitions>
                     <Transitions>
                         <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
                         <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15" Easing="CubicEaseOut" />
                     </Transitions>
                 </Border.Transitions>
+                <Border Background="#FCFEFF"
+                        BorderBrush="Transparent"
+                        BorderThickness="0"
+                        CornerRadius="12"
+                        Padding="8"
+                        ClipToBounds="True">
 
                 <StackPanel Spacing="8">
                     <!-- Add Account Option -->
@@ -298,7 +298,7 @@
                 </StackPanel>
                 </Border>
             </Border>
-        </Popup>
+        </Canvas>
 
     </Grid>
 </UserControl>
