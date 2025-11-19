@@ -14,14 +14,6 @@
     </UserControl.Resources>
 
     <UserControl.Styles>
-
-        <Style Selector="TextBlock.setting-label">
-            <Setter Property="FontSize" Value="14" />
-            <Setter Property="Foreground" Value="#242424" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="FontWeight" Value="Normal" />
-        </Style>
-
         <Style Selector="Border.setting-row">
             <Setter Property="BorderBrush" Value="#F0F0F0" />
             <Setter Property="BorderThickness" Value="0,0,0,1" />
@@ -29,10 +21,15 @@
             <Setter Property="Background" Value="Transparent" />
         </Style>
 
+        <Style Selector="TextBlock.setting-label">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="#242424" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontWeight" Value="Normal" />
+            </Style>
+
         <Style Selector="TextBox.setting-input">
-            <Setter Property="Width" Value="220" />
-            <Setter Property="HorizontalAlignment" Value="Right" />
-            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Width" Value="175" /> <Setter Property="HorizontalAlignment" Value="Right" /> <Setter Property="CornerRadius" Value="6" />
             <Setter Property="BorderBrush" Value="#E0E0E0" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Background" Value="White" />
@@ -40,61 +37,28 @@
             <Setter Property="FontSize" Value="13"/>
         </Style>
 
-        <Style Selector="TextBox.setting-input:pointerover /template/ Border#PART_BorderElement">
-            <Setter Property="BorderBrush" Value="#C0C0C0" />
-            <Setter Property="Background" Value="#FAFAFA" />
-        </Style>
-        <Style Selector="TextBox.setting-input:focus /template/ Border#PART_BorderElement">
-            <Setter Property="BorderBrush" Value="#FF6D00" />
-            <Setter Property="BorderThickness" Value="1" />
-        </Style>
-        <Style Selector="TextBox.setting-input:disabled /template/ Border#PART_BorderElement">
-            <Setter Property="Background" Value="#F5F5F5" />
-            <Setter Property="BorderBrush" Value="Transparent" />
-        </Style>
-        <Style Selector="TextBox.setting-input:disabled">
-            <Setter Property="Foreground" Value="#777" />
-        </Style>
-
-        <Style Selector="Button.ghost-button">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderBrush" Value="#E0E0E0" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="Padding" Value="12,6" />
-            <Setter Property="Foreground" Value="#555" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.ghost-button:pointerover">
-            <Setter Property="Background" Value="#F5F5F5" />
-            <Setter Property="Foreground" Value="#333" />
-        </Style>
-
         <Style Selector="Button.avatar-button">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="CornerRadius" Value="50" /> <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="CornerRadius" Value="50" />
+            <Setter Property="Cursor" Value="Hand" />
             <Setter Property="HorizontalAlignment" Value="Center" />
         </Style>
 
         <Style Selector="Button.avatar-button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="Transparent" />
-        </Style>
-        <Style Selector="Button.avatar-button:pressed /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="Transparent" />
+             <Setter Property="Background" Value="Transparent" />
         </Style>
 
         <Style Selector="Border.avatar-overlay">
-            <Setter Property="Opacity" Value="0" /> <Setter Property="Background" Value="#80000000" /> <Setter Property="Transitions">
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="Background" Value="#80000000" />
+            <Setter Property="Transitions">
                 <Transitions>
                     <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
                 </Transitions>
             </Setter>
         </Style>
-
         <Style Selector="Button.avatar-button:pointerover Border.avatar-overlay">
             <Setter Property="Opacity" Value="0.8" />
         </Style>
@@ -105,18 +69,14 @@
             <Setter Property="CornerRadius" Value="16" />
             <Setter Property="Padding" Value="12,6" />
             <Setter Property="HorizontalAlignment" Value="Right" />
-
             <Setter Property="Opacity" Value="0" />
-
             <Setter Property="IsHitTestVisible" Value="False"/>
-
             <Setter Property="Transitions">
                 <Transitions>
                     <DoubleTransition Property="Opacity" Duration="0:0:0.5" Easing="CubicEaseOut" />
                 </Transitions>
             </Setter>
         </Style>
-
         <Style Selector="Border.success-toast.visible">
             <Setter Property="Opacity" Value="1" />
             <Setter Property="IsHitTestVisible" Value="True"/>
@@ -124,94 +84,66 @@
 
     </UserControl.Styles>
 
-    <ScrollViewer Padding="40,20">
-        <StackPanel MaxWidth="800">
 
-            <StackPanel Margin="0,0,0,30" HorizontalAlignment="Center">
 
-                <Button Classes="avatar-button"
-                        Command="{Binding ChangeAvatarCommand}"
-                        Width="96" Height="96">
+            <StackPanel Grid.Column="0">
 
-                    <Panel>
-                        <Border Width="96" Height="96"
-                                CornerRadius="48"
-                                ClipToBounds="True"
-                                Background="#FFF0E0"
-                                BorderBrush="#FF6D00"
-                                BorderThickness="2">
-                            <TextBlock Text="{Binding ProfileInitials}"
-                                       VerticalAlignment="Center"
-                                       HorizontalAlignment="Center"
-                                       FontWeight="Bold"
-                                       FontSize="32"
-                                       Foreground="#FF6D00"/>
-                        </Border>
-
-                        <Border Classes="avatar-overlay"
-                                Width="96" Height="96"
-                                CornerRadius="48">
-                            <PathIcon Data="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"
-                                      Width="28" Height="28" Foreground="White"/>
+                <StackPanel Margin="0,0,0,30" HorizontalAlignment="Center">
+                    <Button Classes="avatar-button" Command="{Binding ChangeAvatarCommand}" Width="96" Height="96">
+                        <Panel>
+                            <Border Width="96" Height="96" CornerRadius="48" ClipToBounds="True"
+                                    Background="#FFF0E0" BorderBrush="#FF6D00" BorderThickness="2">
+                                <TextBlock Text="{Binding ProfileInitials}" VerticalAlignment="Center"
+                                           HorizontalAlignment="Center" FontWeight="Bold" FontSize="32"
+                                           Foreground="#FF6D00"/>
                             </Border>
-                    </Panel>
-                </Button>
-            </StackPanel>
+                            <Border Classes="avatar-overlay" Width="96" Height="96" CornerRadius="48">
+                                <PathIcon Data="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"
+                                          Width="28" Height="28" Foreground="White"/>
+                            </Border>
+                        </Panel>
+                    </Button>
+                </StackPanel>
 
+                <Border Classes="setting-row">
+                    <Grid ColumnDefinitions="Auto, *">
+                        <TextBlock Grid.Column="0" Text="Display Name" Classes="setting-label"/>
 
-            <Border Classes="setting-row">
-                <Grid ColumnDefinitions="*, Auto">
-                    <TextBlock Text="Display Name" Classes="setting-label"/>
-
-                    <TextBox Grid.Column="1"
-                             Classes="setting-input"
-                             Text="{Binding DisplayName}"
-                             Watermark="Enter display name"/>
-                </Grid>
-            </Border>
-
-            <Border Classes="setting-row">
-                <Grid ColumnDefinitions="*, Auto">
-                    <TextBlock Text="Profile Name" Classes="setting-label"/>
-
-                    <TextBox Grid.Column="1"
-                             Classes="setting-input"
-                             Text="{Binding ProfileName}"
-                             IsEnabled="False"/>
-                </Grid>
-            </Border>
-
-             <Border Classes="setting-row">
-                <Grid ColumnDefinitions="*, Auto">
-                    <TextBlock Text="Account ID" Classes="setting-label"/>
-
-                    <TextBox Grid.Column="1"
-                             Classes="setting-input"
-                             Text="{Binding AccountId}"
-                             IsEnabled="False"/>
-                </Grid>
-            </Border>
-
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0" Height="32">
-
-                <Border Classes="success-toast"
-                        Classes.visible="{Binding IsSavedMessageVisible}">
-
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <PathIcon Data="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
-                                  Width="14" Height="14"
-                                  Foreground="#1E8E3E"/>
-                        <TextBlock Text="Settings saved"
-                                   VerticalAlignment="Center"
-                                   FontSize="12"
-                                   FontWeight="Medium"
-                                   Foreground="#1E8E3E"/>
-                    </StackPanel>
+                        <TextBox Grid.Column="1" Classes="setting-input"
+                                 Text="{Binding DisplayName}" Watermark="Enter display name"/>
+                    </Grid>
                 </Border>
 
+                <Border Classes="setting-row">
+                    <Grid ColumnDefinitions="Auto, *">
+                        <TextBlock Grid.Column="0" Text="Profile Name" Classes="setting-label"/>
+
+                        <TextBox Grid.Column="1" Classes="setting-input"
+                                 Text="{Binding ProfileName}" IsEnabled="False"/>
+                    </Grid>
+                </Border>
+
+                <Border Classes="setting-row">
+                    <Grid ColumnDefinitions="Auto, *">
+                        <TextBlock Grid.Column="0" Text="Account ID" Classes="setting-label"/>
+
+                        <TextBox Grid.Column="1" Classes="setting-input"
+                                 Text="{Binding AccountId}" IsEnabled="False"/>
+                    </Grid>
+                </Border>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0" Height="32">
+                    <Border Classes="success-toast" Classes.visible="{Binding IsSavedMessageVisible}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
+                                      Width="14" Height="14" Foreground="#1E8E3E"/>
+                            <TextBlock Text="Settings saved" VerticalAlignment="Center"
+                                       FontSize="12" FontWeight="Medium" Foreground="#1E8E3E"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
             </StackPanel>
 
 
-        </StackPanel>
-    </ScrollViewer>
 </UserControl>

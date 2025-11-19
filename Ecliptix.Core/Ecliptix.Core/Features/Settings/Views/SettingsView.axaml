@@ -136,25 +136,35 @@
             </Grid>
         </Border>
 
-        <TransitioningContentControl Grid.Column="1" Content="{Binding CurrentSettingsPage}">
-            <TransitioningContentControl.PageTransition>
-                <CrossFade Duration="0:00:00.250" />
-            </TransitioningContentControl.PageTransition>
 
-            <TransitioningContentControl.DataTemplates>
-                <DataTemplate DataType="{x:Type vm:AccountSettingsViewModel}">
-                    <views:AccountSettingsView />
-                </DataTemplate>
+            <ScrollViewer Grid.Column="1" Padding="40,20">
 
-                <DataTemplate DataType="{x:Type vm:AppearanceSettingsViewModel}">
-                    <views:AppearanceSettingsView />
-                </DataTemplate>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MaxWidth="800" /> <ColumnDefinition Width="Auto" /> </Grid.ColumnDefinitions>
 
-                <DataTemplate DataType="{x:Type vm:SecuritySettingsViewModel}">
-                    <views:SecuritySettingsView />
-                </DataTemplate>
-            </TransitioningContentControl.DataTemplates>
-        </TransitioningContentControl>
+                    <TransitioningContentControl Grid.Column="0" Content="{Binding CurrentSettingsPage}">
+                        <TransitioningContentControl.PageTransition>
+                            <CrossFade Duration="0:00:00.250" />
+                        </TransitioningContentControl.PageTransition>
 
-    </Grid>
+                        <TransitioningContentControl.DataTemplates>
+                            <DataTemplate DataType="{x:Type vm:AccountSettingsViewModel}">
+                                <views:AccountSettingsView />
+                            </DataTemplate>
+                            <DataTemplate DataType="{x:Type vm:AppearanceSettingsViewModel}">
+                                <views:AppearanceSettingsView />
+                            </DataTemplate>
+                            <DataTemplate DataType="{x:Type vm:SecuritySettingsViewModel}">
+                                <views:SecuritySettingsView />
+                            </DataTemplate>
+                        </TransitioningContentControl.DataTemplates>
+                    </TransitioningContentControl>
+
+                </Grid>
+            </ScrollViewer>
+
+        </Grid>
+
+
 </UserControl>

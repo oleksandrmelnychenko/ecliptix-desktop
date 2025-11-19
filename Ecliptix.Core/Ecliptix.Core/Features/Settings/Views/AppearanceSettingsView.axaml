@@ -6,13 +6,13 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="viewModels:AppearanceSettingsViewModel"
              x:Class="Ecliptix.Core.Features.Settings.Views.AppearanceSettingsView">
+
     <UserControl.Resources>
         <SolidColorBrush x:Key="SidebarBackground" Color="#FEFEFE" />
         <SolidColorBrush x:Key="OnSurface" Color="#242424"/>
     </UserControl.Resources>
 
     <UserControl.Styles>
-
         <Style Selector="TextBlock.setting-label">
             <Setter Property="FontSize" Value="14" />
             <Setter Property="Foreground" Value="#242424" />
@@ -21,13 +21,15 @@
         </Style>
 
         <Style Selector="Border.setting-row">
-            <Setter Property="BorderBrush" Value="#F0F0F0" /> <Setter Property="BorderThickness" Value="0,0,0,1" />
-            <Setter Property="Padding" Value="0,16" /> <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="#F0F0F0" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="Padding" Value="0,16" />
+            <Setter Property="Background" Value="Transparent" />
         </Style>
 
         <Style Selector="ComboBox.setting-control">
-            <Setter Property="Width" Value="180" /> <Setter Property="HorizontalAlignment" Value="Right" />
-            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Width" Value="180" />
+            <Setter Property="HorizontalAlignment" Value="Right" /> <Setter Property="CornerRadius" Value="6" />
             <Setter Property="BorderBrush" Value="#E0E0E0" />
             <Setter Property="Background" Value="White" />
             <Setter Property="PlaceholderForeground" Value="#555" />
@@ -37,29 +39,13 @@
             <Setter Property="Background" Value="#FAFAFA" />
             <Setter Property="BorderBrush" Value="#D0D0D0" />
         </Style>
-
-        <Style Selector="Button.ghost-button">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderBrush" Value="#E0E0E0" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="Padding" Value="12,6" />
-            <Setter Property="Foreground" Value="#555" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="FontSize" Value="13" />
-        </Style>
-        <Style Selector="Button.ghost-button:pointerover">
-            <Setter Property="Background" Value="#F5F5F5" />
-            <Setter Property="Foreground" Value="#333" />
-        </Style>
     </UserControl.Styles>
 
-    <ScrollViewer Padding="40,20">
-        <StackPanel MaxWidth="1800">
+        <StackPanel >
 
             <Border Classes="setting-row">
-                <Grid ColumnDefinitions="*, Auto">
-                    <TextBlock Text="Language" Classes="setting-label"/>
+                <Grid ColumnDefinitions="Auto, *">
+                    <TextBlock Grid.Column="0" Text="Language" Classes="setting-label"/>
 
                     <ComboBox Grid.Column="1"
                               Classes="setting-control"
@@ -69,8 +55,8 @@
             </Border>
 
             <Border Classes="setting-row">
-                <Grid ColumnDefinitions="*, Auto">
-                    <TextBlock Text="Font" Classes="setting-label"/>
+                <Grid ColumnDefinitions="Auto, *">
+                    <TextBlock Grid.Column="0" Text="Font" Classes="setting-label"/>
 
                     <ComboBox Grid.Column="1"
                               Classes="setting-control"
@@ -79,8 +65,7 @@
                 </Grid>
             </Border>
 
-
         </StackPanel>
-    </ScrollViewer>
+
 </UserControl>
 
