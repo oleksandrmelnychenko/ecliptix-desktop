@@ -13,9 +13,6 @@ public partial class AccountSettingsView : ReactiveUserControl<AccountSettingsVi
         InitializeComponent();
     }
 
-    private void InitializeComponent()
-    {
-        AvaloniaXamlLoader.Load(this);
-    }
+    private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
 }
 
