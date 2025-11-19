@@ -1,24 +1,16 @@
 using System;
-using System.Reactive;
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Models.Membership;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.Membership;
-using Ecliptix.Core.Services.Common;
-using Ecliptix.Core.Services.Network.Rpc;
-using Ecliptix.Protobuf.Account;
-using Ecliptix.Protobuf.Device;
-using Ecliptix.Protobuf.Protocol;
-using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Membership;
-using Ecliptix.Utilities.Failures.Network;
-using Google.Protobuf;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Serilog;
@@ -29,8 +21,15 @@ namespace Ecliptix.Core.Features.Settings.ViewModels;
 
 //TODO temp
 
-public class AppearanceSettingsViewModel : ReactiveObject { }
-public class SecuritySettingsViewModel : ReactiveObject { }
+public class SettingsMenuItem : ReactiveObject
+{
+    public string Title { get; set; }
+    public string IconData { get; set; }
+
+    public object ViewModel { get; set; }
+
+    [Reactive] public bool IsSelected { get; set; }
+}
 
 public sealed partial class SettingsViewModel : Core.MVVM.ViewModelBase, IActivatableViewModel
 {
@@ -40,12 +39,9 @@ public sealed partial class SettingsViewModel : Core.MVVM.ViewModelBase, IActiva
     private bool _isDisposed;
 
     [Reactive] public object CurrentSettingsPage { get; set; }
+    public ObservableCollection<SettingsMenuItem> MenuItems { get; }
+    public ReactiveCommand<SettingsMenuItem, SystemU> NavigateCommand { get; private set; }
 
-    public AccountSettingsViewModel AccountSettings { get; private set; }
-    public AppearanceSettingsViewModel AppearanceSettings { get; private set; }
-    public SecuritySettingsViewModel SecuritySettings { get; private set; }
-
-    public ReactiveCommand<string, SystemU> NavigateCommand { get; private set; }
     public ReactiveCommand<SystemU, Result<EUnit, LogoutFailure>> LogoutCommand { get; }
 
     [ObservableAsProperty] public bool IsBusy { get; }
@@ -62,21 +58,47 @@ public sealed partial class SettingsViewModel : Core.MVVM.ViewModelBase, IActiva
 
         IObservable<bool> canLogout = this.WhenAnyValue(x => x.IsBusy, isBusy => !isBusy);
 
-        AccountSettings = new AccountSettingsViewModel(networkProvider, localizationService, secureStorageProvider);
-        AppearanceSettings = new AppearanceSettingsViewModel();
-        SecuritySettings = new SecuritySettingsViewModel();
+        AccountSettingsViewModel accountVm = new (networkProvider, localizationService, secureStorageProvider);
+        AppearanceSettingsViewModel appearanceVm = new ();
+        SecuritySettingsViewModel securityVm = new ();
 
-        CurrentSettingsPage = AccountSettings;
 
-        NavigateCommand = ReactiveCommand.Create<string>(page =>
+        MenuItems = new ObservableCollection<SettingsMenuItem>
         {
-            CurrentSettingsPage = page switch
+            new()
             {
-                "Account" => AccountSettings,
-                "Appearance" => AppearanceSettings,
-                "Security" => SecuritySettings,
-                _ => AccountSettings
-            };
+                Title = "Account",
+                IconData = "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z",
+                ViewModel = accountVm,
+                IsSelected = true
+            },
+            new()
+            {
+                Title = "Appearance",
+                IconData = "M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z",
+                ViewModel = appearanceVm
+            },
+            new()
+            {
+                Title = "Security",
+                IconData = "M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z",
+                ViewModel = securityVm
+            }
+        };
+
+        CurrentSettingsPage = MenuItems.First(x => x.IsSelected).ViewModel;
+
+        NavigateCommand = ReactiveCommand.Create<SettingsMenuItem>(item =>
+        {
+            foreach (SettingsMenuItem menuItem in MenuItems)
+            {
+                menuItem.IsSelected = false;
+            }
+
+            item.IsSelected = true;
+
+            CurrentSettingsPage = item.ViewModel;
+
         });
 
         LogoutCommand = ReactiveCommand.CreateFromTask(
