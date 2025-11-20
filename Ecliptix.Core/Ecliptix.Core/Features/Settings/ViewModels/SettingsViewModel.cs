@@ -37,6 +37,7 @@ public sealed partial class SettingsViewModel : Core.MVVM.ViewModelBase, IActiva
     private bool _isDisposed;
 
     [Reactive] public object CurrentSettingsPage { get; set; }
+    [Reactive] public bool IsTransitionReversed { get; set; }
     public ObservableCollection<SettingsMenuItem> MenuItems { get; }
     public ReactiveCommand<SettingsMenuItem, SystemU> NavigateCommand { get; private set; }
 
@@ -86,16 +87,21 @@ public sealed partial class SettingsViewModel : Core.MVVM.ViewModelBase, IActiva
 
         CurrentSettingsPage = MenuItems.First(x => x.IsSelected).ViewModel;
 
-        NavigateCommand = ReactiveCommand.Create<SettingsMenuItem>(item =>
+        NavigateCommand = ReactiveCommand.Create<SettingsMenuItem>(newItem =>
         {
+            SettingsMenuItem? oldItem = MenuItems.FirstOrDefault(x => x.IsSelected);
+            int oldIndex = oldItem != null ? MenuItems.IndexOf(oldItem) : 0;
+            int newIndex = MenuItems.IndexOf(newItem);
+
+            IsTransitionReversed = newIndex < oldIndex;
+
             foreach (SettingsMenuItem menuItem in MenuItems)
             {
                 menuItem.IsSelected = false;
             }
+            newItem.IsSelected = true;
 
-            item.IsSelected = true;
-
-            CurrentSettingsPage = item.ViewModel;
+            CurrentSettingsPage = newItem.ViewModel;
 
         });
 

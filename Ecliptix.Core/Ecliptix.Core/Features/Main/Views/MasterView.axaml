@@ -5,6 +5,8 @@
              xmlns:vm="clr-namespace:Ecliptix.Core.Features.Main.ViewModels"
              xmlns:views="clr-namespace:Ecliptix.Core.Features.Main.Views.Components"
              xmlns:nav="clr-namespace:Ecliptix.Core.Controls.Navigation"
+             xmlns:views1="clr-namespace:Ecliptix.Core.Features.Profile.Views"
+             xmlns:page="clr-namespace:Ecliptix.Core.Shared.Transitions.Page"
              mc:Ignorable="d"
              d:DesignWidth="1200"
              d:DesignHeight="800"
@@ -30,11 +32,27 @@
                                VerticalAlignment="Stretch"
                                ZIndex="1000" />
 
-        <ContentControl Grid.Column="1"
-                        Content="{Binding CurrentView}"
-                        VerticalAlignment="Stretch"
-                        HorizontalAlignment="Stretch"
-                        ZIndex="0" />
+        <TransitioningContentControl Grid.Column="1"
+                                     Content="{Binding CurrentView}"
+                                     IsTransitionReversed="{Binding IsTransitionReversed}"
+                                     VerticalAlignment="Stretch"
+                                     HorizontalAlignment="Stretch"
+                                     ZIndex="0">
+
+            <TransitioningContentControl.PageTransition>
+                <page:SharedAxisPageTransition Duration="0:0:0.400"
+                                               SlideDistance="100"
+                                               Orientation="Vertical"
+                                               FadeThreshold="0.5">
+                    <page:SharedAxisPageTransition.Easing>
+                        <SplineEasing X1="0.2" Y1="0.0" X2="0.0" Y2="1.0"/>
+                    </page:SharedAxisPageTransition.Easing>
+                </page:SharedAxisPageTransition>
+            </TransitioningContentControl.PageTransition>
+
+        </TransitioningContentControl>
+
+
 
         <!-- Profile Menu Overlay -->
         <Border Grid.ColumnSpan="2"

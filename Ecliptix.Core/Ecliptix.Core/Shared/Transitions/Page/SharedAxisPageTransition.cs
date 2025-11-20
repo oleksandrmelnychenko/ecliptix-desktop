@@ -5,25 +5,27 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Animation.Easings;
+using Avalonia.Layout;
 using Avalonia.Media;
 
-namespace Ecliptix.Core.Features.Profile.Views;
+namespace Ecliptix.Core.Shared.Transitions.Page;
 
-public class SlidePageTransition : IPageTransition
+public class SharedAxisPageTransition : IPageTransition
 {
     public TimeSpan Duration { get; set; }
     public Easing Easing { get; set; }
     public double SlideDistance { get; set; }
-
     public double FadeThreshold { get; set; } = 0.5;
+    public Orientation Orientation { get; set; }
 
-    public SlidePageTransition() : this(TimeSpan.FromMilliseconds(300))
+    public SharedAxisPageTransition() : this(TimeSpan.FromMilliseconds(300), Orientation.Horizontal)
     {
     }
 
-    public SlidePageTransition(TimeSpan duration)
+    public SharedAxisPageTransition(TimeSpan duration, Orientation orientation = Orientation.Horizontal)
     {
         Duration = duration;
+        Orientation = orientation;
         Easing = new SplineEasing(0.2, 0.0, 0, 1.0);
         SlideDistance = 90.0;
     }
@@ -49,11 +51,10 @@ public class SlidePageTransition : IPageTransition
             tasks.Add(AnimateAsync(
                 target: from,
                 transform: transform,
-                startX: 0, endX: fromDest,
+                startPos: 0, endPos: fromDest,
                 isExit: true,
                 token: cancellationToken));
         }
-
 
         if (to != null)
         {
@@ -65,7 +66,7 @@ public class SlidePageTransition : IPageTransition
             tasks.Add(AnimateAsync(
                 target: to,
                 transform: transform,
-                startX: toStart, endX: 0,
+                startPos: toStart, endPos: 0,
                 isExit: false,
                 token: cancellationToken));
         }
@@ -78,6 +79,7 @@ public class SlidePageTransition : IPageTransition
             from.RenderTransform = null;
             from.Opacity = 1.0;
         }
+
         if (to != null)
         {
             to.RenderTransform = null;
@@ -88,7 +90,7 @@ public class SlidePageTransition : IPageTransition
     private async Task AnimateAsync(
         Visual target,
         TranslateTransform transform,
-        double startX, double endX,
+        double startPos, double endPos,
         bool isExit,
         CancellationToken token)
     {
@@ -106,7 +108,16 @@ public class SlidePageTransition : IPageTransition
             double progress = Math.Min(elapsed / totalMs, 1.0);
 
             double moveProgress = Easing.Ease(progress);
-            transform.X = startX + (endX - startX) * moveProgress;
+            double currentPos = startPos + (endPos - startPos) * moveProgress;
+
+            if (Orientation == Orientation.Horizontal)
+            {
+                transform.X = currentPos;
+            }
+            else
+            {
+                transform.Y = currentPos;
+            }
 
             if (isExit)
             {
@@ -140,7 +151,16 @@ public class SlidePageTransition : IPageTransition
 
             await Task.Delay(16, token);
         }
-        transform.X = endX;
+
+        if (Orientation == Orientation.Horizontal)
+        {
+            transform.X = endPos;
+        }
+        else
+        {
+            transform.Y = endPos;
+        }
+
         target.Opacity = isExit ? 0.0 : 1.0;
     }
 }
