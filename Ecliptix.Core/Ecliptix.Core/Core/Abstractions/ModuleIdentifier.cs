@@ -9,6 +9,7 @@ public enum ModuleIdentifier
     FEED,
     CHATS,
     SETTINGS,
+    PROFILE
 }
 
 public static class ModuleIdentifierExtensions
@@ -20,6 +21,7 @@ public static class ModuleIdentifierExtensions
         ModuleIdentifier.FEED => "Feed",
         ModuleIdentifier.CHATS => "Chats",
         ModuleIdentifier.SETTINGS => "Settings",
+        ModuleIdentifier.PROFILE => "Profile",
         _ => throw new ArgumentOutOfRangeException(nameof(identifier), identifier, "Unknown module identifier")
     };
 }

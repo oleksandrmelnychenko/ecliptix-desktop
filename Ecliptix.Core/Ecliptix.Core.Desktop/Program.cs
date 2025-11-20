@@ -27,6 +27,7 @@ using Ecliptix.Core.Features.Chats;
 using Ecliptix.Core.Features.Feed;
 using Ecliptix.Core.Features.Main;
 using Ecliptix.Core.Features.Main.ViewModels;
+using Ecliptix.Core.Features.Profile;
 using Ecliptix.Core.Features.Settings;
 using Ecliptix.Core.Features.Splash.ViewModels;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
@@ -465,7 +466,7 @@ public static class Program
         services.AddSingleton<IModuleMessageBus, ModuleMessageBus>();
         services.AddSingleton<IModuleViewFactory>(provider =>
         {
-            ModuleViewFactory factory = new ModuleViewFactory(
+            ModuleViewFactory factory = new(
                 provider.GetRequiredService<IModuleManager>(),
                 provider);
 
@@ -475,6 +476,8 @@ public static class Program
                 Ecliptix.Core.Features.Chats.Views.ChatsView>();
             factory.RegisterView<Ecliptix.Core.Features.Settings.ViewModels.SettingsViewModel,
                 Ecliptix.Core.Features.Settings.Views.SettingsView>();
+            factory.RegisterView<Ecliptix.Core.Features.Profile.ViewModels.ProfileViewModel,
+                Ecliptix.Core.Features.Profile.Views.ProfileView>();
 
             Log.Information("Registered {Count} module views during ModuleViewFactory creation", 3);
 
@@ -493,6 +496,7 @@ public static class Program
         catalog.AddModule<FeedModule>();
         catalog.AddModule<ChatsModule>();
         catalog.AddModule<SettingsModule>();
+        catalog.AddModule<ProfileModule>();
 
         services.AddSingleton<IModuleCatalog>(catalog);
         services.AddSingleton(catalog);
@@ -502,6 +506,7 @@ public static class Program
         services.AddTransient<Ecliptix.Core.Features.Feed.ViewModels.FeedViewModel>();
         services.AddTransient<Ecliptix.Core.Features.Chats.ViewModels.ChatsViewModel>();
         services.AddTransient<Ecliptix.Core.Features.Settings.ViewModels.SettingsViewModel>();
+        services.AddTransient<Ecliptix.Core.Features.Profile.ViewModels.ProfileViewModel>();
 
         services.AddTransient<LanguageSelectorViewModel>();
         services.AddSingleton<BottomSheetViewModel>();

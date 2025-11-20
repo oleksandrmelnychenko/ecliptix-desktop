@@ -1,0 +1,130 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ecliptix.Core.Features.Profile.ViewModels"
+             xmlns:views="clr-namespace:Ecliptix.Core.Features.Profile.Views"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:DataType="vm:ProfileViewModel"
+             x:Class="Ecliptix.Core.Features.Profile.Views.ProfileView">
+
+<UserControl.Resources>
+        <SolidColorBrush x:Key="NavBackground" Color="#FEFEFE" />
+        <BoxShadows x:Key="FloatingShadow">0 4 20 0 #1A000000</BoxShadows>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="Button.nav-icon-button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Margin" Value="4,0" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="44" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.15" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Button.nav-icon-button:pointerover">
+            <Setter Property="Background" Value="#F2F6F7" />
+        </Style>
+
+        <Style Selector="Button.nav-icon-button:pressed">
+            <Setter Property="Background" Value="#E0E6E8" />
+            <Setter Property="RenderTransform" Value="scale(0.95)" />
+        </Style>
+
+        <Style Selector="Button.nav-icon-button.selected">
+            <Setter Property="Background" Value="#F2F6F7" />
+        </Style>
+
+        <Style Selector="PathIcon.nav-icon">
+            <Setter Property="Width" Value="20" />
+            <Setter Property="Height" Value="20" />
+            <Setter Property="Foreground" Value="#5C5C5C" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Foreground" Duration="0:0:0.15" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Button.nav-icon-button.selected PathIcon.nav-icon">
+            <Setter Property="Foreground" Value="#242424" />
+        </Style>
+
+        <Style Selector="Button.nav-icon-button:pointerover PathIcon.nav-icon">
+            <Setter Property="Foreground" Value="#242424" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid>
+        <ScrollViewer Padding="20,20,20,80">
+            <Grid HorizontalAlignment="Center" MaxWidth="800">
+                <TransitioningContentControl Content="{Binding CurrentProfilePage}">
+                    <TransitioningContentControl.PageTransition>
+                        <CrossFade Duration="0:0:0.250" />
+                    </TransitioningContentControl.PageTransition>
+
+                    <TransitioningContentControl.DataTemplates>
+                        <DataTemplate DataType="{x:Type vm:AboutProfileViewModel}">
+                            <views:AboutProfileView/>
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type vm:PersonalPostsProfileViewModel}">
+                            <views:PersonalPostsProfileView />
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type vm:PersonalImagesProfileViewModel}">
+                            <views:PersonalImagesProfileView/>
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type vm:PersonalLikesProfileViewModel}">
+                            <views:PersonalLikesProfileView/>
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type vm:PersonalFavoritesViewModel}">
+                            <views:PersonalFavoritesView/>
+                        </DataTemplate>
+                    </TransitioningContentControl.DataTemplates>
+                </TransitioningContentControl>
+            </Grid>
+        </ScrollViewer>
+
+        <Border VerticalAlignment="Bottom"
+                HorizontalAlignment="Center"
+                Margin="0,0,0,24"
+                Background="{StaticResource NavBackground}"
+                BorderBrush="#E8E8E8"
+                BorderThickness="1"
+                CornerRadius="24"
+                Padding="6"
+                BoxShadow="{StaticResource FloatingShadow}">
+
+            <ItemsControl ItemsSource="{Binding MenuItems}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" Spacing="2" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ProfileMenuItem">
+                        <Button Classes="nav-icon-button"
+                                Classes.selected="{Binding IsSelected}"
+                                Command="{Binding $parent[UserControl].((vm:ProfileViewModel)DataContext).NavigateCommand}"
+                                CommandParameter="{Binding}"
+                                ToolTip.Tip="{Binding Title}"> <PathIcon Classes="nav-icon" Data="{Binding IconData}" />
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Border>
+
+    </Grid>
+</UserControl>
+

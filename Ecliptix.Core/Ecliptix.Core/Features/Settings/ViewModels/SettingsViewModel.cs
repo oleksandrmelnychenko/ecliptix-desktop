@@ -19,8 +19,6 @@ using EUnit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.Features.Settings.ViewModels;
 
-//TODO temp
-
 public class SettingsMenuItem : ReactiveObject
 {
     public string Title { get; set; }

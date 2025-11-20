@@ -51,6 +51,8 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
     public ReactiveCommand<SystemU, SystemU> ToggleProfileMenuCommand { get; }
     public ReactiveCommand<SystemU, Result<Ecliptix.Utilities.Unit, LogoutFailure>> LogoutCommand { get; }
 
+    public NavigationMenuItem ProfileMenuItem { get; }
+
     public NavigationSidebarViewModel(
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
@@ -89,6 +91,14 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
                 TooltipText = "Settings",
                 Type = NavigationMenuItemType.Regular
             }
+
+        };
+
+        ProfileMenuItem = new NavigationMenuItem
+        {
+            Id = "profile",
+            Label = "Profile",
+            Type = NavigationMenuItemType.Regular
         };
 
         SelectedMenuItem = MenuItems[0];
@@ -98,9 +108,17 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
             {
                 if (SelectedMenuItem != menuItem)
                 {
-                    SelectedMenuItem?.IsSelected = false;
+                    if (SelectedMenuItem != null)
+                    {
+                        SelectedMenuItem.IsSelected = false;
+                    }
+
                     SelectedMenuItem = menuItem;
-                    menuItem.IsSelected = true;
+
+                    if (SelectedMenuItem != null)
+                    {
+                        SelectedMenuItem.IsSelected = true;
+                    }
                 }
 
                 return SystemU.Default;

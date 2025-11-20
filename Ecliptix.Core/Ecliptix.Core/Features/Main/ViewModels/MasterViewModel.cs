@@ -56,6 +56,7 @@ public sealed class MasterViewModel : ViewModelBase
                     "home" => ModuleIdentifier.FEED,
                     "chats" => ModuleIdentifier.CHATS,
                     "settings" => ModuleIdentifier.SETTINGS,
+                    "profile" => ModuleIdentifier.PROFILE,
                     _ => null
                 };
 

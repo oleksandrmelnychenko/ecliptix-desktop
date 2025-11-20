@@ -18,7 +18,8 @@ public class MainModule : ModuleBase<MainModuleManifest>
     [
         ModuleIdentifier.FEED,
         ModuleIdentifier.CHATS,
-        ModuleIdentifier.SETTINGS
+        ModuleIdentifier.SETTINGS,
+        ModuleIdentifier.PROFILE
     ];
 
     public override ModuleIdentifier Id => ModuleIdentifier.MAIN;
