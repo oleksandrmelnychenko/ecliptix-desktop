@@ -4,11 +4,12 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Ecliptix.Core.Features.Profile.ViewModels"
              xmlns:views="clr-namespace:Ecliptix.Core.Features.Profile.Views"
+             xmlns:page="clr-namespace:Ecliptix.Core.Shared.Transitions.Page"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="vm:ProfileViewModel"
              x:Class="Ecliptix.Core.Features.Profile.Views.ProfileView">
 
-<UserControl.Resources>
+    <UserControl.Resources>
         <SolidColorBrush x:Key="NavBackground" Color="#FEFEFE" />
         <BoxShadows x:Key="FloatingShadow">0 4 20 0 #1A000000</BoxShadows>
     </UserControl.Resources>
@@ -72,13 +73,14 @@
                                          IsTransitionReversed="{Binding IsTransitionReversed}">
 
                 <TransitioningContentControl.PageTransition>
-                    <views:SlidePageTransition Duration="0:0:0.400"
+                    <page:SharedAxisPageTransition Duration="0:0:0.400"
                                                SlideDistance="90"
-                                               FadeThreshold="0.35">
-                        <views:SlidePageTransition.Easing>
+                                               FadeThreshold="0.35"
+                                               Orientation="Horizontal">
+                        <page:SharedAxisPageTransition.Easing>
                             <SplineEasing X1="0.2" Y1="0.0" X2="0.0" Y2="1.0"/>
-                        </views:SlidePageTransition.Easing>
-                    </views:SlidePageTransition>
+                        </page:SharedAxisPageTransition.Easing>
+                    </page:SharedAxisPageTransition>
                 </TransitioningContentControl.PageTransition>
 
                 <TransitioningContentControl.DataTemplates>
@@ -130,7 +132,6 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </Border>
-
     </Grid>
 </UserControl>
 

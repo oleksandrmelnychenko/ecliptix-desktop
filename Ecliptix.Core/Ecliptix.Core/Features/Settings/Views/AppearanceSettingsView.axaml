@@ -41,8 +41,8 @@
         </Style>
     </UserControl.Styles>
 
-        <StackPanel >
-
+    <ScrollViewer>
+        <StackPanel>
             <Border Classes="setting-row">
                 <Grid ColumnDefinitions="Auto, *">
                     <TextBlock Grid.Column="0" Text="Language" Classes="setting-label"/>
@@ -66,6 +66,6 @@
             </Border>
 
         </StackPanel>
-
+    </ScrollViewer>
 </UserControl>
 

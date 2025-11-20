@@ -85,89 +85,80 @@
 
     </UserControl.Styles>
 
+    <ScrollViewer>
+        <StackPanel>
+            <StackPanel Margin="0,0,0,30" HorizontalAlignment="Center">
+                <Button Classes="avatar-button"
+                        Command="{Binding ChangeAvatarCommand}"
+                        Width="96" Height="96">
+                    <Panel>
+                        <Border Width="96" Height="96" CornerRadius="48" ClipToBounds="True"
+                                Background="#FFF0E0" BorderBrush="#FF6D00" BorderThickness="2">
+                            <TextBlock Text="{Binding ProfileInitials}" VerticalAlignment="Center"
+                                       HorizontalAlignment="Center" FontWeight="Bold" FontSize="32"
+                                       Foreground="#FF6D00"/>
+                        </Border>
+                        </Panel>
+                </Button>
+            </StackPanel>
 
+            <Border Classes="setting-row">
+                <Grid ColumnDefinitions="Auto, *">
+                    <TextBlock Grid.Column="0" Text="Display Name" Classes="setting-label"/>
 
-    <StackPanel>
-        <StackPanel Margin="0,0,0,30" HorizontalAlignment="Center">
-            <Button Classes="avatar-button"
-                    Command="{Binding ChangeAvatarCommand}"
-                    Width="96" Height="96">
-                <Panel>
-                    <Border Width="96" Height="96" CornerRadius="48" ClipToBounds="True"
-                            Background="#FFF0E0" BorderBrush="#FF6D00" BorderThickness="2">
-                        <TextBlock Text="{Binding ProfileInitials}" VerticalAlignment="Center"
-                                   HorizontalAlignment="Center" FontWeight="Bold" FontSize="32"
-                                   Foreground="#FF6D00"/>
-                    </Border>
-                    </Panel>
-            </Button>
-        </StackPanel>
-
-
-        <Border Classes="setting-row">
-            <Grid ColumnDefinitions="Auto, *">
-                <TextBlock Grid.Column="0" Text="Display Name" Classes="setting-label"/>
-
-                <core:HintedTextBox Grid.Column="1"
-                                    Text="{Binding DisplayName}"
-                                    Watermark="Enter display name"
-                                    Hint="Visible to other users"
-
-                                    HorizontalAlignment="Right"
-                                    Width="260"
-                                    Height="56"
-
-                                    TextForeground="#242424"
-                                    HintForeground="#888888"
-                                    MainBorderBrush="Transparent"
-                                    Background="#fff8f8f8"
-                                    CornerRadius="8"
-                                    FontSize="14"
-                                    WatermarkFontSize="14"
-                                    FontWeight="Normal"
-
-                                    HasError="False"
-                                    ErrorText="Name is too short"
-                                    />
-            </Grid>
-        </Border>
-
-
-        <Border Classes="setting-row">
-            <Grid ColumnDefinitions="Auto, *">
-                <TextBlock Grid.Column="0" Text="Profile Name" Classes="setting-label"/>
-
-                <core:HintedTextBox Grid.Column="1"
-                                    Text="{Binding ProfileName}"
-                                    Hint="Unique profile identifier"
-
-                                    HorizontalAlignment="Right"
-                                    Width="260"
-                                    Height="56"
-
-                                    TextForeground="#555555"
-                                    HintForeground="#888888"
-                                    MainBorderBrush="Transparent"
-                                    Background="#F5F5F5"
-                                    CornerRadius="8"
-                                    FontSize="14"
-                                    IsEnabled="False"/>
-            </Grid>
-        </Border>
-
-
-
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0" Height="32">
-            <Border Classes="success-toast" Classes.visible="{Binding IsSavedMessageVisible}">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <PathIcon Data="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
-                              Width="14" Height="14" Foreground="#1E8E3E"/>
-                    <TextBlock Text="Settings saved" VerticalAlignment="Center"
-                               FontSize="12" FontWeight="Medium" Foreground="#1E8E3E"/>
-                </StackPanel>
+                    <core:HintedTextBox Grid.Column="1"
+                                        Text="{Binding DisplayName}"
+                                        Watermark="Enter display name"
+                                        Hint="Visible to other users"
+                                        HorizontalAlignment="Right"
+                                        Width="260"
+                                        Height="56"
+                                        TextForeground="#242424"
+                                        HintForeground="#888888"
+                                        MainBorderBrush="Transparent"
+                                        Background="#fff8f8f8"
+                                        CornerRadius="8"
+                                        FontSize="14"
+                                        WatermarkFontSize="14"
+                                        FontWeight="Normal"
+                                        HasError="False"
+                                        ErrorText="Name is too short"
+                                        />
+                </Grid>
             </Border>
+
+
+            <Border Classes="setting-row">
+                <Grid ColumnDefinitions="Auto, *">
+                    <TextBlock Grid.Column="0" Text="Profile Name" Classes="setting-label"/>
+                    <core:HintedTextBox Grid.Column="1"
+                                        Text="{Binding ProfileName}"
+                                        Hint="Unique profile identifier"
+
+                                        HorizontalAlignment="Right"
+                                        Width="260"
+                                        Height="56"
+
+                                        TextForeground="#555555"
+                                        HintForeground="#888888"
+                                        MainBorderBrush="Transparent"
+                                        Background="#F5F5F5"
+                                        CornerRadius="8"
+                                        FontSize="14"
+                                        IsEnabled="False"/>
+                </Grid>
+            </Border>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0" Height="32">
+                <Border Classes="success-toast" Classes.visible="{Binding IsSavedMessageVisible}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
+                                  Width="14" Height="14" Foreground="#1E8E3E"/>
+                        <TextBlock Text="Settings saved" VerticalAlignment="Center"
+                                   FontSize="12" FontWeight="Medium" Foreground="#1E8E3E"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
         </StackPanel>
-
-    </StackPanel>
-
+    </ScrollViewer>
 </UserControl>

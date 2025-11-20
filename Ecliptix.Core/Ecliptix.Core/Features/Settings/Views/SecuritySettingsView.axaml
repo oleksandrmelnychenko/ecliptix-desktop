@@ -115,7 +115,9 @@
         </Style>
 
     </UserControl.Styles>
-        <StackPanel >
+
+    <ScrollViewer>
+         <StackPanel >
 
             <Border Classes="setting-row">
                 <Grid ColumnDefinitions="Auto, *">
@@ -134,15 +136,12 @@
                              Text="{Binding ConfirmPassword}" Watermark="Re-enter password"/>
                 </Grid>
             </Border>
-
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
                 <Button Classes="accent-button"
                         Command="{Binding ChangePasswordCommand}"
                         Content="Update Password"/>
             </StackPanel>
-
             <Border Height="40" />
-
             <Border Classes="setting-row">
                 <Grid ColumnDefinitions="Auto, *">
                     <TextBlock Grid.Column="0" Text="Two-Factor Authentication" Classes="setting-label"/>
@@ -154,7 +153,6 @@
                     </StackPanel>
                 </Grid>
             </Border>
-
             <Border Classes="setting-row">
                 <Grid ColumnDefinitions="Auto, *">
                     <StackPanel Grid.Column="0" VerticalAlignment="Center">
@@ -175,8 +173,8 @@
                     </Button>
                 </Grid>
             </Border>
-
         </StackPanel>
+    </ScrollViewer>
 
 </UserControl>
 

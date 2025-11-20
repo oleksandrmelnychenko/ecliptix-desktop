@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reactive.Disposables;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -25,8 +26,19 @@ public sealed class MasterViewModel : ViewModelBase
     private readonly CompositeDisposable _disposables = new();
     private bool _isDisposed;
 
+    private int _currentViewIndex = 0;
+
+    private readonly Dictionary<ModuleIdentifier, int> _moduleOrder = new()
+    {
+        { ModuleIdentifier.FEED, 0 },
+        { ModuleIdentifier.CHATS, 1 },
+        { ModuleIdentifier.SETTINGS, 2 },
+        { ModuleIdentifier.PROFILE, 99 }
+    };
+
     [Reactive] public UserControl? CurrentView { get; set; }
     [Reactive] public bool IsLoadingView { get; set; }
+    [Reactive] public bool IsTransitionReversed { get; set; }
 
     public ConnectivityNotificationViewModel ConnectivityNotification { get; }
     public NavigationSidebarViewModel NavigationSidebar { get; }
@@ -45,6 +57,7 @@ public sealed class MasterViewModel : ViewModelBase
         ConnectivityNotification = mainWindowViewModel.ConnectivityNotification;
         NavigationSidebar = new NavigationSidebarViewModel(networkProvider, localizationService, logoutService, profileMenuService, storageProvider);
 
+
         LoadInitialView();
 
         this.WhenAnyValue(x => x.NavigationSidebar.SelectedMenuItem)
@@ -62,13 +75,18 @@ public sealed class MasterViewModel : ViewModelBase
 
                 if (moduleId.HasValue)
                 {
+                    CalculateTransitionDirection(moduleId.Value);
                     await LoadModuleViewAsync(moduleId.Value);
                 }
             })
             .DisposeWith(_disposables);
     }
 
-    private async void LoadInitialView() => await LoadModuleViewAsync(ModuleIdentifier.FEED);
+    private async void LoadInitialView()
+    {
+        _currentViewIndex = _moduleOrder[ModuleIdentifier.FEED];
+        await LoadModuleViewAsync(ModuleIdentifier.FEED);
+    }
 
     private async Task LoadModuleViewAsync(ModuleIdentifier moduleId)
     {
@@ -92,6 +110,17 @@ public sealed class MasterViewModel : ViewModelBase
             IsLoadingView = false;
         }
     }
+
+    private void CalculateTransitionDirection(ModuleIdentifier nextModuleId)
+    {
+        if (_moduleOrder.TryGetValue(nextModuleId, out int nextIndex))
+        {
+            IsTransitionReversed = nextIndex < _currentViewIndex;
+
+            _currentViewIndex = nextIndex;
+        }
+    }
+
 
     protected override void Dispose(bool disposing)
     {

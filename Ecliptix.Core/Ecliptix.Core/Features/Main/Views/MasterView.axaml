@@ -3,24 +3,14 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Ecliptix.Core.Features.Main.ViewModels"
-             xmlns:views="clr-namespace:Ecliptix.Core.Features.Main.Views.Components"
              xmlns:nav="clr-namespace:Ecliptix.Core.Controls.Navigation"
+             xmlns:page="clr-namespace:Ecliptix.Core.Shared.Transitions.Page"
              mc:Ignorable="d"
              d:DesignWidth="1200"
              d:DesignHeight="800"
              x:DataType="vm:MasterViewModel"
              x:Class="Ecliptix.Core.Features.Main.Views.MasterView"
              x:Name="MasterViewControl">
-
-    <!--<UserControl.Background>
-        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
-            <GradientStop Color="#E6F3FF" Offset="0.0" />
-            <GradientStop Color="#F0F8FF" Offset="0.25" />
-            <GradientStop Color="#FFF5E6" Offset="0.5" />
-            <GradientStop Color="#F0F8FF" Offset="0.75" />
-            <GradientStop Color="#E6F3FF" Offset="1.0" />
-        </LinearGradientBrush>
-    </UserControl.Background>-->
 
     <Grid ColumnDefinitions="Auto,*"
           Margin="0,0,0,0">
@@ -30,58 +20,25 @@
                                VerticalAlignment="Stretch"
                                ZIndex="1000" />
 
-        <ContentControl Grid.Column="1"
-                        Content="{Binding CurrentView}"
-                        VerticalAlignment="Stretch"
-                        HorizontalAlignment="Stretch"
-                        ZIndex="0" />
+        <TransitioningContentControl Grid.Column="1"
+                                     Content="{Binding CurrentView}"
+                                     IsTransitionReversed="{Binding IsTransitionReversed}"
+                                     VerticalAlignment="Stretch"
+                                     HorizontalAlignment="Stretch"
+                                     ZIndex="0">
 
-        <!-- Profile Menu Overlay -->
-        <Border Grid.ColumnSpan="2"
-                x:Name="ProfileMenuOverlay"
-                Background="#0D000000"
-                IsVisible="False"
-                Opacity="0"
-                ZIndex="2000"
-                Cursor="Hand"
-                PointerPressed="OnOverlayClicked">
-            <Border.Transitions>
-                <Transitions>
-                    <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
-                </Transitions>
-            </Border.Transitions>
-            <Border.Styles>
-                <Style Selector="Border[IsVisible=True]">
-                    <Setter Property="Opacity" Value="1" />
-                </Style>
-                <Style Selector="Border[IsVisible=False]">
-                    <Setter Property="Opacity" Value="0" />
-                </Style>
-            </Border.Styles>
-        </Border>
+            <TransitioningContentControl.PageTransition>
+                <page:SharedAxisPageTransition Duration="0:0:0.400"
+                                               SlideDistance="100"
+                                               Orientation="Vertical"
+                                               FadeThreshold="0.5">
+                    <page:SharedAxisPageTransition.Easing>
+                        <SplineEasing X1="0.2" Y1="0.0" X2="0.0" Y2="1.0"/>
+                    </page:SharedAxisPageTransition.Easing>
+                </page:SharedAxisPageTransition>
+            </TransitioningContentControl.PageTransition>
 
-        <!-- Logout Button at Bottom Right - On top -->
-        <!--<Button Grid.Row="0"
-                Command="{Binding LogoutCommand}"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Bottom"
-                Margin="0,0,20,20"
-                Width="120"
-                Height="40"
-                Background="{DynamicResource Error}"
-                CornerRadius="8"
-                ToolTip.Tip="Logout"
-                ZIndex="999">
-            <StackPanel Orientation="Horizontal"
-                        Spacing="8">
-                <PathIcon Data="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14l5-5-5-5m5 5H9"
-                          Foreground="{DynamicResource OnError}"
-                          Width="20"
-                          Height="20" />
-                <TextBlock Text="Logout"
-                           Foreground="{DynamicResource OnError}"
-                           VerticalAlignment="Center" />
-            </StackPanel>
-        </Button>-->
+        </TransitioningContentControl>
+
     </Grid>
 </UserControl>
