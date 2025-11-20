@@ -26,9 +26,12 @@ public class ProfileViewModel : Core.MVVM.ViewModelBase, IActivatableViewModel
 {
 
     [Reactive] public object CurrentProfilePage { get; set; }
+    [Reactive] public bool IsTransitionReversed { get; set; }
     public ObservableCollection<ProfileMenuItem> MenuItems { get; }
     public ReactiveCommand<ProfileMenuItem, SystemU> NavigateCommand { get; private set; }
     public ViewModelActivator Activator { get; } = new();
+
+    private int _currentPageIndex;
 
 
     public ProfileViewModel(
@@ -80,9 +83,16 @@ public class ProfileViewModel : Core.MVVM.ViewModelBase, IActivatableViewModel
         };
 
         CurrentProfilePage = MenuItems.First(x => x.IsSelected).ViewModel;
+        _currentPageIndex = 0;
 
         NavigateCommand = ReactiveCommand.Create<ProfileMenuItem>(item =>
         {
+            int newIndex = MenuItems.IndexOf(item);
+
+            IsTransitionReversed = newIndex < _currentPageIndex;
+
+            _currentPageIndex = newIndex;
+
             foreach (ProfileMenuItem menuItem in MenuItems)
             {
                 menuItem.IsSelected = false;

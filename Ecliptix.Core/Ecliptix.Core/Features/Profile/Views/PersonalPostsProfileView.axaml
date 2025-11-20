@@ -48,94 +48,103 @@
         </Style>
     </UserControl.Styles>
 
-    <ScrollViewer>
-        <StackPanel Margin="0,20">
-            <ItemsControl ItemsSource="{Binding Posts}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel Spacing="24"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  Padding="20,20,20,120">
 
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="{x:Type viewModels:ProfilePostItem}">
+        <Grid>
 
-                        <Border Background="Transparent">
-                            <Grid RowDefinitions="Auto, Auto, Auto, Auto, Auto">
+            <StackPanel HorizontalAlignment="Center"
+                        MaxWidth="600"
+                        Spacing="24">
 
-                                <Grid ColumnDefinitions="Auto, *" Margin="0,0,0,12">
-                                    <Border Width="40" Height="40" CornerRadius="20"
+                <ItemsControl ItemsSource="{Binding Posts}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="24"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type viewModels:ProfilePostItem}">
+
+                            <Border Background="Transparent">
+                                <Grid RowDefinitions="Auto, Auto, Auto, Auto, Auto">
+
+                                    <Grid ColumnDefinitions="Auto, *" Margin="0,0,0,12">
+                                        <Border Width="40" Height="40" CornerRadius="20"
+                                                ClipToBounds="True"
+                                                Background="#F0F0F0"
+                                                BorderBrush="#E0E0E0"
+                                                BorderThickness="1">
+                                            <TextBlock Text="{Binding AuthorInitials}"
+                                                       VerticalAlignment="Center"
+                                                       HorizontalAlignment="Center"
+                                                       FontWeight="Bold"
+                                                       Foreground="#999"/>
+                                        </Border>
+
+                                        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding AuthorName}" Classes="author-name"/>
+                                            <TextBlock Text="{Binding AuthorHandle}" Classes="author-handle"/>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <TextBlock Grid.Row="1"
+                                               Text="{Binding Content}"
+                                               Classes="post-content"
+                                               Margin="0,0,0,12"/>
+
+                                    <Border Grid.Row="2"
+                                            IsVisible="{Binding HasImage}"
+                                            CornerRadius="12"
                                             ClipToBounds="True"
-                                            Background="#F0F0F0"
-                                            BorderBrush="#E0E0E0"
-                                            BorderThickness="1">
-                                        <TextBlock Text="{Binding AuthorInitials}"
-                                                   VerticalAlignment="Center"
-                                                   HorizontalAlignment="Center"
-                                                   FontWeight="Bold"
-                                                   Foreground="#999"/>
+                                            Height="300"
+                                            Margin="0,0,0,12"
+                                            Background="{Binding ImagePlaceholderColor}">
+                                        <Panel>
+                                            <PathIcon Data="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"
+                                                      Width="48" Height="48"
+                                                      Foreground="#ffffff"
+                                                      Opacity="0.3"/>
+                                        </Panel>
                                     </Border>
 
-                                    <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding AuthorName}" Classes="author-name"/>
-                                        <TextBlock Text="{Binding AuthorHandle}" Classes="author-handle"/>
+                                    <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="16" Margin="-8,0,0,12">
+                                        <Button Classes="action-button">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <PathIcon Data="M16.5 3C14.76 3 13.09 3.81 12 5.09C10.91 3.81 9.24 3 7.5 3C4.42 3 2 5.42 2 8.5C2 12.28 5.4 15.36 10.55 20.03L12 21.35L13.45 20.03C18.6 15.36 22 12.28 22 8.5C22 5.42 19.58 3 16.5 3ZM12.1 18.55L12 18.65L11.9 18.55C7.14 14.24 4 11.39 4 8.5C4 6.5 5.5 5 7.5 5C9.04 5 10.54 5.99 11.07 7.36H12.94C13.46 5.99 14.96 5 16.5 5C18.5 5 20 6.5 20 8.5C20 11.39 16.86 14.24 12.1 18.55Z" />
+                                                <TextBlock Text="{Binding LikesCount}" VerticalAlignment="Center" FontSize="13"/>
+                                            </StackPanel>
+                                        </Button>
+
+                                        <Button Classes="action-button">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <PathIcon Data="M21.99 4c0-1.1-.89-2-1.99-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4-.01-18zM18 14H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z" />
+                                                <TextBlock Text="{Binding CommentsCount}" VerticalAlignment="Center" FontSize="13"/>
+                                            </StackPanel>
+                                        </Button>
+
+                                        <Button Classes="action-button">
+                                            <PathIcon Data="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z" />
+                                        </Button>
                                     </StackPanel>
+
+                                    <TextBlock Grid.Row="4"
+                                               Text="{Binding TimeAgo}"
+                                               Classes="timestamp"
+                                               Margin="2,0,0,0"/>
+
+                                    <Border Grid.Row="4" Height="1" Background="#EEEEEE" Margin="0,16,0,0"/>
+
                                 </Grid>
+                            </Border>
 
-                                <TextBlock Grid.Row="1"
-                                           Text="{Binding Content}"
-                                           Classes="post-content"
-                                           Margin="0,0,0,12"/>
-
-                                <Border Grid.Row="2"
-                                        IsVisible="{Binding HasImage}"
-                                        CornerRadius="12"
-                                        ClipToBounds="True"
-                                        Height="250"
-                                        Margin="0,0,0,12"
-                                        Background="{Binding ImagePlaceholderColor}">
-                                    <Panel>
-                                        <PathIcon Data="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"
-                                                  Width="48" Height="48"
-                                                  Foreground="#ffffff"
-                                                  Opacity="0.3"/>
-                                    </Panel>
-                                </Border>
-
-                                <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="16" Margin="-8,0,0,12">
-                                    <Button Classes="action-button">
-                                        <StackPanel Orientation="Horizontal" Spacing="6">
-                                            <PathIcon Data="M16.5 3C14.76 3 13.09 3.81 12 5.09C10.91 3.81 9.24 3 7.5 3C4.42 3 2 5.42 2 8.5C2 12.28 5.4 15.36 10.55 20.03L12 21.35L13.45 20.03C18.6 15.36 22 12.28 22 8.5C22 5.42 19.58 3 16.5 3ZM12.1 18.55L12 18.65L11.9 18.55C7.14 14.24 4 11.39 4 8.5C4 6.5 5.5 5 7.5 5C9.04 5 10.54 5.99 11.07 7.36H12.94C13.46 5.99 14.96 5 16.5 5C18.5 5 20 6.5 20 8.5C20 11.39 16.86 14.24 12.1 18.55Z" />
-                                            <TextBlock Text="{Binding LikesCount}" VerticalAlignment="Center" FontSize="13"/>
-                                        </StackPanel>
-                                    </Button>
-
-                                    <Button Classes="action-button">
-                                        <StackPanel Orientation="Horizontal" Spacing="6">
-                                            <PathIcon Data="M21.99 4c0-1.1-.89-2-1.99-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4-.01-18zM18 14H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z" />
-                                            <TextBlock Text="{Binding CommentsCount}" VerticalAlignment="Center" FontSize="13"/>
-                                        </StackPanel>
-                                    </Button>
-
-                                    <Button Classes="action-button">
-                                        <PathIcon Data="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z" />
-                                    </Button>
-                                </StackPanel>
-
-                                <TextBlock Grid.Row="4"
-                                           Text="{Binding TimeAgo}"
-                                           Classes="timestamp"
-                                           Margin="2,0,0,0"/>
-
-                                <Border Grid.Row="4" Height="1" Background="#EEEEEE" Margin="0,16,0,0"/>
-
-                            </Grid>
-                        </Border>
-
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Grid>
     </ScrollViewer>
 </UserControl>
 

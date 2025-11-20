@@ -51,69 +51,76 @@
         </Style>
     </UserControl.Styles>
 
-    <ScrollViewer>
-        <StackPanel HorizontalAlignment="Center" MaxWidth="400" Spacing="0">
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  Padding="0,40,0,120">
 
-            <Border Width="120" Height="120"
-                    CornerRadius="60"
-                    Margin="0,0,0,24"
-                    HorizontalAlignment="Center"
-                    BorderBrush="#E0E0E0"
-                    BorderThickness="1">
-                <Border.Background>
-                    <SolidColorBrush Color="#F5F5F5"/>
-                </Border.Background>
+        <Grid>
 
-                <Grid>
-                    <TextBlock Text="{Binding Initials}"
-                               VerticalAlignment="Center"
-                               HorizontalAlignment="Center"
-                               FontSize="36"
-                               FontWeight="Bold"
-                               Foreground="#CCCCCC"/>
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        MaxWidth="400"
+                        Spacing="0">
+
+                <Border Width="120" Height="120"
+                        CornerRadius="60"
+                        Margin="0,0,0,24"
+                        HorizontalAlignment="Center"
+                        BorderBrush="#E0E0E0"
+                        BorderThickness="1">
+                    <Border.Background>
+                        <SolidColorBrush Color="#F5F5F5"/>
+                    </Border.Background>
+                    <Grid>
+                        <TextBlock Text="{Binding Initials}"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Center"
+                                   FontSize="36"
+                                   FontWeight="Bold"
+                                   Foreground="#CCCCCC"/>
+                    </Grid>
+                </Border>
+
+                <TextBlock Text="{Binding DisplayName}" Classes="h1" Margin="0,0,0,8"/>
+                <TextBlock Text="{Binding Handle}" Classes="handle" Margin="0,0,0,24"/>
+
+                <TextBlock Text="{Binding Bio}" Classes="bio" Margin="0,0,0,24"/>
+
+                <StackPanel Spacing="8" HorizontalAlignment="Center" Margin="0,0,0,32">
+                    <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                       <TextBlock Text="{Binding Location}" Classes="meta"/>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                        <PathIcon Data="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zm-8 4H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z"
+                                  Width="14" Height="14"
+                                  Foreground="#888888"
+                                  VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding JoinedDate}" Classes="meta"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <Border Height="1" Background="#EEEEEE" Margin="0,0,0,24"/>
+
+                <Grid ColumnDefinitions="*,*,*">
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="{Binding PostsCount}" Classes="stat-value"/>
+                        <TextBlock Text="Posts" Classes="stat-label"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="{Binding FollowersCount}" Classes="stat-value"/>
+                        <TextBlock Text="Followers" Classes="stat-label"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="{Binding FollowingCount}" Classes="stat-value"/>
+                        <TextBlock Text="Following" Classes="stat-label"/>
+                    </StackPanel>
                 </Grid>
-            </Border>
 
-            <TextBlock Text="{Binding DisplayName}" Classes="h1" Margin="0,0,0,8"/>
-            <TextBlock Text="{Binding Handle}" Classes="handle" Margin="0,0,0,24"/>
-
-            <TextBlock Text="{Binding Bio}" Classes="bio" Margin="0,0,0,24"/>
-
-            <StackPanel Spacing="8" HorizontalAlignment="Center" Margin="0,0,0,32">
-
-                <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                   <TextBlock Text="{Binding Location}" Classes="meta"/>
-                </StackPanel>
-
-                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-                    <PathIcon Data="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zm-8 4H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z"
-                              Width="14" Height="14"
-                              Foreground="#888888"
-                              VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding JoinedDate}" Classes="meta"/>
-                </StackPanel>
             </StackPanel>
-
-            <Border Height="1" Background="#EEEEEE" Margin="0,0,0,24"/>
-
-            <Grid ColumnDefinitions="*,*,*">
-                <StackPanel Grid.Column="0">
-                    <TextBlock Text="{Binding PostsCount}" Classes="stat-value"/>
-                    <TextBlock Text="Posts" Classes="stat-label"/>
-                </StackPanel>
-
-                <StackPanel Grid.Column="1">
-                    <TextBlock Text="{Binding FollowersCount}" Classes="stat-value"/>
-                    <TextBlock Text="Followers" Classes="stat-label"/>
-                </StackPanel>
-
-                <StackPanel Grid.Column="2">
-                    <TextBlock Text="{Binding FollowingCount}" Classes="stat-value"/>
-                    <TextBlock Text="Following" Classes="stat-label"/>
-                </StackPanel>
-            </Grid>
-
-        </StackPanel>
+        </Grid>
     </ScrollViewer>
 </UserControl>
 

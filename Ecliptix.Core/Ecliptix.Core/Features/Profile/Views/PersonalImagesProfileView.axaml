@@ -7,54 +7,59 @@
              x:DataType="viewModels:PersonalImagesProfileViewModel"
              x:Class="Ecliptix.Core.Features.Profile.Views.PersonalImagesProfileView">
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" MinWidth="800">
+   <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  Padding="20,20,20,120">
 
-        <Border Padding="20,20,20,100"
-                HorizontalAlignment="Stretch">
+        <Grid>
 
-            <ItemsControl ItemsSource="{Binding Images}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <UniformGrid Columns="2"
-                                     HorizontalAlignment="Stretch"
-                                     VerticalAlignment="Top"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
+            <StackPanel HorizontalAlignment="Center"
+                        MaxWidth="800"
+                        Width="{Binding $parent[ScrollViewer].Bounds.Width}"
+                        Spacing="0">
+                <ItemsControl ItemsSource="{Binding Images}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="2"
+                                         HorizontalAlignment="Stretch"
+                                         VerticalAlignment="Top"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
 
-                <ItemsControl.ItemContainerTheme>
-                    <ControlTheme TargetType="ContentPresenter" x:DataType="x:Object">
-                        <Setter Property="Margin" Value="8"/>
-                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                        <Setter Property="VerticalContentAlignment" Value="Stretch"/>
-                    </ControlTheme>
-                </ItemsControl.ItemContainerTheme>
+                    <ItemsControl.ItemContainerTheme>
+                        <ControlTheme TargetType="ContentPresenter" x:DataType="x:Object">
+                            <Setter Property="Margin" Value="6"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+                        </ControlTheme>
+                    </ItemsControl.ItemContainerTheme>
 
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="{x:Type viewModels:ProfileImageItem}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type viewModels:ProfileImageItem}">
 
-                        <Border CornerRadius="12"
-                                ClipToBounds="True"
-                                Height="240"
-                                Background="{Binding PlaceholderColor}"
-                                BorderBrush="#E0E0E0"
-                                BorderThickness="1"
-                                HorizontalAlignment="Stretch">
+                            <Border CornerRadius="12"
+                                    ClipToBounds="True"
+                                    Height="240"
+                                    Background="{Binding PlaceholderColor}"
+                                    BorderBrush="#E0E0E0"
+                                    BorderThickness="1"
+                                    HorizontalAlignment="Stretch">
 
-                            <Panel>
-                                <PathIcon Data="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"
-                                          Width="48" Height="48"
-                                          Foreground="#ffffff"
-                                          Opacity="0.3"
-                                          HorizontalAlignment="Center"
-                                          VerticalAlignment="Center"/>
-                            </Panel>
-                        </Border>
+                                <Panel>
+                                    <PathIcon Data="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"
+                                              Width="48" Height="48"
+                                              Foreground="#ffffff"
+                                              Opacity="0.3"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                                </Panel>
+                            </Border>
 
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-
-        </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Grid>
     </ScrollViewer>
 </UserControl>
 
