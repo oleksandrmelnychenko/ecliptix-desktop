@@ -10,7 +10,7 @@ using Avalonia.Media;
 
 namespace Ecliptix.Core.Shared.Transitions.Page;
 
-public class SharedAxisPageTransition : IPageTransition
+public sealed class SharedAxisPageTransition : IPageTransition
 {
     public TimeSpan Duration { get; set; }
     public Easing Easing { get; set; }
@@ -18,7 +18,7 @@ public class SharedAxisPageTransition : IPageTransition
     public double FadeThreshold { get; set; } = 0.5;
     public Orientation Orientation { get; set; }
 
-    public SharedAxisPageTransition() : this(TimeSpan.FromMilliseconds(300), Orientation.Horizontal)
+    public SharedAxisPageTransition() : this(TimeSpan.FromMilliseconds(300))
     {
     }
 
@@ -59,7 +59,7 @@ public class SharedAxisPageTransition : IPageTransition
         if (to != null)
         {
             to.IsVisible = true;
-            TranslateTransform transform = new TranslateTransform();
+            TranslateTransform transform = new();
             to.RenderTransform = transform;
             to.Opacity = 0;
 

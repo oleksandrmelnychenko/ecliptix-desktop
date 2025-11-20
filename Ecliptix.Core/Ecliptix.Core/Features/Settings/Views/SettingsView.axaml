@@ -134,37 +134,35 @@
             </Grid>
         </Border>
 
-        <ScrollViewer Grid.Column="1" Padding="12,16">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" MaxWidth="800" /> <ColumnDefinition Width="Auto" /> </Grid.ColumnDefinitions>
-                <TransitioningContentControl Grid.Column="0"
-                                             Content="{Binding CurrentSettingsPage}"
-                                             IsTransitionReversed="{Binding IsTransitionReversed}">
-                    <TransitioningContentControl.PageTransition>
-                        <page:SharedAxisPageTransition Duration="0:0:0.300"
-                                                       Orientation="Vertical"
-                                                       SlideDistance="60"
-                                                       FadeThreshold="0.5">
-                            <page:SharedAxisPageTransition.Easing>
-                                <SplineEasing X1="0.2" Y1="0.0" X2="0.0" Y2="1.0"/>
-                            </page:SharedAxisPageTransition.Easing>
-                        </page:SharedAxisPageTransition>
-                    </TransitioningContentControl.PageTransition>
-                    <TransitioningContentControl.DataTemplates>
-                        <DataTemplate DataType="{x:Type vm:AccountSettingsViewModel}">
-                            <views:AccountSettingsView />
-                        </DataTemplate>
-                        <DataTemplate DataType="{x:Type vm:AppearanceSettingsViewModel}">
-                            <views:AppearanceSettingsView />
-                        </DataTemplate>
-                        <DataTemplate DataType="{x:Type vm:SecuritySettingsViewModel}">
-                            <views:SecuritySettingsView />
-                        </DataTemplate>
-                    </TransitioningContentControl.DataTemplates>
-                </TransitioningContentControl>
-            </Grid>
-        </ScrollViewer>
+        <Grid Grid.Column="1" Margin="12,16" >
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MaxWidth="800" /> <ColumnDefinition Width="Auto" /> </Grid.ColumnDefinitions>
+            <TransitioningContentControl Grid.Column="0"
+                                         Content="{Binding CurrentSettingsPage}"
+                                         IsTransitionReversed="{Binding IsTransitionReversed}">
+                <TransitioningContentControl.PageTransition>
+                    <page:SharedAxisPageTransition Duration="0:0:0.300"
+                                                   Orientation="Vertical"
+                                                   SlideDistance="60"
+                                                   FadeThreshold="0.5">
+                        <page:SharedAxisPageTransition.Easing>
+                            <SplineEasing X1="0.2" Y1="0.0" X2="0.0" Y2="1.0"/>
+                        </page:SharedAxisPageTransition.Easing>
+                    </page:SharedAxisPageTransition>
+                </TransitioningContentControl.PageTransition>
+                <TransitioningContentControl.DataTemplates>
+                    <DataTemplate DataType="{x:Type vm:AccountSettingsViewModel}">
+                        <views:AccountSettingsView />
+                    </DataTemplate>
+                    <DataTemplate DataType="{x:Type vm:AppearanceSettingsViewModel}">
+                        <views:AppearanceSettingsView />
+                    </DataTemplate>
+                    <DataTemplate DataType="{x:Type vm:SecuritySettingsViewModel}">
+                        <views:SecuritySettingsView />
+                    </DataTemplate>
+                </TransitioningContentControl.DataTemplates>
+            </TransitioningContentControl>
+        </Grid>
 
     </Grid>
 </UserControl>
