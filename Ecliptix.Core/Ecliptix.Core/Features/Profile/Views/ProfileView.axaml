@@ -9,7 +9,7 @@
              x:DataType="vm:ProfileViewModel"
              x:Class="Ecliptix.Core.Features.Profile.Views.ProfileView">
 
-<UserControl.Resources>
+    <UserControl.Resources>
         <SolidColorBrush x:Key="NavBackground" Color="#FEFEFE" />
         <BoxShadows x:Key="FloatingShadow">0 4 20 0 #1A000000</BoxShadows>
     </UserControl.Resources>
@@ -132,7 +132,6 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </Border>
-
     </Grid>
 </UserControl>
 
