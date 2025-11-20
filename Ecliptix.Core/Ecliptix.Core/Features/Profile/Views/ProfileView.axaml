@@ -67,8 +67,7 @@
     </UserControl.Styles>
 
     <Grid>
-        <ScrollViewer Padding="20,20,20,80">
-            <Grid HorizontalAlignment="Center" MaxWidth="800">
+        <Grid HorizontalAlignment="Center" MaxWidth="800">
                 <TransitioningContentControl Content="{Binding CurrentProfilePage}">
                     <TransitioningContentControl.PageTransition>
                         <CrossFade Duration="0:0:0.250" />
@@ -93,7 +92,6 @@
                     </TransitioningContentControl.DataTemplates>
                 </TransitioningContentControl>
             </Grid>
-        </ScrollViewer>
 
         <Border VerticalAlignment="Bottom"
                 HorizontalAlignment="Center"
