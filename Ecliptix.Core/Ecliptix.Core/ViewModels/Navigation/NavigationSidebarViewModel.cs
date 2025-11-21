@@ -91,9 +91,9 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
             new NavigationMenuItem
             {
                 Id = "home",
-                Label = "Feed",
-                IconPath = "FeedIconData",
-                TooltipText = "Feed",
+                Label = "Home",
+                IconPath = "HomeIconData",
+                TooltipText = "Home",
                 Type = NavigationMenuItemType.Regular
             },
             new NavigationMenuItem

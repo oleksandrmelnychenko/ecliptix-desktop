@@ -82,6 +82,22 @@
       <DependentUpon>BottomSheetControl.axaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Features\NewContent\Views\CreateMenuPopup.axaml.cs">
+      <DependentUpon>CreateMenuPopup.axaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Features\NewContent\Views\NewChannelView.axaml.cs">
+      <DependentUpon>NewChannelView.axaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Features\NewContent\Views\NewGroupChatView.axaml.cs">
+      <DependentUpon>NewGroupChatView.axaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Features\NewContent\Views\NewPostView.axaml.cs">
+      <DependentUpon>NewPostView.axaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <UpToDateCheckInput Remove="Styles\BaseColors.axaml" />
