@@ -110,20 +110,22 @@
                 BorderBrush="#E8E8E8"
                 BorderThickness="1"
                 CornerRadius="100"
-                Padding="8,6"
+                Padding="12,6"
                 BoxShadow="{StaticResource FloatingShadow}">
-
-            <ItemsControl ItemsSource="{Binding MenuItems}">
+            <ItemsControl ItemsSource="{Binding MenuItems}"
+                          ClipToBounds="False">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal" Spacing="6" />
+                        <StackPanel Orientation="Horizontal" Spacing="8" ClipToBounds="False" />
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
 
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:ProfileMenuItem">
 
-                        <Panel Width="44" Height="44" VerticalAlignment="Center">
+                        <Panel Width="44" Height="44"
+                               VerticalAlignment="Center"
+                               ClipToBounds="False">
 
                             <Button Classes="nav-icon-button"
                                     HorizontalAlignment="Stretch"
@@ -135,12 +137,12 @@
                                 <PathIcon Classes="nav-icon" Data="{Binding IconData}" />
                             </Button>
 
-                            <Ellipse Width="5" Height="5"
+                            <Ellipse Width="8" Height="8"
                                      Fill="{StaticResource AccentDotColor}"
                                      HorizontalAlignment="Right"
                                      VerticalAlignment="Center"
                                      IsVisible="{Binding IsSelected}"
-                                     Margin="0,0,-2.5,0"
+                                     Margin="0,0,-4,0"
                                      IsHitTestVisible="False"/>
                         </Panel>
 
