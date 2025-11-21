@@ -135,6 +135,14 @@
             <Setter Property="Foreground" Value="#242424" />
         </Style>
 
+        <Style Selector="FlyoutPresenter.transparent-flyout">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="0" />
+        </Style>
+
 
     </UserControl.Styles>
 
@@ -197,11 +205,8 @@
 
             <Button.Flyout>
                 <Flyout Placement="RightEdgeAlignedBottom"
-                        ShowMode="TransientWithDismissOnPointerMoveAway">
-                    <Flyout.FlyoutPresenterClasses>
-                        <OnPlatform Default="nopadding"/>
-                    </Flyout.FlyoutPresenterClasses>
-
+                        ShowMode="TransientWithDismissOnPointerMoveAway"
+                        FlyoutPresenterClasses="transparent-flyout">
                     <newContent:CreateMenuPopup DataContext="{Binding CreateMenuVm}" />
                 </Flyout>
             </Button.Flyout>
@@ -216,7 +221,6 @@
             </StackPanel>
         </Button>
 
-        <!-- User Profile Button (Independent) -->
         <Button Grid.Row="2"
                 Classes="copilot-sidebar-button"
                 Classes.selected="{Binding ProfileMenuItem.IsSelected}"
@@ -234,89 +238,6 @@
                            Text="Profile" />
             </StackPanel>
         </Button>
-
-        <!-- ~1~ Profile Menu Popup @1@ -->
-        <!-- <Popup Grid.Row="2" -->
-        <!--        x:Name="ProfileMenuPopup" -->
-        <!--        IsOpen="False" -->
-        <!--        PlacementTarget="{Binding #ProfileButton}" -->
-        <!--        Placement="TopEdgeAlignedLeft" -->
-        <!--        HorizontalOffset="0" -->
-        <!--        VerticalOffset="-5" -->
-        <!--        WindowManagerAddShadowHint="False"> -->
-        <!--     <Border Width="280" -->
-        <!--             Background="Transparent" -->
-        <!--             BorderBrush="Transparent" -->
-        <!--             BorderThickness="0" -->
-        <!--             Padding="12" -->
-        <!--             Opacity="0" -->
-        <!--             RenderTransform="translateY(10px)"> -->
-        <!--         <Border.Effect> -->
-        <!--             <DropShadowEffect Color="#000000" -->
-        <!--                               BlurRadius="20" -->
-        <!--                               Opacity="0.15" -->
-        <!--                               OffsetX="0" -->
-        <!--                               OffsetY="4" /> -->
-        <!--         </Border.Effect> -->
-        <!--         <Border Background="#FCFEFF" -->
-        <!--                 BorderBrush="Transparent" -->
-        <!--                 BorderThickness="0" -->
-        <!--                 CornerRadius="12" -->
-        <!--                 Padding="8" -->
-        <!--                 ClipToBounds="True"> -->
-        <!--         <Border.Transitions> -->
-        <!--             <Transitions> -->
-        <!--                 <DoubleTransition Property="Opacity" Duration="0:0:0.15" /> -->
-        <!--                 <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15" Easing="CubicEaseOut" /> -->
-        <!--             </Transitions> -->
-        <!--         </Border.Transitions> -->
-        <!-- -->
-        <!--         <StackPanel Spacing="8"> -->
-        <!--             ~1~ Add Account Option @1@ -->
-        <!--             <Button Background="Transparent" -->
-        <!--                     BorderThickness="0" -->
-        <!--                     Padding="12,10" -->
-        <!--                     HorizontalContentAlignment="Left" -->
-        <!--                     CornerRadius="8" -->
-        <!--                     Cursor="Hand"> -->
-        <!--                 <Button.Styles> -->
-        <!--                     <Style Selector="Button:pointerover"> -->
-        <!--                         <Setter Property="Background" Value="#F2F6F7" /> -->
-        <!--                     </Style> -->
-        <!--                 </Button.Styles> -->
-        <!--                 <TextBlock Text="{Binding AddAccountText}" -->
-        <!--                            FontSize="13" -->
-        <!--                            Foreground="#242424" -->
-        <!--                            TextWrapping="Wrap" /> -->
-        <!--             </Button> -->
-        <!-- -->
-        <!--             ~1~ Separator @1@ -->
-        <!--             <Border Height="1" Background="#E8E8E8" Margin="8,4" /> -->
-        <!-- -->
-        <!--             ~1~ Logout Option @1@ -->
-        <!--             <Button Background="Transparent" -->
-        <!--                     BorderThickness="0" -->
-        <!--                     Padding="12,10" -->
-        <!--                     HorizontalContentAlignment="Left" -->
-        <!--                     CornerRadius="8" -->
-        <!--                     Cursor="Hand" -->
-        <!--                     Command="{Binding LogoutCommand}" -->
-        <!--                     x:Name="LogoutButton"> -->
-        <!--                 <Button.Styles> -->
-        <!--                     <Style Selector="Button:pointerover"> -->
-        <!--                         <Setter Property="Background" Value="#F2F6F7" /> -->
-        <!--                     </Style> -->
-        <!--                 </Button.Styles> -->
-        <!--                 <TextBlock FontSize="13" Foreground="#242424"> -->
-        <!--                     <Run Text="{Binding LogoutText}" /> -->
-        <!--                     <LineBreak /> -->
-        <!--                     <Run Text="{Binding UserDisplayName}" Foreground="#5C5C5C" /> -->
-        <!--                 </TextBlock> -->
-        <!--             </Button> -->
-        <!--         </StackPanel> -->
-        <!--         </Border> -->
-        <!--     </Border> -->
-        <!-- </Popup> -->
 
     </Grid>
 </UserControl>

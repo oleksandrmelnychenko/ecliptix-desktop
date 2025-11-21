@@ -25,13 +25,18 @@
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
+
+        <Style Selector="PathIcon.menu-icon">
+            <Setter Property="Width" Value="20"/>
+            <Setter Property="Height" Value="20"/>
+            <Setter Property="Foreground" Value="#757575"/> </Style>
     </UserControl.Styles>
 
     <Border Background="#FCFEFF"
             CornerRadius="12"
             Padding="4"
-            Margin="10">
-        <Border.Effect>
+            Margin="10"
+            Width="220"> <Border.Effect>
             <DropShadowEffect Color="#000000" BlurRadius="20" Opacity="0.1" OffsetX="0" OffsetY="4"/>
         </Border.Effect>
 
@@ -40,18 +45,14 @@
                 <DataTemplate x:DataType="newContent:CreateMenuItem">
 
                     <Button Classes="menu-item"
-                            HorizontalAlignment="Stretch"
-                            HorizontalContentAlignment="Left"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Padding="12,10"
-                            Cursor="Hand"
-                            CornerRadius="8"
-
                             Command="{Binding $parent[UserControl].((newContent:CreateMenuViewModel)DataContext).SelectActionCommand}"
                             CommandParameter="{Binding ActionType}">
 
-                        <StackPanel Orientation="Horizontal" Spacing="12">
+                        <StackPanel Orientation="Horizontal" Spacing="16">
+
+                            <PathIcon Classes="menu-icon"
+                                      Data="{Binding IconGeometryData}" />
+
                             <TextBlock Text="{Binding Label}"
                                        Foreground="#242424"
                                        VerticalAlignment="Center"/>
