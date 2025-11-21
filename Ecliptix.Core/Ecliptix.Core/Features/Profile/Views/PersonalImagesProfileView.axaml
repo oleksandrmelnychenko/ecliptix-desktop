@@ -8,8 +8,7 @@
              x:Class="Ecliptix.Core.Features.Profile.Views.PersonalImagesProfileView">
 
    <ScrollViewer VerticalScrollBarVisibility="Auto"
-                  HorizontalScrollBarVisibility="Disabled"
-                  Padding="20,20,20,120">
+                  HorizontalScrollBarVisibility="Disabled">
 
         <Grid>
 

@@ -52,8 +52,7 @@
     </UserControl.Styles>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto"
-                  HorizontalScrollBarVisibility="Disabled"
-                  Padding="0,40,0,120">
+                  HorizontalScrollBarVisibility="Disabled">
 
         <Grid>
 

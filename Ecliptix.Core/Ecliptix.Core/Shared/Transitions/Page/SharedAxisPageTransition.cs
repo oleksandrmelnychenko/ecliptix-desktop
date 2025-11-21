@@ -7,15 +7,20 @@ using Avalonia.Animation;
 using Avalonia.Animation.Easings;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
 
 namespace Ecliptix.Core.Shared.Transitions.Page;
 
 public sealed class SharedAxisPageTransition : IPageTransition
 {
     public TimeSpan Duration { get; set; }
+
     public Easing Easing { get; set; }
+
     public double SlideDistance { get; set; }
+
     public double FadeThreshold { get; set; } = 0.5;
+
     public Orientation Orientation { get; set; }
 
     public SharedAxisPageTransition() : this(TimeSpan.FromMilliseconds(300))
@@ -37,7 +42,7 @@ public sealed class SharedAxisPageTransition : IPageTransition
             return;
         }
 
-        List<Task> tasks = new List<Task>();
+        List<Task> tasks = new();
         double distance = SlideDistance;
 
         double fromDest = forward ? -distance : distance;
@@ -45,15 +50,15 @@ public sealed class SharedAxisPageTransition : IPageTransition
 
         if (from != null)
         {
-            TranslateTransform transform = new TranslateTransform();
+            TranslateTransform transform = new();
             from.RenderTransform = transform;
 
-            tasks.Add(AnimateAsync(
+            tasks.Add(RunAnimationLoop(
                 target: from,
                 transform: transform,
                 startPos: 0, endPos: fromDest,
                 isExit: true,
-                token: cancellationToken));
+                cancellationToken));
         }
 
         if (to != null)
@@ -63,12 +68,12 @@ public sealed class SharedAxisPageTransition : IPageTransition
             to.RenderTransform = transform;
             to.Opacity = 0;
 
-            tasks.Add(AnimateAsync(
+            tasks.Add(RunAnimationLoop(
                 target: to,
                 transform: transform,
                 startPos: toStart, endPos: 0,
                 isExit: false,
-                token: cancellationToken));
+                cancellationToken));
         }
 
         await Task.WhenAll(tasks);
@@ -87,80 +92,88 @@ public sealed class SharedAxisPageTransition : IPageTransition
         }
     }
 
-    private async Task AnimateAsync(
+    private Task RunAnimationLoop(
         Visual target,
         TranslateTransform transform,
         double startPos, double endPos,
         bool isExit,
         CancellationToken token)
     {
+        TaskCompletionSource tcs = new();
         DateTime startTime = DateTime.UtcNow;
         double totalMs = Duration.TotalMilliseconds;
 
-        while (true)
-        {
-            if (token.IsCancellationRequested)
+        DispatcherTimer timer = new (
+            TimeSpan.Zero,
+            DispatcherPriority.Render,
+            (sender, e) =>
             {
-                break;
-            }
-
-            double elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
-            double progress = Math.Min(elapsed / totalMs, 1.0);
-
-            double moveProgress = Easing.Ease(progress);
-            double currentPos = startPos + (endPos - startPos) * moveProgress;
-
-            if (Orientation == Orientation.Horizontal)
-            {
-                transform.X = currentPos;
-            }
-            else
-            {
-                transform.Y = currentPos;
-            }
-
-            if (isExit)
-            {
-                if (progress < FadeThreshold)
+                if (token.IsCancellationRequested)
                 {
-                    double localProgress = progress / FadeThreshold;
-                    target.Opacity = 1.0 - localProgress;
+                    (sender as DispatcherTimer)?.Stop();
+                    tcs.TrySetCanceled();
+                    return;
+                }
+
+                double elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                double progress = Math.Min(elapsed / totalMs, 1.0);
+
+                double moveProgress = Easing.Ease(progress);
+                double currentPos = startPos + (endPos - startPos) * moveProgress;
+
+                if (Orientation == Orientation.Horizontal)
+                {
+                    transform.X = currentPos;
                 }
                 else
                 {
-                    target.Opacity = 0.0;
+                    transform.Y = currentPos;
                 }
-            }
-            else
-            {
-                if (progress < FadeThreshold)
+
+                if (isExit)
                 {
-                    target.Opacity = 0.0;
+                    if (progress < FadeThreshold)
+                    {
+                        double localProgress = progress / FadeThreshold;
+                        target.Opacity = 1.0 - localProgress;
+                    }
+                    else
+                    {
+                        target.Opacity = 0.0;
+                    }
                 }
                 else
                 {
-                    double localProgress = (progress - FadeThreshold) / (1.0 - FadeThreshold);
-                    target.Opacity = localProgress;
+                    if (progress < FadeThreshold)
+                    {
+                        target.Opacity = 0.0;
+                    }
+                    else
+                    {
+                        double localProgress = (progress - FadeThreshold) / (1.0 - FadeThreshold);
+                        target.Opacity = localProgress;
+                    }
                 }
-            }
 
-            if (progress >= 1.0)
-            {
-                break;
-            }
+                if (progress >= 1.0)
+                {
+                    if (Orientation == Orientation.Horizontal)
+                    {
+                        transform.X = endPos;
+                    }
+                    else
+                    {
+                        transform.Y = endPos;
+                    }
 
-            await Task.Delay(16, token);
-        }
+                    target.Opacity = isExit ? 0.0 : 1.0;
 
-        if (Orientation == Orientation.Horizontal)
-        {
-            transform.X = endPos;
-        }
-        else
-        {
-            transform.Y = endPos;
-        }
+                    (sender as DispatcherTimer)?.Stop();
+                    tcs.TrySetResult();
+                }
+            });
 
-        target.Opacity = isExit ? 0.0 : 1.0;
+        timer.Start();
+        return tcs.Task;
     }
 }
