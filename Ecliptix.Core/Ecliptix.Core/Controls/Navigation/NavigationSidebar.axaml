@@ -174,8 +174,8 @@
 
             <StackPanel Spacing="3">
                 <Svg Path="../../Assets/plus_icon.svg"
-                     Width="24"
-                     Height="24"
+                     Width="28"
+                     Height="28"
                      Stretch="Uniform" />
             </StackPanel>
         </Button>
