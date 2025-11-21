@@ -110,7 +110,7 @@
                 BorderBrush="#E8E8E8"
                 BorderThickness="1"
                 CornerRadius="100"
-                Padding="12,6"
+                Padding="10,6"
                 BoxShadow="{StaticResource FloatingShadow}">
             <ItemsControl ItemsSource="{Binding MenuItems}"
                           ClipToBounds="False">
