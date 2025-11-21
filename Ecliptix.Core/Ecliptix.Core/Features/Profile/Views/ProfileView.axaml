@@ -9,17 +9,17 @@
              x:DataType="vm:ProfileViewModel"
              x:Class="Ecliptix.Core.Features.Profile.Views.ProfileView">
 
-    <UserControl.Resources>
+  <UserControl.Resources>
         <SolidColorBrush x:Key="NavBackground" Color="#FEFEFE" />
         <BoxShadows x:Key="FloatingShadow">0 4 20 0 #1A000000</BoxShadows>
+        <SolidColorBrush x:Key="AccentDotColor" Color="#6C5CE7"/>
     </UserControl.Resources>
 
     <UserControl.Styles>
         <Style Selector="Button.nav-icon-button">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Margin" Value="4,0" />
-            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="CornerRadius" Value="50" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="Width" Value="44" />
             <Setter Property="Height" Value="44" />
@@ -48,8 +48,8 @@
         </Style>
 
         <Style Selector="PathIcon.nav-icon">
-            <Setter Property="Width" Value="20" />
-            <Setter Property="Height" Value="20" />
+            <Setter Property="Width" Value="22" />
+            <Setter Property="Height" Value="22" />
             <Setter Property="Foreground" Value="#5C5C5C" />
             <Setter Property="Transitions">
                 <Transitions>
@@ -109,25 +109,41 @@
                 Background="{StaticResource NavBackground}"
                 BorderBrush="#E8E8E8"
                 BorderThickness="1"
-                CornerRadius="24"
-                Padding="6"
+                CornerRadius="100"
+                Padding="8,6"
                 BoxShadow="{StaticResource FloatingShadow}">
 
             <ItemsControl ItemsSource="{Binding MenuItems}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal" Spacing="2" />
+                        <StackPanel Orientation="Horizontal" Spacing="6" />
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
 
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:ProfileMenuItem">
-                        <Button Classes="nav-icon-button"
-                                Classes.selected="{Binding IsSelected}"
-                                Command="{Binding $parent[UserControl].((vm:ProfileViewModel)DataContext).NavigateCommand}"
-                                CommandParameter="{Binding}"
-                                ToolTip.Tip="{Binding Title}"> <PathIcon Classes="nav-icon" Data="{Binding IconData}" />
-                        </Button>
+
+                        <Panel Width="44" Height="44" VerticalAlignment="Center">
+
+                            <Button Classes="nav-icon-button"
+                                    HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Stretch"
+                                    Classes.selected="{Binding IsSelected}"
+                                    Command="{Binding $parent[UserControl].((vm:ProfileViewModel)DataContext).NavigateCommand}"
+                                    CommandParameter="{Binding}"
+                                    ToolTip.Tip="{Binding Title}">
+                                <PathIcon Classes="nav-icon" Data="{Binding IconData}" />
+                            </Button>
+
+                            <Ellipse Width="5" Height="5"
+                                     Fill="{StaticResource AccentDotColor}"
+                                     HorizontalAlignment="Right"
+                                     VerticalAlignment="Center"
+                                     IsVisible="{Binding IsSelected}"
+                                     Margin="0,0,-2.5,0"
+                                     IsHitTestVisible="False"/>
+                        </Panel>
+
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
