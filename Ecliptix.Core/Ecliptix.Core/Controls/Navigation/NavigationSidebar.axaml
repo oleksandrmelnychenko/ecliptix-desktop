@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Ecliptix.Core.ViewModels.Navigation"
              xmlns:models="clr-namespace:Ecliptix.Core.Models.Navigation"
+             xmlns:newContent="clr-namespace:Ecliptix.Core.Features.NewContent"
              mc:Ignorable="d"
              d:DesignWidth="280"
              d:DesignHeight="800"
@@ -133,6 +134,8 @@
         <Style Selector="Button.copilot-sidebar-button:pointerover TextBlock.copilot-label">
             <Setter Property="Foreground" Value="#242424" />
         </Style>
+
+
     </UserControl.Styles>
 
     <Grid RowDefinitions="*,Auto,Auto" Margin="8,0,0,0">
@@ -187,9 +190,22 @@
 
         <!-- Create/Add Button (Independent) -->
         <Button Grid.Row="1"
+                x:Name="CreateFlyoutButton"
                 Classes="copilot-sidebar-button"
                 Margin="3,12,3,1"
                 VerticalAlignment="Bottom">
+
+            <Button.Flyout>
+                <Flyout Placement="RightEdgeAlignedBottom"
+                        ShowMode="TransientWithDismissOnPointerMoveAway">
+                    <Flyout.FlyoutPresenterClasses>
+                        <OnPlatform Default="nopadding"/>
+                    </Flyout.FlyoutPresenterClasses>
+
+                    <newContent:CreateMenuPopup DataContext="{Binding CreateMenuVm}" />
+                </Flyout>
+            </Button.Flyout>
+
             <StackPanel Spacing="3">
                 <Svg Path="../../Assets/plus_icon.svg"
                      Width="20"

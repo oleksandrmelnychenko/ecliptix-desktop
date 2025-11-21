@@ -5,6 +5,7 @@
              xmlns:vm="clr-namespace:Ecliptix.Core.Features.Main.ViewModels"
              xmlns:nav="clr-namespace:Ecliptix.Core.Controls.Navigation"
              xmlns:page="clr-namespace:Ecliptix.Core.Shared.Transitions.Page"
+             xmlns:newContent="clr-namespace:Ecliptix.Core.Features.NewContent"
              mc:Ignorable="d"
              d:DesignWidth="1200"
              d:DesignHeight="800"
@@ -39,6 +40,52 @@
             </TransitioningContentControl.PageTransition>
 
         </TransitioningContentControl>
+
+        <Grid Grid.Column="0"
+              Grid.ColumnSpan="2"
+              ZIndex="2000"
+              IsVisible="{Binding IsOverlayVisible}"
+              Background="#66000000"> <Grid.Transitions>
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+                </Transitions>
+            </Grid.Transitions>
+
+            <Border HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Background="#FFFFFF"
+                    CornerRadius="16"
+                    Padding="0"
+                    MaxWidth="600"
+                    MaxHeight="800">
+
+                <Border.Effect>
+                    <DropShadowEffect Color="Black"
+                                      BlurRadius="30"
+                                      Opacity="0.25"
+                                      OffsetX="0"
+                                      OffsetY="8"/>
+                </Border.Effect>
+
+                <ContentControl Content="{Binding OverlayContent}">
+                    <ContentControl.DataTemplates>
+
+                        <DataTemplate DataType="{x:Type newContent:NewChannelViewModel}">
+                            <newContent:NewChannelView />
+                        </DataTemplate>
+
+                        <DataTemplate DataType="{x:Type newContent:NewGroupChatViewModel}">
+                            <newContent:NewGroupChatView />
+                        </DataTemplate>
+
+                        <DataTemplate DataType="{x:Type newContent:NewPostViewModel}">
+                            <newContent:NewPostView />
+                        </DataTemplate>
+
+                    </ContentControl.DataTemplates>
+                </ContentControl>
+            </Border>
+        </Grid>
 
     </Grid>
 </UserControl>

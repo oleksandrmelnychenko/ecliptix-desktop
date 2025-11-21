@@ -5,8 +5,10 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Core.MVVM;
+using Ecliptix.Core.Features.NewContent;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
@@ -17,6 +19,9 @@ using Ecliptix.Utilities;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Serilog;
+using Splat;
+using IMessageBus = Ecliptix.Core.Core.Messaging.IMessageBus;
+using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Main.ViewModels;
 
@@ -24,6 +29,7 @@ public sealed class MasterViewModel : ViewModelBase
 {
     private readonly IModuleViewFactory _moduleViewFactory;
     private readonly CompositeDisposable _disposables = new();
+    private IMessageBus? _messageBus;
     private bool _isDisposed;
 
     private int _currentViewIndex = 0;
@@ -39,9 +45,11 @@ public sealed class MasterViewModel : ViewModelBase
     [Reactive] public UserControl? CurrentView { get; set; }
     [Reactive] public bool IsLoadingView { get; set; }
     [Reactive] public bool IsTransitionReversed { get; set; }
-
+    [Reactive] public bool IsOverlayVisible { get; set; }
+    [Reactive] public object? OverlayContent { get; set; }
     public ConnectivityNotificationViewModel ConnectivityNotification { get; }
     public NavigationSidebarViewModel NavigationSidebar { get; }
+    public ReactiveCommand<SystemU, SystemU> CloseOverlayCommand { get; }
 
     public MasterViewModel(
         NetworkProvider networkProvider,
@@ -56,9 +64,30 @@ public sealed class MasterViewModel : ViewModelBase
         _moduleViewFactory = moduleViewFactory;
         ConnectivityNotification = mainWindowViewModel.ConnectivityNotification;
         NavigationSidebar = new NavigationSidebarViewModel(networkProvider, localizationService, logoutService, profileMenuService, storageProvider);
-
+        _messageBus = Locator.Current?.GetService<IMessageBus>();
 
         LoadInitialView();
+
+
+        CloseOverlayCommand = ReactiveCommand.Create(() =>
+        {
+            _messageBus?.PublishAsync(new CloseOverlayEvent());
+        });
+
+
+        if (_messageBus != null)
+        {
+            _messageBus.Subscribe<OpenOverlayWithContentTypeEvent>(async evt =>
+            {
+                await HandleOpenOverlayWithContentTypeEvent(evt);
+            }, SubscriptionLifetime.STRONG).DisposeWith(_disposables);
+
+            _messageBus.Subscribe<CloseOverlayEvent>(async evt =>
+            {
+
+                await HandleCloseOverlayEvent();
+            }, SubscriptionLifetime.STRONG).DisposeWith(_disposables);
+        }
 
         this.WhenAnyValue(x => x.NavigationSidebar.SelectedMenuItem)
             .WhereNotNull()
@@ -80,6 +109,40 @@ public sealed class MasterViewModel : ViewModelBase
                 }
             })
             .DisposeWith(_disposables);
+    }
+
+    private Task HandleCloseOverlayEvent()
+    {
+        Log.Information("[MASTER-VM] Closing overlay");
+        IsOverlayVisible = false;
+        OverlayContent = null;
+
+        return Task.CompletedTask;
+    }
+
+    private Task HandleOpenOverlayWithContentTypeEvent(OpenOverlayWithContentTypeEvent evt)
+    {
+        Log.Information($"[MASTER-VM] Preparing overlay for: {evt.ActionType}");
+
+        object? contentVm = evt.ActionType switch
+        {
+            CreateActionType.NewChannel => new NewChannelViewModel(),
+            CreateActionType.NewGroupChat => new NewGroupChatViewModel(),
+            CreateActionType.NewPost => new NewPostViewModel(),
+            _ => null
+        };
+
+        if (contentVm != null)
+        {
+            OverlayContent = contentVm;
+            IsOverlayVisible = true;
+        }
+        else
+        {
+            Log.Warning("[MASTER-VM] Unknown overlay action type");
+        }
+
+        return Task.CompletedTask;
     }
 
     private async void LoadInitialView()

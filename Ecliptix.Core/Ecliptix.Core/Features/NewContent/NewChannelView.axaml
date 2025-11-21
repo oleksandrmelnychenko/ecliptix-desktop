@@ -1,0 +1,212 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:newContent="clr-namespace:Ecliptix.Core.Features.NewContent"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:DataType="newContent:NewChannelViewModel"
+             x:Class="Ecliptix.Core.Features.NewContent.NewChannelView">
+   <UserControl.Styles>
+        <Style Selector="RadioButton.channel-card">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="16,12" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border x:Name="RootBorder"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            Padding="{TemplateBinding Padding}">
+
+                        <Border.Transitions>
+                            <Transitions>
+                                <BrushTransition Property="Background" Duration="0:0:0.15"/>
+                                <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.15"/>
+                            </Transitions>
+                        </Border.Transitions>
+
+                        <Grid ColumnDefinitions="Auto, *, Auto">
+
+                            <Border x:Name="SelectionBar"
+                                    Grid.Column="0"
+                                    Width="4" Height="24"
+                                    CornerRadius="2"
+                                    Background="#6B5ECD"
+                                    HorizontalAlignment="Left"
+                                    Margin="-10,0,12,0"
+                                    IsVisible="False"/>
+
+                            <PathIcon x:Name="Icon"
+                                      Grid.Column="0"
+                                      Data="{TemplateBinding Tag}"
+                                      Width="20" Height="20"
+                                      Foreground="#5C5C5C"
+                                      Margin="0,0,16,0"
+                                      VerticalAlignment="Center"/>
+
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                <TextBlock Text="{TemplateBinding Content}"
+                                           FontWeight="SemiBold"
+                                           FontSize="14"
+                                           Foreground="#242424"/>
+                                <TextBlock x:Name="SubtitleText"
+                                           FontSize="12"
+                                           Foreground="#757575"/>
+                            </StackPanel>
+
+                        </Grid>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+
+        <Style Selector="RadioButton.channel-card:pointerover /template/ Border#RootBorder">
+            <Setter Property="Background" Value="#FAFAFA" />
+        </Style>
+
+        <Style Selector="RadioButton.channel-card:checked /template/ Border#RootBorder">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BoxShadow" Value="0 2 12 0 #15000000" />
+            <Setter Property="BorderBrush" Value="#F0F0F0" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+
+        <Style Selector="RadioButton.channel-card:checked /template/ Border#SelectionBar">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+
+        <Style Selector="RadioButton.channel-card:checked /template/ PathIcon#Icon">
+            <Setter Property="Foreground" Value="#242424" />
+        </Style>
+
+        <Style Selector="Button.step-btn">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="6"/>
+            <Setter Property="Foreground" Value="#5C5C5C"/>
+        </Style>
+
+        <Style Selector="Button.step-btn.active">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#242424"/>
+        </Style>
+
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto, *, Auto" Margin="24">
+
+        <Grid Grid.Row="0" ColumnDefinitions="*, Auto" Margin="0,0,0,24">
+            <StackPanel Grid.Column="0" Spacing="4">
+                <TextBlock Text="Choose Channel Type"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           Foreground="#242424"/>
+                <TextBlock Text="Create a channel to broadcast messages"
+                           FontSize="13"
+                           Foreground="#757575"/>
+            </StackPanel>
+
+            <Button Grid.Column="1"
+                    Command="{Binding CloseCommand}"
+                    Background="Transparent"
+                    Padding="8"
+                    CornerRadius="50"
+                    Cursor="Hand"
+                    VerticalAlignment="Top">
+                <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                          Width="12" Height="12" Foreground="#757575"/>
+            </Button>
+        </Grid>
+
+        <StackPanel Grid.Row="1" Spacing="8">
+
+            <RadioButton Classes="channel-card"
+                         GroupName="AccessType"
+                         Content="Public Channel"
+                         IsChecked="{Binding SelectedAccessType, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static newContent:ChannelAccessType.Public}, Mode=TwoWay}">
+                <RadioButton.Tag>
+                    <StreamGeometry>M5.41,21L6.12,17H2.12L2.47,15H6.47L7.53,9H3.53L3.88,7H7.88L8.59,3H10.59L9.88,7H15.88L16.59,3H18.59L17.88,7H21.88L21.53,9H17.53L16.47,15H20.47L20.12,17H16.12L15.41,21H13.41L14.12,17H8.12L7.41,21H5.41M9.53,9L8.47,15H14.47L15.53,9H9.53Z</StreamGeometry>
+                </RadioButton.Tag>
+                <RadioButton.Styles>
+                    <Style Selector="TextBlock#SubtitleText">
+                        <Setter Property="Text" Value="Anyone can find and join"/>
+                    </Style>
+                </RadioButton.Styles>
+            </RadioButton>
+
+            <RadioButton Classes="channel-card"
+                         GroupName="AccessType"
+                         Content="Private Channel"
+                         IsChecked="{Binding SelectedAccessType, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static newContent:ChannelAccessType.Private}, Mode=TwoWay}">
+                <RadioButton.Tag>
+                    <StreamGeometry>M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z</StreamGeometry>
+                </RadioButton.Tag>
+                <RadioButton.Styles>
+                    <Style Selector="TextBlock#SubtitleText">
+                        <Setter Property="Text" Value="Only invited members can join"/>
+                    </Style>
+                </RadioButton.Styles>
+            </RadioButton>
+
+        </StackPanel>
+
+        <Grid Grid.Row="2" Margin="0,24,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="*"/>    <ColumnDefinition Width="Auto"/> </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="1"
+                    HorizontalAlignment="Center"
+                    Background="#F6F6F6"
+                    CornerRadius="16"
+                    Padding="4">
+                <StackPanel Orientation="Horizontal" Spacing="2">
+                    <Button Classes="step-btn active">
+                        <Panel>
+                            <PathIcon Data="M5.41,21L6.12,17H2.12L2.47,15H6.47L7.53,9H3.53L3.88,7H7.88L8.59,3H10.59L9.88,7H15.88L16.59,3H18.59L17.88,7H21.88L21.53,9H17.53L16.47,15H20.47L20.12,17H16.12L15.41,21H13.41L14.12,17H8.12L7.41,21H5.41M9.53,9L8.47,15H14.47L15.53,9H9.53Z"
+                                      Width="12" Height="12"/>
+                            <Ellipse Width="4" Height="4" Fill="#6B5ECD"
+                                     VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,2,2,0"/>
+                        </Panel>
+                    </Button>
+
+                    <Button Classes="step-btn">
+                        <PathIcon Data="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"
+                                  Width="12" Height="12"/>
+                    </Button>
+
+                    <Button Classes="step-btn">
+                        <PathIcon Data="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,13L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.04 4.95,18.95L7.44,17.95C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.68 16.04,18.34 16.56,17.95L19.05,18.95C19.27,19.04 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"
+                                  Width="12" Height="12"/>
+                    </Button>
+                </StackPanel>
+            </Border>
+
+            <Button Grid.Column="2"
+                    Command="{Binding ContinueCommand}"
+                    Content="Continue"
+                    Background="#F2F2F2"
+                    Foreground="#242424"
+                    FontWeight="Medium"
+                    CornerRadius="20"
+                    Padding="20,8"
+                    BorderThickness="0">
+                <Button.Styles>
+                    <Style Selector="Button:pointerover">
+                         <Setter Property="Background" Value="#E0E0E0"/>
+                    </Style>
+                </Button.Styles>
+            </Button>
+        </Grid>
+
+    </Grid>
+</UserControl>
+
