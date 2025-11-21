@@ -46,6 +46,9 @@ public sealed class MasterViewModel : ViewModelBase
     [Reactive] public bool IsLoadingView { get; set; }
     [Reactive] public bool IsTransitionReversed { get; set; }
     [Reactive] public bool IsOverlayVisible { get; set; }
+
+    [Reactive] public bool IsOverlayOpen { get; set; }
+
     [Reactive] public object? OverlayContent { get; set; }
     public ConnectivityNotificationViewModel ConnectivityNotification { get; }
     public NavigationSidebarViewModel NavigationSidebar { get; }
@@ -111,19 +114,18 @@ public sealed class MasterViewModel : ViewModelBase
             .DisposeWith(_disposables);
     }
 
-    private Task HandleCloseOverlayEvent()
+    private async Task HandleCloseOverlayEvent()
     {
-        Log.Information("[MASTER-VM] Closing overlay");
+        IsOverlayOpen = false;
+
+        await Task.Delay(250);
+
         IsOverlayVisible = false;
         OverlayContent = null;
-
-        return Task.CompletedTask;
     }
 
-    private Task HandleOpenOverlayWithContentTypeEvent(OpenOverlayWithContentTypeEvent evt)
+    private async Task HandleOpenOverlayWithContentTypeEvent(OpenOverlayWithContentTypeEvent evt)
     {
-        Log.Information($"[MASTER-VM] Preparing overlay for: {evt.ActionType}");
-
         object? contentVm = evt.ActionType switch
         {
             CreateActionType.NewChannel => new NewChannelViewModel(),
@@ -136,14 +138,12 @@ public sealed class MasterViewModel : ViewModelBase
         {
             OverlayContent = contentVm;
             IsOverlayVisible = true;
-        }
-        else
-        {
-            Log.Warning("[MASTER-VM] Unknown overlay action type");
-        }
 
-        return Task.CompletedTask;
+            await Task.Delay(10);
+            IsOverlayOpen = true;
+        }
     }
+
 
     private async void LoadInitialView()
     {

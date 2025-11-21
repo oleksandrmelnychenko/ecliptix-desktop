@@ -5,6 +5,8 @@
              xmlns:newContent="clr-namespace:Ecliptix.Core.Features.NewContent"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="newContent:NewChannelViewModel"
+             Width="510"
+             Height="370"
              x:Class="Ecliptix.Core.Features.NewContent.NewChannelView">
    <UserControl.Styles>
         <Style Selector="RadioButton.channel-card">

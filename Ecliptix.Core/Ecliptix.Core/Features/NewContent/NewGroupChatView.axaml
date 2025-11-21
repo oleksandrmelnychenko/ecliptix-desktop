@@ -5,6 +5,8 @@
              xmlns:newContent="clr-namespace:Ecliptix.Core.Features.NewContent"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="newContent:NewGroupChatViewModel"
+             Width="510"
+             Height="600"
              x:Class="Ecliptix.Core.Features.NewContent.NewGroupChatView">
     <UserControl.Styles>
         <Style Selector="TextBox.input-box">

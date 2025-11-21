@@ -13,6 +13,35 @@
              x:Class="Ecliptix.Core.Features.Main.Views.MasterView"
              x:Name="MasterViewControl">
 
+    <UserControl.Styles>
+        <Style Selector="Border.overlay-background">
+            <Setter Property="Opacity" Value="0"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.25" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border.overlay-background.open">
+            <Setter Property="Opacity" Value="1"/>
+        </Style>
+
+        <Style Selector="Border.modal-container">
+            <Setter Property="Opacity" Value="0"/>
+            <Setter Property="RenderTransform" Value="scale(0.9)"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.25" Easing="CubicEaseOut"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.25" Easing="BackEaseOut"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border.modal-container.open">
+            <Setter Property="Opacity" Value="1"/>
+            <Setter Property="RenderTransform" Value="scale(1)"/>
+        </Style>
+    </UserControl.Styles>
+
     <Grid ColumnDefinitions="Auto,*"
           Margin="0,0,0,0">
 
@@ -44,20 +73,27 @@
         <Grid Grid.Column="0"
               Grid.ColumnSpan="2"
               ZIndex="2000"
-              IsVisible="{Binding IsOverlayVisible}"
-              Background="#66000000"> <Grid.Transitions>
-                <Transitions>
-                    <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
-                </Transitions>
-            </Grid.Transitions>
+              IsVisible="{Binding IsOverlayVisible}">
+            <Border Classes="overlay-background"
+                    Classes.open="{Binding IsOverlayOpen}"
+                    Background="#66000000"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch">
 
-            <Border HorizontalAlignment="Center"
+                <Interaction.Behaviors>
+                    <EventTriggerBehavior EventName="PointerPressed">
+                        <InvokeCommandAction Command="{Binding CloseOverlayCommand}" />
+                    </EventTriggerBehavior>
+                </Interaction.Behaviors>
+            </Border>
+
+            <Border Classes="modal-container"
+                    Classes.open="{Binding IsOverlayOpen}"
+                    HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    Background="#FFFFFF"
-                    CornerRadius="16"
+                    Background="Transparent"
                     Padding="0"
-                    MaxWidth="600"
-                    MaxHeight="800">
+                    ClipToBounds="False">
 
                 <Border.Effect>
                     <DropShadowEffect Color="Black"
@@ -67,25 +103,25 @@
                                       OffsetY="8"/>
                 </Border.Effect>
 
-                <ContentControl Content="{Binding OverlayContent}">
-                    <ContentControl.DataTemplates>
+                <Border CornerRadius="16"
+                        ClipToBounds="True"
+                        Background="#FFFFFF">
 
-                        <DataTemplate DataType="{x:Type newContent:NewChannelViewModel}">
-                            <newContent:NewChannelView />
-                        </DataTemplate>
-
-                        <DataTemplate DataType="{x:Type newContent:NewGroupChatViewModel}">
-                            <newContent:NewGroupChatView />
-                        </DataTemplate>
-
-                        <DataTemplate DataType="{x:Type newContent:NewPostViewModel}">
-                            <newContent:NewPostView />
-                        </DataTemplate>
-
-                    </ContentControl.DataTemplates>
-                </ContentControl>
+                    <ContentControl Content="{Binding OverlayContent}">
+                         <ContentControl.DataTemplates>
+                            <DataTemplate DataType="{x:Type newContent:NewChannelViewModel}">
+                                <newContent:NewChannelView />
+                            </DataTemplate>
+                            <DataTemplate DataType="{x:Type newContent:NewGroupChatViewModel}">
+                                <newContent:NewGroupChatView />
+                            </DataTemplate>
+                            <DataTemplate DataType="{x:Type newContent:NewPostViewModel}">
+                                <newContent:NewPostView />
+                            </DataTemplate>
+                        </ContentControl.DataTemplates>
+                    </ContentControl>
+                </Border>
             </Border>
         </Grid>
-
     </Grid>
 </UserControl>
