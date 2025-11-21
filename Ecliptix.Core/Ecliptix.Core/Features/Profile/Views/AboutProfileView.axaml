@@ -66,18 +66,23 @@
                         Margin="0,0,0,24"
                         HorizontalAlignment="Center"
                         BorderBrush="#E0E0E0"
-                        BorderThickness="1">
-                    <Border.Background>
-                        <SolidColorBrush Color="#F5F5F5"/>
-                    </Border.Background>
-                    <Grid>
-                        <TextBlock Text="{Binding Initials}"
-                                   VerticalAlignment="Center"
-                                   HorizontalAlignment="Center"
-                                   FontSize="36"
-                                   FontWeight="Bold"
-                                   Foreground="#CCCCCC"/>
-                    </Grid>
+                        BorderThickness="1"
+                        ClipToBounds="True"
+                        Background="#F5F5F5">
+
+                    <Panel>
+                        <Grid>
+                            <TextBlock Text="{Binding Initials}"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Center"
+                                       FontSize="36"
+                                       FontWeight="Bold"
+                                       Foreground="#CCCCCC"/>
+                        </Grid>
+
+                        <Image Source="{Binding ProfileImage}"
+                               Stretch="UniformToFill"/>
+                    </Panel>
                 </Border>
 
                 <TextBlock Text="{Binding DisplayName}" Classes="h1" Margin="0,0,0,8"/>

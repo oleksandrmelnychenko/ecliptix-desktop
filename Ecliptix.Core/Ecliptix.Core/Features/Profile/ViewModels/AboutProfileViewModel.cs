@@ -1,3 +1,6 @@
+using System;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 
@@ -11,17 +14,16 @@ public class AboutProfileViewModel : ReactiveObject
     [Reactive] public string Location { get; set; }
     [Reactive] public string JoinedDate { get; set; }
 
-    // Статистика
     [Reactive] public string PostsCount { get; set; }
     [Reactive] public string FollowersCount { get; set; }
     [Reactive] public string FollowingCount { get; set; }
 
-    // Ініціали для заглушки фото
     [Reactive] public string Initials { get; set; }
+
+    [Reactive] public Bitmap? ProfileImage { get; set; }
 
     public AboutProfileViewModel()
     {
-        // Заповнюємо даними як на скріншоті для прикладу
         DisplayName = "Sarah Chen";
         Handle = "@sarahchen";
         Bio = "Product Designer & Developer 🎨💻\nBuilding beautiful, secure experiences";
@@ -33,5 +35,20 @@ public class AboutProfileViewModel : ReactiveObject
         FollowingCount = "432";
 
         Initials = "SC";
+
+        ProfileImage = LoadImage("user1.jpg");
+    }
+
+    private Bitmap? LoadImage(string fileName)
+    {
+        try
+        {
+            Uri uri = new Uri($"avares://Ecliptix.Core/Assets/DataSeed/{fileName}");
+            return new Bitmap(AssetLoader.Open(uri));
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 }
