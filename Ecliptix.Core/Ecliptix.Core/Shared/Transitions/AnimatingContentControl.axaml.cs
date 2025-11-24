@@ -79,67 +79,70 @@ public partial class AnimatingContentControl : UserControl
         UpdateContent(false);
     }
 
-   protected override Size ArrangeOverride(Size finalSize)
-{
-    Size result = base.ArrangeOverride(finalSize);
-
-    if (_shouldAnimate)
+    protected override Size ArrangeOverride(Size finalSize)
     {
-        _currentTransition?.Cancel();
+        Size result = base.ArrangeOverride(finalSize);
 
-        if (_presenter2 is not null &&
-            Presenter is { } presenter &&
-            PageTransition is { } transition)
+        if (_shouldAnimate)
         {
-            _shouldAnimate = false;
+            _currentTransition?.Cancel();
 
-            CancellationTokenSource cancel = new();
-            _currentTransition = cancel;
-
-            ContentPresenter? from = _isFirstFull ? _presenter2 : presenter;
-            ContentPresenter? to = _isFirstFull ? presenter : _presenter2;
-            object? fromContent = from.Content;
-            object? toContent = to.Content;
-
-            transition.Start(from, to, !IsTransitionReversed, cancel.Token).ContinueWith(task =>
+            if (_presenter2 is not null &&
+                Presenter is { } presenter &&
+                PageTransition is { } transition)
             {
-                if (!cancel.IsCancellationRequested)
+                _shouldAnimate = false;
+
+                CancellationTokenSource cancel = new();
+                _currentTransition = cancel;
+
+                ContentPresenter? from = _isFirstFull ? _presenter2 : presenter;
+                ContentPresenter? to = _isFirstFull ? presenter : _presenter2;
+                object? fromContent = from.Content;
+                object? toContent = to.Content;
+
+                transition.Start(from, to, !IsTransitionReversed, cancel.Token).ContinueWith(task =>
                 {
-                    Dispatcher.UIThread.Post(() =>
+                    if (!cancel.IsCancellationRequested)
                     {
-                        OnTransitionCompleted(new TransitionCompletedEventArgs(
-                            fromContent, toContent, task.Status == TaskStatus.RanToCompletion));
-
-                        HideOldPresenter();
-
-                        DispatcherTimer timer = new()
+                        Dispatcher.UIThread.Post(() =>
                         {
-                            Interval = TimeSpan.FromMilliseconds(ANIMATION_STATE_BUFFER_MS)
-                        };
+                            OnTransitionCompleted(new TransitionCompletedEventArgs(
+                                fromContent, toContent, task.Status == TaskStatus.RanToCompletion));
 
-                        timer.Tick += (s, e) =>
-                        {
-                            timer.Stop();
-                            if (!cancel.IsCancellationRequested)
+                            HideOldPresenter();
+
+                            DispatcherTimer timer = new()
                             {
-                                IsAnimating = false;
+                                Interval = TimeSpan.FromMilliseconds(ANIMATION_STATE_BUFFER_MS)
+                            };
+
+                            void Handler(object? s, EventArgs e)
+                            {
+                                timer.Tick -= Handler;
+                                timer.Stop();
+                                if (!cancel.IsCancellationRequested)
+                                {
+                                    IsAnimating = false;
+                                }
                             }
-                        };
 
-                        timer.Start();
-                    });
-                }
-            }, TaskScheduler.FromCurrentSynchronizationContext());
+                            timer.Tick += Handler;
+
+                            timer.Start();
+                        });
+                    }
+                }, TaskScheduler.FromCurrentSynchronizationContext());
+            }
+            else
+            {
+                _shouldAnimate = false;
+                IsAnimating = false;
+            }
         }
-        else
-        {
-            _shouldAnimate = false;
-            IsAnimating = false;
-        }
+
+        return result;
     }
-
-    return result;
-}
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {

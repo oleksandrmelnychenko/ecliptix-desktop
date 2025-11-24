@@ -13,6 +13,7 @@ public sealed partial class NavigationMenuItem : ReactiveObject
     [Reactive] public bool IsSelected { get; set; }
     [Reactive] public int NotificationCount { get; set; }
     public string NotificationBadgeText => NotificationCount > 9 ? "9+" : NotificationCount.ToString();
+    public string ExpandedBadgeText => NotificationCount > 999 ? "999+" : NotificationCount.ToString();
     public bool HasNotifications => NotificationCount > 0;
 }
 

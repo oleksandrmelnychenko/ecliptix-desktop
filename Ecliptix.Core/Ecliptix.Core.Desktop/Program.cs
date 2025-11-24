@@ -62,6 +62,8 @@ using Ecliptix.Core.Services.Network.Resilience;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Core.Services.Security;
 using Ecliptix.Core.Settings;
+using Ecliptix.Core.Views.Memberships.Components.TitleBarUtilities.ViewModels;
+using Ecliptix.Core.Views.Memberships.Components.TitleBarUtilities.Views;
 using Ecliptix.Security.Certificate.Pinning.Services;
 using Grpc.Net.ClientFactory;
 using Microsoft.AspNetCore.DataProtection;
@@ -107,6 +109,7 @@ public static class Program
             ReactiveUI.IViewLocator reactiveViewLocator = serviceProvider.GetRequiredService<ReactiveUI.IViewLocator>();
             Splat.Locator.CurrentMutable.Register(() => reactiveViewLocator, typeof(ReactiveUI.IViewLocator));
             Splat.Locator.CurrentMutable.Register(() => new LanguageSelectorView(), typeof(ReactiveUI.IViewFor<LanguageSelectorViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new ToggleNavigationSideBar(), typeof(ReactiveUI.IViewFor<ToggleNavigationSideBarViewModel>));
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
         }
         catch (Exception ex)

@@ -4,6 +4,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Features.NewContent;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
@@ -14,6 +15,7 @@ using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.Membership;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.Core.Localization;
+using Ecliptix.Core.Views.Memberships.Components.TitleBarUtilities.ViewModels;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Membership;
@@ -100,6 +102,16 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
                 }
             })
             .DisposeWith(_disposables);
+
+        if (_messageBus != null)
+        {
+
+            _messageBus.Subscribe<ToggleSidebarEvent>(async evt =>
+            {
+                IsExpanded = !IsExpanded;
+            }, SubscriptionLifetime.STRONG).DisposeWith(_disposables);
+
+        }
 
         ToggleSidebarCommand = ReactiveCommand.Create(() =>
         {
@@ -232,6 +244,8 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
         _disposables.Add(LogoutCommand);
 
         LoadUserDataAsync().ConfigureAwait(false);
+
+
     }
 
     private async Task LoadUserDataAsync()

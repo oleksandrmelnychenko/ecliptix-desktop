@@ -1,0 +1,58 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ecliptix.Core.Views.Memberships.Components"
+             xmlns:reactiveUi="http://reactiveui.net"
+             xmlns:windows="clr-namespace:Ecliptix.Core.Views.Memberships.Components.Platform.Windows"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Ecliptix.Core.Views.Memberships.Components.Platform.Windows.WindowsTitleBarLayout"
+             Height="35"
+             x:DataType="vm:TitleBarViewModel">
+
+
+    <UserControl.Resources>
+        <DataTemplate x:Key="ContentItemTemplate" x:DataType="x:Object">
+            <reactiveUi:ViewModelViewHost ViewModel="{Binding}"
+                                          VerticalAlignment="Center"
+                                          Margin="5,0"/>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Panel Background="Transparent">
+
+        <Grid ColumnDefinitions="Auto, *, Auto">
+
+            <ItemsControl Grid.Column="0"
+                          ItemsSource="{Binding LeftContent}"
+                          ItemTemplate="{StaticResource ContentItemTemplate}"
+                          Margin="10,0">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
+
+                <ItemsControl ItemsSource="{Binding RightContent}"
+                              ItemTemplate="{StaticResource ContentItemTemplate}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+
+                <windows:WindowsTitleBarButtons x:Name="PART_WindowButtons"
+                                                DataContext="{Binding}" />
+            </StackPanel>
+        </Grid>
+
+        <reactiveUi:ViewModelViewHost ViewModel="{Binding CenterContent}"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"/>
+    </Panel>
+</UserControl>
+
