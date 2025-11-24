@@ -5,9 +5,9 @@ using Ecliptix.Core.Views.Memberships.Components.TitleBarUtilities.ViewModels;
 
 namespace Ecliptix.Core.Views.Memberships.Components.TitleBarUtilities.Views;
 
-public partial class ToggleNavigationSideBar : ReactiveUserControl<ToggleNavigationSideBarViewModel>
+public partial class ToggleNavigationSideBarView : ReactiveUserControl<ToggleNavigationSideBarViewModel>
 {
-    public ToggleNavigationSideBar()
+    public ToggleNavigationSideBarView()
     {
         InitializeComponent();
     }

@@ -98,7 +98,7 @@
       <DependentUpon>TitleBar.axaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Update="Views\Memberships\Components\TitleBarUtilities\Views\ToggleNavigationSideBar.axaml.cs">
+    <Compile Update="Views\Memberships\Components\TitleBarUtilities\Views\ToggleNavigationSideBarView.axaml.cs">
       <DependentUpon>ToggleNavigationSideBar.axaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>

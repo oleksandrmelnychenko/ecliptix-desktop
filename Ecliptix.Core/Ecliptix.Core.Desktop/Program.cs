@@ -109,7 +109,8 @@ public static class Program
             ReactiveUI.IViewLocator reactiveViewLocator = serviceProvider.GetRequiredService<ReactiveUI.IViewLocator>();
             Splat.Locator.CurrentMutable.Register(() => reactiveViewLocator, typeof(ReactiveUI.IViewLocator));
             Splat.Locator.CurrentMutable.Register(() => new LanguageSelectorView(), typeof(ReactiveUI.IViewFor<LanguageSelectorViewModel>));
-            Splat.Locator.CurrentMutable.Register(() => new ToggleNavigationSideBar(), typeof(ReactiveUI.IViewFor<ToggleNavigationSideBarViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new ToggleNavigationSideBarView(), typeof(ReactiveUI.IViewFor<ToggleNavigationSideBarViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new ToggleThemeView(), typeof(ReactiveUI.IViewFor<ToggleThemeViewModel>));
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
         }
         catch (Exception ex)
