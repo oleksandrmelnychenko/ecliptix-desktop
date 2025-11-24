@@ -30,7 +30,7 @@ public sealed partial class FeedViewModel : Core.MVVM.ViewModelBase
     [Reactive] public bool IsRefreshing { get; set; }
     [Reactive] public bool HasMorePosts { get; set; }
     [Reactive] public string ErrorMessage { get; set; }
-
+    [Reactive] public PostControlViewModel PostControlViewModel { get; set; }
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> LoadInitialPostsCommand { get; }
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> LoadMorePostsCommand { get; }
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> RefreshFeedCommand { get; }
@@ -54,6 +54,8 @@ public sealed partial class FeedViewModel : Core.MVVM.ViewModelBase
         LoadInitialPostsCommand = ReactiveCommand.CreateFromTask(LoadInitialPostsAsync);
         LoadMorePostsCommand = ReactiveCommand.CreateFromTask(LoadMorePostsAsync);
         RefreshFeedCommand = ReactiveCommand.CreateFromTask(RefreshFeedAsync);
+
+        PostControlViewModel = new PostControlViewModel(networkProvider, localizationService);
 
         LoadInitialPostsCommand.Execute().Subscribe().DisposeWith(_disposables);
     }

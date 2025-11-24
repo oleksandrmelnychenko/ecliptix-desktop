@@ -29,6 +29,8 @@
                                    HorizontalAlignment="Center" />
                     </Border>
 
+                    <feedItem:PostControl DataContext="{Binding PostControlViewModel}" Margin="0,0,0,20" />
+
                     <!-- Feed Posts -->
                     <ItemsControl Grid.Row="1"
                                   ItemsSource="{Binding Posts}"
