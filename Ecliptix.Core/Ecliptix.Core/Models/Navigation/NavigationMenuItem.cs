@@ -10,8 +10,10 @@ public sealed partial class NavigationMenuItem : ReactiveObject
     public string IconPath { get; init; } = string.Empty;
     public string TooltipText { get; init; } = string.Empty;
     public NavigationMenuItemType Type { get; init; } = NavigationMenuItemType.Regular;
-
     [Reactive] public bool IsSelected { get; set; }
+    [Reactive] public int NotificationCount { get; set; }
+    public string NotificationBadgeText => NotificationCount > 9 ? "9+" : NotificationCount.ToString();
+    public bool HasNotifications => NotificationCount > 0;
 }
 
 public enum NavigationMenuItemType

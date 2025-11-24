@@ -107,7 +107,7 @@ public sealed class MasterViewModel : ViewModelBase
             {
                 ModuleIdentifier? moduleId = menuItem.Id switch
                 {
-                    "home" => ModuleIdentifier.FEED,
+                    "feed" => ModuleIdentifier.FEED,
                     "chats" => ModuleIdentifier.CHATS,
                     "settings" => ModuleIdentifier.SETTINGS,
                     "profile" => ModuleIdentifier.PROFILE,

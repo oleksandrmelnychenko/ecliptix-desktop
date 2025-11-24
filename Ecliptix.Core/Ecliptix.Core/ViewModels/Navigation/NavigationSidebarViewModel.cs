@@ -4,7 +4,6 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Features.NewContent;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
@@ -18,10 +17,6 @@ using Ecliptix.Core.Services.Core.Localization;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Membership;
-using Ecliptix.Core.Core.Messaging;
-using Ecliptix.Core.Core.Messaging.Events;
-using Ecliptix.Core.Core.Messaging.Services;
-
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Serilog;
@@ -42,10 +37,12 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
     private readonly IMessageBus? _messageBus;
 
     [Reactive] public NavigationMenuItem? SelectedMenuItem { get; set; }
-    [Reactive] public bool IsExpanded { get; set; }
+
+    [Reactive] public bool IsExpanded { get; set; } = true;
     [Reactive] public string UserDisplayName { get; set; } = "@user";
     [ObservableAsProperty] public bool IsBusy { get; }
     [Reactive] public bool IsParentAnimating { get; set; }
+
 
     public string AddAccountText => LocalizationService.GetString(LocalizationKeys.ProfileMenu.ADD_ACCOUNT);
     public string LogoutText => LocalizationService.GetString(LocalizationKeys.ProfileMenu.LOGOUT);
@@ -55,6 +52,7 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
     public ReactiveCommand<NavigationMenuItem, SystemU> NavigateCommand { get; }
     public ReactiveCommand<SystemU, SystemU> ToggleProfileMenuCommand { get; }
     public ReactiveCommand<SystemU, Result<Unit, LogoutFailure>> LogoutCommand { get; }
+    public ReactiveCommand<SystemU, bool> ToggleSidebarCommand { get; }
 
     public CreateMenuViewModel CreateMenuVm { get; }
 
@@ -74,6 +72,7 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
         _messageBus = Locator.Current?.GetService<IMessageBus>();
 
         CreateMenuVm = new CreateMenuViewModel();
+        IsExpanded = true;
 
         IObservable<bool> canNavigate = this.WhenAnyValue(
                 x => x.IsParentAnimating,
@@ -89,6 +88,7 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
                 }
             )
             .DistinctUntilChanged();
+
         CreateMenuVm.SelectActionCommand
             .Subscribe(async actionType =>
             {
@@ -101,33 +101,41 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
             })
             .DisposeWith(_disposables);
 
+        ToggleSidebarCommand = ReactiveCommand.Create(() =>
+        {
+            IsExpanded = !IsExpanded;
+            return IsExpanded;
+        });
+
         MenuItems = new ObservableCollection<NavigationMenuItem>
         {
-            new NavigationMenuItem
+            new()
             {
-                Id = "home",
-                Label = "Home",
+                Id = "feed",
+                Label = "Feed",
                 IconPath = "HomeIconData",
-                TooltipText = "Home",
-                Type = NavigationMenuItemType.Regular
+                TooltipText = "Feed",
+                Type = NavigationMenuItemType.Regular,
+                NotificationCount = 3
             },
-            new NavigationMenuItem
+            new()
             {
                 Id = "chats",
                 Label = "Chats",
                 IconPath = "ChatsIconData",
                 TooltipText = "Chats",
-                Type = NavigationMenuItemType.Regular
+                Type = NavigationMenuItemType.Regular,
+                NotificationCount = 12
             },
-            new NavigationMenuItem
+            new()
             {
                 Id = "settings",
                 Label = "Settings",
                 IconPath = "SettingsIconData",
                 TooltipText = "Settings",
-                Type = NavigationMenuItemType.Regular
+                Type = NavigationMenuItemType.Regular,
+                NotificationCount = 0
             }
-
         };
 
         ProfileMenuItem = new NavigationMenuItem
