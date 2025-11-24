@@ -119,7 +119,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
             }, DispatcherPriority.Loaded);
 
-            await AnimateWindowResizeAsync(520, 800, TimeSpan.FromMilliseconds(200)).ConfigureAwait(false);
+            await AnimateWindowResizeAsync(520, 800, TimeSpan.FromMilliseconds(450)).ConfigureAwait(false);
 
 
             TitleBarViewModel.DisableMaximizeButton = true;
@@ -150,7 +150,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         {
             _isMainContentActive = true;
 
-            await AnimateWindowResizeAsync(1200, 800, TimeSpan.FromMilliseconds(200)).ConfigureAwait(false);
+            await AnimateWindowResizeAsync(1200, 800, TimeSpan.FromMilliseconds(450)).ConfigureAwait(false);
 
             Dispatcher.UIThread.Post(() =>
             {
@@ -300,17 +300,21 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         await Dispatcher.UIThread.InvokeAsync(async () =>
         {
             await HandleFullScreenStateAsync();
-
             SyncViewModelWithActualWindowSize?.Invoke();
-
             await HandleWindowSnapAsync();
         });
 
+        double startWidth = 0;
+        double startHeight = 0;
+        PixelPoint startPosition = new PixelPoint(0, 0);
 
-        double startWidth = WindowWidth;
-        double startHeight = WindowHeight;
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            startWidth = WindowWidth;
+            startHeight = WindowHeight;
+            startPosition = CurrentPosition;
+        });
 
-        PixelPoint startPosition = CurrentPosition;
         PixelPoint? targetPosition = null;
 
         if (GetPrimaryScreenWorkingArea != null)
@@ -330,77 +334,81 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
         if (Math.Abs(startWidth - targetWidth) < 0.01 && Math.Abs(startHeight - targetHeight) < 0.01)
         {
-            if (targetPosition.HasValue && startPosition != targetPosition)
+            await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                OnWindowRepositionRequested?.Invoke(targetPosition.Value);
-            }
+                if (targetPosition.HasValue && startPosition != targetPosition)
+                {
+                    OnWindowRepositionRequested?.Invoke(targetPosition.Value);
+                }
+            });
             return;
         }
 
-        const int steps = 60;
-        TimeSpan stepDuration = TimeSpan.FromMilliseconds(duration.TotalMilliseconds / steps);
+        TaskCompletionSource tcs = new();
+        DateTime startTime = DateTime.UtcNow;
+        double totalDurationMs = duration.TotalMilliseconds;
 
-        for (int i = 1; i <= steps; i++)
-        {
-            double progress = (double)i / steps;
-            double easedProgress = EaseInOutCubic(progress);
-
-            await Dispatcher.UIThread.InvokeAsync(() =>
+        DispatcherTimer timer = new(
+            TimeSpan.Zero,
+            DispatcherPriority.Render,
+            (sender, e) =>
             {
+                DateTime now = DateTime.UtcNow;
+                double elapsedMs = (now - startTime).TotalMilliseconds;
+
+                double progress = Math.Min(1.0, elapsedMs / totalDurationMs);
+                double easedProgress = EaseInOutCubic(progress);
+
                 WindowWidth = startWidth + (targetWidth - startWidth) * easedProgress;
                 WindowHeight = startHeight + (targetHeight - startHeight) * easedProgress;
 
-
-                if (!targetPosition.HasValue)
+                if (targetPosition.HasValue)
                 {
-                    return;
+                    int currentX = (int)(startPosition.X + (targetPosition.Value.X - startPosition.X) * easedProgress);
+                    int currentY = (int)(startPosition.Y + (targetPosition.Value.Y - startPosition.Y) * easedProgress);
+                    OnWindowRepositionRequested?.Invoke(new PixelPoint(currentX, currentY));
                 }
 
-                int currentX = (int)(startPosition.X + (targetPosition.Value.X - startPosition.X) * easedProgress);
-                int currentY = (int)(startPosition.Y + (targetPosition.Value.Y - startPosition.Y) * easedProgress);
-                OnWindowRepositionRequested?.Invoke(new PixelPoint(currentX, currentY));
+                if (progress >= 1.0)
+                {
+                    (sender as DispatcherTimer)?.Stop();
+
+                    WindowWidth = targetWidth;
+                    WindowHeight = targetHeight;
+
+                    if (targetPosition.HasValue)
+                    {
+                        OnWindowRepositionRequested?.Invoke(targetPosition.Value);
+                    }
+
+                    tcs.TrySetResult();
+                }
             });
 
-            await Task.Delay(stepDuration).ConfigureAwait(true);
-        }
+        timer.Start();
 
-        await Dispatcher.UIThread.InvokeAsync(() =>
-        {
-            WindowWidth = targetWidth;
-            WindowHeight = targetHeight;
-
-            if (targetPosition.HasValue)
-            {
-                OnWindowRepositionRequested?.Invoke(targetPosition.Value);
-            }
-        });
+        await tcs.Task;
     }
 
-    public async Task<Option<WindowPlacement>> LoadInitialPlacementAsync()
+    public async Task<WindowPlacement?> LoadInitialPlacementAsync()
     {
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
             await _storageProvider.GetApplicationInstanceSettingsAsync();
-
         if (settingsResult.IsOk)
         {
-            WindowPlacement placement = settingsResult.Unwrap().WindowPlacement;
-            return Option<WindowPlacement>.Some(placement);
+            return settingsResult.Unwrap().WindowPlacement;
         }
 
         Log.Warning("[MAIN-WINDOW-VM] Cannot load the previous window state from secure storage: {Error}",
             settingsResult.UnwrapErr().Message);
-        return Option<WindowPlacement>.None;
+        return null;
     }
 
     private async Task InvalidateWindowPlacementAsync()
     {
         try
         {
-            Option<WindowPlacement> placementOpt = await LoadInitialPlacementAsync();
-
-            WindowPlacement placement = placementOpt.IsSome
-                ? placementOpt.Value!
-                : new WindowPlacement();
+            WindowPlacement placement = (await LoadInitialPlacementAsync()) ?? new WindowPlacement();
 
             placement.IsValidSave = false;
 
@@ -425,11 +433,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        Option<WindowPlacement> placementOpt = await LoadInitialPlacementAsync();
-
-        WindowPlacement placement = placementOpt.IsSome
-            ? placementOpt.Value!
-            : new WindowPlacement();
+        WindowPlacement? placement = (await LoadInitialPlacementAsync()) ?? new WindowPlacement();
 
         if (state == WindowState.Normal)
         {

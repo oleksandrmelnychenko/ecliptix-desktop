@@ -18,12 +18,12 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AnimatedImage.Avalonia" Version="2.1.2" />
-    <PackageReference Include="Avalonia" Version="11.3.8" />
+    <PackageReference Include="Avalonia" Version="11.3.9" />
     <PackageReference Include="Avalonia.Svg.Skia" Version="11.3.0" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.8" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.9" />
     <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.8" />
-    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.8" />
-    <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.8" />
+    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.9" />
+    <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.9" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageReference Include="Google.Protobuf" Version="3.33.0" />
     <PackageReference Include="Grpc.Net.Client" Version="2.71.0" />
@@ -51,6 +51,7 @@
     <PackageReference Include="Splat.Microsoft.Extensions.DependencyInjection" Version="15.2.22" />
     <PackageReference Include="System.Interactive.Async" Version="6.0.3" />
     <PackageReference Include="System.Linq.Async" Version="6.0.3" />
+    <PackageReference Include="Xaml.Behaviors.Avalonia" Version="11.3.9" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Views\Memberships\AuthenticationWindow.axaml.cs">
@@ -79,6 +80,22 @@
     </Compile>
     <Compile Update="Controls\Modals\BottomSheetModal\BottomSheetControl.axaml.cs">
       <DependentUpon>BottomSheetControl.axaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Features\NewContent\Views\CreateMenuPopup.axaml.cs">
+      <DependentUpon>CreateMenuPopup.axaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Features\NewContent\Views\NewChannelView.axaml.cs">
+      <DependentUpon>NewChannelView.axaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Features\NewContent\Views\NewGroupChatView.axaml.cs">
+      <DependentUpon>NewGroupChatView.axaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Features\NewContent\Views\NewPostView.axaml.cs">
+      <DependentUpon>NewPostView.axaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>

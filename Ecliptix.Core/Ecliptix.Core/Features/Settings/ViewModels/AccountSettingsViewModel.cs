@@ -28,6 +28,8 @@ public class AccountSettingsViewModel : Core.MVVM.ViewModelBase, IActivatableVie
 {
     private readonly IApplicationSecureStorageProvider _secureStorage;
 
+    private bool _isInternalUpdate;
+
     [Reactive] public string DisplayName { get; set; }
     [Reactive] public string ProfileName { get; set; }
     [Reactive] public string AccountId { get; set; }
@@ -35,7 +37,11 @@ public class AccountSettingsViewModel : Core.MVVM.ViewModelBase, IActivatableVie
     [Reactive] public string ProfileInitials { get; set; }
     [Reactive] public bool IsLoadingProfile { get; set; }
 
-    public ReactiveCommand<SystemU, SystemU> SaveChangesCommand { get; }
+    [Reactive] public bool IsSavedMessageVisible { get; set; }
+    public ReactiveCommand<SystemU, SystemU> SaveChangesCommand { get; private set; }
+
+    public ReactiveCommand<SystemU, SystemU> ChangeAvatarCommand { get; private set; }
+
     public ViewModelActivator Activator { get; } = new();
 
     public AccountSettingsViewModel(
@@ -46,27 +52,67 @@ public class AccountSettingsViewModel : Core.MVVM.ViewModelBase, IActivatableVie
     {
         _secureStorage = secureStorageProvider;
 
+        SaveChangesCommand = ReactiveCommand.CreateFromTask(ExecuteSaveAsync);
+
+        ChangeAvatarCommand = ReactiveCommand.Create(() =>
+        {
+            Log.Information("Change avatar clicked");
+        });
+
         this.WhenActivated(disposables =>
         {
+
             this.WhenAnyValue(x => x.DisplayName)
-                .Select(GetInitials)
+                .Select(name => GetInitials(name))
                 .Subscribe(initials => ProfileInitials = initials)
+                .DisposeWith(disposables);
+
+            this.WhenAnyValue(x => x.DisplayName)
+                .Skip(1)
+                .Where(_ => !_isInternalUpdate)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .DistinctUntilChanged()
+                .Throttle(TimeSpan.FromSeconds(1))
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Select(_ => SystemU.Default)
+                .InvokeCommand(SaveChangesCommand)
                 .DisposeWith(disposables);
 
             LoadUserProfileAsync(CancellationToken.None)
                 .ConfigureAwait(false);
-        });
 
-        SaveChangesCommand = ReactiveCommand.CreateFromTask(async () =>
-        {
-            await Task.Delay(500);
-            Log.Information("Settings saved: {DisplayName}", DisplayName);
+
         });
+    }
+
+    private async Task ExecuteSaveAsync()
+    {
+        try
+        {
+            await Task.Delay(300);
+
+            ShowSavedMessage();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+        }
+    }
+
+    private void ShowSavedMessage()
+    {
+
+        IsSavedMessageVisible = true;
+
+        Observable.Timer(TimeSpan.FromSeconds(1))
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(_ => IsSavedMessageVisible = false);
     }
 
     private async Task LoadUserProfileAsync(CancellationToken cancellationToken)
     {
         IsLoadingProfile = true;
+        _isInternalUpdate = true;
         try
         {
             Option<Guid> accountIdOpt = await GetCurrentAccountIdAsync();
@@ -131,6 +177,7 @@ public class AccountSettingsViewModel : Core.MVVM.ViewModelBase, IActivatableVie
         finally
         {
             IsLoadingProfile = false;
+            _isInternalUpdate = false;
         }
     }
 

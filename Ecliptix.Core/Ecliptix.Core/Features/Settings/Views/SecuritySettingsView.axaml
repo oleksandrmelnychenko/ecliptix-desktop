@@ -7,7 +7,7 @@
              x:DataType="viewModels:SecuritySettingsViewModel"
              x:Class="Ecliptix.Core.Features.Settings.Views.SecuritySettingsView">
 
-   <UserControl.Resources>
+    <UserControl.Resources>
         <SolidColorBrush x:Key="OnSurface" Color="#242424"/>
     </UserControl.Resources>
 
@@ -116,78 +116,55 @@
 
     </UserControl.Styles>
 
-    <ScrollViewer Padding="40,20">
-        <StackPanel MaxWidth="1800">
+    <ScrollViewer>
+         <StackPanel >
 
             <Border Classes="setting-row">
-                <Grid ColumnDefinitions="*, Auto">
-                    <TextBlock Text="Current Password" Classes="setting-label"/>
-
-                    <TextBox Grid.Column="1"
-                             Classes="setting-input"
-                             PasswordChar="•"
-                             RevealPassword="True"
-                             Text="{Binding CurrentPassword}"
-                             Watermark="********"/>
+                <Grid ColumnDefinitions="Auto, *">
+                    <TextBlock Grid.Column="0" Text="New Password" Classes="setting-label"/>
+                    <TextBox Grid.Column="1" Classes="setting-input"
+                             PasswordChar="•" RevealPassword="True"
+                             Text="{Binding NewPassword}" Watermark="At least 8 chars"/>
                 </Grid>
             </Border>
 
             <Border Classes="setting-row">
-                <Grid ColumnDefinitions="*, Auto">
-                    <TextBlock Text="New Password" Classes="setting-label"/>
-
-                    <TextBox Grid.Column="1"
-                             Classes="setting-input"
-                             PasswordChar="•"
-                             RevealPassword="True"
-                             Text="{Binding NewPassword}"
-                             Watermark="At least 8 chars"/>
+                <Grid ColumnDefinitions="Auto, *">
+                    <TextBlock Grid.Column="0" Text="Confirm Password" Classes="setting-label"/>
+                    <TextBox Grid.Column="1" Classes="setting-input"
+                             PasswordChar="•" RevealPassword="True"
+                             Text="{Binding ConfirmPassword}" Watermark="Re-enter password"/>
                 </Grid>
             </Border>
-
-            <Border Classes="setting-row">
-                <Grid ColumnDefinitions="*, Auto">
-                    <TextBlock Text="Confirm Password" Classes="setting-label"/>
-
-                    <TextBox Grid.Column="1"
-                             Classes="setting-input"
-                             PasswordChar="•"
-                             RevealPassword="True"
-                             Text="{Binding ConfirmPassword}"
-                             Watermark="Re-enter password"/>
-                </Grid>
-            </Border>
-
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
                 <Button Classes="accent-button"
                         Command="{Binding ChangePasswordCommand}"
                         Content="Update Password"/>
             </StackPanel>
-
             <Border Height="40" />
-
             <Border Classes="setting-row">
-                <Grid ColumnDefinitions="*, Auto">
-                    <TextBlock Text="Two-Factor Authentication" Classes="setting-label"/>
+                <Grid ColumnDefinitions="Auto, *">
+                    <TextBlock Grid.Column="0" Text="Two-Factor Authentication" Classes="setting-label"/>
 
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
                         <ToggleSwitch IsChecked="{Binding IsTwoFactorEnabled}"
                                       OnContent="" OffContent=""
                                       VerticalAlignment="Center"/>
                     </StackPanel>
                 </Grid>
             </Border>
-
             <Border Classes="setting-row">
-                <Grid ColumnDefinitions="*, Auto">
-                    <StackPanel VerticalAlignment="Center">
+                <Grid ColumnDefinitions="Auto, *">
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
                         <TextBlock Text="Active Sessions" Classes="setting-label"/>
                         <TextBlock Text="Log out of all other devices" Classes="setting-description"/>
                     </StackPanel>
 
                     <Button Grid.Column="1"
-                            Classes="danger-button"
-                            Command="{Binding RevokeSessionsCommand}">
+                            Classes="accent-button"
+                            Command="{Binding RevokeSessionsCommand}"
+                            Width="200"
+                            HorizontalAlignment="Right">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <PathIcon Data="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z"
                                       Width="14" Height="14"/>
@@ -196,8 +173,8 @@
                     </Button>
                 </Grid>
             </Border>
-
         </StackPanel>
     </ScrollViewer>
+
 </UserControl>
 

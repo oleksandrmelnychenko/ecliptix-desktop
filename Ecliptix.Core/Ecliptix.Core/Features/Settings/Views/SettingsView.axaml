@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Ecliptix.Core.Features.Settings.ViewModels"
              xmlns:views="clr-namespace:Ecliptix.Core.Features.Settings.Views"
+             xmlns:page="clr-namespace:Ecliptix.Core.Shared.Transitions.Page"
              mc:Ignorable="d"
              d:DesignWidth="1000"
              d:DesignHeight="800"
@@ -100,9 +101,6 @@
             <Setter Property="FontSize" Value="14" />
             <Setter Property="Foreground" Value="#333333" />
         </Style>
-
-
-
     </UserControl.Styles>
 
     <Grid ColumnDefinitions="280,*">
@@ -129,25 +127,35 @@
             </Grid>
         </Border>
 
-        <TransitioningContentControl Grid.Column="1" Content="{Binding CurrentSettingsPage}">
-            <TransitioningContentControl.PageTransition>
-                <CrossFade Duration="0:00:00.250" />
-            </TransitioningContentControl.PageTransition>
-
-            <TransitioningContentControl.DataTemplates>
-                <DataTemplate DataType="{x:Type vm:AccountSettingsViewModel}">
-                    <views:AccountSettingsView />
-                </DataTemplate>
-
-                <DataTemplate DataType="{x:Type vm:AppearanceSettingsViewModel}">
-                    <views:AppearanceSettingsView />
-                </DataTemplate>
-
-                <DataTemplate DataType="{x:Type vm:SecuritySettingsViewModel}">
-                    <views:SecuritySettingsView />
-                </DataTemplate>
-            </TransitioningContentControl.DataTemplates>
-        </TransitioningContentControl>
+        <Grid Grid.Column="1" Margin="12,16" >
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MaxWidth="800" /> <ColumnDefinition Width="Auto" /> </Grid.ColumnDefinitions>
+            <TransitioningContentControl Grid.Column="0"
+                                         Content="{Binding CurrentSettingsPage}"
+                                         IsTransitionReversed="{Binding IsTransitionReversed}">
+                <TransitioningContentControl.PageTransition>
+                    <page:SharedAxisPageTransition Duration="0:0:0.300"
+                                                   Orientation="Vertical"
+                                                   SlideDistance="60"
+                                                   FadeThreshold="0.5">
+                        <page:SharedAxisPageTransition.Easing>
+                            <SplineEasing X1="0.2" Y1="0.0" X2="0.0" Y2="1.0"/>
+                        </page:SharedAxisPageTransition.Easing>
+                    </page:SharedAxisPageTransition>
+                </TransitioningContentControl.PageTransition>
+                <TransitioningContentControl.DataTemplates>
+                    <DataTemplate DataType="{x:Type vm:AccountSettingsViewModel}">
+                        <views:AccountSettingsView />
+                    </DataTemplate>
+                    <DataTemplate DataType="{x:Type vm:AppearanceSettingsViewModel}">
+                        <views:AppearanceSettingsView />
+                    </DataTemplate>
+                    <DataTemplate DataType="{x:Type vm:SecuritySettingsViewModel}">
+                        <views:SecuritySettingsView />
+                    </DataTemplate>
+                </TransitioningContentControl.DataTemplates>
+            </TransitioningContentControl>
+        </Grid>
 
     </Grid>
 </UserControl>

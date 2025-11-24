@@ -256,8 +256,9 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     public string ErrorText
     {
         get => GetValue(ErrorTextProperty);
-        private set => SetValue(ErrorTextProperty, value);
+        set => SetValue(ErrorTextProperty, value);
     }
+    // TODO temp change for a accoutview \ private /
 
     public double EllipseOpacity
     {
@@ -268,8 +269,9 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     public bool HasError
     {
         get => GetValue(HasErrorProperty);
-        private set => SetValue(HasErrorProperty, value);
+        set => SetValue(HasErrorProperty, value);
     }
+    // TODO temp change for a accoutview \ private /
 
     public IBrush MainBorderBrush
     {

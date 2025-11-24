@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Ecliptix.Core.Core.Messaging.Services;
+using Ecliptix.Core.Features.NewContent;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Models.Navigation;
@@ -17,13 +18,15 @@ using Ecliptix.Core.Services.Core.Localization;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Membership;
-using Ecliptix.Utilities.Failures.Network;
-using Google.Protobuf;
+using Ecliptix.Core.Core.Messaging;
+using Ecliptix.Core.Core.Messaging.Events;
+using Ecliptix.Core.Core.Messaging.Services;
 
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Serilog;
-
+using Splat;
+using IMessageBus = Ecliptix.Core.Core.Messaging.IMessageBus;
 using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.ViewModels.Navigation;
@@ -36,6 +39,7 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
     private readonly CompositeDisposable _disposables = new();
     private CancellationTokenSource? _logoutCancellationTokenSource;
     private bool _isDisposed;
+    private readonly IMessageBus? _messageBus;
 
     [Reactive] public NavigationMenuItem? SelectedMenuItem { get; set; }
     [Reactive] public bool IsExpanded { get; set; }
@@ -49,7 +53,11 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
 
     public ReactiveCommand<NavigationMenuItem, SystemU> NavigateCommand { get; }
     public ReactiveCommand<SystemU, SystemU> ToggleProfileMenuCommand { get; }
-    public ReactiveCommand<SystemU, Result<Ecliptix.Utilities.Unit, LogoutFailure>> LogoutCommand { get; }
+    public ReactiveCommand<SystemU, Result<Unit, LogoutFailure>> LogoutCommand { get; }
+
+    public CreateMenuViewModel CreateMenuVm { get; }
+
+    public NavigationMenuItem ProfileMenuItem { get; }
 
     public NavigationSidebarViewModel(
         NetworkProvider networkProvider,
@@ -62,15 +70,30 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
         _logoutService = logoutService;
         _profileMenuService = profileMenuService;
         _storageProvider = storageProvider;
+        _messageBus = Locator.Current?.GetService<IMessageBus>();
+
+        CreateMenuVm = new CreateMenuViewModel();
+
+        CreateMenuVm.SelectActionCommand
+            .Subscribe(async actionType =>
+            {
+                Log.Information($"[SIDEBAR] Opening overlay for action: {actionType}");
+
+                if (_messageBus != null)
+                {
+                    await _messageBus.PublishAsync(new OpenOverlayWithContentTypeEvent(actionType));
+                }
+            })
+            .DisposeWith(_disposables);
 
         MenuItems = new ObservableCollection<NavigationMenuItem>
         {
             new NavigationMenuItem
             {
                 Id = "home",
-                Label = "Feed",
-                IconPath = "FeedIconData",
-                TooltipText = "Feed",
+                Label = "Home",
+                IconPath = "HomeIconData",
+                TooltipText = "Home",
                 Type = NavigationMenuItemType.Regular
             },
             new NavigationMenuItem
@@ -89,6 +112,14 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
                 TooltipText = "Settings",
                 Type = NavigationMenuItemType.Regular
             }
+
+        };
+
+        ProfileMenuItem = new NavigationMenuItem
+        {
+            Id = "profile",
+            Label = "Profile",
+            Type = NavigationMenuItemType.Regular
         };
 
         SelectedMenuItem = MenuItems[0];
@@ -98,9 +129,17 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
             {
                 if (SelectedMenuItem != menuItem)
                 {
-                    SelectedMenuItem?.IsSelected = false;
+                    if (SelectedMenuItem != null)
+                    {
+                        SelectedMenuItem.IsSelected = false;
+                    }
+
                     SelectedMenuItem = menuItem;
-                    menuItem.IsSelected = true;
+
+                    if (SelectedMenuItem != null)
+                    {
+                        SelectedMenuItem.IsSelected = true;
+                    }
                 }
 
                 return SystemU.Default;

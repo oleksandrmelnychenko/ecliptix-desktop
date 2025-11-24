@@ -36,6 +36,10 @@
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <Link>libecliptix.client.so</Link>
         </Content>
+        <None Remove="libcrypto-3-x64.dll" />
+        <Content Include="libcrypto-3-x64.dll">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
         
     </ItemGroup>
 

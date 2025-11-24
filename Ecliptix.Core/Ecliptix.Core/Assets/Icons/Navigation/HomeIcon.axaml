@@ -1,5 +1,10 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <!-- Home Icon - House outline -->
-    <StreamGeometry x:Key="HomeIconData">M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z</StreamGeometry>
+
+    <StreamGeometry x:Key="HomeIconData">
+        M12 2 A10 10 0 1 1 12 22 A10 10 0 1 1 12 2
+        M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20
+        M2 12h20
+    </StreamGeometry>
+
 </ResourceDictionary>

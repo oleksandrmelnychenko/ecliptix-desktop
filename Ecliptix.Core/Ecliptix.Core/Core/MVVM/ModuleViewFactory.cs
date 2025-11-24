@@ -6,6 +6,7 @@ using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Features.Chats.ViewModels;
 using Ecliptix.Core.Features.Feed.ViewModels;
 using Ecliptix.Core.Features.Main;
+using Ecliptix.Core.Features.Profile.ViewModels;
 using Ecliptix.Core.Features.Settings.ViewModels;
 using Ecliptix.Utilities;
 using Microsoft.Extensions.DependencyInjection;
@@ -97,6 +98,7 @@ public class ModuleViewFactory : IModuleViewFactory
         ModuleIdentifier.FEED => typeof(FeedViewModel),
         ModuleIdentifier.CHATS => typeof(ChatsViewModel),
         ModuleIdentifier.SETTINGS => typeof(SettingsViewModel),
+        ModuleIdentifier.PROFILE => typeof(ProfileViewModel),
         _ => null
     };
 }
