@@ -1,0 +1,67 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:newContent="clr-namespace:Ecliptix.Core.Features.NewContent"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:DataType="newContent:CreateMenuViewModel"
+             x:Class="Ecliptix.Core.Features.NewContent.CreateMenuPopup">
+  <UserControl.Styles>
+        <Style Selector="Button.menu-item">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="CornerRadius" Value="8"/>
+        </Style>
+        <Style Selector="Button.menu-item:pointerover">
+            <Setter Property="Background" Value="#F2F6F7"/>
+        </Style>
+
+        <Style Selector="TextBlock">
+            <Setter Property="Foreground" Value="#5C5C5C"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style Selector="PathIcon.menu-icon">
+            <Setter Property="Width" Value="20"/>
+            <Setter Property="Height" Value="20"/>
+            <Setter Property="Foreground" Value="#757575"/> </Style>
+    </UserControl.Styles>
+
+    <Border Background="#FCFEFF"
+            CornerRadius="12"
+            Padding="4"
+            Margin="10"
+            Width="220"> <Border.Effect>
+            <DropShadowEffect Color="#000000" BlurRadius="20" Opacity="0.1" OffsetX="0" OffsetY="4"/>
+        </Border.Effect>
+
+        <ItemsControl ItemsSource="{Binding Items}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="newContent:CreateMenuItem">
+
+                    <Button Classes="menu-item"
+                            Command="{Binding $parent[UserControl].((newContent:CreateMenuViewModel)DataContext).SelectActionCommand}"
+                            CommandParameter="{Binding ActionType}">
+
+                        <StackPanel Orientation="Horizontal" Spacing="16">
+
+                            <PathIcon Classes="menu-icon"
+                                      Data="{Binding IconGeometryData}" />
+
+                            <TextBlock Text="{Binding Label}"
+                                       Foreground="#242424"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </Border>
+</UserControl>
+

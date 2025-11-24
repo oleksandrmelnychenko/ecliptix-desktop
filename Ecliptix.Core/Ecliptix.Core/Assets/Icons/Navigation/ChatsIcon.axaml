@@ -1,7 +1,6 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <!-- Chats icon - Android style with stroke -->
     <StreamGeometry x:Key="ChatsIconData">
-        M3,12 C3,7.029 7.029,3 12,3 C16.971,3 21,7.029 21,12 C21,16.971 16.971,21 12,21 L3,21 L3,14
+        M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719
     </StreamGeometry>
 </ResourceDictionary>

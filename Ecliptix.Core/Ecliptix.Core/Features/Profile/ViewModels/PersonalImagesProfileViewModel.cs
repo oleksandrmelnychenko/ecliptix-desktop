@@ -1,15 +1,19 @@
+using System;
 using System.Collections.ObjectModel;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 
 namespace Ecliptix.Core.Features.Profile.ViewModels;
 
-// Модель для одного зображення
+
 public class ProfileImageItem : ReactiveObject
 {
-    // У реальному додатку тут був би шлях до файлу або Bitmap.
-    // Для прикладу використовуємо колір для заглушки.
-    public string PlaceholderColor { get; set; }
+    public Bitmap? ImageContent { get; set; }
+
+    public int LikesCount { get; set; }
+    public int CommentsCount { get; set; }
 }
 
 public class PersonalImagesProfileViewModel : ReactiveObject
@@ -19,14 +23,33 @@ public class PersonalImagesProfileViewModel : ReactiveObject
     public PersonalImagesProfileViewModel()
     {
 
-        Images.Add(new ProfileImageItem { PlaceholderColor = "#1E1E1E" });
-        Images.Add(new ProfileImageItem { PlaceholderColor = "#F0F0F0" });
-        Images.Add(new ProfileImageItem { PlaceholderColor = "#A0C0E0" });
-        Images.Add(new ProfileImageItem { PlaceholderColor = "#E0A080" });
+        AddImage("photo1.jpg", 1243, 18);
+        AddImage("photo2.jpg", 856, 42);
+        AddImage("photo3.jpg", 2300, 105);
+        AddImage("photo4.jpg", 540, 6);
 
-        Images.Add(new ProfileImageItem { PlaceholderColor = "#90E090" });
-        Images.Add(new ProfileImageItem { PlaceholderColor = "#E090E0" });
-        Images.Add(new ProfileImageItem { PlaceholderColor = "#E0E090" });
-        Images.Add(new ProfileImageItem { PlaceholderColor = "#90E0E0" });
+        AddImage("photo2.jpg", 332, 12);
+        AddImage("photo1.jpg", 900, 30);
+    }
+
+    private void AddImage(string fileName, int likes, int comments)
+    {
+        Uri uri = new Uri($"avares://Ecliptix.Core/Assets/DataSeed/{fileName}");
+
+        try
+        {
+            Bitmap bitmap = new Bitmap(AssetLoader.Open(uri));
+
+            Images.Add(new ProfileImageItem
+            {
+                ImageContent = bitmap,
+                LikesCount = likes,
+                CommentsCount = comments
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading image {fileName}: {ex.Message}");
+        }
     }
 }

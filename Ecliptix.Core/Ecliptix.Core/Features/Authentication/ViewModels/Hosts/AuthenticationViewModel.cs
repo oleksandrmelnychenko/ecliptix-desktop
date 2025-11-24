@@ -479,6 +479,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
             }
 
             Option<IModule> mainModuleOption = await moduleManager.LoadModuleAsync("Main");
+
             if (!mainModuleOption.IsSome)
             {
                 return;

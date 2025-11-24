@@ -6,7 +6,7 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="viewModels:PersonalPostsProfileViewModel"
              x:Class="Ecliptix.Core.Features.Profile.Views.PersonalPostsProfileView">
-   <UserControl.Styles>
+ <UserControl.Styles>
         <Style Selector="TextBlock.author-name">
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -49,11 +49,9 @@
     </UserControl.Styles>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto"
-                  HorizontalScrollBarVisibility="Disabled"
-                  Padding="20,20,20,120">
+                  HorizontalScrollBarVisibility="Disabled">
 
         <Grid>
-
             <StackPanel HorizontalAlignment="Center"
                         MaxWidth="600"
                         Spacing="24">
@@ -101,13 +99,8 @@
                                             ClipToBounds="True"
                                             Height="300"
                                             Margin="0,0,0,12"
-                                            Background="{Binding ImagePlaceholderColor}">
-                                        <Panel>
-                                            <PathIcon Data="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"
-                                                      Width="48" Height="48"
-                                                      Foreground="#ffffff"
-                                                      Opacity="0.3"/>
-                                        </Panel>
+                                            Background="#F0F0F0"> <Image Source="{Binding PostImage}"
+                                               Stretch="UniformToFill"/>
                                     </Border>
 
                                     <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="16" Margin="-8,0,0,12">
