@@ -45,6 +45,7 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
     [Reactive] public bool IsExpanded { get; set; }
     [Reactive] public string UserDisplayName { get; set; } = "@user";
     [ObservableAsProperty] public bool IsBusy { get; }
+    [Reactive] public bool IsParentAnimating { get; set; }
 
     public string AddAccountText => LocalizationService.GetString(LocalizationKeys.ProfileMenu.ADD_ACCOUNT);
     public string LogoutText => LocalizationService.GetString(LocalizationKeys.ProfileMenu.LOGOUT);
@@ -74,6 +75,20 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
 
         CreateMenuVm = new CreateMenuViewModel();
 
+        IObservable<bool> canNavigate = this.WhenAnyValue(
+                x => x.IsParentAnimating,
+                x => x.IsBusy,
+                (isAnimating, isBusy) =>
+                {
+                    bool result = !isAnimating && !isBusy;
+
+                    // Логуємо стан при кожній зміні будь-якого з параметрів
+                    Log.Information($"[NAV-STATE-CHANGE] IsAnimating={isAnimating}, IsBusy={isBusy} => CanNavigate={result}");
+
+                    return result;
+                }
+            )
+            .DistinctUntilChanged();
         CreateMenuVm.SelectActionCommand
             .Subscribe(async actionType =>
             {
@@ -124,26 +139,20 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
 
         SelectedMenuItem = MenuItems[0];
 
-        NavigateCommand = ReactiveCommand.Create<NavigationMenuItem, SystemU>(
-            menuItem =>
+        NavigateCommand = ReactiveCommand.CreateFromTask<NavigationMenuItem>(
+            async menuItem =>
             {
-                if (SelectedMenuItem != menuItem)
+                if (SelectedMenuItem == menuItem)
                 {
-                    if (SelectedMenuItem != null)
-                    {
-                        SelectedMenuItem.IsSelected = false;
-                    }
-
-                    SelectedMenuItem = menuItem;
-
-                    if (SelectedMenuItem != null)
-                    {
-                        SelectedMenuItem.IsSelected = true;
-                    }
+                    return;
                 }
 
-                return SystemU.Default;
-            });
+                SelectedMenuItem?.IsSelected = false;
+                SelectedMenuItem = menuItem;
+                SelectedMenuItem?.IsSelected = true;
+            },
+            canNavigate
+        );
 
         NavigateCommand
             .Subscribe()

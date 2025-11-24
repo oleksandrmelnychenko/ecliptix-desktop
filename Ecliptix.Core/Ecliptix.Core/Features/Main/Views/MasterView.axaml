@@ -6,6 +6,7 @@
              xmlns:nav="clr-namespace:Ecliptix.Core.Controls.Navigation"
              xmlns:page="clr-namespace:Ecliptix.Core.Shared.Transitions.Page"
              xmlns:newContent="clr-namespace:Ecliptix.Core.Features.NewContent"
+             xmlns:transitions="clr-namespace:Ecliptix.Core.Shared.Transitions"
              mc:Ignorable="d"
              d:DesignWidth="1200"
              d:DesignHeight="800"
@@ -50,14 +51,15 @@
                                VerticalAlignment="Stretch"
                                ZIndex="1000" />
 
-        <TransitioningContentControl Grid.Column="1"
-                                     Content="{Binding CurrentView}"
-                                     IsTransitionReversed="{Binding IsTransitionReversed}"
-                                     VerticalAlignment="Stretch"
-                                     HorizontalAlignment="Stretch"
-                                     ZIndex="0">
+        <transitions:AnimatingContentControl Grid.Column="1"
+                                             Content="{Binding CurrentView}"
+                                             IsTransitionReversed="{Binding IsTransitionReversed}"
+                                             VerticalAlignment="Stretch"
+                                             HorizontalAlignment="Stretch"
+                                             ZIndex="0"
+                                             IsAnimating="{Binding IsTransitioning, Mode=OneWayToSource}">
 
-            <TransitioningContentControl.PageTransition>
+            <transitions:AnimatingContentControl.PageTransition>
                 <page:SharedAxisPageTransition Duration="0:0:0.400"
                                                SlideDistance="100"
                                                Orientation="Vertical"
@@ -66,9 +68,9 @@
                         <SplineEasing X1="0.2" Y1="0.0" X2="0.0" Y2="1.0"/>
                     </page:SharedAxisPageTransition.Easing>
                 </page:SharedAxisPageTransition>
-            </TransitioningContentControl.PageTransition>
+            </transitions:AnimatingContentControl.PageTransition>
 
-        </TransitioningContentControl>
+        </transitions:AnimatingContentControl>
 
         <Grid Grid.Column="0"
               Grid.ColumnSpan="2"
