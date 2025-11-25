@@ -17,7 +17,6 @@
                                           BorderThickness="{TemplateBinding BorderThickness}"
                                           CornerRadius="{TemplateBinding CornerRadius}"
                                           ContentTemplate="{TemplateBinding ContentTemplate}"
-                                          Content="{TemplateBinding Content}"
                                           Padding="{TemplateBinding Padding}"
                                           VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
                                           HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}" />
@@ -28,7 +27,6 @@
                                           BorderThickness="{TemplateBinding BorderThickness}"
                                           CornerRadius="{TemplateBinding CornerRadius}"
                                           ContentTemplate="{TemplateBinding ContentTemplate}"
-                                          Content="{TemplateBinding Content}"
                                           Padding="{TemplateBinding Padding}"
                                           VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
                                           HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"

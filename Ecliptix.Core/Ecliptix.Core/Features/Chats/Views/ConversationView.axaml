@@ -6,11 +6,332 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="viewModels:ConversationViewModel"
              x:Class="Ecliptix.Core.Features.Chats.Views.ConversationView">
-    <Grid Background="White">
-        <TextBlock
-            Text="{Binding Name}"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center"/>
+  <UserControl.Resources>
+        <SolidColorBrush x:Key="AccentColorBrush" Color="#6A5ACD"/>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+
+        <Style Selector="Border.input-container">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="28"/>
+            <Setter Property="Margin" Value="20"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="Transparent"/> <Setter Property="BoxShadow" Value="0 4 12 0 #1A6A5ACD"/>
+
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.2"/>
+                    <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.2"/>
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Border.input-container:focus-within">
+            <Setter Property="BorderBrush" Value="#6A5ACD"/>
+            <Setter Property="BoxShadow" Value="0 4 15 0 #666A5ACD"/>
+        </Style>
+
+        <Style Selector="TextBox.clean-input">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="FocusAdorner" Value="{x:Null}"/>
+        </Style>
+        <Style Selector="TextBox.clean-input:focus /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <Style Selector="TextBox.clean-input:pointerover /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+
+        <Style Selector="Button.icon">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+        <Style Selector="Button.icon:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#10000000"/>
+        </Style>
+
+        <Style Selector="Border.message-bubble">
+            <Setter Property="CornerRadius" Value="16"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="MaxWidth" Value="500"/>
+        </Style>
+
+        <Style Selector="Border.incoming">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="BoxShadow" Value="0 1 3 0 #20000000"/>
+        </Style>
+
+        <Style Selector="Border.outgoing">
+            <Setter Property="Background" Value="#6A5ACD"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="BoxShadow" Value="0 1 3 0 #406A5ACD"/>
+            <Setter Property="TextBlock.Foreground" Value="White"/>
+        </Style>
+
+        <Style Selector="Border.avatar">
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="CornerRadius" Value="16"/>
+            <Setter Property="ClipToBounds" Value="True"/>
+            <Setter Property="Background" Value="#E0E0E0"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <Grid.Background>
+            <DrawingBrush TileMode="Tile" SourceRect="0,0,32,32" DestinationRect="0,0,32,32" Stretch="None">
+                <DrawingBrush.Drawing>
+                    <GeometryDrawing Brush="#406A5ACD">
+                        <GeometryDrawing.Geometry>
+                            <EllipseGeometry Rect="15,15,2,2" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                </DrawingBrush.Drawing>
+            </DrawingBrush>
+        </Grid.Background>
+
+        <Border Grid.Row="0" Background="White" BorderBrush="#F0F0F0" BorderThickness="0,0,0,1" Padding="20,10">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                    <Button Classes="icon" ToolTip.Tip="Favorites">
+                        <PathIcon Data="M12,15.39L8.24,17.61L9.23,13.23L5.88,10.26L10.26,9.88L12,5.88L13.74,9.88L18.12,10.26L14.77,13.23L15.76,17.61L12,15.39M22,9.24L14.81,8.63L12,2L9.19,8.63L2,9.24L7.45,13.97L5.82,21L12,17.27L18.18,21L16.54,13.97L22,9.24Z"
+                                  Width="22" Height="22" Foreground="Gray"/>
+                    </Button>
+
+                    <Button Classes="icon" ToolTip.Tip="Add Member">
+                        <PathIcon Data="M15,14C12.33,14 7,15.33 7,18V20H23V18C23,15.33 17.67,14 15,14M15,12A4,4 0 0,0 19,8A4,4 0 0,0 15,4A4,4 0 0,0 11,8A4,4 0 0,0 15,12M5,13V10H2V13H5V16H8V13H5Z"
+                                  Width="22" Height="22" Foreground="Gray"/>
+                    </Button>
+
+                    <Button Classes="icon" ToolTip.Tip="Chat Info">
+                        <PathIcon Data="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"
+                                  Width="22" Height="22" Foreground="Gray"/>
+                    </Button>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Right">
+                        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                            <Border Width="8" Height="8" CornerRadius="4" Background="#4CAF50" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="16"/>
+                        </StackPanel>
+                        <TextBlock Text="@sarahchen" Foreground="Gray" FontSize="12" HorizontalAlignment="Right"/>
+                    </StackPanel>
+
+                    <Border Width="40" Height="40" CornerRadius="20" Background="#ddd" ClipToBounds="True">
+                        <Panel>
+                            <PathIcon Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"
+                                      Width="24" Height="24" Foreground="Gray"/>
+                        </Panel>
+                    </Border>
+                </StackPanel>
+
+            </Grid>
+        </Border>
+
+        <ScrollViewer Grid.Row="1" Padding="20 0 20 0">
+            <StackPanel Spacing="20">
+
+                <Grid ColumnDefinitions="Auto, *">
+                    <Border Classes="avatar" VerticalAlignment="Top" Margin="0,0,10,0">
+                        <Panel>
+                            <PathIcon Data="M12,12 A4,4 0 0,1 12,12" Width="16" Height="16"/>
+                            <Image Source="/Assets/DataSeed/user1.jpg" IsVisible="False"/>
+                        </Panel>
+                    </Border>
+
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Left">
+                        <Border Classes="message-bubble incoming">
+                            <TextBlock Text="Hey! How's the project going?" TextWrapping="Wrap"/>
+                        </Border>
+                        <TextBlock Text="2:34 PM" FontSize="10" Foreground="Gray" Margin="5,4,0,0"/>
+                    </StackPanel>
+                </Grid>
+
+                <Grid ColumnDefinitions="*, Auto">
+                    <StackPanel Grid.Column="0" HorizontalAlignment="Right">
+                        <Border Classes="message-bubble outgoing">
+                            <TextBlock Text="Going great! Just finished the new designs" TextWrapping="Wrap" Foreground="White"/>
+                        </Border>
+                        <TextBlock Text="2:35 PM" FontSize="10" Foreground="Gray" HorizontalAlignment="Right" Margin="0,4,5,0"/>
+                    </StackPanel>
+
+                    <Border Grid.Column="1" Classes="avatar" Background="#90A4AE" VerticalAlignment="Top" Margin="10,0,0,0">
+                        <TextBlock Text="ME" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" FontSize="10"/>
+                    </Border>
+                </Grid>
+
+                <Grid ColumnDefinitions="Auto, *">
+                    <Border Classes="avatar" VerticalAlignment="Top" Margin="0,0,10,0">
+                         <Panel>
+                             <PathIcon Data="M12,12 A4,4 0 0,1 12,12" Width="16" Height="16"/>
+                         </Panel>
+                    </Border>
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Left">
+                        <Border Classes="message-bubble incoming">
+                            <TextBlock Text="Awesome! Can't wait to see them. Are we still meeting tomorrow?" TextWrapping="Wrap"/>
+                        </Border>
+                        <TextBlock Text="2:36 PM" FontSize="10" Foreground="Gray" Margin="5,4,0,0"/>
+                    </StackPanel>
+                </Grid>
+
+                <Grid ColumnDefinitions="*, Auto">
+                    <StackPanel Grid.Column="0" HorizontalAlignment="Right" MaxWidth="500">
+                        <Border Classes="message-bubble outgoing">
+                            <StackPanel Spacing="8">
+                                <Border Background="#20000000" CornerRadius="0" Padding="8,4" BorderBrush="White" BorderThickness="3,0,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="Sarah Chen" FontWeight="Bold" FontSize="11" Foreground="#E0E0E0"/>
+                                        <TextBlock Text="Awesome! Can't wait to see them. Are we still meeting tomorrow? "
+                                                   FontSize="12" Foreground="#E0E0E0" TextTrimming="CharacterEllipsis" MaxLines="1"/>
+                                    </StackPanel>
+                                </Border>
+                                <TextBlock Text="Yes, absolutely! I'll send you the files right now." TextWrapping="Wrap" Foreground="White"/>
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Text="2:37 PM" FontSize="10" Foreground="Gray" HorizontalAlignment="Right" Margin="0,4,5,0"/>
+                    </StackPanel>
+
+                    <Border Grid.Column="1" Classes="avatar" Background="#90A4AE" VerticalAlignment="Top" Margin="10,0,0,0">
+                        <TextBlock Text="ME" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" FontSize="10"/>
+                    </Border>
+                </Grid>
+
+                <Grid ColumnDefinitions="Auto, *">
+                    <Border Classes="avatar" VerticalAlignment="Top" Margin="0,0,10,0">
+                         <Panel>
+                             <PathIcon Data="M12,12 A4,4 0 0,1 12,12" Width="16" Height="16"/>
+                         </Panel>
+                    </Border>
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Left" MaxWidth="500">
+                        <Border Classes="message-bubble incoming">
+                            <StackPanel Spacing="8">
+                                <Border Background="#F5F5FA" CornerRadius="0" Padding="8,4" BorderBrush="#6A5ACD" BorderThickness="3,0,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="You" FontWeight="Bold" FontSize="11" Foreground="#6A5ACD"/>
+                                        <TextBlock Text="Yes, absolutely! I'll send you the files right now."
+                                                   FontSize="12" Foreground="Gray" TextTrimming="CharacterEllipsis" MaxLines="1"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <TextBlock Text="Perfect! Thanks so much 🙏" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Text="2:38 PM" FontSize="10" Foreground="Gray" Margin="5,4,0,0"/>
+                    </StackPanel>
+                </Grid>
+
+                <Grid ColumnDefinitions="Auto, *">
+            <Border Classes="avatar" VerticalAlignment="Top" Margin="0,0,10,0">
+                <Panel>
+                    <PathIcon Data="M12,12 A4,4 0 0,1 12,12" Width="16" Height="16"/>
+                </Panel>
+            </Border>
+            <StackPanel Grid.Column="1" HorizontalAlignment="Left">
+                <Border Classes="message-bubble incoming">
+                    <TextBlock Text="Привіт 👋" TextWrapping="Wrap"/>
+                </Border>
+                <TextBlock Text="10:00 AM" FontSize="10" Foreground="Gray" Margin="5,4,0,0"/>
+            </StackPanel>
+        </Grid>
+
+        <Grid ColumnDefinitions="Auto, *">
+            <Border Classes="avatar" VerticalAlignment="Top" Margin="0,0,10,0">
+                <Panel>
+                    <PathIcon Data="M12,12 A4,4 0 0,1 12,12" Width="16" Height="16"/>
+                </Panel>
+            </Border>
+            <StackPanel Grid.Column="1" HorizontalAlignment="Left">
+                <Border Classes="message-bubble incoming">
+                    <TextBlock Text="Слухай, я тут переглянула макети нового дизайну. Загалом виглядає чудово, особливо кольорова гама. Але є питання до навігації на мобільних пристроях — мені здається, що кнопки занадто малі для натискання пальцем. Можемо збільшити padding?"
+                               TextWrapping="Wrap"/>
+                </Border>
+                <TextBlock Text="10:05 AM" FontSize="10" Foreground="Gray" Margin="5,4,0,0"/>
+            </StackPanel>
+        </Grid>
+
+        <Grid ColumnDefinitions="*, Auto">
+            <StackPanel Grid.Column="0" HorizontalAlignment="Right">
+                <Border Classes="message-bubble outgoing">
+                    <TextBlock Text="Ок, гляну." TextWrapping="Wrap" Foreground="White"/>
+                </Border>
+                <TextBlock Text="10:06 AM" FontSize="10" Foreground="Gray" HorizontalAlignment="Right" Margin="0,4,5,0"/>
+            </StackPanel>
+
+            <Border Grid.Column="1" Classes="avatar" Background="#90A4AE" VerticalAlignment="Top" Margin="10,0,0,0">
+                <TextBlock Text="ME" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" FontSize="10"/>
+            </Border>
+        </Grid>
+
+        <Grid ColumnDefinitions="*, Auto">
+            <StackPanel Grid.Column="0" HorizontalAlignment="Right">
+                <Border Classes="message-bubble outgoing">
+                    <TextBlock Text="Я перевірив гайдлайни Material Design. Там рекомендований розмір області натискання — мінімум 48x48dp. Зараз у нас 32x32. Ти права, треба фіксити."
+                               TextWrapping="Wrap" Foreground="White"/>
+                </Border>
+                <TextBlock Text="10:08 AM" FontSize="10" Foreground="Gray" HorizontalAlignment="Right" Margin="0,4,5,0"/>
+            </StackPanel>
+
+            <Border Grid.Column="1" Classes="avatar" Background="#90A4AE" VerticalAlignment="Top" Margin="10,0,0,0">
+                <TextBlock Text="ME" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" FontSize="10"/>
+            </Border>
+        </Grid>
+
+        <Grid ColumnDefinitions="Auto, *">
+             <Border Classes="avatar" VerticalAlignment="Top" Margin="0,0,10,0">
+                <Panel>
+                    <PathIcon Data="M12,12 A4,4 0 0,1 12,12" Width="16" Height="16"/>
+                </Panel>
+            </Border>
+            <StackPanel Grid.Column="1" HorizontalAlignment="Left">
+                <Border Classes="message-bubble incoming">
+                    <TextBlock TextWrapping="Wrap">
+                        <Run Text="Ось список правок на сьогодні:"/>
+                        <LineBreak/>
+                        <Run Text="1. Збільшити кнопки в хедері."/>
+                        <LineBreak/>
+                        <Run Text="2. Пофіксити відступи в чаті."/>
+                        <LineBreak/>
+                        <Run Text="3. Оновити іконки на outline-версії."/>
+                    </TextBlock>
+                </Border>
+                <TextBlock Text="10:15 AM" FontSize="10" Foreground="Gray" Margin="5,4,0,0"/>
+            </StackPanel>
+        </Grid>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="2" Classes="input-container">
+            <Grid ColumnDefinitions="Auto,*,Auto" Height="56">
+
+                <Button Grid.Column="0" Classes="icon" Margin="10,0,0,0">
+                    <PathIcon Data="M16.5,6V17.5A4,4 0 0,1 12.5,21.5A4,4 0 0,1 8.5,17.5V5A2.5,2.5 0 0,1 11,2.5A2.5,2.5 0 0,1 13.5,5V15.5A1,1 0 0,1 12.5,16.5A1,1 0 0,1 11.5,15.5V6H10V15.5A2.5,2.5 0 0,0 12.5,18A2.5,2.5 0 0,0 15,15.5V5A4,4 0 0,0 11,1A4,4 0 0,0 7,5V17.5A5.5,5.5 0 0,0 12.5,23A5.5,5.5 0 0,0 18,17.5V6H16.5Z"
+                              Width="20" Height="20" Foreground="Gray"/>
+                </Button>
+
+                <TextBox Grid.Column="1"
+                         Classes="clean-input"
+                         Watermark="Write a message..."
+                         VerticalContentAlignment="Center"
+                         Margin="5,0"/>
+
+                <Button Grid.Column="2" Width="40" Height="40" CornerRadius="20" Background="#6A5ACD" Margin="0,0,8,0">
+                    <PathIcon Data="M4,6.03L11.5,9.25L4,8.25L4,6.03M11.5,14.75L4,17.97V15.75L11.5,14.75M2,3L2,10L17,12L2,14L2,21L23,12L2,3Z"
+                              Width="18" Height="18" Foreground="White" Margin="2,0,0,0"/>
+                </Button>
+            </Grid>
+        </Border>
     </Grid>
 </UserControl>
 

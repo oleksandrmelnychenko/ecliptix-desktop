@@ -3,30 +3,37 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Animation;
+using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
+using Avalonia.LogicalTree;
 using Avalonia.Threading;
 
 namespace Ecliptix.Core.Shared.Transitions;
 
-public partial class AnimatingContentControl : UserControl
+public partial class AnimatingContentControl : UserControl, ILogical
 {
     private const int ANIMATION_STATE_BUFFER_MS = 5;
-
     private static readonly TimeSpan DefaultAnimationDuration = TimeSpan.FromMilliseconds(125);
 
-    public AnimatingContentControl()
-    {
-        InitializeComponent();
-    }
+    private readonly AvaloniaList<ILogical> _logicalChildren = new();
 
     private CancellationTokenSource? _currentTransition;
     private ContentPresenter? _lastPresenter;
     private ContentPresenter? _presenter2;
     private bool _isFirstFull;
     private bool _shouldAnimate;
+
+    public AnimatingContentControl()
+    {
+        InitializeComponent();
+    }
+
+    IAvaloniaReadOnlyList<ILogical> ILogical.LogicalChildren => _logicalChildren;
+
+    #region Dependency Properties
 
     public static readonly StyledProperty<bool> IsAnimatingProperty =
         AvaloniaProperty.Register<AnimatingContentControl, bool>(nameof(IsAnimating));
@@ -70,6 +77,8 @@ public partial class AnimatingContentControl : UserControl
         remove => RemoveHandler(TransitionCompletedEvent, value);
     }
 
+    #endregion
+
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
         base.OnApplyTemplate(e);
@@ -112,6 +121,14 @@ public partial class AnimatingContentControl : UserControl
 
                             HideOldPresenter();
 
+                            if (fromContent is ILogical oldChild && _logicalChildren.Contains(oldChild))
+                            {
+                                if (!ReferenceEquals(fromContent, Content))
+                                {
+                                    _logicalChildren.Remove(oldChild);
+                                }
+                            }
+
                             DispatcherTimer timer = new()
                             {
                                 Interval = TimeSpan.FromMilliseconds(ANIMATION_STATE_BUFFER_MS)
@@ -128,7 +145,6 @@ public partial class AnimatingContentControl : UserControl
                             }
 
                             timer.Tick += Handler;
-
                             timer.Start();
                         });
                     }
@@ -155,7 +171,7 @@ public partial class AnimatingContentControl : UserControl
         base.OnPropertyChanged(change);
     }
 
-    private void UpdateContent(bool withTransition)
+   private void UpdateContent(bool withTransition)
     {
         if (VisualRoot is null || _presenter2 is null || Presenter is null)
         {
@@ -166,6 +182,11 @@ public partial class AnimatingContentControl : UserControl
         object? fromContent = _lastPresenter?.Content;
         object? toContent = Content;
 
+        if (ReferenceEquals(fromContent, toContent))
+        {
+             return;
+        }
+
         if (_lastPresenter != null &&
             _lastPresenter != currentPresenter &&
             _lastPresenter.Content == toContent)
@@ -173,10 +194,15 @@ public partial class AnimatingContentControl : UserControl
             _lastPresenter.Content = null;
         }
 
+        if (toContent is ILogical newLogicalChild && !_logicalChildren.Contains(newLogicalChild))
+        {
+            _logicalChildren.Add(newLogicalChild);
+        }
+
         currentPresenter.Content = toContent;
         currentPresenter.IsVisible = true;
-        _lastPresenter = currentPresenter;
 
+        _lastPresenter = currentPresenter;
         _isFirstFull = !_isFirstFull;
 
         if (PageTransition is not null && withTransition)
@@ -188,6 +214,11 @@ public partial class AnimatingContentControl : UserControl
         else
         {
             HideOldPresenter();
+            if (fromContent is ILogical oldLogicalChild && fromContent != toContent)
+            {
+                _logicalChildren.Remove(oldLogicalChild);
+            }
+
             OnTransitionCompleted(new TransitionCompletedEventArgs(fromContent, toContent, false));
             IsAnimating = false;
         }
