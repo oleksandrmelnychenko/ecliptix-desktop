@@ -190,6 +190,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
                 ClearTitleBarContent();
 
                 TitleBarViewModel.LeftContent.Add(new ToggleNavigationSideBarViewModel());
+                TitleBarViewModel.RightContent.Add(new ToggleThemeViewModel());
 
             }, DispatcherPriority.Loaded);
 
