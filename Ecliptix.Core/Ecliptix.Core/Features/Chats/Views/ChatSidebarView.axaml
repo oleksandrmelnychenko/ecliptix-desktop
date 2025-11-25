@@ -1,0 +1,245 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:viewModels="clr-namespace:Ecliptix.Core.Features.Chats.ViewModels"
+             xmlns:converters="clr-namespace:Ecliptix.Core.Features.Chats.Converters"
+             xmlns:models="clr-namespace:Ecliptix.Core.Features.Chats.Models"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Ecliptix.Core.Features.Chats.Views.ChatSidebarView"
+             x:DataType="viewModels:ChatSidebarViewModel">
+    <UserControl.Resources>
+        <converters:ChatTypeToCornerRadiusConverter x:Key="ChatTypeToCornerRadiusConverter"/>
+
+        <SolidColorBrush x:Key="SidebarBackground" Color="#FEFEFE" />
+        <SolidColorBrush x:Key="SelectedItemBackground" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="HoverItemBackground" Color="#F7F9FA" />
+        <SolidColorBrush x:Key="PrimaryText" Color="#242424"/>
+        <SolidColorBrush x:Key="SecondaryText" Color="#6E767D"/>
+        <SolidColorBrush x:Key="BadgeBackground" Color="#5856D6"/>
+        <SolidColorBrush x:Key="BadgeText" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="OnlineStatus" Color="#44B700"/>
+        <SolidColorBrush x:Key="GroupIconBackground" Color="#F0F0FF"/>
+
+        <BoxShadows x:Key="DefaultItemShadow">0 2 8 0 #00000000, 0 1 2 0 #00000000</BoxShadows>
+        <BoxShadows x:Key="ActiveItemShadow">0 2 8 0 #15000000, 0 1 2 0 #08000000</BoxShadows>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="ListBoxItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusAdorner" Value="{x:Null}" />
+            <Setter Property="ClipToBounds" Value="False" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Grid ColumnDefinitions="24, *" x:DataType="viewModels:ChatListItemViewModel">
+
+                        <Panel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <PathIcon Data="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z"
+                                      Width="12" Height="12"
+                                      Foreground="{StaticResource BadgeBackground}"
+                                      IsVisible="{Binding IsPinned}" />
+                        </Panel>
+
+                        <Border Grid.Column="1"
+                                Name="CardBorder"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="12"
+                                Padding="0"
+                                Margin="0,0,8,0"
+                                BoxShadow="{StaticResource DefaultItemShadow}">
+                            <Border.Transitions>
+                                <Transitions>
+                                    <BrushTransition Property="Background" Duration="0:0:0.1" />
+                                    <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.15" />
+                                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.05" Easing="CubicEaseOut"/>
+                                </Transitions>
+                            </Border.Transitions>
+
+                            <Panel>
+                                <Border Name="ActiveIndicator"
+                                        Width="4" Height="24"
+                                        Background="{StaticResource BadgeBackground}"
+                                        CornerRadius="0,2,2,0"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Center"
+                                        IsVisible="False"/>
+
+                                <ContentPresenter Name="PART_ContentPresenter"
+                                                  Margin="12,10,10,10"
+                                                  Content="{TemplateBinding Content}"
+                                                  ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                  CornerRadius="12"/>
+                            </Panel>
+                        </Border>
+                    </Grid>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+
+        <Style Selector="ListBoxItem /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ListBoxItem:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ListBoxItem:selected:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ListBoxItem:selected:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+
+        <Style Selector="ListBoxItem:pointerover /template/ Border#CardBorder">
+            <Setter Property="Background" Value="{StaticResource HoverItemBackground}" />
+        </Style>
+
+        <Style Selector="ListBoxItem:pressed">
+            <Setter Property="RenderTransform" Value="scale(1)" />
+        </Style>
+        <Style Selector="ListBoxItem:pressed /template/ Border#CardBorder">
+            <Setter Property="Background" Value="{StaticResource HoverItemBackground}" />
+        </Style>
+
+        <Style Selector="ListBoxItem:selected /template/ Border#CardBorder">
+            <Setter Property="Background" Value="{StaticResource SelectedItemBackground}" />
+            <Setter Property="BoxShadow" Value="{StaticResource ActiveItemShadow}" />
+        </Style>
+        <Style Selector="ListBoxItem:selected /template/ Border#ActiveIndicator">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+
+        <Style Selector="ListBoxItem:selected:pointerover /template/ Border#CardBorder">
+            <Setter Property="Background" Value="{StaticResource SelectedItemBackground}" />
+            <Setter Property="BoxShadow" Value="{StaticResource ActiveItemShadow}" />
+        </Style>
+
+        <Style Selector="ListBoxItem:selected:pressed">
+            <Setter Property="RenderTransform" Value="scale(1)" />
+        </Style>
+        <Style Selector="ListBoxItem:selected:pressed /template/ Border#CardBorder">
+            <Setter Property="Background" Value="{StaticResource SelectedItemBackground}" />
+            <Setter Property="BoxShadow" Value="{StaticResource ActiveItemShadow}" />
+        </Style>
+
+        <Style Selector="ListBoxItem:disabled">
+            <Setter Property="Opacity" Value="0.6" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border Background="{StaticResource SidebarBackground}" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0">
+        <Grid RowDefinitions="Auto,*">
+
+            <TextBlock Text="Messages" Margin="20,20,0,10" FontWeight="Bold" FontSize="20" Foreground="{StaticResource PrimaryText}"/>
+
+            <ListBox Grid.Row="1"
+                     ItemsSource="{Binding Chats}"
+                     SelectedItem="{Binding SelectedChat}"
+                     Background="Transparent"
+                     SelectionMode="Single"
+                     ClipToBounds="False"
+                     Padding="4,0,4,20">
+
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="viewModels:ChatListItemViewModel">
+                        <Grid ColumnDefinitions="Auto, *">
+
+                            <Panel Grid.Column="0" Width="48" Height="48" VerticalAlignment="Center">
+
+                                <Border CornerRadius="{Binding Type, Converter={StaticResource ChatTypeToCornerRadiusConverter}}"
+                                        ClipToBounds="True"
+                                        Width="48" Height="48">
+                                    <Panel>
+                                        <Border Background="{StaticResource HoverItemBackground}" IsVisible="{Binding AvatarImage, Converter={x:Static ObjectConverters.IsNull}}"/>
+                                        <Border Background="{StaticResource GroupIconBackground}"
+                                                IsVisible="{Binding Type, Converter={x:Static ObjectConverters.NotEqual}, ConverterParameter={x:Static models:ChatType.Personal}}"/>
+
+                                        <Image Source="{Binding AvatarImage}" Stretch="UniformToFill"
+                                               IsVisible="{Binding AvatarImage, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+
+                                        <Panel IsVisible="{Binding AvatarImage, Converter={x:Static ObjectConverters.IsNull}}">
+                                            <TextBlock Text="{Binding Initials}"
+                                                       VerticalAlignment="Center" HorizontalAlignment="Center"
+                                                       FontWeight="SemiBold" Foreground="{StaticResource PrimaryText}"
+                                                       IsVisible="{Binding Type, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static models:ChatType.Personal}}" />
+
+                                            <TextBlock Text="#"
+                                                       VerticalAlignment="Center" HorizontalAlignment="Center"
+                                                       FontWeight="Bold" FontSize="20" Foreground="{StaticResource BadgeBackground}"
+                                                       IsVisible="{Binding Type, Converter={x:Static ObjectConverters.NotEqual}, ConverterParameter={x:Static models:ChatType.Personal}}" />
+                                        </Panel>
+                                    </Panel>
+                                </Border>
+
+                                <Border Width="14" Height="14"
+                                        CornerRadius="7"
+                                        Background="{StaticResource OnlineStatus}"
+                                        BorderBrush="White" BorderThickness="2"
+                                        HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                        Margin="0,0,0,2">
+                                    <Border.IsVisible>
+                                        <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                            <Binding Path="IsOnline"/>
+                                            <Binding Path="Type" Converter="{x:Static ObjectConverters.Equal}" ConverterParameter="{x:Static models:ChatType.Personal}"/>
+                                        </MultiBinding>
+                                    </Border.IsVisible>
+                                </Border>
+                            </Panel>
+
+                            <Grid Grid.Column="1" RowDefinitions="Auto, Auto" Margin="12,2,0,2">
+
+                                <Grid Grid.Row="0" ColumnDefinitions="*, Auto">
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding Title}"
+                                               FontWeight="SemiBold"
+                                               FontSize="15"
+                                               Foreground="{StaticResource PrimaryText}"
+                                               TextTrimming="CharacterEllipsis" />
+
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding DisplayTime}"
+                                               FontSize="12"
+                                               Foreground="{StaticResource SecondaryText}"
+                                               Margin="8,0,0,0"/>
+                                </Grid>
+
+                                <Grid Grid.Row="1" ColumnDefinitions="*, Auto" Margin="0,4,0,0">
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding DisplayMessage}"
+                                               FontSize="13"
+                                               Foreground="{StaticResource SecondaryText}"
+                                               TextTrimming="CharacterEllipsis"
+                                               MaxLines="1" />
+
+                                    <Border Grid.Column="1"
+                                            Background="{StaticResource BadgeBackground}"
+                                            CornerRadius="10"
+                                            MinWidth="20" Height="20"
+                                            Padding="6,0"
+                                            Margin="8,0,0,0"
+                                            HorizontalAlignment="Right"
+                                            IsVisible="{Binding HasUnreadMessages}">
+                                        <TextBlock Text="{Binding UnreadCount}"
+                                                   Foreground="{StaticResource BadgeText}"
+                                                   FontSize="11" FontWeight="Bold"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Grid>
+    </Border>
+</UserControl>
+
