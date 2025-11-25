@@ -1,9 +1,11 @@
 using System;
+using System.Reactive;
 using System.Reactive.Disposables;
 using Ecliptix.Core.Features.Feed.Models;
 using Ecliptix.Core.Features.Feed.Services.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
+using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 
 namespace Ecliptix.Core.Features.Feed.ViewModels;
@@ -15,6 +17,8 @@ public sealed class TextPostViewModel : FeedItemViewModel
 
     [Reactive] public TextContent TextContent { get; set; }
     [Reactive] public bool IsExpanded { get; set; }
+
+    public ReactiveCommand<Unit, Unit> ToggleCommentsCommand { get; }
 
     public TextPostViewModel(
         FeedPost post,
@@ -31,6 +35,18 @@ public sealed class TextPostViewModel : FeedItemViewModel
 
         TextContent = textContent;
         IsExpanded = textContent.Text.Length <= 200;
+
+        ToggleCommentsCommand = ReactiveCommand.Create(ToggleComments);
+    }
+
+    private void ToggleComments()
+    {
+        ShowComments = !ShowComments;
+
+        if (ShowComments && Comments.Comments.Count == 0)
+        {
+            Comments.LoadCommentsCommand.Execute().Subscribe();
+        }
     }
 
     protected override void Dispose(bool disposing)

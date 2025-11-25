@@ -1,7 +1,7 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <!-- Profile Icon - User avatar with head and shoulders -->
+    <!-- Profile Icon - Phosphor user-light -->
     <StreamGeometry x:Key="ProfileIconData">
-        M12,4 A3,3 0 1 1 12,10 A3,3 0 1 1 12,4 M12,14 L15.5,14 L17.809,14 C17.914,14 18,14.086 18,14.191 C18,17.399 15.399,20 12.191,20 L11.809,20 C8.601,20 6,17.399 6,14.191 C6,14.086 6.086,14 6.191,14 L10.6,14 L12,14 Z
+        M229.19,213c-15.81-27.32-40.63-46.49-69.47-54.62a70,70,0,1,0-63.44,0C67.44,166.5,42.62,185.67,26.81,213a6,6,0,1,0,10.38,6C56.4,185.81,90.34,166,128,166s71.6,19.81,90.81,53a6,6,0,1,0,10.38-6ZM70,96a58,58,0,1,1,58,58A58.07,58.07,0,0,1,70,96Z
     </StreamGeometry>
 </ResourceDictionary>

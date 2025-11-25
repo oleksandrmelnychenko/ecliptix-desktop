@@ -5,17 +5,12 @@
     <!-- Parsed once at build time, shared across all post instances -->
     <!-- Significant performance improvement: no runtime SVG parsing -->
 
-    <!-- Like/Heart Icon - Outline (Unliked State) - Simple single-path outline for stroking -->
+    <!-- Like/Heart Icon -->
     <StreamGeometry x:Key="LikeIconGeometry">
         M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z
     </StreamGeometry>
 
-    <!-- Like/Heart Icon - Filled (Liked State) - Same simple path -->
-    <StreamGeometry x:Key="LikeIconFilledGeometry">
-        M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z
-    </StreamGeometry>
-
-    <!-- Comment/Chat Icon (from Navigation Menu Chat Icon) -->
+    <!-- Comment/Chat Icon -->
     <StreamGeometry x:Key="CommentIconGeometry">
         M3,12 C3,7.029 7.029,3 12,3 C16.971,3 21,7.029 21,12 C21,16.971 16.971,21 12,21 L3,21 L3,14
     </StreamGeometry>
@@ -25,14 +20,9 @@
         M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z
     </StreamGeometry>
 
-    <!-- Play Icon (for video player) -->
-    <StreamGeometry x:Key="PlayIconGeometry">
-        M8 5v14l11-7z
-    </StreamGeometry>
-
-    <!-- Pause Icon (for video player) -->
-    <StreamGeometry x:Key="PauseIconGeometry">
-        M6 4h4v16H6V4zm8 0h4v16h-4V4z
+    <!-- Analytics/Chart Icon -->
+    <StreamGeometry x:Key="AnalyticsIconGeometry">
+        M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z
     </StreamGeometry>
 
     <!-- Verification Badge Icon -->

@@ -5,7 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Serilog;
-using Utilities;
+using Ecliptix.Utilities;
 
 internal static class IconService
 {

@@ -165,31 +165,13 @@ public sealed partial class FeedViewModel : Core.MVVM.ViewModelBase
 
     private FeedItemViewModel CreatePostViewModel(FeedPost post)
     {
-        return post.Content.ContentType switch
-        {
-            PostContentType.ImageCarousel => new ImageCarouselPostViewModel(
-                post,
-                NetworkProvider,
-                LocalizationService,
-                _interactionService,
-                _commentService
-            ),
-            PostContentType.Video => new VideoPostViewModel(
-                post,
-                NetworkProvider,
-                LocalizationService,
-                _interactionService,
-                _commentService
-            ),
-            PostContentType.Text => new TextPostViewModel(
-                post,
-                NetworkProvider,
-                LocalizationService,
-                _interactionService,
-                _commentService
-            ),
-            _ => throw new ArgumentException($"Unknown post content type: {post.Content.ContentType}")
-        };
+        return new TextPostViewModel(
+            post,
+            NetworkProvider,
+            LocalizationService,
+            _interactionService,
+            _commentService
+        );
     }
 
     protected override void Dispose(bool disposing)

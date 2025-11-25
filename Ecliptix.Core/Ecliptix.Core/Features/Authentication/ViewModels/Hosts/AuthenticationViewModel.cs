@@ -557,7 +557,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
 
     private async Task HandleManualRetryRequestedAsync(ManualRetryRequestedEvent e)
     {
-        Result<Utilities.Unit, NetworkFailure> recoveryResult =
+        Result<Ecliptix.Utilities.Unit, NetworkFailure> recoveryResult =
             await _networkProvider.ForceFreshConnectionAsync();
 
         if (recoveryResult.IsOk)

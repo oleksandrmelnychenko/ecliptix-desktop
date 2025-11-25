@@ -34,12 +34,6 @@
                                   ItemsSource="{Binding Posts}"
                                   Margin="0,8">
                         <ItemsControl.DataTemplates>
-                            <DataTemplate DataType="vm:ImageCarouselPostViewModel">
-                                <feedItem:ImageCarouselPostControl />
-                            </DataTemplate>
-                            <DataTemplate DataType="vm:VideoPostViewModel">
-                                <feedItem:VideoPostControl />
-                            </DataTemplate>
                             <DataTemplate DataType="vm:TextPostViewModel">
                                 <feedItem:TextPostControl />
                             </DataTemplate>

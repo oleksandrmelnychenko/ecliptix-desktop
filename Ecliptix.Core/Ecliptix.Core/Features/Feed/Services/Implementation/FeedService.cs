@@ -81,12 +81,7 @@ public sealed class FeedService : IFeedService
         for (int i = 0; i < pageSize; i++)
         {
             int postIndex = startIndex + i;
-            PostContent content = (postIndex % 3) switch
-            {
-                0 => CreateMockImageCarousel(postIndex),
-                1 => CreateMockVideo(postIndex),
-                _ => CreateMockText(postIndex)
-            };
+            PostContent content = CreateMockText(postIndex);
 
             FeedPost post = new FeedPost
             {
@@ -158,11 +153,36 @@ public sealed class FeedService : IFeedService
 
     private TextContent CreateMockText(int index)
     {
+        List<string> sampleTexts = new List<string>
+        {
+            "Just finished an amazing book on software architecture! The patterns discussed are game-changing for scalable applications. Highly recommend it to all developers out there.",
+            "Working on a new feature for our desktop app. The UI is looking sleek and the performance improvements are incredible. Can't wait to share more updates soon!",
+            "Coffee and code - the perfect combination for a productive morning. What's your favorite programming setup?",
+            "Discovered a brilliant solution to a problem I've been stuck on for days. Sometimes taking a break really helps with problem-solving.",
+            "Attending an online tech conference today. The keynote on modern UI frameworks was absolutely fascinating!",
+            "Finally deployed the new update. Everything went smoothly thanks to great planning and testing. Teamwork makes the dream work!",
+            "Exploring new design patterns and architectural approaches. The developer community never ceases to amaze me with innovative solutions.",
+            "Late night coding session paying off. The refactoring is complete and the codebase is so much cleaner now.",
+            "Sharing some insights from today's development work. Clean code and good documentation make all the difference.",
+            "Just hit a major milestone in the project! Celebrating small wins along the way keeps the motivation high."
+        };
+
+        string text = sampleTexts[index % sampleTexts.Count];
+
+        List<List<string>> hashtagSets = new List<List<string>>
+        {
+            new List<string> { "coding", "development", "tech" },
+            new List<string> { "software", "engineering", "design" },
+            new List<string> { "programming", "developer", "code" },
+            new List<string> { "technology", "innovation", "build" },
+            new List<string> { "devlife", "productivity", "learning" }
+        };
+
         return new TextContent
         {
-            Text = $"This is a text post #{index}. Just sharing some thoughts and updates with everyone! 🎉",
-            Hashtags = new List<string> { $"post{index}", "thoughts", "updates" },
-            Mentions = new List<string> { "@user1", "@user2" }
+            Text = text,
+            Hashtags = hashtagSets[index % hashtagSets.Count],
+            Mentions = index % 3 == 0 ? new List<string> { "@user1", "@user2" } : null
         };
     }
 }

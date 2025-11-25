@@ -1,7 +1,7 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <!-- Feed icon - Android style with stroke -->
+    <!-- Feed icon - Chat Circle (Phosphor) -->
     <StreamGeometry x:Key="FeedIconData">
-        M17,16 L17,20 C17,21.105 16.105,22 15,22 L9,22 C7.895,22 7,21.105 7,20 L7,19 M7,9 L7,4 C7,2.895 7.895,2 9,2 L15,2 C16.105,2 17,2.895 17,4 L17,5 M2,12 L4.91,14.91 C5.552,15.552 6.547,15.681 7.332,15.223 L16.854,9.669 C17.548,9.263 18.418,9.314 19.062,9.796 L22,12
+        M128,26A102,102,0,0,0,38.35,176.69L26.73,211.56a14,14,0,0,0,17.71,17.71l34.87-11.62A102,102,0,1,0,128,26Zm0,192a90,90,0,0,1-45.06-12.08,6.09,6.09,0,0,0-3-.81,6.2,6.2,0,0,0-1.9.31L40.65,217.88a2,2,0,0,1-2.53-2.53L50.58,178a6,6,0,0,0-.5-4.91A90,90,0,1,1,128,218Z
     </StreamGeometry>
 </ResourceDictionary>

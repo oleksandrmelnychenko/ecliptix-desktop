@@ -124,7 +124,7 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
     {
         try
         {
-            Result<Utilities.Unit, InternalServiceApiFailure> result =
+            Result<Ecliptix.Utilities.Unit, InternalServiceApiFailure> result =
                 await _applicationSecureStorageProvider
                     .SetApplicationSettingsCultureAsync(cultureCode).ConfigureAwait(false);
 
