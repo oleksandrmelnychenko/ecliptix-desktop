@@ -6,6 +6,7 @@
              xmlns:nav="clr-namespace:Ecliptix.Core.Controls.Navigation"
              xmlns:page="clr-namespace:Ecliptix.Core.Shared.Transitions.Page"
              xmlns:newContent="clr-namespace:Ecliptix.Core.Features.NewContent"
+             xmlns:transitions="clr-namespace:Ecliptix.Core.Shared.Transitions"
              mc:Ignorable="d"
              d:DesignWidth="1200"
              d:DesignHeight="800"
@@ -43,32 +44,43 @@
     </UserControl.Styles>
 
     <Grid ColumnDefinitions="Auto,*"
-          Margin="0,0,0,0">
+          Margin="0,0,0,0"
+          Background="#fff9fafb">
 
         <nav:NavigationSidebar Grid.Column="0"
                                DataContext="{Binding NavigationSidebar}"
                                VerticalAlignment="Stretch"
                                ZIndex="1000" />
 
-        <TransitioningContentControl Grid.Column="1"
-                                     Content="{Binding CurrentView}"
-                                     IsTransitionReversed="{Binding IsTransitionReversed}"
-                                     VerticalAlignment="Stretch"
-                                     HorizontalAlignment="Stretch"
-                                     ZIndex="0">
+        <Border Grid.Column="1"
+                VerticalAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                ZIndex="0"
+                CornerRadius="12 0 0 12 "
+                ClipToBounds="True"
+                Margin="0 5 0 0"
+        >
+            <transitions:AnimatingContentControl
+                Content="{Binding CurrentView}"
+                IsTransitionReversed="{Binding IsTransitionReversed}"
+                VerticalAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                IsAnimating="{Binding IsTransitioning, Mode=OneWayToSource}">
 
-            <TransitioningContentControl.PageTransition>
-                <page:SharedAxisPageTransition Duration="0:0:0.400"
-                                               SlideDistance="100"
-                                               Orientation="Vertical"
-                                               FadeThreshold="0.5">
-                    <page:SharedAxisPageTransition.Easing>
-                        <SplineEasing X1="0.2" Y1="0.0" X2="0.0" Y2="1.0"/>
-                    </page:SharedAxisPageTransition.Easing>
-                </page:SharedAxisPageTransition>
-            </TransitioningContentControl.PageTransition>
+                <transitions:AnimatingContentControl.PageTransition>
+                    <page:SharedAxisPageTransition Duration="0:0:0.400"
+                                                   SlideDistance="100"
+                                                   Orientation="Vertical"
+                                                   FadeThreshold="0.5">
+                        <page:SharedAxisPageTransition.Easing>
+                            <SplineEasing X1="0.2" Y1="0.0" X2="0.0" Y2="1.0"/>
+                        </page:SharedAxisPageTransition.Easing>
+                    </page:SharedAxisPageTransition>
+                </transitions:AnimatingContentControl.PageTransition>
 
-        </TransitioningContentControl>
+            </transitions:AnimatingContentControl>
+        </Border>
+
 
         <Grid Grid.Column="0"
               Grid.ColumnSpan="2"

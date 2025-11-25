@@ -50,6 +50,8 @@ public sealed class MasterViewModel : ViewModelBase
     [Reactive] public bool IsOverlayOpen { get; set; }
 
     [Reactive] public object? OverlayContent { get; set; }
+    [Reactive] public bool IsTransitioning { get; set; }
+
     public ConnectivityNotificationViewModel ConnectivityNotification { get; }
     public NavigationSidebarViewModel NavigationSidebar { get; }
     public ReactiveCommand<SystemU, SystemU> CloseOverlayCommand { get; }
@@ -92,13 +94,20 @@ public sealed class MasterViewModel : ViewModelBase
             }, SubscriptionLifetime.STRONG).DisposeWith(_disposables);
         }
 
+        this.WhenAnyValue(x => x.IsTransitioning)
+            .Subscribe(isAnimating =>
+            {
+                NavigationSidebar.IsParentAnimating = isAnimating;
+            })
+            .DisposeWith(_disposables);
+
         this.WhenAnyValue(x => x.NavigationSidebar.SelectedMenuItem)
             .WhereNotNull()
             .Subscribe(async menuItem =>
             {
                 ModuleIdentifier? moduleId = menuItem.Id switch
                 {
-                    "home" => ModuleIdentifier.FEED,
+                    "feed" => ModuleIdentifier.FEED,
                     "chats" => ModuleIdentifier.CHATS,
                     "settings" => ModuleIdentifier.SETTINGS,
                     "profile" => ModuleIdentifier.PROFILE,

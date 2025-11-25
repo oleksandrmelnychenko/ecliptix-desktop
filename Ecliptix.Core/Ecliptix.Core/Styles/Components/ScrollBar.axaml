@@ -1,0 +1,156 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Design.PreviewWith>
+        <Border Padding="20">
+         <Border Padding="40" Background="#F0F0F0">
+            <StackPanel Spacing="20">
+
+                <TextBlock Text="Minimalist ScrollBar Preview" FontWeight="SemiBold" Margin="0,0,0,10"/>
+
+                <Border BorderBrush="#E0E0E0" BorderThickness="1" Background="White" CornerRadius="4">
+                    <ScrollViewer Width="200" Height="200"
+                                  HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Auto">
+                        <Grid Width="600" Height="600">
+                            <Grid.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="100%,100%">
+                                    <GradientStop Color="#FFFFFF" Offset="0"/>
+                                    <GradientStop Color="#E1E1E1" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Grid.Background>
+
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
+                                <TextBlock Text="Scroll Me!" HorizontalAlignment="Center"/>
+                                <TextBlock Text="↘" FontSize="24" HorizontalAlignment="Center"/>
+                            </StackPanel>
+
+                            <Border BorderBrush="#CCCCCC" BorderThickness="2" />
+                        </Grid>
+                    </ScrollViewer>
+                </Border>
+
+                <StackPanel Orientation="Horizontal" Spacing="20">
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="Vertical" FontSize="10" Foreground="Gray"/>
+                        <ScrollBar Orientation="Vertical" Height="100" Minimum="0" Maximum="100" Value="30" ViewportSize="30"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="Horizontal" FontSize="10" Foreground="Gray"/>
+                        <ScrollBar Orientation="Horizontal" Width="100" Minimum="0" Maximum="100" Value="50" ViewportSize="30"/>
+                    </StackPanel>
+                </StackPanel>
+
+            </StackPanel>
+        </Border>
+        </Border>
+    </Design.PreviewWith>
+
+   <Style Selector="ScrollBar">
+           <Setter Property="Cursor" Value="Arrow" />
+
+           <Setter Property="MinWidth" Value="10" />
+           <Setter Property="MinHeight" Value="10" />
+       </Style>
+
+       <Style Selector="ScrollBar:vertical">
+           <Setter Property="Template">
+               <ControlTemplate>
+                   <Grid Background="Transparent">
+                       <Track Minimum="{TemplateBinding Minimum}"
+                              Maximum="{TemplateBinding Maximum}"
+                              Value="{TemplateBinding Value}"
+                              ViewportSize="{TemplateBinding ViewportSize}"
+                              Orientation="Vertical"
+                              IsDirectionReversed="True">
+                           <Track.DecreaseButton>
+                               <RepeatButton Name="PART_PageUpButton" Classes="transparent-track" Focusable="False" />
+                           </Track.DecreaseButton>
+                           <Track.IncreaseButton>
+                               <RepeatButton Name="PART_PageDownButton" Classes="transparent-track" Focusable="False" />
+                           </Track.IncreaseButton>
+                           <Track.Thumb>
+                               <Thumb Name="thumb" />
+                           </Track.Thumb>
+                       </Track>
+                   </Grid>
+               </ControlTemplate>
+           </Setter>
+       </Style>
+
+       <Style Selector="ScrollBar:horizontal">
+           <Setter Property="Template">
+               <ControlTemplate>
+                   <Grid Background="Transparent">
+                       <Track Minimum="{TemplateBinding Minimum}"
+                              Maximum="{TemplateBinding Maximum}"
+                              Value="{TemplateBinding Value}"
+                              ViewportSize="{TemplateBinding ViewportSize}"
+                              Orientation="Horizontal"
+                              IsDirectionReversed="False">
+                           <Track.DecreaseButton>
+                               <RepeatButton Name="PART_PageUpButton" Classes="transparent-track" Focusable="False" />
+                           </Track.DecreaseButton>
+                           <Track.IncreaseButton>
+                               <RepeatButton Name="PART_PageDownButton" Classes="transparent-track" Focusable="False" />
+                           </Track.IncreaseButton>
+                           <Track.Thumb>
+                               <Thumb Name="thumb" />
+                           </Track.Thumb>
+                       </Track>
+                   </Grid>
+               </ControlTemplate>
+           </Setter>
+       </Style>
+
+
+       <Style Selector="ScrollBar Thumb">
+           <Setter Property="Background" Value="#B0B0B0" />
+           <Setter Property="Template">
+               <ControlTemplate>
+                   <Border Background="{TemplateBinding Background}"
+                           CornerRadius="4" />
+               </ControlTemplate>
+           </Setter>
+           <Setter Property="Transitions">
+               <Transitions>
+                   <BrushTransition Property="Background" Duration="0:0:0.15" />
+                   <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+               </Transitions>
+           </Setter>
+       </Style>
+
+
+       <Style Selector="ScrollBar:vertical Thumb">
+           <Setter Property="Width" Value="5" />
+           <Setter Property="HorizontalAlignment" Value="Center" />
+           <Setter Property="Margin" Value="0" />
+       </Style>
+
+
+       <Style Selector="ScrollBar:horizontal Thumb">
+           <Setter Property="Height" Value="5" />
+           <Setter Property="VerticalAlignment" Value="Center" />
+           <Setter Property="Margin" Value="0" />
+       </Style>
+
+
+       <Style Selector="ScrollBar:pointerover Thumb">
+           <Setter Property="Background" Value="#8C8C8C" />
+       </Style>
+
+       <Style Selector="ScrollBar:pressed Thumb">
+           <Setter Property="Background" Value="#606060" />
+       </Style>
+
+       <Style Selector="RepeatButton.transparent-track">
+           <Setter Property="Background" Value="Transparent" />
+           <Setter Property="BorderThickness" Value="0" />
+           <Setter Property="Template">
+               <ControlTemplate>
+                   <Panel Background="Transparent" />
+               </ControlTemplate>
+           </Setter>
+       </Style>
+</Styles>
+
