@@ -97,19 +97,20 @@
             <Setter Property="Margin" Value="0,0,0,8"/> </Style>
 
         <Style Selector="Border.incoming Border.reply-quote">
-            <Setter Property="Background" Value="#E0E0E0"/>
-            <Setter Property="BorderBrush" Value="#6A5ACD"/>
+          <Setter Property="Background" Value="#E0E0E0"/>
+          <Setter Property="BorderBrush" Value="#6A5ACD"/>
         </Style>
         <Style Selector="Border.incoming Border.reply-quote TextBlock">
-             <Setter Property="Foreground" Value="#606060"/>
+          <Setter Property="Foreground" Value="#606060"/>
+          <Setter Property="HorizontalAlignment" Value="Left"/>
         </Style>
-
         <Style Selector="Border.outgoing Border.reply-quote">
-            <Setter Property="Background" Value="#20000000"/>
-            <Setter Property="BorderBrush" Value="White"/>
+          <Setter Property="Background" Value="#20000000"/>
+          <Setter Property="BorderBrush" Value="White"/>
         </Style>
         <Style Selector="Border.outgoing Border.reply-quote TextBlock">
-            <Setter Property="Foreground" Value="#E0E0E0"/>
+          <Setter Property="Foreground" Value="#E0E0E0"/>
+          <Setter Property="HorizontalAlignment" Value="Left"/>
         </Style>
 
     </UserControl.Styles>

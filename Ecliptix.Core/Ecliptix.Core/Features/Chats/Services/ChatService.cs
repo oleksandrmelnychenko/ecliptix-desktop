@@ -33,24 +33,23 @@ public class ChatService : IChatService
 
         Participant me = new Participant(_currentUserId, "Me", "");
         Participant sarah = new Participant(Guid.NewGuid(), "Sarah Chen", "user1.jpg");
-        Participant marcus = new Participant(Guid.NewGuid(), "Marcus Reid", "user2.jpg"); // Переконайся, що такий файл є, або юзай user1.jpg
-        Participant emma = new Participant(Guid.NewGuid(), "Emma Wilson", "user3.jpg");   // Переконайся, що такий файл є
+        Participant marcus = new Participant(Guid.NewGuid(), "Marcus Reid", "user2.jpg");
+        Participant emma = new Participant(Guid.NewGuid(), "Emma Wilson", "user3.jpg");
 
         _users.AddRange(new[] { me, sarah, marcus, emma });
 
         Guid chatSarahId = Guid.NewGuid();
         Guid chatGroupId = Guid.NewGuid();
 
-        // Personal Chat
         _chats.Add(new ChatModel(chatSarahId, "Sarah Chen", ChatType.Personal, new List<Guid> { me.Id, sarah.Id }));
 
-        // Group Chat (Додаємо IDs всіх учасників)
+
         _chats.Add(new ChatModel(chatGroupId, "Design Team", ChatType.Group, new List<Guid> { me.Id, sarah.Id, marcus.Id, emma.Id }));
 
-        // === 3. ПОЧАТКОВІ ПОВІДОМЛЕННЯ (для Sidebar) ===
+        _chats.Add(new ChatModel(Guid.NewGuid(), "Announcements", ChatType.Channel, null));
+
         _messages.Add(new MessageModel(Guid.NewGuid(), chatSarahId, sarah.Id, "Awesome! Can't wait to see them.", DateTime.Now.AddMinutes(-5), MessageType.Text));
 
-        // Початкове повідомлення в групі від Маркуса
         _messages.Add(new MessageModel(Guid.NewGuid(), chatGroupId, marcus.Id, "Guys, check the Figma updates.", DateTime.Now.AddMinutes(-30), MessageType.Text));
 
     }
@@ -75,7 +74,7 @@ public class ChatService : IChatService
 
     public async Task<IEnumerable<ChatListItemViewModel>> GetChatsAsync()
     {
-        await Task.Delay(50);
+        await Task.Delay(10);
 
         List<ChatListItemViewModel> sidebarItems = new List<ChatListItemViewModel>();
         Random rnd = new Random();
@@ -132,15 +131,11 @@ public class ChatService : IChatService
             yield break;
         }
 
-        // 2. Знаходимо учасників З ГЛОБАЛЬНОГО СПИСКУ (це вирішує проблему Unknown)
         Participant me = _users.First(u => u.Id == _currentUserId);
-
-        // Якщо це група "Design Team", знаходимо конкретних людей для сценарію
         Participant? marcus = _users.FirstOrDefault(u => u.Name.Contains("Marcus"));
         Participant? emma = _users.FirstOrDefault(u => u.Name.Contains("Emma"));
         Participant? sarah = _users.FirstOrDefault(u => u.Name.Contains("Sarah"));
 
-        // Якщо раптом когось не знайшли (запобіжник), беремо рандомних
         if (marcus == null)
         {
             marcus = _users.First(u => u.Id != _currentUserId);
@@ -151,14 +146,69 @@ public class ChatService : IChatService
             emma = marcus;
         }
 
-        if (chat.Type == ChatType.Group)
+
+        if (chat.Type == ChatType.Channel)
+        {
+            Random rnd = new Random();
+            DateTime? lastDate = null;
+
+            for (int i = 0; i < 5; i++)
+            {
+                await Task.Delay(10);
+                List<MessageViewModelBase> batchViewModels = new List<MessageViewModelBase>();
+
+                DateTime baseTime = DateTime.Now.AddDays(i - 2);
+
+                for (int j = 0; j < 4; j++)
+                {
+                    DateTime postTime = baseTime.AddMinutes(j * 30);
+
+                    if (lastDate == null || lastDate.Value.Date != postTime.Date)
+                    {
+                        batchViewModels.Add(new DateSeparatorViewModel { Time = postTime });
+                    }
+                    lastDate = postTime;
+
+                    ChannelPostViewModel post = new ChannelPostViewModel
+                    {
+                        Time = postTime,
+                        Likes = rnd.Next(10, 500),
+                        Comments = rnd.Next(0, 50),
+                        Views = rnd.Next(100, 5000),
+                        Shares = rnd.Next(0, 20),
+                        SenderName = "Admin"
+                    };
+
+                    int postType = rnd.Next(0, 3);
+
+                    if (postType == 0)
+                    {
+                        post.Text = "New mockups are ready for review! Check out the latest design updates 🎨";
+                        post.PostImage = LoadAvatar("user1.jpg");
+                    }
+                    else if (postType == 1)
+                    {
+                        post.Text = "Don't forget about tomorrow's team meeting at 10 AM. See you there!";
+                    }
+                    else
+                    {
+                        post.Text = "Identified several key areas where we can improve. First, we need to establish better documentation standards that include code examples, usage guidelines, and accessibility considerations.\n\nSecond, our component library should be more modular, allowing teams to compose complex interfaces from simple, reusable building blocks.\n\nThird, we should implement automated testing to catch regressions early and ensure consistent behavior across different browsers and devices.";
+                    }
+
+                    batchViewModels.Add(post);
+                }
+
+                yield return batchViewModels;
+            }
+        }
+        else if (chat.Type == ChatType.Group)
         {
 
             List<MessageModel> batchModels = new List<MessageModel>();
 
             for (int i = 0; i < 10; i++)
             {
-                await Task.Delay(300); // Пауза для імітації набору тексту
+                await Task.Delay(2);
 
 
                 Guid msgId = Guid.NewGuid();
@@ -192,7 +242,7 @@ public class ChatService : IChatService
             List<MessageModel> batchModels = new();
             for (int i = 0; i < 10; i++)
             {
-                await Task.Delay(500);
+                await Task.Delay(10);
 
                 Guid msg1Id = Guid.NewGuid();
 

@@ -176,6 +176,7 @@
                      SelectionMode="Single"
                      ClipToBounds="False"
                      Padding="8"
+                     BorderThickness="0"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
 
                 <ListBox.ItemTemplate>

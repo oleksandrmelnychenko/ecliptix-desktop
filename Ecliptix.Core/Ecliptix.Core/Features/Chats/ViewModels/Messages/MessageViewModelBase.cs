@@ -25,3 +25,8 @@ public class ReplyMessageViewModel : MessageViewModelBase
     public string QuotedText { get; set; } = string.Empty;
     public string QuotedAuthor { get; set; } = string.Empty;
 }
+
+public class DateSeparatorViewModel : MessageViewModelBase
+{
+    public string DateDisplay => Time.ToString("MMMM dd, yyyy");
+}

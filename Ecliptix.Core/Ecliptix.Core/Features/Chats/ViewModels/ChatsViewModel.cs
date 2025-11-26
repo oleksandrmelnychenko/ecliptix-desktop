@@ -60,7 +60,7 @@ public sealed class ChatsViewModel : ReactiveObject
         {
             ChatType.Personal => new ConversationViewModel(chat.Id, chat.Title, _chatService),
             ChatType.Group => new GroupConversationViewModel(chat.Id, chat.Title, _chatService),
-            ChatType.Channel => new ChannelViewModel { Name = chat.Title },
+            ChatType.Channel => new ChannelViewModel(chat.Id, chat.Title, _chatService),
 
             _ => new ConversationViewModel(chat.Id, chat.Title, _chatService)
         };
