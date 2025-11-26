@@ -31,7 +31,7 @@ namespace Ecliptix.Core.Features.Chats.ViewModels;
 
 public sealed class ChatsViewModel : ReactiveObject
 {
-    private IChatSidebarService chatService = new ChatSidebarService();
+    private readonly IChatService _chatService;
 
     public ChatSidebarViewModel SidebarViewModel { get; }
 
@@ -40,16 +40,29 @@ public sealed class ChatsViewModel : ReactiveObject
 
     public ChatsViewModel()
     {
-        SidebarViewModel = new ChatSidebarViewModel(chatService);
+        _chatService = new ChatService();
+
+        SidebarViewModel = new ChatSidebarViewModel(_chatService);
 
         this.WhenAnyValue(x => x.SidebarViewModel.SelectedChat)
             .Subscribe(chat =>
             {
                 if (chat != null)
                 {
-                    CurrentChatContent = chat.CreateContentViewModel();
+                    CurrentChatContent = CreateChatViewModel(chat);
                 }
             });
     }
 
+    private object CreateChatViewModel(ChatListItemViewModel chat)
+    {
+        return chat.Type switch
+        {
+            ChatType.Personal => new ConversationViewModel(chat.Id, chat.Title, _chatService),
+            ChatType.Group => new GroupConversationViewModel { Name = chat.Title },
+            ChatType.Channel => new ChannelViewModel { Name = chat.Title },
+
+            _ => new ConversationViewModel(chat.Id, chat.Title, _chatService)
+        };
+    }
 }

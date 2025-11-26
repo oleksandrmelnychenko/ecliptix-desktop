@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Reactive.Disposables;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Core.MVVM;
+using Ecliptix.Core.Features.Chats.Views;
 using Ecliptix.Core.Features.NewContent;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
@@ -73,6 +75,10 @@ public sealed class MasterViewModel : ViewModelBase
 
         LoadInitialView();
 
+        Dispatcher.UIThread.Post(() =>
+        {
+            ConversationView dummy = new ConversationView();
+        });
 
         CloseOverlayCommand = ReactiveCommand.Create(() =>
         {

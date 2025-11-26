@@ -10,7 +10,7 @@ namespace Ecliptix.Core.Features.Chats.ViewModels;
 
 public sealed class ChatListItemViewModel : ReactiveObject
 {
-    public Guid Id { get; } = Guid.NewGuid();
+    public Guid Id { get; set; } = Guid.NewGuid();
 
     [Reactive] public string Title { get; set; }
     [Reactive] public ChatType Type { get; set; }
