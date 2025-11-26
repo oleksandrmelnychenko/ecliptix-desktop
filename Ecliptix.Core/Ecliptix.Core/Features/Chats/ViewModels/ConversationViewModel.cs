@@ -35,12 +35,15 @@ public class ConversationViewModel : ReactiveObject
 
         await foreach (IEnumerable<MessageViewModelBase> batch in _chatService.GetMessagesStreamAsync(_chatId))
         {
-            IOrderedEnumerable<MessageViewModelBase> sortedBatch = batch.OrderByDescending(x => x.Time);
+            IOrderedEnumerable<MessageViewModelBase> sortedBatch = batch.OrderBy(x => x.Time);
 
-            foreach (MessageViewModelBase msg in sortedBatch)
+            await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                Messages.Insert(0, msg);
-            }
+                foreach (MessageViewModelBase msg in sortedBatch)
+                {
+                    Messages.Add(msg);
+                }
+            });
         }
     }
 }

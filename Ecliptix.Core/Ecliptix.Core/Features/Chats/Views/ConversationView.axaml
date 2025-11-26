@@ -51,7 +51,7 @@
             </Grid>
         </Border>
 
-        <ScrollViewer Grid.Row="1"
+       <ScrollViewer Grid.Row="1"
                       Padding="20"
                       VerticalScrollBarVisibility="Visible"
                       x:Name="ChatScrollViewer">
@@ -63,7 +63,12 @@
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
 
-                <ItemsControl.ItemTemplate>
+                <ItemsControl.DataTemplates>
+
+                    <DataTemplate DataType="{x:Type msgVm:DateSeparatorViewModel}">
+                        <views:DateSeparatorView />
+                    </DataTemplate>
+
                     <DataTemplate DataType="{x:Type msgVm:MessageViewModelBase}">
                         <Grid ColumnDefinitions="Auto, *, Auto">
 
@@ -75,9 +80,7 @@
                             </Border>
 
                             <StackPanel Grid.Column="1" Classes="msg-container" Classes.mine="{Binding IsMine}">
-
                                 <views:MessageBubbleView />
-
                             </StackPanel>
 
                             <Border Grid.Column="2" Classes="avatar" IsVisible="{Binding IsMine}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10,0,0,0">
@@ -85,12 +88,12 @@
                             </Border>
                         </Grid>
                     </DataTemplate>
-                </ItemsControl.ItemTemplate>
+
+                </ItemsControl.DataTemplates>
             </ItemsControl>
         </ScrollViewer>
 
         <views:ChatInputView Grid.Row="2" />
-
     </Grid>
 </UserControl>
 
