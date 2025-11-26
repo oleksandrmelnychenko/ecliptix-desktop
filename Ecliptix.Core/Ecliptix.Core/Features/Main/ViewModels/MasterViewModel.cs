@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Reactive.Disposables;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Core.MVVM;
+using Ecliptix.Core.Features.Chats.Views;
 using Ecliptix.Core.Features.NewContent;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
@@ -50,6 +52,8 @@ public sealed class MasterViewModel : ViewModelBase
     [Reactive] public bool IsOverlayOpen { get; set; }
 
     [Reactive] public object? OverlayContent { get; set; }
+    [Reactive] public bool IsTransitioning { get; set; }
+
     public ConnectivityNotificationViewModel ConnectivityNotification { get; }
     public NavigationSidebarViewModel NavigationSidebar { get; }
     public ReactiveCommand<SystemU, SystemU> CloseOverlayCommand { get; }
@@ -71,6 +75,10 @@ public sealed class MasterViewModel : ViewModelBase
 
         LoadInitialView();
 
+        Dispatcher.UIThread.Post(() =>
+        {
+            ConversationView dummy = new ConversationView();
+        });
 
         CloseOverlayCommand = ReactiveCommand.Create(() =>
         {
@@ -92,13 +100,20 @@ public sealed class MasterViewModel : ViewModelBase
             }, SubscriptionLifetime.STRONG).DisposeWith(_disposables);
         }
 
+        this.WhenAnyValue(x => x.IsTransitioning)
+            .Subscribe(isAnimating =>
+            {
+                NavigationSidebar.IsParentAnimating = isAnimating;
+            })
+            .DisposeWith(_disposables);
+
         this.WhenAnyValue(x => x.NavigationSidebar.SelectedMenuItem)
             .WhereNotNull()
             .Subscribe(async menuItem =>
             {
                 ModuleIdentifier? moduleId = menuItem.Id switch
                 {
-                    "home" => ModuleIdentifier.FEED,
+                    "feed" => ModuleIdentifier.FEED,
                     "chats" => ModuleIdentifier.CHATS,
                     "settings" => ModuleIdentifier.SETTINGS,
                     "profile" => ModuleIdentifier.PROFILE,

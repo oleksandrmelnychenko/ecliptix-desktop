@@ -4,6 +4,10 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Ecliptix.Core.Features.Chats.ViewModels"
              xmlns:converters="clr-namespace:Ecliptix.Core.Shared.Converters"
+             xmlns:page="clr-namespace:Ecliptix.Core.Shared.Transitions.Page"
+             xmlns:models="clr-namespace:Ecliptix.Core.Features.Chats.Models"
+             xmlns:converters1="clr-namespace:Ecliptix.Core.Features.Chats.Converters"
+             xmlns:views="clr-namespace:Ecliptix.Core.Features.Chats.Views"
              mc:Ignorable="d"
              d:DesignWidth="800"
              d:DesignHeight="600"
@@ -11,321 +15,35 @@
              x:Class="Ecliptix.Core.Features.Chats.Views.ChatsView">
 
 
-    <UserControl.Resources>
-        <BoxShadows x:Key="BoxWhiteShadow">0 0 6.5 2.5 #FEFEFE</BoxShadows>
-    </UserControl.Resources>
+    <Grid ColumnDefinitions="340,*">
 
-    <UserControl.Styles>
+        <views:ChatSidebarView Grid.Column="0"
+                               DataContext="{Binding SidebarViewModel}" />
 
-        <!-- Outer Border -->
-        <Style Selector="Border.outer-border">
-              <Setter Property="BorderBrush" Value="#FEFEFE" />
-              <Setter Property="BorderThickness" Value="2" />
-              <Setter Property="CornerRadius" Value="23" />
-              <Setter Property="Padding" Value="5" />
-          </Style>
+        <Grid Grid.Column="1">
+            <TransitioningContentControl Content="{Binding CurrentChatContent}"
+                                         IsTransitionReversed="{Binding IsTransitionReversed}">
+                <TransitioningContentControl.PageTransition>
+                    <page:SharedAxisPageTransition Duration="0:0:0.300"
+                                                   Orientation="Vertical"
+                                                   SlideDistance="30"
+                                                   FadeThreshold="0.5" />
+                </TransitioningContentControl.PageTransition>
 
-        <!-- Inner Border -->
-        <Style Selector="Border.inner-border">
-              <Setter Property="BorderBrush" Value="{DynamicResource Surface}" />
-              <Setter Property="BorderThickness" Value="2" />
-              <Setter Property="CornerRadius" Value="14" />
-              <Setter Property="Padding" Value="15" />
-              <Setter Property="Background" Value="#FEFEFE" />
-              <Setter Property="BoxShadow" Value="{StaticResource  BoxWhiteShadow}" />
-          </Style>
+                <TransitioningContentControl.DataTemplates>
+                    <DataTemplate DataType="{x:Type vm:ConversationViewModel}">
+                       <views:ConversationView />
+                    </DataTemplate>
 
-        <!-- Chat Greeting Message-->
-        <Style Selector="TextBlock.chat-greeting">
-              <Setter Property="FontSize" Value="18" />
-              <Setter Property="Margin" Value="10,0,0,20" />
-          </Style>
+                    <DataTemplate DataType="{x:Type vm:GroupConversationViewModel}">
+                       <views:GroupConversationView/>
+                    </DataTemplate>
 
-        <!-- Chat Grid -->
-        <Style Selector="Grid.chat-grid">
-              <Setter Property="Background" Value="Transparent" />
-              <Setter Property="Margin" Value="0,0,0,20"/>
-          </Style>
-
-        <!-- Chat Text PlaceHolder -->
-        <Style Selector="TextBox.place-holder">
-              <Setter Property="FontSize" Value="18" />
-              <Setter Property="FontWeight" Value="DemiBold" />
-              <Setter Property="Foreground" Value="{DynamicResource OnSurfaceVariant}"/>
-              <Setter Property="Background" Value="Transparent" />
-              <Setter Property="Margin" Value="0,0,0,25" />
-              <Setter Property="BorderThickness" Value="0" />
-          </Style>
-
-        <!-- Microphone button -->
-        <Style Selector="Button.button-microphone">
-              <Setter Property="BorderThickness" Value="0"/>
-              <Setter Property="Background" Value="Transparent"/>
-              <Setter Property="Cursor" Value="Hand"/>
-          </Style>
-
-        <!-- Add button -->
-        <Style Selector="Button.button-add">
-              <Setter Property="CornerRadius" Value="15"/>
-              <Setter Property="Background" Value="Transparent"/>
-              <Setter Property="BorderBrush" Value="#E8E8E8"/>
-          </Style>
-
-        <!-- Combobox Styles -->
-        <Style Selector="ComboBox">
-            <Setter Property="Width" Value="140"></Setter>
-            <Setter Property="BorderThickness" Value="2 "/>
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource OnSurface}"/>
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Template">
-                <ControlTemplate>
-                    <Grid>
-                        <Border x:Name="Background"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="#E8E8E8"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="14">
-                            <Border.Transitions>
-                                <Transitions>
-                                    <BrushTransition Property="Background"
-                                                     Duration="{StaticResource Duration.Normal}"
-                                                     Easing="CubicEaseOut" />
-                                    <DoubleTransition Property="Opacity" Duration="{StaticResource Duration.Normal}"
-                                                      Easing="CubicEaseOut" />
-                                </Transitions>
-                            </Border.Transitions>
-
-                            <Grid ColumnDefinitions="*,Auto"
-                                  Margin="10,0">
-                                <ContentPresenter x:Name="ContentPresenter"
-                                                  Grid.Column="0"
-                                                  Content="{TemplateBinding SelectionBoxItem}"
-                                                  ContentTemplate="{TemplateBinding ItemTemplate}"
-                                                  HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                                  VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
-
-                                <Border Grid.Column="1"
-                                        Name="DropDownGlyph"
-                                        Width="20"
-                                        Background="Transparent">
-
-                                    <Path Fill="{DynamicResource OnSurface}"
-                                          Width="11"
-                                          Height="7"
-                                          Stretch="Uniform"
-                                          HorizontalAlignment="Center"
-                                          VerticalAlignment="Center"
-                                          Data="M4.293 8.293a1 1 0 0 1 1.414 0L12 14.586l6.293-6.293a1 1 0 1 1 1.414 1.414l-7 7a1 1 0 0 1-1.414 0l-7-7a1 1 0 0 1 0-1.414Z">
-                                        <Path.Transitions>
-                                            <Transitions>
-                                                <BrushTransition Property="Fill"
-                                                                 Duration="{StaticResource Duration.Normal}" />
-                                                <TransformOperationsTransition Property="RenderTransform"
-                                                                               Duration="{StaticResource Duration.Normal}"
-                                                                               Easing="CubicEaseOut" />
-                                            </Transitions>
-                                        </Path.Transitions>
-                                    </Path>
-                                </Border>
-                            </Grid>
-                        </Border>
-                        <Popup Name="PART_Popup"
-                               IsOpen="{TemplateBinding IsDropDownOpen, Mode=TwoWay}"
-                               MinWidth="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}, Converter={x:Static converters:MathConverters.Add}, ConverterParameter=16}"
-                               MaxHeight="{TemplateBinding MaxDropDownHeight}"
-                               PlacementTarget="{TemplateBinding}"
-                               Placement="Bottom"
-                               IsLightDismissEnabled="True"
-                               WindowManagerAddShadowHint="False"
-                               Topmost="False"
-                               >
-                            <Border Name="PopupContainer"
-                                    Background="Transparent"
-                                    RenderTransformOrigin="0.5,0"
-                                    Padding="8">
-                                <Border Name="PopupContent"
-                                        Background="{DynamicResource Surface}"
-                                        BorderBrush="{DynamicResource Surface.Border}"
-                                        BorderThickness="1"
-                                        CornerRadius="8"
-                                        Padding="4"
-                                        RenderTransformOrigin="0.5,0"
-                                        Opacity="0"
-                                        RenderTransform="scaleY(0) translateY(-5px)">
-                                    <Border.Effect>
-                                        <DropShadowEffect Color="#000000"
-                                                          BlurRadius="8"
-                                                          Opacity="0.15"
-                                                          OffsetX="0"
-                                                          OffsetY="2" />
-                                    </Border.Effect>
-                                    <Border.Transitions>
-                                        <Transitions>
-                                            <DoubleTransition Property="Opacity"
-                                                              Duration="{StaticResource Popup.AnimationDuration}"
-                                                              Easing="CubicEaseOut" />
-                                            <TransformOperationsTransition Property="RenderTransform"
-                                                                           Duration="{StaticResource Popup.AnimationDuration}"
-                                                                           Easing="BackEaseOut" />
-                                        </Transitions>
-                                    </Border.Transitions>
-                                    <ScrollViewer>
-                                        <ItemsPresenter Name="PART_ItemsPresenter"
-                                                        ItemsPanel="{TemplateBinding ItemsPanel}" />
-                                    </ScrollViewer>
-                                </Border>
-                            </Border>
-                        </Popup>
-                    </Grid>
-                </ControlTemplate>
-            </Setter>
-        </Style>
-
-        <Style Selector="ComboBox:dropdownopen /template/ Border#PopupContent">
-             <Setter Property="Opacity" Value="1" />
-             <Setter Property="RenderTransform" Value="scaleY(1) translateY(0px)" />
-         </Style>
-
-        <Style Selector="ComboBox /template/ Path">
-             <Setter Property="RenderTransform" Value="rotate(0)" />
-         </Style>
-
-        <Style Selector="ComboBox:pointerover /template/ Border#BACKGROUND">
-             <Setter Property="Background" Value="{DynamicResource Button.Secondary.Hover}" />
-         </Style>
-
-        <Style Selector="ComboBox:pressed /template/ Border#BACKGROUND">
-             <Setter Property="Background" Value="{DynamicResource Button.Secondary.Pressed}" />
-             <Setter Property="Opacity" Value="0.9" />
-         </Style>
-
-        <Style Selector="ComboBoxItem">
-            <Setter Property="Padding" Value="8,6" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Opacity" Value="0" />
-            <Setter Property="RenderTransform" Value="translateX(-10px)" />
-            <Setter Property="Transitions">
-                <Transitions>
-                    <DoubleTransition Property="Opacity" Duration="0:0:0.3" Easing="CubicEaseOut" />
-                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3" Easing="CubicEaseOut" />
-                </Transitions>
-            </Setter>
-            <Setter Property="Template">
-                <ControlTemplate>
-                    <Border Name="ItemBorder"
-                            Background="{TemplateBinding Background}"
-                            BorderThickness="0"
-                            CornerRadius="3"
-                            Padding="{TemplateBinding Padding}">
-                        <Border.Transitions>
-                            <Transitions>
-                                <BrushTransition Property="Background" Duration="0:0:0.15" Easing="CubicEaseOut" />
-                            </Transitions>
-                        </Border.Transitions>
-                        <ContentPresenter Content="{TemplateBinding Content}"
-                                          ContentTemplate="{TemplateBinding ContentTemplate}" />
-                    </Border>
-                </ControlTemplate>
-            </Setter>
-        </Style>
-
-        <Style Selector="ComboBox:dropdownopen ComboBoxItem">
-            <Setter Property="Opacity" Value="1" />
-            <Setter Property="RenderTransform" Value="translateX(0px)" />
-        </Style>
-
-        <Style Selector="ComboBoxItem:pointerover /template/ Border#ItemBorder">
-            <Setter Property="Background" Value="{DynamicResource Button.Secondary.Hover}" />
-        </Style>
-
-        <Style Selector="ComboBoxItem:selected /template/ Border#ItemBorder">
-            <Setter Property="Background" Value="{DynamicResource Button.Secondary.Pressed}" />
-            <Setter Property="TextBlock.Foreground" Value="{DynamicResource Primary}" />
-        </Style>
-
-        <Style Selector="ComboBox:pressed /template/ Border#DropDownGlyph">
-            <Setter Property="Background" Value="Transparent" />
-        </Style>
-
-        <Style Selector="ComboBox:dropdownopen /template/ Border#BACKGROUND">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderBrush" Value="Transparent" />
-        </Style>
-
-    </UserControl.Styles>
-
-
-    <Grid RowDefinitions="*,*" VerticalAlignment="Center" Margin="40,0">
-
-        <TextBlock Grid.Row="0" Text="Hi weew, what should we dive into today?" Classes="chat-greeting"/>
-
-        <Grid Grid.Row="1" Classes="chat-grid" >
-
-            <!-- Outer Border-->
-            <Border Classes="outer-border">
-
-                <!-- Inner Border-->
-                <Border Classes="inner-border">
-
-                    <!-- Chat Content -->
-                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" >
-
-                        <!-- Placeholder Text -->
-                        <TextBox
-                            Grid.ColumnSpan="2"
-                            Grid.Row="0"
-                            Classes="place-holder"
-                            Watermark="Message Copilot"/>
-
-                        <StackPanel  Grid.Row="1" Grid.Column="0"
-                            Orientation="Horizontal"
-                            Spacing="14">
-
-                            <!-- Add Button -->
-                            <Button Classes="button-add">
-                                <StackPanel Orientation="Horizontal" Spacing="15" VerticalAlignment="Center" HorizontalAlignment="Center">
-                                    <PathIcon Data="M14.5,13 L14.5,3.75378577 C14.5,3.33978577 14.164,3.00378577 13.75,3.00378577 C13.336,3.00378577 13,3.33978577 13,3.75378577 L13,13 L3.75387573,13 C3.33987573,13 3.00387573,13.336 3.00387573,13.75 C3.00387573,14.164 3.33987573,14.5 3.75387573,14.5 L13,14.5 L13,23.7523651 C13,24.1663651 13.336,24.5023651 13.75,24.5023651 C14.164,24.5023651 14.5,24.1663651 14.5,23.7523651 L14.5,14.5 L23.7498262,14.5030754 C24.1638262,14.5030754 24.4998262,14.1670754 24.4998262,13.7530754 C24.4998262,13.3390754 24.1638262,13.0030754 23.7498262,13.0030754 L14.5,13 Z"
-                                      Width="25"
-                                      Height="20"
-                                      Foreground="{DynamicResource OnSurface}" />
-                                </StackPanel>
-                            </Button>
-
-                            <!--DropDown -->
-                            <ComboBox SelectedIndex="0">
-                                <ComboBoxItem Content="Quick response"/>
-                                <ComboBoxItem Content="Message"/>
-                                <ComboBoxItem Content="Email"/>
-                            </ComboBox>
-
-                        </StackPanel>
-
-                        <!-- Microphone Button -->
-                        <Button Grid.Row="1" Grid.Column="1" Classes="button-microphone">
-                            <StackPanel>
-                                <Path Fill="{DynamicResource OnSurface}">
-                                    <Path.Data>
-                                        <GeometryGroup>
-                                            <GeometryGroup.Children>
-                                                <PathGeometry  Figures="M16.7673 6.54284C16.7673 3.91128 14.634 1.77799 12.0024 1.77799C9.37089 1.77799 7.2376 3.91129 7.2376 6.54284L7.2376 13.5647C7.2376 16.1963 9.37089 18.3296 12.0024 18.3296C14.634 18.3296 16.7673 16.1963 16.7673 13.5647L16.7673 6.54284ZM12.0024 3.28268C13.803 3.28268 15.2626 4.7423 15.2626 6.54284L15.2626 13.5647C15.2626 15.3652 13.803 16.8249 12.0024 16.8249C10.2019 16.8249 8.74229 15.3652 8.74229 13.5647L8.74229 6.54284C8.74229 4.7423 10.2019 3.28268 12.0024 3.28268Z"/>
-                                                <PathGeometry Figures="M20.0274 8.79987C19.6119 8.79987 19.2751 9.1367 19.2751 9.55221V13.5647C19.2751 17.5813 16.019 20.8374 12.0024 20.8374C7.98587 20.8374 4.72979 17.5813 4.72979 13.5647L4.72979 9.55221C4.72979 9.1367 4.39295 8.79987 3.97744 8.79987C3.56193 8.79987 3.2251 9.1367 3.2251 9.55221L3.2251 13.5647C3.2251 18.4123 7.15485 22.3421 12.0024 22.3421C16.85 22.3421 20.7798 18.4123 20.7798 13.5647V9.55221C20.7798 9.1367 20.443 8.79987 20.0274 8.79987Z"/>
-                                            </GeometryGroup.Children>
-                                        </GeometryGroup>
-                                    </Path.Data>
-                                </Path>
-                            </StackPanel>
-                        </Button>
-
-                </Grid>
-
-            </Border>
-
-        </Border>
-
+                    <DataTemplate DataType="{x:Type vm:ChannelViewModel}">
+                        <views:ChannelView></views:ChannelView>
+                    </DataTemplate>
+                </TransitioningContentControl.DataTemplates>
+            </TransitioningContentControl>
         </Grid>
-
     </Grid>
-
 </UserControl>

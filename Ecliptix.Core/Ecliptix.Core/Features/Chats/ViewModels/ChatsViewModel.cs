@@ -1,9 +1,14 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
+using Ecliptix.Core.Features.Chats.Models;
+using Ecliptix.Core.Features.Chats.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
@@ -24,175 +29,40 @@ using EUnit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.Features.Chats.ViewModels;
 
-public class FoundUserViewModel
+public sealed class ChatsViewModel : ReactiveObject
 {
-    [Reactive] public string Nickname { get; set; } = string.Empty;
-    [Reactive] public string PhoneNumber { get; set; } = string.Empty;
-    [Reactive] public string Initials { get; set; } = string.Empty;
-}
+    private readonly IChatService _chatService;
 
-public sealed partial class ChatsViewModel : Core.MVVM.ViewModelBase
-{
-    private readonly CompositeDisposable _disposables = new();
-    private bool _isDisposed;
-    private readonly IApplicationSecureStorageProvider _secureStorage;
+    public ChatSidebarViewModel SidebarViewModel { get; }
 
-    [Reactive] public string Title { get; set; }
-    public ObservableCollection<string> Conversations { get; }
+    [Reactive] public object? CurrentChatContent { get; set; }
+    [Reactive] public bool IsTransitionReversed { get; set; }
 
-    [Reactive] public string PhoneNumberInput { get; set; } = string.Empty;
-
-    [Reactive] public FoundUserViewModel? FoundUser { get; set; }
-
-    [Reactive] public bool IsLoading { get; set; }
-
-    [Reactive] public string? ErrorMessage { get; set; }
-
-    public ReactiveCommand<Unit, Unit> FindCommand { get; }
-
-    public ChatsViewModel(
-        NetworkProvider networkProvider,
-        ILocalizationService localizationService,
-        IApplicationSecureStorageProvider secureStorageProvider)
-        : base(networkProvider, localizationService, null)
+    public ChatsViewModel()
     {
-        _secureStorage = secureStorageProvider;
+        _chatService = new ChatService();
 
-        Title = "Your Chats";
-        Conversations = new ObservableCollection<string>
+        SidebarViewModel = new ChatSidebarViewModel(_chatService);
+
+        this.WhenAnyValue(x => x.SidebarViewModel.SelectedChat)
+            .Subscribe(chat =>
+            {
+                if (chat != null)
+                {
+                    CurrentChatContent = CreateChatViewModel(chat);
+                }
+            });
+    }
+
+    private object CreateChatViewModel(ChatListItemViewModel chat)
+    {
+        return chat.Type switch
         {
-            "No conversations yet..."
+            ChatType.Personal => new ConversationViewModel(chat.Id, chat.Title, _chatService),
+            ChatType.Group => new GroupConversationViewModel(chat.Id, chat.Title, _chatService),
+            ChatType.Channel => new ChannelViewModel(chat.Id, chat.Title, _chatService),
+
+            _ => new ConversationViewModel(chat.Id, chat.Title, _chatService)
         };
-
-        IObservable<bool> canFind = this.WhenAnyValue(
-            x => x.PhoneNumberInput,
-            (phone) => !string.IsNullOrWhiteSpace(phone));
-
-        FindCommand = ReactiveCommand.CreateFromTask(ExecuteFindAsync, canFind);
-    }
-
-    private async Task<Option<Guid>> GetCurrentAccountIdAsync()
-    {
-        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
-            await _secureStorage.GetApplicationInstanceSettingsAsync();
-
-        if (settingsResult.IsOk)
-        {
-            Guid accountId = Helpers.FromByteStringToGuid(settingsResult.Unwrap().CurrentAccountId);
-            return Option<Guid>.Some(accountId);
-        }
-
-        Log.Warning("[CHAT-VM] Cannot load the account id from secure storage: {Error}",
-            settingsResult.UnwrapErr().Message);
-        return Option<Guid>.None;
-    }
-
-    private async Task ExecuteFindAsync(CancellationToken cancellationToken)
-    {
-        IsLoading = true;
-        FoundUser = null;
-        ErrorMessage = null;
-
-        try
-        {
-            Option<Guid> accountIdOpt = await GetCurrentAccountIdAsync();
-
-            if (!accountIdOpt.IsSome)
-            {
-                ErrorMessage = "Current user session is invalid.";
-                return;
-            }
-
-            Guid currentAccountId = accountIdOpt.Value;
-
-            GetAccountProfileRequest request = new()
-            {
-                CurrentAccountId = Helpers.GuidToByteString(currentAccountId),
-                ByMobileNumber = PhoneNumberInput,
-            };
-
-            TaskCompletionSource<GetAccountProfileResponse> responseSource =
-                new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
-
-
-            Result<EUnit, NetworkFailure> networkResult = await NetworkProvider.ExecuteUnaryRequestAsync(
-                connectId,
-                RpcServiceType.GetAccountProfile,
-                SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()),
-                payload =>
-                {
-                    GetAccountProfileResponse response = Helpers.ParseFromBytes<GetAccountProfileResponse>(payload);
-                    responseSource.TrySetResult(response);
-                    return Task.FromResult(Result<EUnit, NetworkFailure>.Ok(EUnit.Value));
-                },
-                allowDuplicates: true,
-                token: cancellationToken
-            ).ConfigureAwait(false);
-
-            if (networkResult.IsErr)
-            {
-                ErrorMessage = networkResult.UnwrapErr().Message;
-                return;
-            }
-
-            GetAccountProfileResponse response = await responseSource.Task.ConfigureAwait(false);
-
-            if (response.Profile != null)
-            {
-                FoundUser = new FoundUserViewModel
-                {
-                    Nickname = response.Profile.DisplayName,
-                    PhoneNumber = PhoneNumberInput,
-                    Initials = GetInitials(response.Profile.DisplayName)
-                };
-            }
-
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = ex.Message;
-            FoundUser = null;
-        }
-        finally
-        {
-            IsLoading = false;
-        }
-    }
-
-    private string GetInitials(string displayName)
-    {
-        if (string.IsNullOrWhiteSpace(displayName))
-        {
-            return "?";
-        }
-
-        string[] parts = displayName.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-        if (parts.Length == 1)
-        {
-            return parts[0].Substring(0, Math.Min(parts[0].Length, 2)).ToUpper();
-        }
-
-        string initials = $"{parts[0][0]}{parts[^1][0]}";
-
-        return initials.ToUpper();
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        if (_isDisposed)
-        {
-            return;
-        }
-
-        if (disposing)
-        {
-            _disposables.Dispose();
-        }
-
-        base.Dispose(disposing);
-        _isDisposed = true;
     }
 }

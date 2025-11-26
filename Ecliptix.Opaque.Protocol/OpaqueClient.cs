@@ -66,28 +66,36 @@ public sealed class OpaqueClient : IDisposable
     public (byte[] Record, byte[] MasterKey) FinalizeRegistration(byte[]? serverResponse,
         RegistrationResult registrationState)
     {
-        ThrowIfDisposed();
-        if (serverResponse?.Length != OpaqueConstants.REGISTRATION_RESPONSE_LENGTH)
+        try
         {
-            throw new ArgumentException(
-                string.Format(OpaqueErrorMessages.SERVER_RESPONSE_INVALID_SIZE,
-                    OpaqueConstants.REGISTRATION_RESPONSE_LENGTH));
+            ThrowIfDisposed();
+            if (serverResponse?.Length != OpaqueConstants.REGISTRATION_RESPONSE_LENGTH)
+            {
+                throw new ArgumentException(
+                    string.Format(OpaqueErrorMessages.SERVER_RESPONSE_INVALID_SIZE,
+                        OpaqueConstants.REGISTRATION_RESPONSE_LENGTH));
+            }
+
+            byte[] masterKey = new byte[OpaqueConstants.MASTER_KEY_LENGTH];
+            RandomNumberGenerator.Fill(masterKey);
+
+            byte[] record = new byte[OpaqueConstants.REGISTRATION_RECORD_LENGTH];
+
+            int result = OpaqueNative.opaque_client_finalize_registration(
+                _clientHandle, serverResponse, (UIntPtr)serverResponse.Length,
+                masterKey, (UIntPtr)masterKey.Length,
+                registrationState.StateHandle, record, (UIntPtr)record.Length);
+
+            return result != (int)OpaqueResult.SUCCESS
+                ? throw new InvalidOperationException(string.Format(
+                    OpaqueErrorMessages.FAILED_TO_FINALIZE_REGISTRATION,
+                    (OpaqueResult)result))
+                : (record, masterKey);
         }
-
-        byte[] masterKey = new byte[OpaqueConstants.MASTER_KEY_LENGTH];
-        RandomNumberGenerator.Fill(masterKey);
-
-        byte[] record = new byte[OpaqueConstants.REGISTRATION_RECORD_LENGTH];
-
-        int result = OpaqueNative.opaque_client_finalize_registration(
-            _clientHandle, serverResponse, (UIntPtr)serverResponse.Length,
-            masterKey, (UIntPtr)masterKey.Length,
-            registrationState.StateHandle, record, (UIntPtr)record.Length);
-
-        return result != (int)OpaqueResult.SUCCESS
-            ? throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FAILED_TO_FINALIZE_REGISTRATION,
-                (OpaqueResult)result))
-            : (record, masterKey);
+        finally
+        {
+            registrationState.Dispose();
+        }
     }
 
     public KeyExchangeResult GenerateKe1(byte[] secureKey)
@@ -129,41 +137,55 @@ public sealed class OpaqueClient : IDisposable
 
     public Result<byte[], OpaqueResult> GenerateKe3(byte[]? ke2, KeyExchangeResult keyExchangeState)
     {
-        ThrowIfDisposed();
-        if (ke2?.Length != OpaqueConstants.KE2_LENGTH)
+        try
         {
-            return Result<byte[], OpaqueResult>.Err(OpaqueResult.INVALID_INPUT);
+            ThrowIfDisposed();
+            if (ke2?.Length != OpaqueConstants.KE2_LENGTH)
+            {
+                return Result<byte[], OpaqueResult>.Err(OpaqueResult.INVALID_INPUT);
+            }
+
+            byte[] ke3 = new byte[OpaqueConstants.KE3_LENGTH];
+
+            int result = OpaqueNative.opaque_client_generate_ke3(
+                _clientHandle, ke2, (UIntPtr)ke2.Length, keyExchangeState.StateHandle, ke3, (UIntPtr)ke3.Length);
+
+            return result != (int)OpaqueResult.SUCCESS
+                ? Result<byte[], OpaqueResult>.Err((OpaqueResult)result)
+                : Result<byte[], OpaqueResult>.Ok(ke3);
         }
-
-        byte[] ke3 = new byte[OpaqueConstants.KE3_LENGTH];
-
-        int result = OpaqueNative.opaque_client_generate_ke3(
-            _clientHandle, ke2, (UIntPtr)ke2.Length, keyExchangeState.StateHandle, ke3, (UIntPtr)ke3.Length);
-
-        return result != (int)OpaqueResult.SUCCESS
-            ? Result<byte[], OpaqueResult>.Err((OpaqueResult)result)
-            : Result<byte[], OpaqueResult>.Ok(ke3);
+        finally
+        {
+            keyExchangeState.Dispose();
+        }
     }
 
     public (byte[] SessionKey, byte[] MasterKey) DeriveBaseMasterKey(KeyExchangeResult keyExchangeState)
     {
-        ThrowIfDisposed();
-
-        byte[] sessionKey = new byte[OpaqueConstants.HASH_LENGTH];
-        byte[] masterKey = new byte[OpaqueConstants.MASTER_KEY_LENGTH];
-
-        int result = OpaqueNative.opaque_client_finish(
-            _clientHandle, keyExchangeState.StateHandle,
-            sessionKey, (UIntPtr)sessionKey.Length,
-            masterKey, (UIntPtr)masterKey.Length);
-
-        if (result != (int)OpaqueResult.SUCCESS)
+        try
         {
-            throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FAILED_TO_DERIVE_SESSION_KEY,
-                (OpaqueResult)result));
-        }
+            ThrowIfDisposed();
 
-        return (sessionKey, masterKey);
+            byte[] sessionKey = new byte[OpaqueConstants.HASH_LENGTH];
+            byte[] masterKey = new byte[OpaqueConstants.MASTER_KEY_LENGTH];
+
+            int result = OpaqueNative.opaque_client_finish(
+                _clientHandle, keyExchangeState.StateHandle,
+                sessionKey, (UIntPtr)sessionKey.Length,
+                masterKey, (UIntPtr)masterKey.Length);
+
+            if (result != (int)OpaqueResult.SUCCESS)
+            {
+                throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FAILED_TO_DERIVE_SESSION_KEY,
+                    (OpaqueResult)result));
+            }
+
+            return (sessionKey, masterKey);
+        }
+        finally
+        {
+            keyExchangeState.Dispose();
+        }
     }
 
     private void ThrowIfDisposed()

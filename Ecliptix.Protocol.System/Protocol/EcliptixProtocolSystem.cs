@@ -802,7 +802,7 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
                 string.Format(ProtocolSystemConstants.ProtocolSystem.IDENTITY_KEYS_TOO_LARGE_MESSAGE, maxIdLength));
         }
 
-        if (id1.Length + id2.Length > int.MaxValue / ProtocolSystemConstants.ProtocolSystem.INTEGER_OVERFLOW_DIVISOR)
+        if (id1.Length + id2.Length > ProtocolSystemConstants.ProtocolSystem.MAX_ASSOCIATED_DATA_LENGTH)
         {
             throw new ArgumentException(ProtocolSystemConstants.ProtocolSystem.INTEGER_OVERFLOW_MESSAGE);
         }

@@ -1,6 +1,7 @@
 using System;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -15,6 +16,7 @@ using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Views.Memberships.Components;
+using Ecliptix.Core.Views.Memberships.Components.TitleBarUtilities.ViewModels;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Utilities;
 using ReactiveUI;
@@ -123,7 +125,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
 
             TitleBarViewModel.DisableMaximizeButton = true;
-            TitleBarViewModel.AccessoryViewModel = LanguageSelector;
+            SetMirroredContent(LanguageSelector);
 
             await SetContentWithFadeAsync(content).ConfigureAwait(false);
         }
@@ -135,6 +137,32 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
             });
         }
 
+    }
+
+    private void ClearTitleBarContent()
+    {
+        TitleBarViewModel.LeftContent.Clear();
+        TitleBarViewModel.CenterContent = null;
+        TitleBarViewModel.RightContent.Clear();
+    }
+
+    private void SetMirroredContent(object content, bool clearOthers = true)
+    {
+        if (clearOthers)
+        {
+            ClearTitleBarContent();
+        }
+
+        bool isMac = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+
+        if (isMac)
+        {
+            TitleBarViewModel.RightContent.Add(content);
+        }
+        else
+        {
+            TitleBarViewModel.LeftContent.Add(content);
+        }
     }
 
     public async Task SetMainContentAsync(object content)
@@ -159,7 +187,11 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
                 MinWindowHeight = 600;
 
                 TitleBarViewModel.DisableMaximizeButton = false;
-                TitleBarViewModel.AccessoryViewModel = null;
+                ClearTitleBarContent();
+
+                TitleBarViewModel.LeftContent.Add(new ToggleNavigationSideBarViewModel());
+                TitleBarViewModel.RightContent.Add(new ToggleThemeViewModel());
+
             }, DispatcherPriority.Loaded);
 
             await SetContentWithFadeAsync(content).ConfigureAwait(false);

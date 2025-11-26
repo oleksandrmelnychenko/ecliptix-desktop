@@ -1,0 +1,82 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:msgVm="clr-namespace:Ecliptix.Core.Features.Chats.ViewModels.Messages"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:DataType="msgVm:MessageViewModelBase"
+             x:Class="Ecliptix.Core.Features.Chats.Views.MessageBubbleView">
+   <UserControl.Styles>
+        <Style Selector="Border.message-bubble">
+            <Setter Property="CornerRadius" Value="16"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="MaxWidth" Value="500"/>
+        </Style>
+
+        <Style Selector="Border.incoming">
+            <Setter Property="Background" Value="#F2F4F7"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
+
+        <Style Selector="Border.outgoing">
+            <Setter Property="Background" Value="#6A5ACD"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="TextBlock.Foreground" Value="White"/>
+            <Setter Property="BoxShadow" Value="0 1 3 0 #406A5ACD"/>
+        </Style>
+
+        <Style Selector="Border.reply-quote">
+            <Setter Property="CornerRadius" Value="0"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="BorderThickness" Value="3,0,0,0"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+
+        <Style Selector="Border.incoming Border.reply-quote">
+            <Setter Property="Background" Value="#E0E0E0"/>
+            <Setter Property="BorderBrush" Value="#6A5ACD"/>
+        </Style>
+        <Style Selector="Border.incoming Border.reply-quote TextBlock">
+            <Setter Property="Foreground" Value="#606060"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
+
+        <Style Selector="Border.outgoing Border.reply-quote">
+            <Setter Property="Background" Value="#20000000"/>
+            <Setter Property="BorderBrush" Value="White"/>
+        </Style>
+        <Style Selector="Border.outgoing Border.reply-quote TextBlock">
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
+    </UserControl.Styles>
+
+    <StackPanel>
+        <Border Classes="message-bubble"
+                Classes.incoming="{Binding !IsMine}"
+                Classes.outgoing="{Binding IsMine}">
+
+            <StackPanel>
+                <ContentControl Content="{Binding}">
+                    <ContentControl.DataTemplates>
+                        <DataTemplate DataType="{x:Type msgVm:ReplyMessageViewModel}">
+                            <Border Classes="reply-quote">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding QuotedAuthor}" FontWeight="Bold" FontSize="11" Opacity="0.8"/>
+                                    <TextBlock Text="{Binding QuotedText}" FontSize="12" Opacity="0.7" TextTrimming="CharacterEllipsis" MaxLines="1"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type msgVm:SimpleMessageViewModel}">
+                            </DataTemplate>
+                    </ContentControl.DataTemplates>
+                </ContentControl>
+
+                <TextBlock Text="{Binding Text}" TextWrapping="Wrap"/>
+            </StackPanel>
+        </Border>
+
+        <TextBlock Text="{Binding TimeDisplay}" FontSize="10" Foreground="Gray" Margin="5,4,0,0"/>
+    </StackPanel>
+</UserControl>
+

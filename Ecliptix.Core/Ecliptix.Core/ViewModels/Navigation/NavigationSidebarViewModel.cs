@@ -4,7 +4,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-
+using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Features.NewContent;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
@@ -15,13 +15,10 @@ using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.Membership;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.Core.Localization;
+using Ecliptix.Core.Views.Memberships.Components.TitleBarUtilities.ViewModels;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Membership;
-using Ecliptix.Core.Core.Messaging;
-using Ecliptix.Core.Core.Messaging.Events;
-using Ecliptix.Core.Core.Messaging.Services;
-
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Serilog;
@@ -42,9 +39,12 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
     private readonly IMessageBus? _messageBus;
 
     [Reactive] public NavigationMenuItem? SelectedMenuItem { get; set; }
-    [Reactive] public bool IsExpanded { get; set; }
+
+    [Reactive] public bool IsExpanded { get; set; } = true;
     [Reactive] public string UserDisplayName { get; set; } = "@user";
     [ObservableAsProperty] public bool IsBusy { get; }
+    [Reactive] public bool IsParentAnimating { get; set; }
+
 
     public string AddAccountText => LocalizationService.GetString(LocalizationKeys.ProfileMenu.ADD_ACCOUNT);
     public string LogoutText => LocalizationService.GetString(LocalizationKeys.ProfileMenu.LOGOUT);
@@ -54,6 +54,7 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
     public ReactiveCommand<NavigationMenuItem, SystemU> NavigateCommand { get; }
     public ReactiveCommand<SystemU, SystemU> ToggleProfileMenuCommand { get; }
     public ReactiveCommand<SystemU, Result<Unit, LogoutFailure>> LogoutCommand { get; }
+    public ReactiveCommand<SystemU, bool> ToggleSidebarCommand { get; }
 
     public CreateMenuViewModel CreateMenuVm { get; }
 
@@ -73,6 +74,22 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
         _messageBus = Locator.Current?.GetService<IMessageBus>();
 
         CreateMenuVm = new CreateMenuViewModel();
+        IsExpanded = true;
+
+        IObservable<bool> canNavigate = this.WhenAnyValue(
+                x => x.IsParentAnimating,
+                x => x.IsBusy,
+                (isAnimating, isBusy) =>
+                {
+                    bool result = !isAnimating && !isBusy;
+
+                    // Логуємо стан при кожній зміні будь-якого з параметрів
+                    Log.Information($"[NAV-STATE-CHANGE] IsAnimating={isAnimating}, IsBusy={isBusy} => CanNavigate={result}");
+
+                    return result;
+                }
+            )
+            .DistinctUntilChanged();
 
         CreateMenuVm.SelectActionCommand
             .Subscribe(async actionType =>
@@ -86,33 +103,51 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
             })
             .DisposeWith(_disposables);
 
+        if (_messageBus != null)
+        {
+
+            _messageBus.Subscribe<ToggleSidebarEvent>(async evt =>
+            {
+                IsExpanded = !IsExpanded;
+            }, SubscriptionLifetime.STRONG).DisposeWith(_disposables);
+
+        }
+
+        ToggleSidebarCommand = ReactiveCommand.Create(() =>
+        {
+            IsExpanded = !IsExpanded;
+            return IsExpanded;
+        });
+
         MenuItems = new ObservableCollection<NavigationMenuItem>
         {
-            new NavigationMenuItem
+            new()
             {
-                Id = "home",
-                Label = "Home",
+                Id = "feed",
+                Label = "Feed",
                 IconPath = "HomeIconData",
-                TooltipText = "Home",
-                Type = NavigationMenuItemType.Regular
+                TooltipText = "Feed",
+                Type = NavigationMenuItemType.Regular,
+                NotificationCount = 3
             },
-            new NavigationMenuItem
+            new()
             {
                 Id = "chats",
                 Label = "Chats",
                 IconPath = "ChatsIconData",
                 TooltipText = "Chats",
-                Type = NavigationMenuItemType.Regular
+                Type = NavigationMenuItemType.Regular,
+                NotificationCount = 12
             },
-            new NavigationMenuItem
+            new()
             {
                 Id = "settings",
                 Label = "Settings",
                 IconPath = "SettingsIconData",
                 TooltipText = "Settings",
-                Type = NavigationMenuItemType.Regular
+                Type = NavigationMenuItemType.Regular,
+                NotificationCount = 0
             }
-
         };
 
         ProfileMenuItem = new NavigationMenuItem
@@ -124,26 +159,20 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
 
         SelectedMenuItem = MenuItems[0];
 
-        NavigateCommand = ReactiveCommand.Create<NavigationMenuItem, SystemU>(
-            menuItem =>
+        NavigateCommand = ReactiveCommand.CreateFromTask<NavigationMenuItem>(
+            async menuItem =>
             {
-                if (SelectedMenuItem != menuItem)
+                if (SelectedMenuItem == menuItem)
                 {
-                    if (SelectedMenuItem != null)
-                    {
-                        SelectedMenuItem.IsSelected = false;
-                    }
-
-                    SelectedMenuItem = menuItem;
-
-                    if (SelectedMenuItem != null)
-                    {
-                        SelectedMenuItem.IsSelected = true;
-                    }
+                    return;
                 }
 
-                return SystemU.Default;
-            });
+                SelectedMenuItem?.IsSelected = false;
+                SelectedMenuItem = menuItem;
+                SelectedMenuItem?.IsSelected = true;
+            },
+            canNavigate
+        );
 
         NavigateCommand
             .Subscribe()
@@ -215,6 +244,8 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
         _disposables.Add(LogoutCommand);
 
         LoadUserDataAsync().ConfigureAwait(false);
+
+
     }
 
     private async Task LoadUserDataAsync()
@@ -230,7 +261,10 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
 
                 if (settings.CurrentAccountId != null && !settings.CurrentAccountId.IsEmpty)
                 {
-                    UserDisplayName = $"@{settings.CurrentAccountId.ToStringUtf8().Substring(0, 8)}";
+                    string guidString = settings.CurrentAccountId.ToByteArray().Length == 16
+                        ? new Guid(settings.CurrentAccountId.ToByteArray()).ToString("N").Substring(0, 8)
+                        : "user";
+                    UserDisplayName = $"@{guidString}";
                 }
                 else
                 {

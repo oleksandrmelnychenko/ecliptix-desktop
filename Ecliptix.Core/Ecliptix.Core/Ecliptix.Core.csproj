@@ -58,10 +58,6 @@
       <DependentUpon>AuthorizationWindow.axaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Update="Views\Memberships\Components\TitleBar.axaml.cs">
-      <DependentUpon>TitleBar.axaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Update="Views\Memberships\SignUp\VerificationCodeEntryView.axaml.cs">
       <DependentUpon>VerificationCodeEntryView.axaml</DependentUpon>
       <SubType>Code</SubType>
@@ -98,6 +94,14 @@
       <DependentUpon>NewPostView.axaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Views\Memberships\Components\TitleBar\TitleBar.axaml.cs">
+      <DependentUpon>TitleBar.axaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Views\Memberships\Components\TitleBarUtilities\Views\ToggleNavigationSideBarView.axaml.cs">
+      <DependentUpon>ToggleNavigationSideBar.axaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <UpToDateCheckInput Remove="Styles\BaseColors.axaml" />
@@ -128,5 +132,11 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Assets\Fonts\Geist\.DS_Store" />
+  </ItemGroup>
+  <ItemGroup>
+    <AdditionalFiles Include="Views\Memberships\Components\TitleBar\Platform\OSX\MacosTitleBarButtons.axaml" />
+    <AdditionalFiles Include="Views\Memberships\Components\TitleBar\Platform\OSX\MacosTitleBarLayout.axaml" />
+    <AdditionalFiles Include="Views\Memberships\Components\TitleBar\Platform\Windows\WindowsTitleBarButtons.axaml" />
+    <AdditionalFiles Include="Views\Memberships\Components\TitleBar\Platform\Windows\WindowsTitleBarLayout.axaml" />
   </ItemGroup>
 </Project>

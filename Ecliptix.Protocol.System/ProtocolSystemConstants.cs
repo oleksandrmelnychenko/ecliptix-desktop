@@ -75,6 +75,7 @@ internal static class ProtocolSystemConstants
     {
         public const int EMPTY_ARRAY_LENGTH = 0;
         public const int MAX_IDENTITY_KEY_LENGTH = 1024;
+        public const int MAX_ASSOCIATED_DATA_LENGTH = MAX_IDENTITY_KEY_LENGTH * 2;
         public const int MAX_PAYLOAD_SIZE = 10 * 1024 * 1024;
         public const int INTEGER_OVERFLOW_DIVISOR = 2;
         public const int BUFFER_COPY_START_OFFSET = 0;

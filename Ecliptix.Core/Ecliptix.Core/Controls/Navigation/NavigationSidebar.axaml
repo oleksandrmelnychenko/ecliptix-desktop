@@ -9,6 +9,7 @@
              d:DesignWidth="280"
              d:DesignHeight="800"
              x:DataType="vm:NavigationSidebarViewModel"
+             Background="Transparent"
              x:Class="Ecliptix.Core.Controls.Navigation.NavigationSidebar">
 
    <UserControl.Resources>
@@ -18,61 +19,75 @@
                 <ResourceInclude Source="/Assets/Icons/Navigation/ChatsIcon.axaml" />
                 <ResourceInclude Source="/Assets/Icons/Navigation/SettingsIcon.axaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <x:Double x:Key="SidebarCollapsedWidth">60</x:Double>
+            <x:Double x:Key="SidebarExpandedWidth">180</x:Double>
+
+            <SolidColorBrush x:Key="BadgeBackgroundBrush">#7B61FF</SolidColorBrush>
+            <SolidColorBrush x:Key="BadgeForegroundBrush">#FFFFFF</SolidColorBrush>
         </ResourceDictionary>
     </UserControl.Resources>
 
     <UserControl.Styles>
+
+        <Style Selector="Grid.sidebar-container">
+            <Setter Property="Width" Value="{StaticResource SidebarCollapsedWidth}" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Width" Duration="0:0:0.25" Easing="CubicEaseOut"/>
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Grid.sidebar-container.expanded">
+            <Setter Property="Width" Value="{StaticResource SidebarExpandedWidth}" />
+        </Style>
+
         <Style Selector="Button.copilot-sidebar-button">
+            <Setter Property="RenderTransform" Value="scale(1)" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Margin" Value="3,1" />
+            <Setter Property="Margin" Value="8,2" />
             <Setter Property="CornerRadius" Value="12" />
-            <Setter Property="Padding" Value="8" />
-            <Setter Property="Width" Value="72" />
-            <Setter Property="Height" Value="72" /> <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Transitions">
                 <Transitions>
-                    <BrushTransition Property="Background" Duration="0:0:0.15" />
+                    <BrushTransition Property="Background" Duration="0:0:0.2" />
+                    <BrushTransition Property="Foreground" Duration="0:0:0.2" />
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.2" Easing="CubicEaseOut" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" Easing="CubicEaseOut" />
                 </Transitions>
             </Setter>
         </Style>
 
         <Style Selector="Button.copilot-sidebar-button:pointerover">
-            <Setter Property="Background" Value="#F2F6F7" />
+            <Setter Property="Background" Value="#e5e7eb" />
+            <Setter Property="RenderTransform" Value="scale(1)" />
         </Style>
 
         <Style Selector="Button.copilot-sidebar-button:pressed">
-            <Setter Property="Background" Value="#F2F6F7" />
+            <Setter Property="Background" Value="#e5e7eb" />
+            <Setter Property="RenderTransform" Value="scale(0.97)" />
         </Style>
 
         <Style Selector="Button.copilot-sidebar-button.selected">
-            <Setter Property="Background" Value="#F2F6F7" />
-        </Style>
-
-        <Style Selector="PathIcon.copilot-icon">
-            <Setter Property="Width" Value="16" />
-            <Setter Property="Height" Value="16" />
-            <Setter Property="Foreground" Value="#5C5C5C" />
-            <Setter Property="Transitions">
-                <Transitions>
-                    <BrushTransition Property="Foreground" Duration="0:0:0.15" />
-                </Transitions>
-            </Setter>
+            <Setter Property="Background" Value="#e5e7eb" />
+            <Setter Property="Opacity" Value="1" />
         </Style>
 
         <Style Selector="Path.copilot-path">
-            <Setter Property="Width" Value="24" />
-            <Setter Property="Height" Value="24" />
+            <Setter Property="Width" Value="20" />
+            <Setter Property="Height" Value="20" />
             <Setter Property="Stroke" Value="#5C5C5C" />
-
-            <Setter Property="StrokeThickness" Value="2.2" /> <Setter Property="Fill" Value="Transparent" />
+            <Setter Property="StrokeThickness" Value="2.2" />
+            <Setter Property="Fill" Value="Transparent" />
             <Setter Property="Stretch" Value="Uniform" />
-
             <Setter Property="StrokeLineCap" Value="Round" />
             <Setter Property="StrokeJoin" Value="Round" />
-
             <Setter Property="Transitions">
                 <Transitions>
                     <BrushTransition Property="Stroke" Duration="0:0:0.15" />
@@ -80,12 +95,6 @@
             </Setter>
         </Style>
 
-        <Style Selector="Button.copilot-sidebar-button.selected PathIcon.copilot-icon">
-            <Setter Property="Foreground" Value="#242424" />
-        </Style>
-        <Style Selector="Button.copilot-sidebar-button:pointerover PathIcon.copilot-icon">
-            <Setter Property="Foreground" Value="#242424" />
-        </Style>
         <Style Selector="Button.copilot-sidebar-button.selected Path.copilot-path">
             <Setter Property="Stroke" Value="#242424" />
         </Style>
@@ -94,13 +103,16 @@
         </Style>
 
         <Style Selector="TextBlock.copilot-label">
-            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontSize" Value="14" />
             <Setter Property="Foreground" Value="#5C5C5C" />
-            <Setter Property="HorizontalAlignment" Value="Center" />
-            <Setter Property="Margin" Value="0,6,0,0" />
             <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="12,0,0,0" />
+            <Setter Property="IsVisible" Value="False" />
+            <Setter Property="Opacity" Value="0" />
             <Setter Property="Transitions">
                 <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
                     <BrushTransition Property="Foreground" Duration="0:0:0.15" />
                 </Transitions>
             </Setter>
@@ -108,11 +120,86 @@
 
         <Style Selector="Button.copilot-sidebar-button.selected TextBlock.copilot-label">
             <Setter Property="Foreground" Value="#242424" />
-            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style Selector="Button.copilot-sidebar-button:pointerover TextBlock.copilot-label">
             <Setter Property="Foreground" Value="#242424" />
         </Style>
+        <Style Selector="Grid.sidebar-container.expanded TextBlock.copilot-label">
+            <Setter Property="IsVisible" Value="True" />
+            <Setter Property="Opacity" Value="1" />
+        </Style>
+
+        <Style Selector="Border.badge-collapsed">
+            <Setter Property="Background" Value="{StaticResource BadgeBackgroundBrush}" />
+            <Setter Property="CornerRadius" Value="7.5" />
+            <Setter Property="Height" Value="15" />
+            <Setter Property="MinWidth" Value="15" />
+            <Setter Property="Padding" Value="2,0" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+
+            <Setter Property="Opacity" Value="1" />
+            <Setter Property="IsVisible" Value="True" />
+            <Setter Property="RenderTransform" Value="translate(8px, -8px)" />
+
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15" Easing="CubicEaseOut"/>
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Border.badge-collapsed TextBlock">
+             <Setter Property="Foreground" Value="{StaticResource BadgeForegroundBrush}" />
+             <Setter Property="FontSize" Value="9" />
+             <Setter Property="FontWeight" Value="Bold" />
+             <Setter Property="HorizontalAlignment" Value="Center" />
+             <Setter Property="VerticalAlignment" Value="Center" />
+             <Setter Property="Margin" Value="0,-1,0,0" />
+        </Style>
+
+        <Style Selector="Grid.sidebar-container.expanded Border.badge-collapsed">
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="IsVisible" Value="False" />
+            <Setter Property="RenderTransform" Value="translate(0px, 0px) scale(0.5)" />
+        </Style>
+
+
+        <Style Selector="Border.badge-expanded">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="{StaticResource BadgeBackgroundBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Height" Value="20" />
+            <Setter Property="MinWidth" Value="20" />
+            <Setter Property="Padding" Value="6,0" /> <Setter Property="Opacity" Value="0" />
+            <Setter Property="IsVisible" Value="False" />
+            <Setter Property="RenderTransform" Value="translateX(-10px)" />
+
+            <Setter Property="Transitions">
+                 <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15" Easing="CubicEaseOut"/>
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Border.badge-expanded TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource BadgeBackgroundBrush}" /> <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,-1,0,0" />
+        </Style>
+
+        <Style Selector="Grid.sidebar-container.expanded Border.badge-expanded">
+            <Setter Property="Opacity" Value="1" />
+            <Setter Property="IsVisible" Value="True" />
+            <Setter Property="RenderTransform" Value="translateX(0px)" />
+        </Style>
+
 
         <Style Selector="FlyoutPresenter.transparent-flyout">
             <Setter Property="Padding" Value="0" />
@@ -123,11 +210,13 @@
         </Style>
     </UserControl.Styles>
 
-    <Grid RowDefinitions="*,Auto,Auto" Margin="8,0,0,0">
+    <Grid RowDefinitions="*,Auto,Auto"
+          Classes="sidebar-container"
+          Classes.expanded="{Binding IsExpanded}">
 
         <StackPanel Grid.Row="0"
                     Spacing="4"
-                    VerticalAlignment="Center">
+                    Margin="0,10,0,0">
             <ItemsControl ItemsSource="{Binding MenuItems}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="models:NavigationMenuItem">
@@ -136,67 +225,79 @@
                                 Command="{Binding $parent[UserControl].((vm:NavigationSidebarViewModel)DataContext).NavigateCommand}"
                                 CommandParameter="{Binding}"
                                 IsVisible="{Binding !Type}">
-                            <StackPanel Spacing="3">
-                                <Panel Width="24" Height="24">
+
+                            <Grid ColumnDefinitions="Auto, *, Auto" Margin="12,0">
+
+                                <Panel Grid.Column="0" Width="20" Height="20">
                                     <Path Classes="copilot-path"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
                                           Data="{StaticResource HomeIconData}"
-                                          IsVisible="{Binding Id, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=home}" />
+                                          IsVisible="{Binding Id, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=feed}" />
+
                                     <Path Classes="copilot-path"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
                                           Data="{StaticResource ChatsIconData}"
                                           IsVisible="{Binding Id, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=chats}" />
                                     <Path Classes="copilot-path"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
                                           Data="{StaticResource SettingsIconData}"
                                           IsVisible="{Binding Id, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=settings}" />
+
+                                    <Border Classes="badge-collapsed"
+                                            IsVisible="{Binding HasNotifications}">
+                                        <TextBlock Text="{Binding NotificationBadgeText}" />
+                                    </Border>
                                 </Panel>
-                                <TextBlock Classes="copilot-label"
+
+                                <TextBlock Grid.Column="1"
+                                           Classes="copilot-label"
                                            Text="{Binding Label}" />
-                            </StackPanel>
+
+                                <Border Grid.Column="2"
+                                        Classes="badge-expanded"
+                                        IsVisible="{Binding HasNotifications}"
+                                        Margin="0,0,0,0">
+                                    <TextBlock Text="{Binding ExpandedBadgeText}" />
+                                </Border>
+                            </Grid>
                         </Button>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </StackPanel>
 
-        <!-- Create/Add Button (Independent) -->
         <Button Grid.Row="1"
                 x:Name="CreateFlyoutButton"
                 Classes="copilot-sidebar-button"
-                Margin="3,12,3,1"
-                VerticalAlignment="Bottom">
-
+                Margin="8,12,8,2">
             <Button.Flyout>
-                <Flyout Placement="RightEdgeAlignedBottom"
-                        ShowMode="TransientWithDismissOnPointerMoveAway"
-                        FlyoutPresenterClasses="transparent-flyout">
+                <Flyout Placement="RightEdgeAlignedBottom" ShowMode="Transient" FlyoutPresenterClasses="transparent-flyout">
                     <newContent:CreateMenuPopup DataContext="{Binding CreateMenuVm}" />
                 </Flyout>
             </Button.Flyout>
-
-            <StackPanel Spacing="3">
-                <Svg Path="../../Assets/plus_icon.svg"
-                     Width="28"
-                     Height="28"
-                     Stretch="Uniform" />
-            </StackPanel>
+            <Grid ColumnDefinitions="Auto, *" Margin="12,0">
+                <Panel Grid.Column="0" Width="20" Height="20">
+                    <Svg Path="../../Assets/plus_icon.svg" Width="20" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Panel>
+                <TextBlock Grid.Column="1" Classes="copilot-label" Text="Create" />
+            </Grid>
         </Button>
-
 
         <Button Grid.Row="2"
                 Classes="copilot-sidebar-button"
                 Classes.selected="{Binding ProfileMenuItem.IsSelected}"
-                Margin="3,1,3,8"
-                VerticalAlignment="Bottom"
-                x:Name="ProfileButton"
+                Margin="8,2,8,8"
                 Command="{Binding $parent[UserControl].((vm:NavigationSidebarViewModel)DataContext).NavigateCommand}"
                 CommandParameter="{Binding ProfileMenuItem}">
-            <StackPanel Spacing="3">
-                <Svg Path="../../Assets/profile.svg"
-                     Width="24"
-                     Height="24"
-                     Stretch="Uniform" />
-                <TextBlock Classes="copilot-label"
-                           Text="Profile" />
-            </StackPanel>
+            <Grid ColumnDefinitions="Auto, *" Margin="12,0">
+                <Panel Grid.Column="0" Width="20" Height="20">
+                     <Svg Path="../../Assets/profile.svg" Width="20" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Panel>
+                <TextBlock Grid.Column="1" Classes="copilot-label" Text="Profile" />
+            </Grid>
         </Button>
 
     </Grid>

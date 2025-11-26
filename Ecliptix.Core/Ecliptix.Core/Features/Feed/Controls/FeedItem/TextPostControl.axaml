@@ -5,6 +5,8 @@
              xmlns:vm="clr-namespace:Ecliptix.Core.Features.Feed.ViewModels"
              xmlns:header="clr-namespace:Ecliptix.Core.Features.Feed.Controls.PostHeader"
              xmlns:interactions="clr-namespace:Ecliptix.Core.Features.Feed.Controls.PostInteractions"
+             xmlns:comments="clr-namespace:Ecliptix.Core.Features.Feed.Controls.Comments"
+             xmlns:converters="clr-namespace:Ecliptix.Core.Features.Feed.Converters"
              mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="400"
              x:Class="Ecliptix.Core.Features.Feed.Controls.FeedItem.TextPostControl"
              x:DataType="vm:TextPostViewModel">
@@ -17,14 +19,12 @@
             <!-- Post Header -->
             <header:PostHeaderControl DataContext="{Binding}" />
 
-            <!-- Text Content -->
-            <Border Padding="16,12">
+                <!-- Text Content -->
                 <TextBlock Text="{Binding TextContent.Text}"
                            TextWrapping="Wrap"
-                           FontSize="16"
-                           LineHeight="24"
-                           Foreground="#1A1A1A" />
-            </Border>
+                           FontSize="15"
+                           LineHeight="20"
+                           Foreground="#0F1419" />
 
             <!-- Post Actions -->
             <interactions:PostActionsControl DataContext="{Binding Interactions}" />
