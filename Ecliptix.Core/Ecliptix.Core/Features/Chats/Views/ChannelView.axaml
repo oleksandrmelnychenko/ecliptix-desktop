@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:Ecliptix.Core.Features.Chats.ViewModels"
              xmlns:vm="clr-namespace:Ecliptix.Core.Features.Chats.ViewModels.Messages"
+             xmlns:views="clr-namespace:Ecliptix.Core.Features.Chats.Views"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="viewModels:ChannelViewModel"
              x:Class="Ecliptix.Core.Features.Chats.Views.ChannelView">
@@ -46,102 +47,12 @@
                 <ItemsControl.DataTemplates>
 
                     <DataTemplate DataType="{x:Type vm:DateSeparatorViewModel}">
-                        <Border Margin="0,10">
-                            <TextBlock Text="{Binding DateDisplay}"
-                                       HorizontalAlignment="Center"
-                                       Foreground="#909090"
-                                       FontSize="12"
-                                       FontWeight="Medium"/>
-                        </Border>
+                        <views:DateSeparatorView />
                     </DataTemplate>
 
                     <DataTemplate DataType="{x:Type viewModels:ChannelPostViewModel}">
-
-                        <Border Background="White"
-                                CornerRadius="12"
-                                BorderBrush="#E0E0E0" BorderThickness="1"
-                                Width="508"
-                                HorizontalAlignment="Center"
-                                BoxShadow="0 1 3 0 #10000000">
-
-                            <Grid RowDefinitions="Auto, Auto, Auto">
-
-                                <Border Grid.Row="0" CornerRadius="12,12,0,0" ClipToBounds="True"
-                                        IsVisible="{Binding PostImage, Converter={x:Static ObjectConverters.IsNotNull}}">
-                                    <Image Source="{Binding PostImage}"
-                                           Stretch="UniformToFill"
-                                           Height="260"/>
-                                </Border>
-
-                                <StackPanel Grid.Row="1" Margin="12,8">
-                                    <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
-                                        <TextBlock Text="{Binding Text}"
-                                                   TextWrapping="Wrap"
-                                                   FontSize="14"
-                                                   Foreground="#242424"
-                                                   LineHeight="20"/>
-                                    </ScrollViewer>
-
-                                    <TextBlock Text="{Binding TimeDisplay}"
-                                               HorizontalAlignment="Right"
-                                               FontSize="11"
-                                               Foreground="#9E9E9E"
-                                               Margin="0,8,0,0"/>
-                                </StackPanel>
-
-                                <Border Grid.Row="2"
-                                        BorderBrush="#F0F0F0"
-                                        BorderThickness="0,1,0,0"
-                                        Padding="12,8">
-
-                                    <Grid ColumnDefinitions="Auto, Auto, *, Auto">
-
-                                        <Button Grid.Column="0" Classes="action-btn">
-                                            <StackPanel Orientation="Horizontal">
-                                                <PathIcon Data="M16.5,3C14.76,3 13.09,3.81 12,5.09C10.91,3.81 9.24,3 7.5,3C4.42,3 2,5.42 2,8.5C2,12.28 5.4,15.36 10.55,20.04L12,21.35L13.45,20.03C18.6,15.36 22,12.28 22,8.5C22,5.42 19.58,3 16.5,3M12.1,18.55L12,18.65L11.9,18.55C7.14,14.24 4,11.39 4,8.5C4,6.5 5.5,5 7.5,5C9.04,5 10.54,5.99 11.07,7.36H12.94C13.46,5.99 14.96,5 16.5,5C18.5,5 20,6.5 20,8.5C20,11.39 16.86,14.24 12.1,18.55Z"
-                                                          Width="18" Height="18"/>
-                                                <TextBlock Text="{Binding Likes}"/>
-                                            </StackPanel>
-                                        </Button>
-
-                                        <Button Grid.Column="1" Classes="action-btn" Margin="8,0,0,0">
-                                            <StackPanel Orientation="Horizontal">
-                                                <PathIcon Data="M9,22A1,1 0 0,1 8,21V18H4A2,2 0 0,1 2,16V4C2,2.89 2.9,2 4,2H20A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H13.9L10.2,21.71C10.04,21.84 9.88,21.91 9.71,21.95C9.5,22 9.28,22 9,22M4,4V16H8V19.35L11.35,16H20V4H4Z"
-                                                          Width="18" Height="18"/>
-                                                <TextBlock Text="{Binding Comments}"/>
-                                            </StackPanel>
-                                        </Button>
-
-                                        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="4">
-
-                                            <Border Padding="8,4" Background="Transparent">
-                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                     <PathIcon Data="M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5M3.18,12C4.83,9.13 8.24,7 12,7C15.76,7 19.17,9.13 20.82,12C19.17,14.87 15.76,17 12,17C8.24,17 4.83,14.87 3.18,12Z"
-                                                               Width="18" Height="18" Foreground="#9E9E9E"/>
-                                                     <TextBlock Text="{Binding Views}" FontSize="12" Foreground="#9E9E9E" Margin="4,0,0,0" VerticalAlignment="Center"/>
-                                                </StackPanel>
-                                            </Border>
-
-                                            <Button Classes="action-btn">
-                                                <StackPanel Orientation="Horizontal">
-                                                     <PathIcon Data="M18,16.08C17.24,16.08 16.56,16.38 16.04,16.85L8.91,12.7C8.96,12.47 9,12.24 9,12C9,11.76 8.96,11.53 8.91,11.3L15.96,7.19C16.5,7.69 17.21,8 18,8A3,3 0 0,0 21,5A3,3 0 0,0 18,2A3,3 0 0,0 15,5C15,5.24 15.04,5.47 15.09,5.7L8.04,9.81C7.5,9.31 6.79,9 6,9A3,3 0 0,0 3,12A3,3 0 0,0 6,15C6.79,15 7.5,14.69 8.04,14.19L15.16,18.34C15.11,18.55 15.08,18.77 15.08,19C15.08,20.61 16.39,21.91 18,21.91C19.61,21.91 20.92,20.61 20.92,19A2.92,2.92 0 0,0 18,16.08M18,4A1,1 0 0,1 19,5A1,1 0 0,1 18,6A1,1 0 0,1 17,5A1,1 0 0,1 18,4M6,11A1,1 0 0,1 7,12A1,1 0 0,1 6,13A1,1 0 0,1 5,12A1,1 0 0,1 6,11M18,18A1,1 0 0,1 19,19A1,1 0 0,1 18,20A1,1 0 0,1 17,19A1,1 0 0,1 18,18Z"
-                                                               Width="18" Height="18"/>
-                                                     <TextBlock Text="{Binding Shares}"/>
-                                                </StackPanel>
-                                            </Button>
-
-                                            <Button Classes="action-btn" Padding="8,4">
-                                                <PathIcon Data="M14.4,6L14,4H5V21H7V14H12L12.4,16H22V6H14.4M20,14H14.4L14,12H7V6H12L12.4,8H20V14Z"
-                                                          Width="16" Height="16"/>
-                                            </Button>
-
-                                        </StackPanel>
-                                    </Grid>
-                                </Border>
-                            </Grid>
-                        </Border>
+                        <views:ChannelPostView />
                     </DataTemplate>
-
                 </ItemsControl.DataTemplates>
             </ItemsControl>
         </ScrollViewer>
