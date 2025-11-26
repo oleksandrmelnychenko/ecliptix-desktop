@@ -24,6 +24,7 @@ public sealed class PostInteractionsViewModel : ViewModelBase
 
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> ToggleLikeCommand { get; }
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> ToggleSaveCommand { get; }
+    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> ToggleCommentsCommand { get; }
 
     public PostInteractionsViewModel(
         string postId,

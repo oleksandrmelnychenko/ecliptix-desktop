@@ -171,10 +171,74 @@
 							HorizontalAlignment="Left"
 							VerticalAlignment="Center"
 							Command="{Binding ToggleFullVisibilityCommentsCommand}"
-							Margin="0,12" />
+							Margin="0,12,0,0" />
 
 					<!--Comments-->
-					<ItemsControl Grid.Row="2"/>
+					<ItemsControl Grid.Row="2" ItemsSource="{Binding Comments}">
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<Grid Margin="0,12" ColumnDefinitions="Auto,Auto,*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="10">
+									<Border Grid.Column="0" Grid.RowSpan="2"
+											Width="40"
+											Height="40"
+											CornerRadius="20"
+											ClipToBounds="True"
+											Background="#F0F0F0">
+										<Panel>
+											<Image
+											Source="{Binding Author.AvatarUrl}"
+											Stretch="UniformToFill"
+											IsVisible="{Binding Author.AvatarUrl, Converter={x:Static ObjectConverters.IsNotNull}}" />
+											<TextBlock Grid.Column="1"
+													   Text="{Binding Author.DisplayName, Converter={StaticResource InitialsConverter}}"
+													   FontSize="16"
+													   FontWeight="SemiBold"
+													   HorizontalAlignment="Center"
+													   VerticalAlignment="Center"
+													   IsVisible="{Binding Author.AvatarUrl, Converter={x:Static ObjectConverters.IsNull}}" />
+										</Panel>
+									</Border>
+
+									<TextBlock
+										Grid.Column="1"
+										Text="{Binding Author.DisplayName}"
+										FontWeight="SemiBold"
+										Foreground="#0f172b"
+										FontSize="14"/>
+
+									<TextBlock
+										Grid.Column="2"
+										Text="{Binding Text}"
+										Foreground="#314158"
+										FontSize="14"/>
+
+									<Border Grid.Column="3"
+											Width="10"
+											Height="10"
+											VerticalAlignment="Top"
+											CornerRadius="3"
+											ClipToBounds="True"
+											Background="Red"/>
+
+									<StackPanel Spacing="10"
+												Orientation="Horizontal"
+												Grid.Row="1"
+												Grid.Column="1"
+												Grid.ColumnSpan="3">
+										<TextBlock
+											Text="{Binding CreatedAt, StringFormat=' {0:mm} ago'}"
+											Foreground="#99A1AF"
+											FontSize="12"/>
+
+										<TextBlock
+											Text="{Binding LikesCount, StringFormat=' {0} likes'}"
+											Foreground="#314158"
+											FontSize="12"/>
+									</StackPanel>
+								</Grid>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
 
 					<Button Grid.Row="3"
 							Content="Show less"
@@ -187,7 +251,7 @@
 							HorizontalAlignment="Left"
 							VerticalAlignment="Center"
 							Command="{Binding ToggleFullVisibilityCommentsCommand}"
-							Margin="0,12" />
+							Margin="0,0,0,12" />
 
 					<Grid Grid.Row="4" ColumnDefinitions="Auto,*" ColumnSpacing="15">
 
