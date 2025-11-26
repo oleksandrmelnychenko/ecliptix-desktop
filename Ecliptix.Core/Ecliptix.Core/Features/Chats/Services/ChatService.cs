@@ -32,21 +32,27 @@ public class ChatService : IChatService
         _messages = new List<MessageModel>();
 
         Participant me = new Participant(_currentUserId, "Me", "");
-        Participant sarah = new Participant(Guid.NewGuid(), "Sarah Chen", "user1.jpg"); // Переконайся, що файл є в Assets
-        Participant designTeam = new Participant(Guid.NewGuid(), "Design Team", "");
+        Participant sarah = new Participant(Guid.NewGuid(), "Sarah Chen", "user1.jpg");
+        Participant marcus = new Participant(Guid.NewGuid(), "Marcus Reid", "user2.jpg"); // Переконайся, що такий файл є, або юзай user1.jpg
+        Participant emma = new Participant(Guid.NewGuid(), "Emma Wilson", "user3.jpg");   // Переконайся, що такий файл є
 
-        _users.Add(me);
-        _users.Add(sarah);
-        _users.Add(designTeam);
+        _users.AddRange(new[] { me, sarah, marcus, emma });
 
         Guid chatSarahId = Guid.NewGuid();
         Guid chatGroupId = Guid.NewGuid();
 
+        // Personal Chat
         _chats.Add(new ChatModel(chatSarahId, "Sarah Chen", ChatType.Personal, new List<Guid> { me.Id, sarah.Id }));
-        _chats.Add(new ChatModel(chatGroupId, "Design Team", ChatType.Group, new List<Guid> { me.Id, sarah.Id, designTeam.Id }));
 
+        // Group Chat (Додаємо IDs всіх учасників)
+        _chats.Add(new ChatModel(chatGroupId, "Design Team", ChatType.Group, new List<Guid> { me.Id, sarah.Id, marcus.Id, emma.Id }));
+
+        // === 3. ПОЧАТКОВІ ПОВІДОМЛЕННЯ (для Sidebar) ===
         _messages.Add(new MessageModel(Guid.NewGuid(), chatSarahId, sarah.Id, "Awesome! Can't wait to see them.", DateTime.Now.AddMinutes(-5), MessageType.Text));
-        _messages.Add(new MessageModel(Guid.NewGuid(), chatGroupId, designTeam.Id, "Guys, check the Figma updates.", DateTime.Now.AddMinutes(-30), MessageType.Text));
+
+        // Початкове повідомлення в групі від Маркуса
+        _messages.Add(new MessageModel(Guid.NewGuid(), chatGroupId, marcus.Id, "Guys, check the Figma updates.", DateTime.Now.AddMinutes(-30), MessageType.Text));
+
     }
 
     private Bitmap? LoadAvatar(string fileName)
@@ -120,67 +126,169 @@ public class ChatService : IChatService
 
     public async IAsyncEnumerable<IEnumerable<MessageViewModelBase>> GetMessagesStreamAsync(Guid chatId)
     {
-        Participant me = _users.First(u => u.Id == _currentUserId);
-        Participant partner = _users.FirstOrDefault(u => u.Id != _currentUserId) ?? new Participant(Guid.NewGuid(), "Partner", "");
-
-        for (int i = 0; i < 5; i++)
+        ChatModel? chat = _chats.FirstOrDefault(c => c.Id == chatId);
+        if (chat == null)
         {
-            await Task.Delay(500);
-
-            Guid msg1Id = Guid.NewGuid();
-
-
-            List<MessageModel> batchModels = new List<MessageModel>
-            {
-                // 1. Вхідне
-                new MessageModel(msg1Id, chatId, partner.Id, $"Batch {i+1}: Hey! How's the project going?", DateTime.Now.AddMinutes(-50 + i), MessageType.Text),
-
-                // 2. Вихідне
-                new MessageModel(Guid.NewGuid(), chatId, me.Id, "Going great! Just finished the new designs", DateTime.Now.AddMinutes(-45 + i), MessageType.Text),
-
-                // 3. Reply (Відповідь на перше повідомлення в цій пачці)
-                new MessageModel(Guid.NewGuid(), chatId, me.Id, "Yes, absolutely! I'll send you the files right now.", DateTime.Now.AddMinutes(-40 + i), MessageType.Reply, msg1Id),
-
-                // 4. Вхідне
-                new MessageModel(Guid.NewGuid(), chatId, partner.Id, "Awesome! Can't wait to see them.", DateTime.Now.AddMinutes(-35 + i), MessageType.Text)
-            };
-
-            List<MessageViewModelBase> batchViewModels = new List<MessageViewModelBase>();
-
-            foreach (MessageModel msg in batchModels)
-            {
-                Participant sender = (msg.SenderId == me.Id) ? me : partner;
-                bool isMine = msg.SenderId == _currentUserId;
-
-                if (msg.Type == MessageType.Reply && msg.ReplyToMessageId.HasValue)
-                {
-
-                    MessageModel? originalMsg = batchModels.FirstOrDefault(m => m.Id == msg.ReplyToMessageId.Value);
-                    Participant? originalSender = (originalMsg?.SenderId == me.Id) ? me : partner;
-
-                    batchViewModels.Add(new ReplyMessageViewModel
-                    {
-                        Text = msg.Text,
-                        Time = msg.Timestamp,
-                        IsMine = isMine,
-                        SenderName = sender.Name,
-                        QuotedText = originalMsg?.Text ?? "Deleted message",
-                        QuotedAuthor = originalSender?.Name ?? "Unknown"
-                    });
-                }
-                else
-                {
-                    batchViewModels.Add(new SimpleMessageViewModel
-                    {
-                        Text = msg.Text,
-                        Time = msg.Timestamp,
-                        IsMine = isMine,
-                        SenderName = sender.Name
-                    });
-                }
-            }
-
-            yield return batchViewModels;
+            yield break;
         }
+
+        // 2. Знаходимо учасників З ГЛОБАЛЬНОГО СПИСКУ (це вирішує проблему Unknown)
+        Participant me = _users.First(u => u.Id == _currentUserId);
+
+        // Якщо це група "Design Team", знаходимо конкретних людей для сценарію
+        Participant? marcus = _users.FirstOrDefault(u => u.Name.Contains("Marcus"));
+        Participant? emma = _users.FirstOrDefault(u => u.Name.Contains("Emma"));
+        Participant? sarah = _users.FirstOrDefault(u => u.Name.Contains("Sarah"));
+
+        // Якщо раптом когось не знайшли (запобіжник), беремо рандомних
+        if (marcus == null)
+        {
+            marcus = _users.First(u => u.Id != _currentUserId);
+        }
+
+        if (emma == null)
+        {
+            emma = marcus;
+        }
+
+        if (chat.Type == ChatType.Group)
+        {
+
+            List<MessageModel> batchModels = new List<MessageModel>();
+
+            for (int i = 0; i < 10; i++)
+            {
+                await Task.Delay(300); // Пауза для імітації набору тексту
+
+
+                Guid msgId = Guid.NewGuid();
+
+                switch (i)
+                {
+                    case 0:
+                        batchModels.Add(new MessageModel(msgId, chatId, marcus.Id, "Hey team! Just uploaded the new icons to Figma.", DateTime.Now.AddMinutes(-10), MessageType.Text));
+                        batchModels.Add(new MessageModel(Guid.NewGuid(), chatId, emma.Id, "Thanks Marcus! Checking them now.", DateTime.Now.AddMinutes(-9), MessageType.Text));
+                        break;
+                    case 1:
+                        batchModels.Add(new MessageModel(Guid.NewGuid(), chatId, me.Id, "They look clean. Are we using the outlined version?", DateTime.Now.AddMinutes(-8), MessageType.Text));
+                        break;
+                    case 2:
+                        batchModels.Add(new MessageModel(msgId, chatId, marcus.Id, "Yes, outlined for the main UI, filled for active states.", DateTime.Now.AddMinutes(-7), MessageType.Reply, msgId)); // Відповідь мені
+                        break;
+                    case 3:
+                        batchModels.Add(new MessageModel(Guid.NewGuid(), chatId, sarah.Id, "I think the 'Settings' icon is a bit too small compared to others.", DateTime.Now.AddMinutes(-5), MessageType.Text));
+                        batchModels.Add(new MessageModel(Guid.NewGuid(), chatId, marcus.Id, "Good catch, Sarah. I'll resize it to 24px.", DateTime.Now.AddMinutes(-4), MessageType.Text));
+                        break;
+                    case 4:
+                        batchModels.Add(new MessageModel(Guid.NewGuid(), chatId, emma.Id, "Perfect. Let's freeze the design by 5 PM.", DateTime.Now.AddMinutes(-2), MessageType.Text));
+                        break;
+                }
+
+                yield return MapToViewModels(batchModels);
+            }
+        }
+        else
+        {
+            List<MessageModel> batchModels = new();
+            for (int i = 0; i < 10; i++)
+            {
+                await Task.Delay(500);
+
+                Guid msg1Id = Guid.NewGuid();
+
+                Participant? partner = sarah;
+
+                batchModels.AddRange(new List<MessageModel>
+                {
+                    new MessageModel(msg1Id, chatId, partner.Id, $"Batch {i+1}: Hey! How's the project going?", DateTime.Now.AddMinutes(-50 + i), MessageType.Text),
+
+                    new MessageModel(Guid.NewGuid(), chatId, me.Id, "Going great! Just finished the new designs", DateTime.Now.AddMinutes(-45 + i), MessageType.Text),
+
+                    new MessageModel(Guid.NewGuid(), chatId, me.Id, "Yes, absolutely! I'll send you the files right now.", DateTime.Now.AddMinutes(-40 + i), MessageType.Reply, msg1Id),
+
+                    new MessageModel(Guid.NewGuid(), chatId, partner.Id, "Awesome! Can't wait to see them.", DateTime.Now.AddMinutes(-35 + i), MessageType.Text)
+                });
+
+                List<MessageViewModelBase> batchViewModels = new List<MessageViewModelBase>();
+
+                foreach (MessageModel msg in batchModels)
+                {
+                    Participant sender = (msg.SenderId == me.Id) ? me : partner;
+                    bool isMine = msg.SenderId == _currentUserId;
+
+                    if (msg.Type == MessageType.Reply && msg.ReplyToMessageId.HasValue)
+                    {
+
+                        MessageModel? originalMsg = batchModels.FirstOrDefault(m => m.Id == msg.ReplyToMessageId.Value);
+                        Participant? originalSender = (originalMsg?.SenderId == me.Id) ? me : partner;
+
+                        batchViewModels.Add(new ReplyMessageViewModel
+                        {
+                            Text = msg.Text,
+                            Time = msg.Timestamp,
+                            IsMine = isMine,
+                            SenderName = sender.Name,
+                            QuotedText = originalMsg?.Text ?? "Deleted message",
+                            QuotedAuthor = originalSender?.Name ?? "Unknown"
+                        });
+                    }
+                    else
+                    {
+                        batchViewModels.Add(new SimpleMessageViewModel
+                        {
+                            Text = msg.Text,
+                            Time = msg.Timestamp,
+                            IsMine = isMine,
+                            SenderName = sender.Name
+                        });
+                    }
+                }
+
+                yield return batchViewModels;
+            }
+        }
+
+
+
+    }
+
+    private IEnumerable<MessageViewModelBase> MapToViewModels(List<MessageModel> models)
+    {
+        List<MessageViewModelBase> result = new List<MessageViewModelBase>();
+        foreach (MessageModel msg in models)
+        {
+            Participant? sender = _users.FirstOrDefault(u => u.Id == msg.SenderId);
+            bool isMine = msg.SenderId == _currentUserId;
+            Bitmap? avatar = LoadAvatar(sender?.AvatarPath ?? "");
+
+            if (msg.Type == MessageType.Reply && msg.ReplyToMessageId.HasValue)
+            {
+                MessageModel? originalMsg = _messages.Concat(models).FirstOrDefault(m => m.Id == msg.ReplyToMessageId.Value);
+                Participant? originalSender = _users.FirstOrDefault(u => u.Id == originalMsg?.SenderId);
+
+                result.Add(new ReplyMessageViewModel
+                {
+                    Text = msg.Text,
+                    Time = msg.Timestamp,
+                    IsMine = isMine,
+                    SenderName = sender?.Name ?? "Unknown",
+                    SenderAvatar = avatar,
+                    QuotedText = originalMsg?.Text ?? "...",
+                    QuotedAuthor = originalSender?.Name ?? "..."
+                });
+            }
+            else
+            {
+                result.Add(new SimpleMessageViewModel
+                {
+                    Text = msg.Text,
+                    Time = msg.Timestamp,
+                    IsMine = isMine,
+                    SenderName = sender?.Name ?? "Unknown",
+                    SenderAvatar = avatar
+                });
+            }
+        }
+        return result;
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using Avalonia.Media.Imaging;
 using ReactiveUI;
 
 namespace Ecliptix.Core.Features.Chats.ViewModels.Messages;
@@ -9,6 +10,8 @@ public abstract class MessageViewModelBase : ReactiveObject
     public DateTime Time { get; set; }
     public bool IsMine { get; set; }
     public string SenderName { get; set; } = string.Empty;
+
+    public Bitmap? SenderAvatar { get; set; }
 
     public string TimeDisplay => Time.ToString("t");
 }

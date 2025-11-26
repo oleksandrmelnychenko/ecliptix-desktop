@@ -59,7 +59,7 @@ public sealed class ChatsViewModel : ReactiveObject
         return chat.Type switch
         {
             ChatType.Personal => new ConversationViewModel(chat.Id, chat.Title, _chatService),
-            ChatType.Group => new GroupConversationViewModel { Name = chat.Title },
+            ChatType.Group => new GroupConversationViewModel(chat.Id, chat.Title, _chatService),
             ChatType.Channel => new ChannelViewModel { Name = chat.Title },
 
             _ => new ConversationViewModel(chat.Id, chat.Title, _chatService)
