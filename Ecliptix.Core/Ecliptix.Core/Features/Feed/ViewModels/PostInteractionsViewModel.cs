@@ -1,9 +1,11 @@
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.Messaging;
+using Ecliptix.Core.Core.Messaging.Events;
+using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Core.Features.Feed.Models;
 using Ecliptix.Core.Features.Feed.Services.Abstractions;
-using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Utilities;
@@ -40,6 +42,10 @@ public sealed class PostInteractionsViewModel : ViewModelBase
 
         ToggleLikeCommand = ReactiveCommand.CreateFromTask(ToggleLikeAsync);
         ToggleSaveCommand = ReactiveCommand.CreateFromTask(ToggleSaveAsync);
+        ToggleCommentsCommand = ReactiveCommand.Create(() =>
+        {
+            WeakReferenceMessenger.Default.Send(new EditPostMessage(postId));
+        });
     }
 
     private async Task ToggleLikeAsync()

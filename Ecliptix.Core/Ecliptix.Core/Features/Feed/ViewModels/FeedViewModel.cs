@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.Messaging;
+using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Features.Feed.Models;
 using Ecliptix.Core.Features.Feed.Services.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
@@ -29,8 +32,9 @@ public sealed partial class FeedViewModel : Core.MVVM.ViewModelBase
     [Reactive] public bool IsLoadingPosts { get; set; }
     [Reactive] public bool IsRefreshing { get; set; }
     [Reactive] public bool HasMorePosts { get; set; }
+    [Reactive] public bool IsEditPost { get; set; }
     [Reactive] public string ErrorMessage { get; set; }
-    [Reactive] public PostControlViewModel PostControlViewModel { get; set; }
+    [Reactive] public FeedItemViewModel? SelectedPost { get; set; }
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> LoadInitialPostsCommand { get; }
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> LoadMorePostsCommand { get; }
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> RefreshFeedCommand { get; }
@@ -55,9 +59,24 @@ public sealed partial class FeedViewModel : Core.MVVM.ViewModelBase
         LoadMorePostsCommand = ReactiveCommand.CreateFromTask(LoadMorePostsAsync);
         RefreshFeedCommand = ReactiveCommand.CreateFromTask(RefreshFeedAsync);
 
-        PostControlViewModel = new PostControlViewModel(networkProvider, localizationService);
-
         LoadInitialPostsCommand.Execute().Subscribe().DisposeWith(_disposables);
+
+        WeakReferenceMessenger.Default.Register<EditPostMessage>(this, (r, m) =>
+        {
+            ShouldShowEditPost(m.PostId);
+        });
+    }
+
+    private void ShouldShowEditPost(string postId)
+    {
+        SelectedPost = null;
+        FeedItemViewModel? foundViewModel = Posts.FirstOrDefault(p => p.Post.PostId == postId);
+        if (foundViewModel != null)
+        {
+            SelectedPost = foundViewModel;
+            IsEditPost = true;
+            return;
+        }
     }
 
     private async Task LoadInitialPostsAsync()
@@ -208,6 +227,7 @@ public sealed partial class FeedViewModel : Core.MVVM.ViewModelBase
                 post.Dispose();
             }
             Posts.Clear();
+            WeakReferenceMessenger.Default.Unregister<EditPostMessage>(this);
             _disposables.Dispose();
         }
 

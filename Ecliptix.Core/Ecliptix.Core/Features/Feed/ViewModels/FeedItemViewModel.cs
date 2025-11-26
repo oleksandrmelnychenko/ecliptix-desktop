@@ -21,6 +21,7 @@ public abstract class FeedItemViewModel : ViewModelBase
     [Reactive] public CommentSectionViewModel Comments { get; set; }
     [Reactive] public string RelativeTime { get; set; }
     [Reactive] public bool ShowComments { get; set; }
+    [Reactive] public bool IsEditPost { get; set; }
 
     protected FeedItemViewModel(
         FeedPost post,

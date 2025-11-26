@@ -46,7 +46,7 @@
 				Background="Transparent"
 				BorderThickness="0"
 				Padding="1"
-				Command="{Binding ToggleLikeCommand}">
+				Command="{Binding ToggleCommentsCommand}">
 					<Path Width="24"
 						  Height="24"
 						  Stroke="#6B7280"

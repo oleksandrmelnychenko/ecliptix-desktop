@@ -2,10 +2,47 @@
 			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-			 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-			 x:Class="Ecliptix.Core.EditPostControl">
+			 mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="400"
+			 x:Class="Ecliptix.Core.Features.Feed.Controls.FeedItem.EditPostControl">
 
-	<Grid Background="Yellow">
+	<UserControl.Resources>
+		<ResourceDictionary>
+			<ResourceDictionary.MergedDictionaries>
+				<ResourceInclude Source="/Features/Feed/Resources/IconGeometries.axaml"/>
+			</ResourceDictionary.MergedDictionaries>
+		</ResourceDictionary>
+	</UserControl.Resources>
 
+	<Grid Background="Cyan">
+		<Border MaxWidth="1020"
+				HorizontalAlignment="Stretch"
+				Padding="20,0">
+			<Grid Background="LightGreen" RowDefinitions="Auto,*">
+				<TextBlock Text="fsdfsd  df sfds fsdf sfs "/>
+			</Grid>
+		</Border>
+
+		<!--Back button-->
+		<Button
+			Margin="18,10,0,0"
+			CornerRadius="20"
+			Width="32"
+			Height="32"
+			Padding="0"
+			Background="LightGray"
+			HorizontalAlignment="Left"
+			BorderThickness="0"
+			VerticalAlignment="Top">
+			<Path Width="35"
+				  Height="4"
+				  Fill="#6a5acd"
+				  Data="{StaticResource MenuIconGeometry}">
+				<Path.RenderTransform>
+					<TransformGroup>
+						<RotateTransform Angle="90" CenterX="2" CenterY="8"/>
+					</TransformGroup>
+				</Path.RenderTransform>
+			</Path>
+		</Button>
 	</Grid>
 </UserControl>
