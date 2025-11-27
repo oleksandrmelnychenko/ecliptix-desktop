@@ -10,5 +10,10 @@ public partial class GroupChatHeaderView : UserControl
     {
         InitializeComponent();
     }
+
+    private void InitializeComponent()
+    {
+        AvaloniaXamlLoader.Load(this);
+    }
 }
 
