@@ -1,0 +1,45 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:viewModels="clr-namespace:Ecliptix.Core.Features.Chats.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:DataType="viewModels:SearchChatViewModel"
+             x:Class="Ecliptix.Core.Features.Chats.Views.SearchChatView">
+    <Grid RowDefinitions="Auto, *">
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="20" Margin="24,24,0,16">
+            <Border Background="#6A5ACD" CornerRadius="8" Padding="16,6">
+                <TextBlock Text="All" Foreground="White" FontWeight="SemiBold"/>
+            </Border>
+            <TextBlock Text="Messages" VerticalAlignment="Center" Foreground="#6E767D" Cursor="Hand"/>
+            <TextBlock Text="Media" VerticalAlignment="Center" Foreground="#6E767D" Cursor="Hand"/>
+            <TextBlock Text="Links" VerticalAlignment="Center" Foreground="#6E767D" Cursor="Hand"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Margin="24,0,24,0">
+
+            <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="8" Height="44" Background="White">
+                <Grid ColumnDefinitions="40, *, 40">
+                    <PathIcon Grid.Column="0" Data="M15.5,14L14.71,13.21C15.53,12.16 16,10.82 16,9.5A6.5,6.5 0 1,0 9.5,16C10.82,16 12.16,15.53 13.21,14.71L14,15.5V16L19,21L20.49,19.5L15.5,14V14ZM9.5,14C7.01,14 5,11.99 5,9.5C5,7.01 7.01,5 9.5,5C11.99,5 14,7.01 14,9.5C14,11.99 11.99,14 9.5,14Z"
+                              Foreground="Gray" Width="18" Height="18" HorizontalAlignment="Center"/>
+
+                    <TextBox Grid.Column="1" Watermark="Search in conversation..." BorderThickness="0" Background="Transparent" VerticalContentAlignment="Center"/>
+
+                    <Button Grid.Column="2" Background="Transparent" BorderThickness="0">
+                        <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                                  Width="12" Height="12" Foreground="Gray"/>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <StackPanel HorizontalAlignment="Center" Margin="0,100,0,0">
+                <PathIcon Data="M15.5,14L14.71,13.21C15.53,12.16 16,10.82 16,9.5A6.5,6.5 0 1,0 9.5,16C10.82,16 12.16,15.53 13.21,14.71L14,15.5V16L19,21L20.49,19.5L15.5,14V14ZM9.5,14C7.01,14 5,11.99 5,9.5C5,7.01 7.01,5 9.5,5C11.99,5 14,7.01 14,9.5C14,11.99 11.99,14 9.5,14Z"
+                          Width="48" Height="48" Foreground="#D0D0D0" Margin="0,0,0,16"/>
+                <TextBlock Text="Type to search messages" Foreground="#6E767D" FontSize="16"/>
+            </StackPanel>
+
+        </StackPanel>
+    </Grid>
+</UserControl>
+

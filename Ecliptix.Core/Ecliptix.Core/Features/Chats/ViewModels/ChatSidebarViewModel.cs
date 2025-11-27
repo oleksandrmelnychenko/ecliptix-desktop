@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Reactive;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using Ecliptix.Core.Features.Chats.Services;
@@ -16,10 +17,18 @@ public class ChatSidebarViewModel : ReactiveObject
 
     [Reactive] public ChatListItemViewModel? SelectedChat { get; set; }
 
+    public ReactiveCommand<Unit, Unit> OpenSearchCommand { get; }
+
+
     public ChatSidebarViewModel(IChatService chatService)
     {
         _chatService = chatService;
         LoadChatsAsync().ConfigureAwait(false);
+
+        OpenSearchCommand = ReactiveCommand.Create(() =>
+        {
+            SelectedChat = null;
+        });
     }
 
     private async Task LoadChatsAsync()

@@ -41,6 +41,8 @@ public sealed class ChatsViewModel : ReactiveObject
     [Reactive] public object? CurrentChatContent { get; set; }
     [Reactive] public bool IsTransitionReversed { get; set; }
 
+    private readonly SearchChatViewModel _searchViewModel = new();
+
     public ChatsViewModel()
     {
         _chatService = new ChatService();
@@ -54,6 +56,12 @@ public sealed class ChatsViewModel : ReactiveObject
                 {
                     CurrentChatContent = GetOrCreateChatViewModel(chat);
                 }
+            });
+
+        SidebarViewModel.OpenSearchCommand
+            .Subscribe(_ =>
+            {
+                CurrentChatContent = _searchViewModel;
             });
     }
 
