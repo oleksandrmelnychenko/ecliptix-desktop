@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Ecliptix.Core.Features.Chats.Services;
 using Ecliptix.Core.Features.Chats.ViewModels.Messages;
@@ -15,6 +16,8 @@ public class ConversationViewModel : ReactiveObject
     private readonly Guid _chatId;
 
     public string Name { get; set; }
+
+    public Bitmap? Avatar { get; set; }
 
     public ObservableCollection<MessageViewModelBase> Messages { get; } = new();
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Ecliptix.Core.Features.Chats.Services;
 using Ecliptix.Core.Features.Chats.ViewModels.Messages;
@@ -15,7 +16,9 @@ public class GroupConversationViewModel : ReactiveObject
 
     public string Name { get; set; }
 
-    // Тут можна додати властивість ParticipantsCount або AvatarList для хедера
+    public ObservableCollection<Bitmap> ParticipantsAvatars { get; } = new();
+
+    public string MembersCountText => $"{ParticipantsAvatars.Count} members";
 
     public ObservableCollection<MessageViewModelBase> Messages { get; } = new();
 

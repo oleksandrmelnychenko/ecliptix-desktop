@@ -30,11 +30,19 @@
         </Style>
     </UserControl.Styles>
 
-    <Grid RowDefinitions="Auto,*,Auto" Background="#F9FAFC">
+    <Grid RowDefinitions="Auto,*,Auto">
 
-        <Border Grid.Row="0" Background="White" BorderBrush="#F0F0F0" BorderThickness="0,0,0,1" Padding="20,10">
-            <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="16"/>
-        </Border>
+        <Grid.Background>
+            <DrawingBrush TileMode="Tile" SourceRect="0,0,32,32" DestinationRect="0,0,32,32" Stretch="None">
+                <DrawingBrush.Drawing>
+                    <GeometryDrawing Brush="#406A5ACD">
+                        <GeometryDrawing.Geometry><EllipseGeometry Rect="15,15,2,2" /></GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                </DrawingBrush.Drawing>
+            </DrawingBrush>
+        </Grid.Background>
+
+        <views:ChannelHeaderView Grid.Row="0" />
 
         <ScrollViewer Grid.Row="1">
             <ItemsControl ItemsSource="{Binding Posts}">
