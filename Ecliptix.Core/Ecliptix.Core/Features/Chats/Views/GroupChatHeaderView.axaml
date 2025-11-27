@@ -6,11 +6,12 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="vm:GroupConversationViewModel"
              x:Class="Ecliptix.Core.Features.Chats.Views.GroupChatHeaderView">
-   <UserControl.Styles>
+  <UserControl.Styles>
         <StyleInclude Source="/Features/Chats/Styles/ChatStyles.axaml"/>
 
         <Style Selector="ItemsControl.avatars-stack ContentPresenter">
-            <Setter Property="Margin" Value="0,0,-12,0"/> </Style>
+            <Setter Property="Margin" Value="0,0,-10,0"/>
+        </Style>
     </UserControl.Styles>
 
     <Border Background="White" BorderBrush="#F0F0F0" BorderThickness="0,0,0,1" Padding="20,10">
@@ -24,16 +25,28 @@
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
 
-                <ItemsControl Classes="avatars-stack" ItemsSource="{Binding ParticipantsAvatars}">
+                <ItemsControl Padding="0 0 10 0" Classes="avatars-stack" ItemsSource="{Binding ParticipantsAvatars}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <StackPanel Orientation="Horizontal" FlowDirection="RightToLeft"/>
-                            </ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" FlowDirection="LeftToRight"/>
+                        </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
+
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Width="32" Height="32" CornerRadius="16" BorderBrush="White" BorderThickness="2" ClipToBounds="True">
-                                <Image Source="{Binding}" Stretch="UniformToFill"/>
+                            <Border Width="34" Height="34"
+                                    CornerRadius="17"
+                                    BorderBrush="#E5E7EB"
+                                    BorderThickness="1"
+                                    Background="White"
+                                    Padding="2"
+                                    ClipToBounds="True">
+
+                                <Image Source="{Binding}" Stretch="UniformToFill">
+                                    <Image.Clip>
+                                        <EllipseGeometry Center="14,14" RadiusX="14" RadiusY="14"/>
+                                    </Image.Clip>
+                                </Image>
                             </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>

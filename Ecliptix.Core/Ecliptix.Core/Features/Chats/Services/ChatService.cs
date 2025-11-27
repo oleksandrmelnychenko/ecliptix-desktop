@@ -14,6 +14,10 @@ public interface IChatService
 {
     Task<IEnumerable<ChatListItemViewModel>> GetChatsAsync();
     IAsyncEnumerable<IEnumerable<MessageViewModelBase>> GetMessagesStreamAsync(Guid chatId);
+
+    Task<List<Bitmap>> GetChatParticipantsAvatarsAsync(Guid chatId, int limit = 4);
+    int GetChatParticipantsCount(Guid chatId);
+
 }
 
 public class ChatService : IChatService
@@ -76,6 +80,39 @@ public class ChatService : IChatService
         }
 
         return sidebarItems.OrderByDescending(x => x.LastMessageTime);
+    }
+
+    public async Task<List<Bitmap>> GetChatParticipantsAvatarsAsync(Guid chatId, int limit = 4)
+    {
+        ChatModel? chat = _chats.FirstOrDefault(c => c.Id == chatId);
+        if (chat == null)
+        {
+            return new List<Bitmap>();
+        }
+
+        List<Guid> participantIds = chat.ParticipantIds
+            .Where(id => id != _currentUserId)
+            .Take(limit)
+            .ToList();
+
+        List<Bitmap> avatars = new List<Bitmap>();
+        foreach (Guid id in participantIds)
+        {
+            Participant? user = _users.FirstOrDefault(u => u.Id == id);
+            Bitmap? avatar = LoadAvatar(user?.AvatarPath ?? "");
+            if (avatar != null)
+            {
+                avatars.Add(avatar);
+            }
+        }
+
+        return avatars;
+    }
+
+    public int GetChatParticipantsCount(Guid chatId)
+    {
+        ChatModel? chat = _chats.FirstOrDefault(c => c.Id == chatId);
+        return chat?.ParticipantIds.Count ?? 0;
     }
 
     public async IAsyncEnumerable<IEnumerable<MessageViewModelBase>> GetMessagesStreamAsync(Guid chatId)
@@ -284,25 +321,30 @@ public class ChatService : IChatService
 
     private void InitializeData()
     {
+        // 1. Створюємо 6 юзерів (у мене картинки до user6.jpg)
         Participant me = new Participant(_currentUserId, "Me", "");
         Participant sarah = new Participant(Guid.NewGuid(), "Sarah Chen", "user1.jpg");
         Participant marcus = new Participant(Guid.NewGuid(), "Marcus Reid", "user2.jpg");
         Participant emma = new Participant(Guid.NewGuid(), "Emma Wilson", "user3.jpg");
+        Participant alex = new Participant(Guid.NewGuid(), "Alex Chen", "user4.jpg");
+        Participant lisa = new Participant(Guid.NewGuid(), "Lisa Park", "user5.jpg");
+        Participant john = new Participant(Guid.NewGuid(), "John Doe", "user6.jpg");
 
-        _users.AddRange(new[] { me, sarah, marcus, emma });
+        _users.AddRange(new[] { me, sarah, marcus, emma, alex, lisa, john });
 
+        // 2. Створюємо чати
         Guid chatSarahId = Guid.NewGuid();
         Guid chatGroupId = Guid.NewGuid();
         Guid chatChannelId = Guid.NewGuid();
 
-
         _chats.Add(new ChatModel(chatSarahId, "Sarah Chen", ChatType.Personal, new List<Guid> { me.Id, sarah.Id }));
-        _chats.Add(new ChatModel(chatGroupId, "Design Team", ChatType.Group, new List<Guid> { me.Id, sarah.Id, marcus.Id, emma.Id }));
-        _chats.Add(new ChatModel(chatChannelId, "Announcements", ChatType.Channel, new List<Guid> { me.Id }));
-        _chats.Add(new ChatModel(chatSarahId, "Sarah Chen", ChatType.Personal, new List<Guid> { me.Id, sarah.Id }));
-        _chats.Add(new ChatModel(chatGroupId, "Design Team", ChatType.Group, new List<Guid> { me.Id, sarah.Id, marcus.Id, emma.Id }));
+
+        // ГРУПА: Додаємо 5 учасників (щоб побачити накладання аватарок)
+        _chats.Add(new ChatModel(chatGroupId, "Design Team", ChatType.Group, new List<Guid> { me.Id, sarah.Id, marcus.Id, emma.Id, alex.Id }));
+
         _chats.Add(new ChatModel(chatChannelId, "Announcements", ChatType.Channel, new List<Guid> { me.Id }));
 
+        // 3. Початкові повідомлення
         _messages.Add(new MessageModel(Guid.NewGuid(), chatSarahId, sarah.Id, "Awesome! Can't wait to see them.", DateTime.Now.AddMinutes(-5), MessageType.Text));
         _messages.Add(new MessageModel(Guid.NewGuid(), chatGroupId, marcus.Id, "Guys, check the Figma updates.", DateTime.Now.AddMinutes(-30), MessageType.Text));
         _messages.Add(new MessageModel(Guid.NewGuid(), chatChannelId, me.Id, "Release notes v2.0", DateTime.Now.AddDays(-1), MessageType.Text));

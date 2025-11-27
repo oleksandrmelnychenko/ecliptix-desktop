@@ -6,6 +6,7 @@ using Avalonia.Threading;
 using Ecliptix.Core.Features.Chats.Services;
 using Ecliptix.Core.Features.Chats.ViewModels.Messages;
 using ReactiveUI;
+using ReactiveUI.Fody.Helpers;
 
 namespace Ecliptix.Core.Features.Chats.ViewModels;
 
@@ -18,7 +19,7 @@ public class GroupConversationViewModel : ReactiveObject
 
     public ObservableCollection<Bitmap> ParticipantsAvatars { get; } = new();
 
-    public string MembersCountText => $"{ParticipantsAvatars.Count} members";
+    [Reactive] public string MembersCountText { get; set; } = "";
 
     public ObservableCollection<MessageViewModelBase> Messages { get; } = new();
 
@@ -28,11 +29,29 @@ public class GroupConversationViewModel : ReactiveObject
         Name = name;
         _chatService = chatService;
 
+        LoadHeaderData();
         LoadMessagesStreamAsync();
     }
 
-    // Конструктор без параметрів для XAML прев'ю
     public GroupConversationViewModel() { }
+
+    private async void LoadHeaderData()
+    {
+
+        List<Bitmap> avatars = await _chatService.GetChatParticipantsAvatarsAsync(_chatId, 4);
+
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            ParticipantsAvatars.Clear();
+            foreach (Bitmap av in avatars)
+            {
+                ParticipantsAvatars.Add(av);
+            }
+
+            int count = _chatService.GetChatParticipantsCount(_chatId);
+            MembersCountText = $"{count} members";
+        });
+    }
 
     private async void LoadMessagesStreamAsync()
     {
