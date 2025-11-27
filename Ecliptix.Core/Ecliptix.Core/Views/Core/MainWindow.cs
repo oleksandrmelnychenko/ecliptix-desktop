@@ -5,6 +5,7 @@ using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input.Platform;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform;
 using Avalonia.ReactiveUI;

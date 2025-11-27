@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input.Platform;
 using Avalonia.Threading;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Controls.LanguageSelector;
@@ -56,7 +57,6 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     public Func<Rect>? GetPrimaryScreenWorkingArea { get; set; }
     public Action? SyncViewModelWithActualWindowSize { get; set; }
-
     public event Action<PixelPoint>? OnWindowRepositionRequested;
 
     public MainWindowViewModel(
@@ -165,6 +165,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         }
     }
 
+
     public async Task SetMainContentAsync(object content)
     {
         await Dispatcher.UIThread.InvokeAsync(() =>
@@ -192,6 +193,13 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
                 TitleBarViewModel.LeftContent.Add(new ToggleNavigationSideBarViewModel());
                 TitleBarViewModel.RightContent.Add(new ToggleThemeViewModel());
 
+                PersonalTagViewModel tagVm = new PersonalTagViewModel(
+                    "Ecliptix",
+                    "@oleksandr.melnychenko"
+                );
+
+                TitleBarViewModel.CenterContent = tagVm;
+
             }, DispatcherPriority.Loaded);
 
             await SetContentWithFadeAsync(content).ConfigureAwait(false);
@@ -205,6 +213,8 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         }
 
     }
+
+
 
     private async Task WaitUntilNotDragging()
     {
