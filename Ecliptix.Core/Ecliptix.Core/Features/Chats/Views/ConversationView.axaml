@@ -30,7 +30,7 @@
         <views:ChatHeaderView Grid.Row="0" />
 
         <ScrollViewer Grid.Row="1"
-                      Padding="20"
+                      Padding="20 0 20 0"
                       VerticalScrollBarVisibility="Visible"
                       x:Name="ChatScrollViewer">
 
