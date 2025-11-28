@@ -19,12 +19,14 @@
             <!-- Post Header -->
             <header:PostHeaderControl DataContext="{Binding}" />
 
-                <!-- Text Content -->
+            <!-- Text Content -->
+            <Border Padding="16,12">
                 <TextBlock Text="{Binding TextContent.Text}"
                            TextWrapping="Wrap"
-                           FontSize="15"
-                           LineHeight="20"
-                           Foreground="#0F1419" />
+                           FontSize="16"
+                           LineHeight="24"
+                           Foreground="#1A1A1A" />
+            </Border>
 
             <!-- Post Actions -->
             <interactions:PostActionsControl DataContext="{Binding Interactions}" />

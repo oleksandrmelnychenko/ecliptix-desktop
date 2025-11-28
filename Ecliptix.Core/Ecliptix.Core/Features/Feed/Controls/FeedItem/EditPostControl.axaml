@@ -3,7 +3,11 @@
 			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 			 mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="400"
-			 x:Class="Ecliptix.Core.Features.Feed.Controls.FeedItem.EditPostControl">
+			 xmlns:vm="clr-namespace:Ecliptix.Core.Features.Feed.ViewModels"
+			 xmlns:feedItem="clr-namespace:Ecliptix.Core.Features.Feed.Controls.FeedItem"
+			 xmlns:commentItem="clr-namespace:Ecliptix.Core.Features.Feed.Controls.Comments"
+			 x:Class="Ecliptix.Core.Features.Feed.Controls.FeedItem.EditPostControl"
+			 x:DataType="vm:TextPostViewModel">
 
 	<UserControl.Resources>
 		<ResourceDictionary>
@@ -13,18 +17,20 @@
 		</ResourceDictionary>
 	</UserControl.Resources>
 
-	<Grid Background="Cyan">
+	<Grid Background="#FFFFFF">
 		<Border MaxWidth="1020"
 				HorizontalAlignment="Stretch"
-				Padding="20,0">
-			<Grid Background="LightGreen" RowDefinitions="Auto,*">
-				<TextBlock Text="fsdfsd  df sfds fsdf sfs "/>
+				Padding="40,0">
+			<Grid RowDefinitions="Auto,*">
+				<feedItem:TextPostControl />
+
+				<commentItem:CommentItemControl Grid.Row="1" DataContext="{Binding Comments}"/>
 			</Grid>
 		</Border>
 
 		<!--Back button-->
 		<Button
-			Margin="18,10,0,0"
+			Margin="10,10,0,0"
 			CornerRadius="20"
 			Width="32"
 			Height="32"
@@ -32,7 +38,8 @@
 			Background="LightGray"
 			HorizontalAlignment="Left"
 			BorderThickness="0"
-			VerticalAlignment="Top">
+			VerticalAlignment="Top"
+			Command="{Binding BackCommand}">
 			<Path Width="35"
 				  Height="4"
 				  Fill="#6a5acd"

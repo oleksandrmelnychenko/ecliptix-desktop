@@ -1,6 +1,6 @@
 using CommunityToolkit.Mvvm.Messaging.Messages;
 
-namespace Ecliptix.Core.Core.Messaging.Events;
+namespace Ecliptix.Core.Core.Messaging.Messages;
 
 public sealed class EditPostMessage : ValueChangedMessage<string>
 {

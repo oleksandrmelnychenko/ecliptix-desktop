@@ -7,7 +7,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Messaging;
-using Ecliptix.Core.Core.Messaging.Events;
+using Ecliptix.Core.Core.Messaging.Messages;
 using Ecliptix.Core.Features.Feed.Models;
 using Ecliptix.Core.Features.Feed.Services.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
@@ -32,7 +32,7 @@ public sealed partial class FeedViewModel : Core.MVVM.ViewModelBase
     [Reactive] public bool IsLoadingPosts { get; set; }
     [Reactive] public bool IsRefreshing { get; set; }
     [Reactive] public bool HasMorePosts { get; set; }
-    [Reactive] public bool IsEditPost { get; set; }
+    [Reactive] public bool IsEdit { get; set; }
     [Reactive] public string ErrorMessage { get; set; }
     [Reactive] public FeedItemViewModel? SelectedPost { get; set; }
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> LoadInitialPostsCommand { get; }
@@ -65,16 +65,25 @@ public sealed partial class FeedViewModel : Core.MVVM.ViewModelBase
         {
             ShouldShowEditPost(m.PostId);
         });
+
+        WeakReferenceMessenger.Default.Register<BackMessage>(this, (r, m) =>
+        {
+            IsEdit = false;
+            SelectedPost?.Interactions.IsEdit = IsEdit;
+        });
     }
 
     private void ShouldShowEditPost(string postId)
     {
         SelectedPost = null;
+
         FeedItemViewModel? foundViewModel = Posts.FirstOrDefault(p => p.Post.PostId == postId);
         if (foundViewModel != null)
         {
+            IsEdit = true;
             SelectedPost = foundViewModel;
-            IsEditPost = true;
+            SelectedPost.Interactions.IsEdit = IsEdit;
+            SelectedPost.Comments.LoadCommentsCommand.Execute();
             return;
         }
     }
@@ -210,6 +219,7 @@ public sealed partial class FeedViewModel : Core.MVVM.ViewModelBase
             }
             Posts.Clear();
             WeakReferenceMessenger.Default.Unregister<EditPostMessage>(this);
+            WeakReferenceMessenger.Default.Unregister<BackMessage>(this);
             _disposables.Dispose();
         }
 

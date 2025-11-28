@@ -1,75 +1,224 @@
 <UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:models="clr-namespace:Ecliptix.Core.Features.Feed.Models"
-             mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="80"
-             x:Class="Ecliptix.Core.Features.Feed.Controls.Comments.CommentItemControl"
-             x:DataType="models:Comment">
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+			 xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
+			 xmlns:models="clr-namespace:Ecliptix.Core.Features.Feed.Models"
+			 xmlns:viewModels="clr-namespace:Ecliptix.Core.Features.Feed.ViewModels"
+			 mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="80"
+			 x:Class="Ecliptix.Core.Features.Feed.Controls.Comments.CommentItemControl"
+			 x:DataType="viewModels:CommentSectionViewModel">
 
-    <Border Padding="16,8">
-        <Grid ColumnDefinitions="Auto,*">
+	<ScrollViewer HorizontalScrollBarVisibility="Disabled"
+				  VerticalScrollBarVisibility="Auto">
+		<Grid Grid.Row="2"
+			  Grid.Column="0"
+			  Grid.ColumnSpan="5"
+			  RowDefinitions="1,Auto,Auto,Auto,Auto">
 
-            <!-- Avatar -->
-            <Border Grid.Column="0"
-                    Width="32"
-                    Height="32"
-                    CornerRadius="16"
-                    ClipToBounds="True"
-                    Background="#F0F0F0"
-                    VerticalAlignment="Top">
-                <Image Source="{Binding Author.AvatarUrl}"
-                       Stretch="UniformToFill"
-                       IsVisible="{Binding Author.AvatarUrl, Converter={x:Static ObjectConverters.IsNotNull}}" />
-            </Border>
+			<!--Comments-->
+			<ItemsControl Grid.Row="2" ItemsSource="{Binding Comments}">
+				<ItemsControl.ItemTemplate>
+					<DataTemplate x:DataType="viewModels:CommentViewModel">
+						<Grid ColumnDefinitions="Auto,*,Auto"
+							  RowDefinitions="Auto,Auto,Auto"
+							  Margin="0,12"
+							  Background="#D1DFF5"
+							  RowSpacing="5"
+							  ColumnSpacing="10">
 
-            <!-- Comment Content -->
-            <StackPanel Grid.Column="1"
-                        Margin="12,0,0,0"
-                        Spacing="4">
+							<!--Avatar-->
+							<Border Grid.Column="0"
+									Grid.RowSpan="3"
+									VerticalAlignment="Top"
+									Width="32"
+									Height="32"
+									CornerRadius="20"
+									ClipToBounds="True"
+									Background="#8a7ae0">
+								<Panel>
+									<Image asyncImageLoader:ImageLoader.Source="{Binding Comment.Author.AvatarUrl}"
+										   Stretch="Fill"
+										   IsVisible="{Binding Comment.Author.AvatarUrl, Converter={x:Static ObjectConverters.IsNotNull}}" />
+									<TextBlock Text="{Binding Comment.Author.DisplayName, Converter={StaticResource InitialsConverter}}"
+											   FontSize="16"
+											   Foreground="#fff"
+											   FontWeight="SemiBold"
+											   HorizontalAlignment="Center"
+											   VerticalAlignment="Center"
+											   IsVisible="{Binding Comment.Author.AvatarUrl, Converter={x:Static ObjectConverters.IsNull}}" />
+								</Panel>
+							</Border>
 
-                <!-- Username and Time -->
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="{Binding Author.Username, StringFormat='@{0}'}"
-                               FontSize="13"
-                               FontWeight="SemiBold"
-                               Foreground="#1A1A1A" />
-                    <TextBlock Text="{Binding CreatedAt, Converter={StaticResource RelativeTimeConverter}}"
-                               FontSize="12"
-                               Foreground="#9CA3AF" />
-                </StackPanel>
+							<!--Comment-->
 
-                <!-- Comment Text -->
-                <TextBlock Text="{Binding Text}"
-                           TextWrapping="Wrap"
-                           FontSize="14"
-                           Foreground="#374151" />
+							<WrapPanel Grid.Column="1"
+									   Orientation="Horizontal">
+								<TextBlock Text="{Binding Comment.Author.DisplayName}"
+										   Margin="0,0,5,0"
+										   FontWeight="600"
+										   Foreground="#0f172b"
+										   LineHeight="22"
+										   FontSize="15"/>
+								<TextBlock Text="{Binding Comment.Author.Username, StringFormat='@{0}'}"
+				    Margin="0,0,5,0"
+										   FontSize="14"
+										   LineHeight="22"
+										   Foreground="#62748e" />
 
-                <!-- Actions -->
-                <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,4,0,0">
-                    <Button Background="Transparent"
-                            BorderThickness="0"
-                            Padding="0"
-                            FontSize="12"
-                            Foreground="#6B7280">
-                        <StackPanel Orientation="Horizontal" Spacing="4">
-                            <TextBlock Text="{Binding LikesCount}" IsVisible="{Binding LikesCount, Converter={StaticResource GreaterThanZeroConverter}}" />
-                            <TextBlock Text="Like" />
-                        </StackPanel>
-                    </Button>
+								<TextBlock Text="{Binding DisplayCommentText}"				   
+										   Foreground="#314158"
+										   TextWrapping="Wrap"
+										   LineHeight="22"
+										   FontSize="15"/>
 
-                    <Button Background="Transparent"
-                            BorderThickness="0"
-                            Padding="0"
-                            FontSize="12"
-                            Foreground="#6B7280">
-                        <TextBlock Text="Reply" />
-                    </Button>
-                </StackPanel>
+								<Button Content="{Binding ExpandedText}"
+										Command="{Binding ToggleTextCommand}"
+										IsVisible="{Binding RequiresExpansion}"
+										Background="Transparent"
+										Foreground="#6A7383"
+										BorderThickness="0"
+										HorizontalAlignment="Left"
+										VerticalAlignment="Top"
+										Padding="0,1,0,0"
+										MinHeight="22"
+										FontWeight="600"
+										FontSize="15"/>
+							</WrapPanel>
 
-            </StackPanel>
+							<!--Like panel-->
+							<Grid Grid.Column="2"
+								  RowDefinitions="Auto,Auto"
+								  ColumnDefinitions="Auto,Auto"
+								  VerticalAlignment="Top"
+								  HorizontalAlignment="Right"
+								  ColumnSpacing="5">
 
-        </Grid>
-    </Border>
+								<Button Grid.Column="0"
+										Grid.Row="0"
+										HorizontalAlignment="Stretch"
+										Background="Transparent"
+										BorderThickness="0"
+										Padding="1">
+									<StackPanel Spacing="2" HorizontalAlignment="Center">
+										<Path Width="16"
+											  Height="16"
+											  Stroke="{Binding Comment.IsLikedByCurrentUser, Converter={StaticResource LikeColorConverter}}"
+											  StrokeThickness="2"
+											  Fill="{Binding Comment.IsLikedByCurrentUser, Converter={StaticResource SaveColorConverter}}"
+											  Stretch="Uniform"
+											  Data="{StaticResource LikeIconGeometry}" />
+										<TextBlock Text="{Binding Comment.LikesCount}"
+												   FontSize="11"
+												   FontWeight="500"
+												   HorizontalAlignment="Center"
+												   Foreground="#6A7383"
+												   IsVisible="{Binding Comment.LikesCount, Converter={StaticResource GreaterThanZeroConverter}}" />
+									</StackPanel>
+								</Button>
+
+								<Button Grid.Row="0"
+										Grid.Column="1"
+										Grid.RowSpan="2"
+										CornerRadius="5"
+										Width="22"
+										Height="22"
+										Padding="0"
+										Background="LightGray"
+										HorizontalAlignment="Left"
+										BorderThickness="0"
+										VerticalAlignment="Top">
+									<Path Width="35"
+										  Height="4"
+										  Fill="#6a5acd"
+										  Data="{StaticResource MenuIconGeometry}">
+										<Path.RenderTransform>
+											<TransformGroup>
+												<RotateTransform Angle="90" CenterX="2" CenterY="8"/>
+											</TransformGroup>
+										</Path.RenderTransform>
+									</Path>
+								</Button>
+							</Grid>
+
+							<!--Relative time row-->
+							<StackPanel Spacing="10"
+										Orientation="Horizontal"
+										Grid.Row="1"
+										Grid.Column="1"
+										Grid.ColumnSpan="2">
+								<TextBlock Text="{Binding Comment.CreatedAt, Converter={StaticResource RelativeTimeConverter}}"
+										   Foreground="#99A1AF"
+										   FontWeight="400"
+										   FontSize="12"/>
+								<Button	Content="Reply"
+										BorderThickness="0"
+										Background="Transparent"
+										Padding="0"
+										Foreground="#6A7383"
+										FontWeight="600"
+										FontSize="12"/>
+							</StackPanel>
+
+							<!--Replies section-->
+							<Grid Grid.Row="2"
+								  Grid.Column="1"
+								  Grid.ColumnSpan="2"
+								  RowDefinitions="Auto,Auto"
+								  IsVisible="{Binding Comment.RepliesCount, Converter={StaticResource GreaterThanZeroConverter}}">
+
+								<Button Grid.Row="0"
+										Content="{Binding Comment.RepliesCount, StringFormat='Show replies ({0})'}"
+										Background="Transparent"
+										Foreground="#6A7383"
+										BorderThickness="0"
+										HorizontalAlignment="Left"
+										Padding="0"
+										FontWeight="600"
+										FontSize="12"/>
+
+								<!--Left line-->
+								<Border Grid.Row="1"
+										Grid.RowSpan="2"
+										Background="#F3F4F6"
+										Width="0.5"
+										HorizontalAlignment="Left"
+										VerticalAlignment="Stretch"/>
+							</Grid>
+						</Grid>
+					</DataTemplate>
+				</ItemsControl.ItemTemplate>
+			</ItemsControl>
+
+			<!--<Button Grid.Row="3"
+			Content="Show less"
+			IsVisible="{Binding ShowAllComments}"
+			Background="Transparent"
+			Padding="0"
+			BorderThickness="0"
+			Foreground="#6a7282"
+			FontSize="14"
+			HorizontalAlignment="Left"
+			VerticalAlignment="Center"
+			Command="{Binding ToggleFullVisibilityCommentsCommand}"
+			Margin="0,0,0,12" />-->
+
+			<Grid Grid.Row="4" ColumnDefinitions="Auto,*" ColumnSpacing="15">
+				<!-- Entry -->
+				<Border  Grid.Column="2"
+						 Background="#F9FAFB"
+						 CornerRadius="12"
+						 Padding="4">
+					<TextBox
+					Background="Transparent"
+					BorderThickness="0"
+					VerticalAlignment="Center"
+					Watermark="Add a comment..."
+					FontSize="14"
+					Margin="0" />
+				</Border>
+			</Grid>
+		</Grid>
+	</ScrollViewer>
 
 </UserControl>

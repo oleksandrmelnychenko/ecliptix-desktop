@@ -2,6 +2,7 @@
 			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+			 xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
 			 mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="60"
 			 xmlns:vm="clr-namespace:Ecliptix.Core.Features.Feed.ViewModels"
 			 x:Class="Ecliptix.Core.Features.Feed.Controls.PostHeader.PostHeaderControl"
@@ -26,7 +27,7 @@
 					ClipToBounds="True"
 					Background="#F0F0F0">
 				<Panel>
-					<Image Source="{Binding Post.Author.AvatarUrl}"
+					<Image asyncImageLoader:ImageLoader.Source="{Binding Post.Author.AvatarUrl}"
 						   Stretch="UniformToFill"
 						   IsVisible="{Binding Post.Author.AvatarUrl, Converter={x:Static ObjectConverters.IsNotNull}}" />
 					<TextBlock Text="{Binding Post.Author.DisplayName, Converter={StaticResource InitialsConverter}}"

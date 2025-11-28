@@ -19,77 +19,163 @@
 		<Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="20">
 
 			<!-- Like Button -->
-			<StackPanel Grid.Column="0"	HorizontalAlignment="Left" Spacing="6">
-				<Button
-				Background="Transparent"
-				BorderThickness="0"
-				Padding="1"
-				Command="{Binding ToggleLikeCommand}">
+			<Button Grid.Column="0"
+					HorizontalAlignment="Stretch"
+					Background="Transparent"
+					BorderThickness="0"
+					Padding="1"
+					Command="{Binding ToggleLikeCommand}">
+				<StackPanel Spacing="8" HorizontalAlignment="Center">
 					<Path Width="24"
 						  Height="24"
 						  Stroke="{Binding Interaction.IsLikedByCurrentUser, Converter={StaticResource LikeColorConverter}}"
-						  StrokeThickness="1.5"
-						  Fill="Transparent"
+						  StrokeThickness="2"
+						  Fill="{Binding Interaction.IsLikedByCurrentUser, Converter={StaticResource SaveColorConverter}}"
 						  Stretch="Uniform"
-						  Data="{Binding Interaction.IsLikedByCurrentUser, Converter={StaticResource LikeIconConverter}}" />
-				</Button>
-				<TextBlock Text="{Binding Interaction.LikesCount}"
-						   HorizontalAlignment="Center"
-						   FontSize="14"
-						   LineHeight="20"
-						   Foreground="#0f172b" />
-			</StackPanel>
+						  Data="{StaticResource LikeIconGeometry}" />
+					<TextBlock Text="{Binding Interaction.LikesCount}"
+							   FontSize="14"
+							   LineHeight="20"
+							   Foreground="#0f172b"
+							   IsVisible="{Binding Interaction.LikesCount, Converter={StaticResource GreaterThanZeroConverter}}" />
+				</StackPanel>
+			</Button>
 
 			<!-- Comment Button -->
-			<StackPanel	Grid.Column="1"	HorizontalAlignment="Left" Spacing="6">
-				<Button
-				Background="Transparent"
-				BorderThickness="0"
-				Padding="1"
-				Command="{Binding ToggleCommentsCommand}">
+			<Button Grid.Column="1"
+					HorizontalAlignment="Stretch"
+					Background="Transparent"
+					BorderThickness="0"
+					Padding="1"
+					Command="{Binding ToggleCommentsCommand}">
+				<StackPanel Spacing="8" HorizontalAlignment="Center">
 					<Path Width="24"
 						  Height="24"
-						  Stroke="#6B7280"
-						  StrokeThickness="1.5"
+						  Stroke="#536471"
+						  StrokeThickness="2"
 						  Fill="Transparent"
 						  Stretch="Uniform"
 						  Data="{StaticResource CommentIconGeometry}" />
-				</Button>
-				<TextBlock Text="{Binding Interaction.CommentsCount}"
-						   HorizontalAlignment="Center"
-						   FontSize="14"
-						   LineHeight="20"
-						   Foreground="#0f172b" />
-			</StackPanel>
+					<TextBlock Text="{Binding Interaction.CommentsCount}"
+							   FontSize="14"
+							   LineHeight="20"
+							   Foreground="#0f172b"
+							   IsVisible="{Binding Interaction.CommentsCount, Converter={StaticResource GreaterThanZeroConverter}}" />
+				</StackPanel>
+			</Button>
 
-
-			<!-- Unknown Button -->
+			<!-- Analytics Button -->
 			<Button Grid.Column="3"
-					HorizontalAlignment="Right"
+					HorizontalAlignment="Stretch"
+					Background="Transparent"
+					BorderThickness="0"
+					Padding="1">
+				<StackPanel Spacing="8" HorizontalAlignment="Center">
+					<Path Width="24"
+						  Height="24"
+						  Fill="#536471"
+						  Stretch="Uniform"
+						  Data="{StaticResource AnalyticsIconGeometry}" />
+					<TextBlock Text="0"
+							   FontSize="14"
+							   LineHeight="20"
+							   Foreground="#0f172b"
+							   IsVisible="False" />
+				</StackPanel>
+			</Button>
+
+			<!-- Bookmark Button -->
+			<Button Grid.Column="4"
+					HorizontalAlignment="Stretch"
 					Background="Transparent"
 					BorderThickness="0"
 					Padding="1"
-					MinHeight="40"
 					Command="{Binding ToggleSaveCommand}">
 				<Path Width="24"
 					  Height="24"
 					  Fill="{Binding Interaction.IsSavedByCurrentUser, Converter={StaticResource SaveColorConverter}}"
+					  Stretch="Uniform"
 					  Data="{StaticResource SaveIconGeometry}" />
 			</Button>
 
-			<!-- Save Button -->
-			<Button Grid.Column="4"
-					HorizontalAlignment="Right"
-					Background="Transparent"
-					BorderThickness="0"
-					Padding="1"
-					MinHeight="40"
-					Command="{Binding ToggleSaveCommand}">
-				<Path Width="24"
-					  Height="24"
-					  Fill="{Binding Interaction.IsSavedByCurrentUser, Converter={StaticResource SaveColorConverter}}"
-					  Data="{StaticResource SaveIconGeometry}" />
-			</Button>
 		</Grid>
 	</Border>
+
+	<!--<Border Padding="16,12">
+	<Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="20">
+
+	--><!-- Like Button --><!--
+	<StackPanel Grid.Column="0"	HorizontalAlignment="Left" Spacing="6">
+	<Button
+	Background="Transparent"
+	BorderThickness="0"
+	Padding="1"
+	Command="{Binding ToggleLikeCommand}">
+	<Path Width="24"
+	Height="24"
+	Stroke="{Binding Interaction.IsLikedByCurrentUser, Converter={StaticResource LikeColorConverter}}"
+	StrokeThickness="1.5"
+	Fill="Transparent"
+	Stretch="Uniform"
+	Data="{Binding Interaction.IsLikedByCurrentUser, Converter={StaticResource LikeIconConverter}}" />
+	</Button>
+	<TextBlock Text="{Binding Interaction.LikesCount}"
+	HorizontalAlignment="Center"
+	FontSize="14"
+	LineHeight="20"
+	Foreground="#0f172b" />
+	</StackPanel>
+
+	--><!-- Comment Button --><!--
+	<StackPanel	Grid.Column="1"	HorizontalAlignment="Left" Spacing="6">
+	<Button
+	Background="Transparent"
+	BorderThickness="0"
+	Padding="1"
+	Command="{Binding ToggleCommentsCommand}">
+	<Path Width="24"
+	Height="24"
+	Stroke="#6B7280"
+	StrokeThickness="1.5"
+	Fill="Transparent"
+	Stretch="Uniform"
+	Data="{StaticResource CommentIconGeometry}" />
+	</Button>
+	<TextBlock Text="{Binding Interaction.CommentsCount}"
+	HorizontalAlignment="Center"
+	FontSize="14"
+	LineHeight="20"
+	Foreground="#0f172b" />
+	</StackPanel>
+
+
+	--><!-- Unknown Button --><!--
+	<Button Grid.Column="3"
+	HorizontalAlignment="Right"
+	Background="Transparent"
+	BorderThickness="0"
+	Padding="1"
+	MinHeight="40"
+	Command="{Binding ToggleSaveCommand}">
+	<Path Width="24"
+	Height="24"
+	Fill="{Binding Interaction.IsSavedByCurrentUser, Converter={StaticResource SaveColorConverter}}"
+	Data="{StaticResource SaveIconGeometry}" />
+	</Button>
+
+	--><!-- Save Button --><!--
+	<Button Grid.Column="4"
+	HorizontalAlignment="Right"
+	Background="Transparent"
+	BorderThickness="0"
+	Padding="1"
+	MinHeight="40"
+	Command="{Binding ToggleSaveCommand}">
+	<Path Width="24"
+	Height="24"
+	Fill="{Binding Interaction.IsSavedByCurrentUser, Converter={StaticResource SaveColorConverter}}"
+	Data="{StaticResource SaveIconGeometry}" />
+	</Button>
+	</Grid>
+	</Border>-->
 </UserControl>

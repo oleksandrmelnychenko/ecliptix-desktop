@@ -3,7 +3,7 @@
 			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 			 xmlns:vm="clr-namespace:Ecliptix.Core.Features.Feed.ViewModels"
-			 xmlns:feedItem="clr-namespace:Ecliptix.Core.Features.Feed.Controls.FeedItem"			
+			 xmlns:feedItem="clr-namespace:Ecliptix.Core.Features.Feed.Controls.FeedItem"
 			 mc:Ignorable="d"
 			 d:DesignWidth="800"
 			 d:DesignHeight="600"
@@ -11,13 +11,13 @@
 			 x:Name="ThisControl"
 			 x:Class="Ecliptix.Core.Features.Feed.Views.FeedView">
 
-	<Grid Background="Yellow">
+	<Grid Background="#fff">
 		<ScrollViewer HorizontalScrollBarVisibility="Disabled"
 					  VerticalScrollBarVisibility="Auto">
 			<!-- Twitter-like centered feed container -->
 			<Border MaxWidth="1020"
 					HorizontalAlignment="Center"
-					Padding="20,0">
+					Padding="40,0">
 				<Grid RowDefinitions="Auto,*,Auto">
 
 					<!-- Loading Indicator -->
@@ -30,17 +30,20 @@
 								   HorizontalAlignment="Center" />
 					</Border>
 
+					<Border Grid.Row="0"
+							Margin="0,20,0,30"
+							Width="142"
+							Height="54"
+							HorizontalAlignment="Center"
+							Background="LightGray">
+						
+					</Border>
+
 					<!-- Feed Posts -->
 					<ItemsControl Grid.Row="1"
 								  ItemsSource="{Binding Posts}"
 								  Margin="0,8">
 						<ItemsControl.DataTemplates>
-							<DataTemplate DataType="vm:ImageCarouselPostViewModel">
-								<feedItem:ImageCarouselPostControl />
-							</DataTemplate>
-							<DataTemplate DataType="vm:VideoPostViewModel">
-								<feedItem:VideoPostControl />
-							</DataTemplate>
 							<DataTemplate DataType="vm:TextPostViewModel">
 								<feedItem:TextPostControl />
 							</DataTemplate>
@@ -89,7 +92,7 @@
 			</Border>
 		</ScrollViewer>
 
-		<feedItem:EditPostControl IsVisible="{Binding DataContext.IsEditPost, ElementName=ThisControl}" DataContext="{Binding SelectedPost}" />
+		<feedItem:EditPostControl IsVisible="{Binding DataContext.IsEdit, ElementName=ThisControl}" DataContext="{Binding SelectedPost}" />
 
 		<!-- Empty State -->
 		<Border IsVisible="{Binding !Posts.Count}"
