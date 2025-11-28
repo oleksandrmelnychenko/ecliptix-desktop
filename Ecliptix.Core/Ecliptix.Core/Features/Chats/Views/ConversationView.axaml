@@ -76,7 +76,7 @@
             </ItemsControl>
         </ScrollViewer>
 
-        <views:ChatInputView Grid.Row="2" />
+        <views:ChatInputView Grid.Row="2" x:Name="ChatInput" />
 
         <Canvas x:Name="HiddenMeasureContainer"
                 Opacity="0"

@@ -1,7 +1,10 @@
 using System;
 using System.Reactive;
+using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
 using ReactiveUI;
+using Splat;
+using IMessageBus = Ecliptix.Core.Core.Messaging.IMessageBus;
 
 namespace Ecliptix.Core.Features.Chats.ViewModels.Messages;
 
@@ -25,20 +28,29 @@ public abstract class MessageViewModelBase : ReactiveObject
 
     protected MessageViewModelBase()
     {
-        ReplyCommand = ReactiveCommand.Create(OnReply);
-        CopyTextCommand = ReactiveCommand.Create(OnCopyText);
-        PinCommand = ReactiveCommand.Create(OnPin);
-        ForwardCommand = ReactiveCommand.Create(OnForward);
-        EditCommand = ReactiveCommand.Create(OnEdit);
-        DeleteCommand = ReactiveCommand.Create(OnDelete);
+        ReplyCommand = ReactiveCommand.CreateFromTask(() => ExecuteAction(MessageActionType.Reply));
+        CopyTextCommand = ReactiveCommand.CreateFromTask(() => ExecuteAction(MessageActionType.Copy));
+        PinCommand = ReactiveCommand.CreateFromTask(() => ExecuteAction(MessageActionType.Pin));
+        ForwardCommand = ReactiveCommand.CreateFromTask(() => ExecuteAction(MessageActionType.Forward));
+        EditCommand = ReactiveCommand.CreateFromTask(() => ExecuteAction(MessageActionType.Edit));
+        DeleteCommand = ReactiveCommand.CreateFromTask(() => ExecuteAction(MessageActionType.Delete));
     }
 
-    private void OnReply() { /* TODO: Implement Reply logic */ }
-    private void OnCopyText() { /* TODO: Implement Copy logic */ }
-    private void OnPin() { /* TODO: Implement Pin logic */ }
-    private void OnForward() { /* TODO: Implement Forward logic */ }
-    private void OnEdit() { /* TODO: Implement Edit logic */ }
-    private void OnDelete() { /* TODO: Implement Delete logic */ }
+    private async Task ExecuteAction(MessageActionType actionType)
+    {
+        IMessageBus? messageBus = GetMessageBusInstance();
+
+        if (messageBus != null)
+        {
+            await messageBus.PublishAsync(new ChatMessageActionEvent(actionType, this));
+        }
+    }
+
+    private IMessageBus? GetMessageBusInstance()
+    {
+        return Locator.Current?.GetService<IMessageBus>();
+    }
+
 }
 
 public class SimpleMessageViewModel : MessageViewModelBase
