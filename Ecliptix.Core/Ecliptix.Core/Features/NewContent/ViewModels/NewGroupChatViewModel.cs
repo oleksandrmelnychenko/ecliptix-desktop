@@ -1,32 +1,24 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive;
+using Ecliptix.Core.Core.Messaging.Events;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Splat;
 using IMessageBus = Ecliptix.Core.Core.Messaging.IMessageBus;
 
-namespace Ecliptix.Core.Features.NewContent;
-
-public class ContactItemViewModel : ReactiveObject
-{
-    public string Name { get; set; }
-    public string Handle { get; set; }
-    public string AvatarPath { get; set; }
-    public bool IsOnline { get; set; }
-
-    [Reactive] public bool IsSelected { get; set; }
-}
+namespace Ecliptix.Core.Features.NewContent.ViewModels;
 
 public class NewGroupChatViewModel : ReactiveObject
 {
     private readonly IMessageBus _messageBus;
 
-    [Reactive] public string GroupName { get; set; }
-    [Reactive] public string SearchQuery { get; set; }
+    [Reactive] public string GroupName { get; set; } = string.Empty;
+    [Reactive] public string SearchQuery { get; set; } = string.Empty;
 
-    // Список всіх контактів
+    // Список контактів (використовуємо той самий клас, що і в NewContact)
     public ObservableCollection<ContactItemViewModel> Contacts { get; }
 
     public ReactiveCommand<Unit, Unit> CloseCommand { get; }
@@ -37,36 +29,43 @@ public class NewGroupChatViewModel : ReactiveObject
     {
         _messageBus = Locator.Current.GetService<IMessageBus>();
 
-        // Наповнюємо моковими даними (user1 ... user6)
+        // Генеруємо демо-дані
+        // Важливо: IsSelected тут працюватиме незалежно для кожного (як Checkbox)
         Contacts = new ObservableCollection<ContactItemViewModel>
         {
-            new() { Name = "Sarah Chen", Handle = "@sarahchen", AvatarPath = "avares://Ecliptix.Core/Assets/DataSeed/user1.jpg", IsOnline = true },
-            new() { Name = "Marcus Reid", Handle = "@marcusreid", AvatarPath = "avares://Ecliptix.Core/Assets/DataSeed/user2.jpg", IsOnline = false },
-            new() { Name = "Emma Wilson", Handle = "@emmawilson", AvatarPath = "avares://Ecliptix.Core/Assets/DataSeed/user3.jpg", IsOnline = true },
-            new() { Name = "Lisa Park", Handle = "@lisapark", AvatarPath = "avares://Ecliptix.Core/Assets/DataSeed/user4.jpg", IsOnline = true },
-            new() { Name = "Alex Kumar", Handle = "@alexkumar", AvatarPath = "avares://Ecliptix.Core/Assets/DataSeed/user5.jpg", IsOnline = false },
-            new() { Name = "John Doe", Handle = "@johndoe", AvatarPath = "avares://Ecliptix.Core/Assets/DataSeed/user6.jpg", IsOnline = false },
-            // Дублюємо для тесту скролу
-            new() { Name = "Sarah Chen", Handle = "@sarahchen", AvatarPath = "avares://Ecliptix.Core/Assets/DataSeed/user1.jpg", IsOnline = true },
-            new() { Name = "Marcus Reid", Handle = "@marcusreid", AvatarPath = "avares://Ecliptix.Core/Assets/DataSeed/user2.jpg", IsOnline = false },
+            new("Sarah Chen", "@sarahchen", true, ""),
+            new("Marcus Reid", "@marcusreid", false, ""),
+            new("Emma Wilson", "@emmawilson", true, ""),
+            new("Lisa Park", "@lisapark", true, ""),
+            new("Alex Kumar", "@alexkumar", false, ""),
+            new("John Doe", "@johndoe", false, ""),
+            new("Jane Smith", "@janesmith", true, "")
         };
 
         CloseCommand = ReactiveCommand.Create(() =>
         {
+            // Закриваємо весь оверлей
             _messageBus?.PublishAsync(new CloseOverlayEvent());
         });
+
+        // Команда створення доступна завжди, або можна додати умову (наприклад, вибрано > 0 людей)
+        IObservable<bool> canCreate = this.WhenAnyValue(
+            x => x.GroupName,
+            name => !string.IsNullOrWhiteSpace(name));
 
         CreateCommand = ReactiveCommand.Create(() =>
         {
             List<ContactItemViewModel> selectedMembers = Contacts.Where(x => x.IsSelected).ToList();
-            System.Console.WriteLine($"Creating group '{GroupName}' with {selectedMembers.Count} members");
+            System.Diagnostics.Debug.WriteLine($"Creating group '{GroupName}' with {selectedMembers.Count} members");
+
+            // Тут логіка створення групи через сервіс...
 
             _messageBus?.PublishAsync(new CloseOverlayEvent());
-        });
+        }, canCreate);
 
         UploadPhotoCommand = ReactiveCommand.Create(() =>
         {
-            System.Console.WriteLine("Upload photo clicked");
+            System.Diagnostics.Debug.WriteLine("Open file dialog for photo...");
         });
     }
 }

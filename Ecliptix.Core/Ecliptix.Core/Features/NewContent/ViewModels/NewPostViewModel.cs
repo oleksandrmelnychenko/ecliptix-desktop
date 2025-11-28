@@ -50,3 +50,7 @@ public class NewPostViewModel : ReactiveObject
         });
     }
 }
+
+public class CloseOverlayEvent
+{
+}

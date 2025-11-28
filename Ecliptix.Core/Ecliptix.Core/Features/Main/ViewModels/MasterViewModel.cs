@@ -88,9 +88,9 @@ public sealed class MasterViewModel : ViewModelBase
 
         if (_messageBus != null)
         {
-            _messageBus.Subscribe<OpenOverlayWithContentTypeEvent>(async evt =>
+            _messageBus.Subscribe<OpenCreateWizardEvent>(async _ =>
             {
-                await HandleOpenOverlayWithContentTypeEvent(evt);
+                await HandleOpenWizard();
             }, SubscriptionLifetime.STRONG).DisposeWith(_disposables);
 
             _messageBus.Subscribe<CloseOverlayEvent>(async evt =>
@@ -139,24 +139,13 @@ public sealed class MasterViewModel : ViewModelBase
         OverlayContent = null;
     }
 
-    private async Task HandleOpenOverlayWithContentTypeEvent(OpenOverlayWithContentTypeEvent evt)
+    private async Task HandleOpenWizard()
     {
-        object? contentVm = evt.ActionType switch
-        {
-            CreateActionType.NewChannel => new NewChannelViewModel(),
-            CreateActionType.NewGroupChat => new NewGroupChatViewModel(),
-            CreateActionType.NewPost => new NewPostViewModel(),
-            _ => null
-        };
+        OverlayContent = new CreateWizardViewModel();
 
-        if (contentVm != null)
-        {
-            OverlayContent = contentVm;
-            IsOverlayVisible = true;
-
-            await Task.Delay(10);
-            IsOverlayOpen = true;
-        }
+        IsOverlayVisible = true;
+        await Task.Delay(10);
+        IsOverlayOpen = true;
     }
 
 

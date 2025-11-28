@@ -55,8 +55,7 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
     public ReactiveCommand<SystemU, SystemU> ToggleProfileMenuCommand { get; }
     public ReactiveCommand<SystemU, Result<Unit, LogoutFailure>> LogoutCommand { get; }
     public ReactiveCommand<SystemU, bool> ToggleSidebarCommand { get; }
-
-    public CreateMenuViewModel CreateMenuVm { get; }
+    public ReactiveCommand<SystemU, SystemU> OpenCreateDialogCommand { get; }
 
     public NavigationMenuItem ProfileMenuItem { get; }
 
@@ -73,7 +72,6 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
         _storageProvider = storageProvider;
         _messageBus = Locator.Current?.GetService<IMessageBus>();
 
-        CreateMenuVm = new CreateMenuViewModel();
         IsExpanded = true;
 
         IObservable<bool> canNavigate = this.WhenAnyValue(
@@ -82,35 +80,26 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
                 (isAnimating, isBusy) =>
                 {
                     bool result = !isAnimating && !isBusy;
-
-                    // Логуємо стан при кожній зміні будь-якого з параметрів
                     Log.Information($"[NAV-STATE-CHANGE] IsAnimating={isAnimating}, IsBusy={isBusy} => CanNavigate={result}");
-
                     return result;
                 }
             )
             .DistinctUntilChanged();
 
-        CreateMenuVm.SelectActionCommand
-            .Subscribe(async actionType =>
+        OpenCreateDialogCommand = ReactiveCommand.CreateFromTask(async () =>
+        {
+            if (_messageBus != null)
             {
-                Log.Information($"[SIDEBAR] Opening overlay for action: {actionType}");
-
-                if (_messageBus != null)
-                {
-                    await _messageBus.PublishAsync(new OpenOverlayWithContentTypeEvent(actionType));
-                }
-            })
-            .DisposeWith(_disposables);
+                await _messageBus.PublishAsync(new OpenCreateWizardEvent());
+            }
+        });
 
         if (_messageBus != null)
         {
-
             _messageBus.Subscribe<ToggleSidebarEvent>(async evt =>
             {
                 IsExpanded = !IsExpanded;
             }, SubscriptionLifetime.STRONG).DisposeWith(_disposables);
-
         }
 
         ToggleSidebarCommand = ReactiveCommand.Create(() =>
@@ -244,8 +233,6 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
         _disposables.Add(LogoutCommand);
 
         LoadUserDataAsync().ConfigureAwait(false);
-
-
     }
 
     private async Task LoadUserDataAsync()

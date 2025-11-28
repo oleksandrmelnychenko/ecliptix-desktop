@@ -78,10 +78,6 @@
       <DependentUpon>BottomSheetControl.axaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Update="Features\NewContent\Views\CreateMenuPopup.axaml.cs">
-      <DependentUpon>CreateMenuPopup.axaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Update="Features\NewContent\Views\NewChannelView.axaml.cs">
       <DependentUpon>NewChannelView.axaml</DependentUpon>
       <SubType>Code</SubType>

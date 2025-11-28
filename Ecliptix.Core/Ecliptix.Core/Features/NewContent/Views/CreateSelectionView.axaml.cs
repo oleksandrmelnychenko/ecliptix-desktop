@@ -1,12 +1,12 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-namespace Ecliptix.Core.Features.NewContent;
+namespace Ecliptix.Core.Features.NewContent.Views;
 
-public partial class NewGroupChatView : UserControl
+public partial class CreateSelectionView : UserControl
 {
-    public NewGroupChatView()
+    public CreateSelectionView()
     {
         InitializeComponent();
     }
