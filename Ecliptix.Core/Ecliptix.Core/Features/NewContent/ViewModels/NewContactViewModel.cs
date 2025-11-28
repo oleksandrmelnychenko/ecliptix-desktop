@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.Reactive;
-using System.Reactive.Linq; // Important for .Select()
+using System.Reactive.Linq;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 
@@ -19,19 +19,17 @@ public class NewContactViewModel : ReactiveObject
 
     public NewContactViewModel()
     {
-        // Mock Data
         Contacts = new ObservableCollection<ContactItemViewModel>
         {
-            new("Sarah Chen", "@sarahchen", true, ""), // Add real image paths if available
-            new("Marcus Reid", "@marcusreid", false, ""),
-            new("Emma Wilson", "@emmawilson", true, ""),
-            new("Lisa Park", "@lisapark", true, ""),
-            new("Alex Kumar", "@alexkumar", false, ""),
-            new("John Doe", "@johndoe", false, ""),
-            new("Jane Smith", "@janesmith", true, ""),
+            new("Sarah Chen", "@sarahchen", true, "$avares://Ecliptix.Core/Assets/DataSeed/user1.jpg"),
+            new("Marcus Reid", "@marcusreid", false, "$avares://Ecliptix.Core/Assets/DataSeed/user6.jpg"),
+            new("Emma Wilson", "@emmawilson", true, "$avares://Ecliptix.Core/Assets/DataSeed/user5.jpg"),
+            new("Lisa Park", "@lisapark", true, "$avares://Ecliptix.Core/Assets/DataSeed/user4.jpg"),
+            new("Alex Kumar", "@alexkumar", false, "$avares://Ecliptix.Core/Assets/DataSeed/user3.jpg"),
+            new("John Doe", "@johndoe", false, "$avares://Ecliptix.Core/Assets/DataSeed/user2.jpg"),
+            new("Jane Smith", "@janesmith", true, "$avares://Ecliptix.Core/Assets/DataSeed/user1.jpg"),
         };
 
-        // Logic to handle selection (toggle behavior)
         SelectContactCommand = ReactiveCommand.Create<ContactItemViewModel>(contact =>
         {
             if (SelectedContact != null && SelectedContact != contact)
@@ -39,14 +37,10 @@ public class NewContactViewModel : ReactiveObject
                 SelectedContact.IsSelected = false;
             }
 
-            // If clicking the same one, maybe we want to keep it selected or toggle off?
-            // Assuming strict selection for now:
             contact.IsSelected = true;
             SelectedContact = contact;
         });
 
-        // FIX: Use .Select() to transform the value into a boolean
-        // This resolves the "Ambiguous invocation" error.
         IObservable<bool> canStartChat = this.WhenAnyValue(x => x.SelectedContact)
                                .Select(contact => contact != null);
 

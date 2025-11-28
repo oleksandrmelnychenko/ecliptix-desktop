@@ -34,7 +34,6 @@
     <Border Background="White" Padding="32" Width="420">
         <StackPanel>
 
-            <!-- Header Grid for Title and Close Button -->
             <Grid ColumnDefinitions="*, Auto" Margin="0,0,0,8">
                 <StackPanel Grid.Column="0">
                     <TextBlock Text="What do you want to create?"
@@ -43,8 +42,6 @@
                                Foreground="#111827"/>
                 </StackPanel>
 
-                <!-- Close Button Logic -->
-                <!-- Поки що просто UI елемент, можна прив'язати команду закриття оверлею, якщо потрібно -->
                 <Button Grid.Column="1" Background="Transparent" Padding="4" Cursor="Hand" VerticalAlignment="Top" Margin="0,-4,-4,0">
                     <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
                               Width="12" Height="12" Foreground="#6B7280"/>
@@ -63,7 +60,6 @@
                         <DataTemplate DataType="{x:Type vm:CreateMenuItem}">
                             <StackPanel>
 
-                                <!-- Category Header -->
                                 <TextBlock Classes="category" Text="{Binding Category}"
                                            IsVisible="{Binding Title, Converter={x:Static ObjectConverters.IsNotNull}}"/>
 
@@ -71,11 +67,9 @@
                                         Command="{Binding $parent[UserControl].((vm:CreateSelectionViewModel)DataContext).SelectActionCommand}"
                                         CommandParameter="{Binding ActionType}">
                                     <Grid ColumnDefinitions="Auto, *">
-                                        <!-- Icon Container -->
                                         <Border Grid.Column="0" Width="40" Height="40" Margin="0,0,16,0"
                                                 Background="Transparent"
                                                 VerticalAlignment="Center">
-                                            <!-- BINDING TO ICON DATA -->
                                             <PathIcon Width="24" Height="24" Foreground="#1F2937"
                                                       Data="{Binding IconData}"/>
                                         </Border>

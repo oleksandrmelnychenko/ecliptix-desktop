@@ -18,7 +18,6 @@ public class NewGroupChatViewModel : ReactiveObject
     [Reactive] public string GroupName { get; set; } = string.Empty;
     [Reactive] public string SearchQuery { get; set; } = string.Empty;
 
-    // Список контактів (використовуємо той самий клас, що і в NewContact)
     public ObservableCollection<ContactItemViewModel> Contacts { get; }
 
     public ReactiveCommand<Unit, Unit> CloseCommand { get; }
@@ -29,8 +28,7 @@ public class NewGroupChatViewModel : ReactiveObject
     {
         _messageBus = Locator.Current.GetService<IMessageBus>();
 
-        // Генеруємо демо-дані
-        // Важливо: IsSelected тут працюватиме незалежно для кожного (як Checkbox)
+
         Contacts = new ObservableCollection<ContactItemViewModel>
         {
             new("Sarah Chen", "@sarahchen", true, ""),
@@ -44,11 +42,9 @@ public class NewGroupChatViewModel : ReactiveObject
 
         CloseCommand = ReactiveCommand.Create(() =>
         {
-            // Закриваємо весь оверлей
             _messageBus?.PublishAsync(new CloseOverlayEvent());
         });
 
-        // Команда створення доступна завжди, або можна додати умову (наприклад, вибрано > 0 людей)
         IObservable<bool> canCreate = this.WhenAnyValue(
             x => x.GroupName,
             name => !string.IsNullOrWhiteSpace(name));
@@ -58,7 +54,6 @@ public class NewGroupChatViewModel : ReactiveObject
             List<ContactItemViewModel> selectedMembers = Contacts.Where(x => x.IsSelected).ToList();
             System.Diagnostics.Debug.WriteLine($"Creating group '{GroupName}' with {selectedMembers.Count} members");
 
-            // Тут логіка створення групи через сервіс...
 
             _messageBus?.PublishAsync(new CloseOverlayEvent());
         }, canCreate);

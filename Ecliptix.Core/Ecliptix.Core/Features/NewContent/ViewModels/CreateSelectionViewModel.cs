@@ -14,7 +14,7 @@ public class CreateSelectionViewModel : ReactiveObject
     {
         Items = new ObservableCollection<CreateMenuItem>
         {
-            // CONTENT
+
             new CreateMenuItem(
                 "New Post",
                 "Share content with your followers",
@@ -22,7 +22,7 @@ public class CreateSelectionViewModel : ReactiveObject
                 CreateActionType.NewPost,
                 "CONTENT"),
 
-            // MESSAGING
+
             new CreateMenuItem(
                 "New Contact",
                 "Add someone to your contacts",
@@ -49,7 +49,7 @@ public class CreateSelectionViewModel : ReactiveObject
     }
 }
 
-// Оновлений запис з полем IconData
+
 public record CreateMenuItem(string Title, string Description, string IconData, CreateActionType ActionType, string Category);
 public enum CreateActionType
 {

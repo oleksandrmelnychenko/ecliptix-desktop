@@ -23,19 +23,18 @@
             <Setter Property="Background" Value="#FFFFFF"/>
         </Style>
 
-        <!-- Custom CheckBox Style -->
         <Style Selector="CheckBox">
             <Setter Property="CornerRadius" Value="6"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
 
-        <!-- Fixo: Make checkbox accent color purple when checked -->
+
         <Style Selector="CheckBox:checked /template/ Border#NormalRectangle">
             <Setter Property="Background" Value="#7B61FF"/>
             <Setter Property="BorderBrush" Value="#7B61FF"/>
         </Style>
 
-        <!-- List Item Container Style -->
+
         <Style Selector="ListBoxItem">
             <Setter Property="Padding" Value="8,4"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -57,7 +56,7 @@
         <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="#F3F4F6"/>
         </Style>
-        <!-- Disable selection visual, purely handled by checkbox -->
+
         <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
         </Style>
@@ -65,7 +64,6 @@
 
     <Grid RowDefinitions="Auto, *, Auto" Margin="32">
 
-        <!-- HEADER -->
         <Grid Grid.Row="0" ColumnDefinitions="*, Auto" Margin="0,0,0,24">
             <StackPanel Grid.Column="0" Spacing="4">
                 <TextBlock Text="New Group"
@@ -78,7 +76,6 @@
                            TextWrapping="Wrap"/>
             </StackPanel>
 
-            <!-- Close Button -->
             <Button Grid.Column="1"
                     Command="{Binding CloseCommand}"
                     Background="Transparent"
@@ -91,11 +88,9 @@
             </Button>
         </Grid>
 
-        <!-- CONTENT SCROLLVIEWER -->
         <ScrollViewer Grid.Row="1" Margin="-10,0,-10,0" Padding="10,0,10,0">
             <StackPanel Spacing="24">
 
-                <!-- 1. GROUP PHOTO -->
                 <StackPanel HorizontalAlignment="Center" Spacing="12">
                     <Button Command="{Binding UploadPhotoCommand}"
                             Width="80" Height="80"
@@ -118,7 +113,6 @@
                                FontWeight="Medium"/>
                 </StackPanel>
 
-                <!-- 2. GROUP NAME INPUT -->
                 <StackPanel Spacing="8">
                     <TextBlock Text="Group Name"
                                FontSize="13"
@@ -129,14 +123,12 @@
                              Text="{Binding GroupName}"/>
                 </StackPanel>
 
-                <!-- 3. MEMBER SEARCH & LIST -->
                 <StackPanel Spacing="12">
                     <TextBlock Text="Add Members"
                                FontSize="13"
                                FontWeight="SemiBold"
                                Foreground="#374151"/>
 
-                    <!-- Search Box -->
                     <TextBox Classes="input-box"
                              Watermark="Search contacts..."
                              Text="{Binding SearchQuery}">
@@ -148,7 +140,7 @@
                         </TextBox.InnerLeftContent>
                     </TextBox>
 
-                    <!-- Contacts List -->
+
                     <ListBox ItemsSource="{Binding Contacts}"
                              Background="Transparent"
                              SelectionMode="Multiple,Toggle">
@@ -156,20 +148,18 @@
                             <DataTemplate DataType="{x:Type viewModels:ContactItemViewModel}">
                                 <Grid ColumnDefinitions="Auto, Auto, *" Margin="0,4">
 
-                                    <!-- Checkbox -->
                                     <CheckBox Grid.Column="0"
                                               IsChecked="{Binding IsSelected}"
                                               VerticalAlignment="Center"
                                               Margin="0,0,16,0"/>
 
-                                    <!-- Avatar -->
+
                                     <Panel Grid.Column="1" Width="40" Height="40" Margin="0,0,12,0">
                                         <Ellipse Width="40" Height="40" Fill="#F3F4F6"/>
-                                        <!-- Placeholder Avatar Icon -->
+
                                         <PathIcon Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"
                                                   Width="20" Height="20" Foreground="#9CA3AF" />
 
-                                        <!-- Online Dot -->
                                         <Border Width="12" Height="12"
                                                 CornerRadius="6"
                                                 Background="#10B981"
@@ -180,7 +170,6 @@
                                                 IsVisible="{Binding IsOnline}"/>
                                     </Panel>
 
-                                    <!-- Text Info -->
                                     <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="2">
                                         <TextBlock Text="{Binding DisplayName}"
                                                    FontWeight="Medium"
@@ -197,13 +186,11 @@
 
                 </StackPanel>
 
-                <!-- Spacer for scrolling -->
                 <Panel Height="20"/>
 
             </StackPanel>
         </ScrollViewer>
 
-        <!-- FOOTER: CREATE BUTTON -->
         <Border Grid.Row="2"
                 Margin="0,16,0,0"
                 Padding="0,16,0,0"

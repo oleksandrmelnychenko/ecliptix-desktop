@@ -9,7 +9,6 @@
              Width="512" Height="592">
 
     <UserControl.Styles>
-        <!-- Animation for the Top Selected Card -->
         <Style Selector="Border.selected-card">
             <Setter Property="Opacity" Value="0"/>
             <Setter Property="RenderTransform" Value="translateY(-10px)"/>
@@ -25,7 +24,6 @@
             <Setter Property="RenderTransform" Value="translateY(0)"/>
         </Style>
 
-        <!-- Search Input Style -->
         <Style Selector="TextBox.search-box">
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
             <Setter Property="BorderBrush" Value="#E5E7EB"/>
@@ -41,7 +39,6 @@
 
     <Grid RowDefinitions="Auto, Auto, Auto, *" Margin="32">
 
-        <!-- HEADER -->
         <StackPanel Grid.Row="0" Margin="0,0,0,24">
             <TextBlock Text="Find Contact" FontSize="20" FontWeight="SemiBold" Foreground="#111827"/>
             <TextBlock Text="Search and select a contact to start chatting" FontSize="14" Foreground="#6B7280" Margin="0,4,0,0"/>
@@ -57,33 +54,27 @@
                 Height="72"
                 ClipToBounds="False">
 
-            <!-- Hide content when null to prevent binding errors -->
             <ContentControl Content="{Binding SelectedContact}">
                 <ContentControl.DataTemplates>
                     <DataTemplate DataType="{x:Type vm:ContactItemViewModel}">
                         <Grid ColumnDefinitions="4, Auto, *, Auto">
-                            <!-- Purple Stripe -->
                             <Border Grid.Column="0" Background="#7B61FF" CornerRadius="12,0,0,12" VerticalAlignment="Stretch"/>
 
-                            <!-- Avatar -->
                             <Panel Grid.Column="1" Width="40" Height="40" Margin="16,0,12,0">
                                 <Ellipse Width="40" Height="40" Fill="#F3F4F6"/>
                                 <PathIcon Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"
                                           Width="24" Height="24" Foreground="#9CA3AF"/>
-                                <!-- Online Status -->
                                 <Border Width="10" Height="10" CornerRadius="5" Background="#10B981"
                                         BorderBrush="White" BorderThickness="1.5"
                                         HorizontalAlignment="Right" VerticalAlignment="Bottom"
                                         IsVisible="{Binding IsOnline}"/>
                             </Panel>
 
-                            <!-- Info -->
                             <StackPanel Grid.Column="2" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="14" Foreground="#111827"/>
                                 <TextBlock Text="{Binding Handle}" FontSize="12" Foreground="#6B7280"/>
                             </StackPanel>
 
-                            <!-- Checkmark -->
                             <Border Grid.Column="3" Width="28" Height="28" CornerRadius="14" Background="#F3F0FF" Margin="0,0,16,0">
                                 <PathIcon Data="M9,16.17L4.83,12L3.41,13.41L9,19L21,7L19.59,5.59L9,16.17Z"
                                           Width="14" Height="14" Foreground="#7B61FF"/>
@@ -94,14 +85,12 @@
             </ContentControl>
         </Border>
 
-        <!-- SEARCH BAR -->
         <Grid Grid.Row="2" ColumnDefinitions="Auto, *" Margin="0,0,0,16">
             <PathIcon Grid.Column="0" Data="M15.5,14H14.71L14.43,13.73C15.41,12.59 16,11.11 16,9.5A6.5,6.5 0 1,0 9.5,16C11.11,16 12.59,15.41 13.73,14.43L14,14.71V15.5L19,20.49L20.49,19L15.5,14M9.5,14C7,14 5,12 5,9.5C5,7 7,5 9.5,5C12,5 14,7 14,9.5C14,12 12,14 9.5,14Z"
                       Width="18" Height="18" Foreground="#9CA3AF" VerticalAlignment="Center" Margin="0,0,8,5"/>
             <TextBox Grid.Column="1" Classes="search-box" Text="{Binding SearchText}" Watermark="Search contacts..."/>
         </Grid>
 
-        <!-- CONTACT LIST & FLOATING BUTTON -->
         <Grid Grid.Row="3" ClipToBounds="False">
 
             <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="-10,0,-10,0" Padding="10,0,10,60">
@@ -128,32 +117,26 @@
                                     </Style>
                                 </Button.Styles>
 
-                                <!-- Container for Item - ClipToBounds=False needed for shadow if we added one later -->
                                 <Grid ColumnDefinitions="4, Auto, *, Auto" Height="64" Background="Transparent">
 
-                                    <!-- Selection Indicator (Left) -->
                                     <Border Grid.Column="0" Background="#7B61FF" CornerRadius="12,0,0,12" VerticalAlignment="Stretch"
                                             IsVisible="{Binding IsSelected}"/>
 
-                                    <!-- Avatar -->
                                     <Panel Grid.Column="1" Width="40" Height="40" Margin="12,0,12,0">
                                         <Ellipse Width="40" Height="40" Fill="#F3F4F6"/>
                                         <PathIcon Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"
                                                   Width="20" Height="20" Foreground="#9CA3AF"/>
-                                        <!-- Online Dot -->
                                         <Border Width="10" Height="10" CornerRadius="5" Background="#10B981"
                                                 BorderBrush="White" BorderThickness="1.5"
                                                 HorizontalAlignment="Right" VerticalAlignment="Bottom"
                                                 IsVisible="{Binding IsOnline}"/>
                                     </Panel>
 
-                                    <!-- Info -->
                                     <StackPanel Grid.Column="2" VerticalAlignment="Center">
                                         <TextBlock Text="{Binding DisplayName}" FontWeight="Medium" FontSize="14" Foreground="#111827"/>
                                         <TextBlock Text="{Binding Handle}" FontSize="12" Foreground="#6B7280"/>
                                     </StackPanel>
 
-                                    <!-- Selection Indicator (Right Checkmark) -->
                                     <Border Grid.Column="3" Width="24" Height="24" CornerRadius="12" Background="#7B61FF" Margin="0,0,12,0"
                                             IsVisible="{Binding IsSelected}">
                                         <PathIcon Data="M9,16.17L4.83,12L3.41,13.41L9,19L21,7L19.59,5.59L9,16.17Z"
@@ -166,7 +149,6 @@
                 </ItemsControl>
             </ScrollViewer>
 
-            <!-- FLOATING ACTION BUTTON -->
             <Button Command="{Binding StartChatCommand}"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Bottom"
