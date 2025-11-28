@@ -1,4 +1,5 @@
-using System.Windows.Input;
+using System.Collections.ObjectModel;
+using System.Linq;
 using Ecliptix.Core.Features.Feed.Models;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
@@ -15,25 +16,51 @@ public sealed class CommentViewModel : ReactiveObject
 
     public bool RequiresExpansion => Comment.Text.Length > MAX_COMMENT_LENGHT;
 
-    [Reactive] public bool IsTextExpanded { get; set; }
-
-    [Reactive] public string ExpandedText { get; set; }
-
     public string DisplayCommentText =>
         IsTextExpanded || !RequiresExpansion
         ? Comment.Text
         : Comment.Text.Substring(0, MAX_COMMENT_LENGHT) + "...";
 
-    public ICommand ToggleTextCommand { get; }
+    [Reactive] public bool IsTextExpanded { get; set; }
+    [Reactive] public bool HasReplies { get; set; }
+    [Reactive] public string ExpandedText { get; set; }
+    [Reactive] public ObservableCollection<CommentViewModel> OrigonalReplies { get; set; } = new();
+    [Reactive] public ObservableCollection<CommentViewModel> Replies { get; set; } = new();
+
+    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> ToggleTextCommand { get; }
+    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> ShowRepliesCommand { get; }
+    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> ShowMoreRepliesCommand { get; }
+    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> HideRepliesCommand { get; }
 
     public CommentViewModel(Comment comment)
     {
         Comment = comment;
         IsTextExpanded = false;
+        HasReplies = comment.RepliesCount > 0;
 
         ToggleTextCommand = ReactiveCommand.Create(ToggleText);
+        ShowRepliesCommand = ReactiveCommand.Create(ShowReplies);
+        ShowMoreRepliesCommand = ReactiveCommand.Create(ShowAllReplies);
+        HideRepliesCommand = ReactiveCommand.Create(HideReplies);
 
         ExpandedText = IsTextExpanded ? SHOW_LESS : SHOW_MORE;
+    }
+
+    private void HideReplies()
+    {
+        HasReplies = OrigonalReplies.Count > 0;
+        Replies.Clear();
+    }
+
+    private void ShowAllReplies()
+    {
+        Replies = new ObservableCollection<CommentViewModel>(OrigonalReplies);
+    }
+
+    private void ShowReplies()
+    {
+        HasReplies = false;
+        Replies = new ObservableCollection<CommentViewModel>(OrigonalReplies.Take(3));
     }
 
     private void ToggleText()

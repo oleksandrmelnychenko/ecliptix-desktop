@@ -87,6 +87,12 @@ public sealed class CommentSectionViewModel : ViewModelBase
         {
             CommentViewModel viewModel = CreateCommentViewModel(comment);
             Comments.Add(viewModel);
+
+            foreach (Comment comment1 in comments)
+            {
+                CommentViewModel viewModel1 = CreateCommentViewModel(comment1);
+                viewModel.OrigonalReplies.Add(viewModel1);
+            }
         }
 
         //temp
