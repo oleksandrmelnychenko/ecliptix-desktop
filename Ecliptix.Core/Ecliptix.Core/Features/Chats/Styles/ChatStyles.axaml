@@ -6,6 +6,13 @@
         </Border>
     </Design.PreviewWith>
 
+    <Style Selector="FlyoutPresenter.transparent">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="CornerRadius" Value="0"/>
+        <Setter Property="ClipToBounds" Value="False"/>
+    </Style>
 
     <Style Selector="Button.icon">
         <Setter Property="Background" Value="Transparent"/>

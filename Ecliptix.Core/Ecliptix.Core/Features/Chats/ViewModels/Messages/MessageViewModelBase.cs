@@ -1,4 +1,5 @@
 using System;
+using System.Reactive;
 using Avalonia.Media.Imaging;
 using ReactiveUI;
 
@@ -14,6 +15,30 @@ public abstract class MessageViewModelBase : ReactiveObject
     public Bitmap? SenderAvatar { get; set; }
 
     public string TimeDisplay => Time.ToString("t");
+
+    public ReactiveCommand<Unit, Unit> ReplyCommand { get; }
+    public ReactiveCommand<Unit, Unit> CopyTextCommand { get; }
+    public ReactiveCommand<Unit, Unit> PinCommand { get; }
+    public ReactiveCommand<Unit, Unit> ForwardCommand { get; }
+    public ReactiveCommand<Unit, Unit> EditCommand { get; }
+    public ReactiveCommand<Unit, Unit> DeleteCommand { get; }
+
+    protected MessageViewModelBase()
+    {
+        ReplyCommand = ReactiveCommand.Create(OnReply);
+        CopyTextCommand = ReactiveCommand.Create(OnCopyText);
+        PinCommand = ReactiveCommand.Create(OnPin);
+        ForwardCommand = ReactiveCommand.Create(OnForward);
+        EditCommand = ReactiveCommand.Create(OnEdit);
+        DeleteCommand = ReactiveCommand.Create(OnDelete);
+    }
+
+    private void OnReply() { /* TODO: Implement Reply logic */ }
+    private void OnCopyText() { /* TODO: Implement Copy logic */ }
+    private void OnPin() { /* TODO: Implement Pin logic */ }
+    private void OnForward() { /* TODO: Implement Forward logic */ }
+    private void OnEdit() { /* TODO: Implement Edit logic */ }
+    private void OnDelete() { /* TODO: Implement Delete logic */ }
 }
 
 public class SimpleMessageViewModel : MessageViewModelBase

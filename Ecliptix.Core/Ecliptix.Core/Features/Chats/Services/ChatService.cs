@@ -304,7 +304,7 @@ public class ChatService : IChatService
                 batchModels.Add(new MessageModel(Guid.NewGuid(), chatId, partner.Id, "Hey, did you see the report?", baseTime, MessageType.Text));
             }
             else {
-                batchModels.Add(new MessageModel(Guid.NewGuid(), chatId, me.Id, $"Working on step {i}...", baseTime, MessageType.Text));
+                batchModels.Add(new MessageModel(Guid.NewGuid(), chatId, me.Id, $"adsfadsdafadsfsadfasdfWorking on step {i}...", baseTime, MessageType.Text));
                 if (i % 2 == 0)
                 {
                     batchModels.Add(new MessageModel(Guid.NewGuid(), chatId, partner.Id, "Cool.", baseTime.AddMinutes(1), MessageType.Text));

@@ -57,7 +57,12 @@
                                 </Panel>
                             </Border>
 
-                            <StackPanel Grid.Column="1" Classes="msg-container" Classes.mine="{Binding IsMine}">
+                            <StackPanel Grid.Column="1"
+                                        Classes="msg-container"
+                                        Classes.mine="{Binding IsMine}"
+                                        Background="Transparent"
+                                        PointerPressed="OnMessagePointerPressed">
+
                                 <views:MessageBubbleView />
                             </StackPanel>
 
@@ -73,6 +78,13 @@
 
         <views:ChatInputView Grid.Row="2" />
 
+        <Canvas x:Name="HiddenMeasureContainer"
+                Opacity="0"
+                IsHitTestVisible="False"
+                Width="0"
+                Height="0"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"/>
         </Grid>
 </UserControl>
 
