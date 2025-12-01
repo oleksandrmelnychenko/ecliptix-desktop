@@ -11,13 +11,13 @@
              x:Class="Ecliptix.Core.Features.Authentication.Views.Registration.VerificationCodeEntryView"
              MinWidth="{StaticResource Content.MaxWidth}"
              Width="{StaticResource Content.MaxWidth}">
-    
+
     <Grid VerticalAlignment="Top"
           RowSpacing="{StaticResource Spacing.Authentication}"
           RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
           HorizontalAlignment="Stretch"
           Width="{StaticResource Content.MaxWidth}">
-        
+
         <StackPanel Grid.Row="0"
                     Spacing="{StaticResource Spacing.S}"
                     MaxWidth="{StaticResource Header.MaxWidth}"
@@ -35,7 +35,7 @@
                        Foreground="{DynamicResource OnSurface}"
                        Opacity="0.8" />
         </StackPanel>
-        
+
         <coreControls:SegmentedTextBox Grid.Row="1"
                                    x:Name="SegmentedTextBox"
                                    SegmentCount="6"
@@ -49,7 +49,7 @@
                                    SegmentWidth="40"
                                    AllowOnlyNumbers="True"
                                    Value="{Binding VerificationCode, Mode=TwoWay}" />
-        
+
         <Border Grid.Row="2"
                 Background="Transparent"
                 HorizontalAlignment="Stretch"
@@ -62,7 +62,7 @@
                        VerticalAlignment="Center"
                        MaxWidth="{StaticResource Content.MaxWidth}"/>
         </Border>
-        
+
         <Grid Grid.Row="3"
               ColumnDefinitions="*,*"
               ColumnSpacing="{StaticResource Spacing.M}">
@@ -75,11 +75,11 @@
                     Content="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Button.Verify]}"
                     Command="{Binding SendVerificationCodeCommand}"
                     IsEnabled="{Binding SendVerificationCodeCommand.CanExecute}"
-                    Classes="auth-button continue-button loading-button"
+                    Classes="auth-button continue-button loading-button glow-shadow"
                     Classes.is-busy="{Binding IsBusy}"
                     />
         </Grid>
-        
+
         <Border Grid.Row="4"
                 Background="Transparent"
                 HorizontalAlignment="Stretch"
@@ -88,14 +88,14 @@
                 ClipToBounds="True"
                 Margin="0">
             <TextBlock Text="{Binding ErrorMessage}"
-                       Classes="server-error" 
+                       Classes="server-error"
                        TextAlignment="Center"
                        VerticalAlignment="Center"
                        TextWrapping="Wrap"
                        MaxWidth="{StaticResource Content.MaxWidth}"
                        Foreground="{DynamicResource Error}" />
         </Border>
-        
-        
+
+
         </Grid>
 </UserControl>

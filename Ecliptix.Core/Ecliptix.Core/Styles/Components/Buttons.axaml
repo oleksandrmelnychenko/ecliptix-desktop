@@ -7,7 +7,9 @@
 
     <Styles.Resources>
         <LinearGradientBrush x:Key="ButtonGlowGradient" StartPoint="0%,50%" EndPoint="100%,50%">
-            <GradientStop Offset="0" Color="#FF8C00"/> <GradientStop Offset="1" Color="#FF00FF"/> </LinearGradientBrush>
+            <GradientStop Offset="0" Color="#FF8C00"/>
+            <GradientStop Offset="1" Color="#FF00FF"/>
+        </LinearGradientBrush>
     </Styles.Resources>
 
 
@@ -58,6 +60,11 @@
                 <TransformOperationsTransition Property="RenderTransform"
                                                Duration="{StaticResource Button.TransitionDuration}"
                                                Easing="CubicEaseOut" />
+
+                <!-- ВИПРАВЛЕННЯ ТУТ: Додано перехід для Opacity, бо цей стиль перезаписує базовий -->
+                <DoubleTransition Property="Opacity"
+                                  Duration="{StaticResource Button.TransitionDuration}"
+                                  Easing="CubicEaseOut"/>
             </Transitions>
         </Setter>
     </Style>
@@ -330,7 +337,8 @@
     </Style>
 
     <Style Selector="Button.glow-shadow /template/ Border#PART_Glow">
-        <Setter Property="Opacity" Value="0.6"/> </Style>
+        <Setter Property="Opacity" Value="0.6"/>
+    </Style>
 
     <Style Selector="Button.glow-shadow:pointerover">
         <Setter Property="Background" Value="#000000" />
@@ -338,10 +346,10 @@
 
     <Style Selector="Button.glow-shadow:pointerover /template/ Border#PART_Glow">
         <Setter Property="Opacity" Value="0.9"/>
-        </Style>
+    </Style>
 
     <Style Selector="Button.glow-shadow:disabled /template/ Border#PART_Glow">
-        <Setter Property="Opacity" Value="0"/>
+        <Setter Property="Opacity" Value="0.6"/>
     </Style>
 
 
