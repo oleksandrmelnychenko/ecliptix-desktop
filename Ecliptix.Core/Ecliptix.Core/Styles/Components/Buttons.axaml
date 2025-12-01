@@ -55,9 +55,6 @@
                 <BrushTransition Property="Background"
                                  Duration="{StaticResource Button.TransitionDuration}"
                                  Easing="CubicEaseOut" />
-                <DoubleTransition Property="Opacity"
-                                  Duration="{StaticResource Button.TransitionDuration}"
-                                  Easing="CubicEaseOut" />
                 <TransformOperationsTransition Property="RenderTransform"
                                                Duration="{StaticResource Button.TransitionDuration}"
                                                Easing="CubicEaseOut" />
@@ -269,8 +266,8 @@
                         </Border.Effect>
                         <Border.Transitions>
                             <Transitions>
-                                <DoubleTransition Property="Opacity" Duration="0:0:0.3" Easing="CubicEaseOut"/>
-                                <ThicknessTransition Property="Margin" Duration="0:0:0.3" Easing="CubicEaseOut"/>
+                                <DoubleTransition Property="Opacity" Duration="0:0:0.25" Easing="CubicEaseOut"/>
+                                <ThicknessTransition Property="Margin" Duration="0:0:0.25" Easing="CubicEaseOut"/>
                             </Transitions>
                         </Border.Transitions>
                     </Border>

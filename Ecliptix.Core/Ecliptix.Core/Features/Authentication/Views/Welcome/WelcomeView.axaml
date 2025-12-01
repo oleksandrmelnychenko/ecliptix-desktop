@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Welcome"
+             xmlns:carousels="clr-namespace:Ecliptix.Core.Controls.Carousels"
              mc:Ignorable="d"
              d:DesignWidth="320"
              d:DesignHeight="480"
@@ -30,14 +31,19 @@
             </Border>
         </StackPanel>
 
-        <Border Grid.Row="1"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center">
-            <Svg Path="../../../../Assets/Screens/Welcome/welcome-circle.svg"
-                 Width="{StaticResource Circle.Size}"
-                 Height="{StaticResource Circle.Size}"
-                 Stretch="Uniform" />
-        </Border>
+        <carousels:WelcomeCarouselView Grid.Row="1"
+                                  ItemsSource="{Binding Slides}"
+                                  SelectedIndex="{Binding CurrentSlideIndex, Mode=TwoWay}" />
+
+        <!-- <Border Grid.Row="1" -->
+        <!--         HorizontalAlignment="Center" -->
+        <!--         VerticalAlignment="Center"> -->
+        <!--     <Svg Path="avares://Ecliptix.Core/Assets/Screens/Welcome/welcome-circle.svg" -->
+        <!--          Width="{StaticResource Circle.Size}" -->
+        <!--          Height="{StaticResource Circle.Size}" -->
+        <!--          Stretch="Uniform" /> -->
+        <!-- </Border> -->
+
 
         <Grid Grid.Row="2"
               ColumnDefinitions="*,*"

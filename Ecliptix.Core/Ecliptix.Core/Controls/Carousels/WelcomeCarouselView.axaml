@@ -1,0 +1,106 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ecliptix.Core.Controls.Carousels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Ecliptix.Core.Controls.Carousels.WelcomeCarouselView"
+             x:Name="Root">
+    <UserControl.Styles>
+
+        <Style Selector="Border.indicator">
+            <Setter Property="Height" Value="8"/>
+            <Setter Property="Width" Value="8"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Background" Value="#E0E0E0"/>
+            <Setter Property="Margin" Value="4,0"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Width" Duration="0:0:0.3" Easing="CubicEaseOut"/>
+                    <BrushTransition Property="Background" Duration="0:0:0.3"/>
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Border.indicator.active">
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Background" Value="#111111"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="*,Auto">
+
+        <Carousel Name="MainCarousel"
+                  Grid.Row="0"
+                  ItemsSource="{Binding ItemsSource, ElementName=Root}"
+                  SelectedIndex="{Binding SelectedIndex, Mode=TwoWay, ElementName=Root}">
+
+            <Carousel.PageTransition>
+                <PageSlide Duration="0.4" Orientation="Horizontal" SlideInEasing="CubicEaseOut" SlideOutEasing="CubicEaseOut"/>
+            </Carousel.PageTransition>
+
+            <Carousel.ItemTemplate>
+                <DataTemplate x:DataType="vm:WelcomeSlide">
+                    <Grid RowDefinitions="*,Auto,Auto" Margin="24,0">
+
+                        <!-- <Border Grid.Row="0" -->
+                        <!--         HorizontalAlignment="Center" -->
+                        <!--         VerticalAlignment="Center" -->
+                        <!--         Margin="0,20,0,40"> -->
+                        <!--     <Svg Path="{Binding ImagePath}" -->
+                        <!--          Width="{StaticResource Circle.Size}" -->
+                        <!--          Height="{StaticResource Circle.Size}" -->
+                        <!--          Stretch="Uniform" /> -->
+                        <!-- </Border> -->
+
+                        <!-- For not temporaly images, they have better perfmanse but i have to add animated images somehow-->
+                        <Image Grid.Row="0"
+                               Source="{Binding Image}"
+                               Stretch="UniformToFill"
+                               Margin="0,0,0,0"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+
+                        <TextBlock Grid.Row="1"
+                                   Text="{Binding Title}"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   TextAlignment="Center"
+                                   Foreground="#111111"
+                                   Margin="0,0,0,12"/>
+
+                        <TextBlock Grid.Row="2"
+                                   Text="{Binding Description}"
+                                   FontSize="13"
+                                   TextAlignment="Center"
+                                   Foreground="#666666"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,32"/>
+                    </Grid>
+                </DataTemplate>
+            </Carousel.ItemTemplate>
+        </Carousel>
+
+        <ItemsControl Name="IndicatorsControl"
+                      Grid.Row="1"
+                      HorizontalAlignment="Center"
+                      Margin="0,0,0,24">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Background="Transparent"
+                            PointerPressed="OnIndicatorPressed"
+                            Cursor="Hand"
+                            Padding="2">
+                        <Border Classes="indicator"/>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </Grid>
+</UserControl>
+
