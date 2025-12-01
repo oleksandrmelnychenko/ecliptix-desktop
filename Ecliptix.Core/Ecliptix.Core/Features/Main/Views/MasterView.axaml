@@ -7,6 +7,7 @@
              xmlns:page="clr-namespace:Ecliptix.Core.Shared.Transitions.Page"
              xmlns:newContent="clr-namespace:Ecliptix.Core.Features.NewContent"
              xmlns:transitions="clr-namespace:Ecliptix.Core.Shared.Transitions"
+             xmlns:views="clr-namespace:Ecliptix.Core.Features.NewContent.Views"
              mc:Ignorable="d"
              d:DesignWidth="1200"
              d:DesignHeight="800"
@@ -120,16 +121,12 @@
                         Background="#FFFFFF">
 
                     <ContentControl Content="{Binding OverlayContent}">
-                         <ContentControl.DataTemplates>
-                            <DataTemplate DataType="{x:Type newContent:NewChannelViewModel}">
-                                <newContent:NewChannelView />
+                        <ContentControl.DataTemplates>
+
+                            <DataTemplate DataType="{x:Type newContent:CreateWizardViewModel}">
+                                <views:CreateWizardView />
                             </DataTemplate>
-                            <DataTemplate DataType="{x:Type newContent:NewGroupChatViewModel}">
-                                <newContent:NewGroupChatView />
-                            </DataTemplate>
-                            <DataTemplate DataType="{x:Type newContent:NewPostViewModel}">
-                                <newContent:NewPostView />
-                            </DataTemplate>
+
                         </ContentControl.DataTemplates>
                     </ContentControl>
                 </Border>

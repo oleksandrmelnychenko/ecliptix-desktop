@@ -83,7 +83,7 @@ namespace Ecliptix.Core.Desktop;
 public static class Program
 {
     [STAThread]
-    public static async Task Main(string[] args)
+    public static void Main(string[] args)
     {
         string mutexName =
             string.Format(ApplicationConstants.ApplicationSettings.MUTEX_NAME_FORMAT, Environment.UserName);
@@ -111,6 +111,7 @@ public static class Program
             Splat.Locator.CurrentMutable.Register(() => new LanguageSelectorView(), typeof(ReactiveUI.IViewFor<LanguageSelectorViewModel>));
             Splat.Locator.CurrentMutable.Register(() => new ToggleNavigationSideBarView(), typeof(ReactiveUI.IViewFor<ToggleNavigationSideBarViewModel>));
             Splat.Locator.CurrentMutable.Register(() => new ToggleThemeView(), typeof(ReactiveUI.IViewFor<ToggleThemeViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new PersonalTagView(), typeof(ReactiveUI.IViewFor<PersonalTagViewModel>));
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
         }
         catch (Exception ex)
@@ -125,7 +126,7 @@ public static class Program
         finally
         {
             Log.Information(ApplicationConstants.Logging.SHUTDOWN_MESSAGE);
-            await Log.CloseAndFlushAsync();
+            Log.CloseAndFlushAsync();
         }
     }
 

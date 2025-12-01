@@ -37,12 +37,6 @@ public partial class NavigationSidebar : ReactiveUserControl<NavigationSidebarVi
 
         _visualTreeDisposables = new CompositeDisposable();
 
-        if (ViewModel != null)
-        {
-            ViewModel.CreateMenuVm.SelectActionCommand
-                .Subscribe(_ => HideFlyout())
-                .DisposeWith(_visualTreeDisposables);
-        }
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive.Disposables;
@@ -33,10 +34,14 @@ public sealed class ChatsViewModel : ReactiveObject
 {
     private readonly IChatService _chatService;
 
+    private readonly Dictionary<Guid, object> _contentCache = new();
+
     public ChatSidebarViewModel SidebarViewModel { get; }
 
     [Reactive] public object? CurrentChatContent { get; set; }
     [Reactive] public bool IsTransitionReversed { get; set; }
+
+    private readonly SearchChatViewModel _searchViewModel = new();
 
     public ChatsViewModel()
     {
@@ -49,14 +54,25 @@ public sealed class ChatsViewModel : ReactiveObject
             {
                 if (chat != null)
                 {
-                    CurrentChatContent = CreateChatViewModel(chat);
+                    CurrentChatContent = GetOrCreateChatViewModel(chat);
                 }
+            });
+
+        SidebarViewModel.OpenSearchCommand
+            .Subscribe(_ =>
+            {
+                CurrentChatContent = _searchViewModel;
             });
     }
 
-    private object CreateChatViewModel(ChatListItemViewModel chat)
+    private object GetOrCreateChatViewModel(ChatListItemViewModel chat)
     {
-        return chat.Type switch
+        if (_contentCache.TryGetValue(chat.Id, out object? cachedViewModel))
+        {
+            return cachedViewModel;
+        }
+
+        object newViewModel = chat.Type switch
         {
             ChatType.Personal => new ConversationViewModel(chat.Id, chat.Title, _chatService),
             ChatType.Group => new GroupConversationViewModel(chat.Id, chat.Title, _chatService),
@@ -64,5 +80,14 @@ public sealed class ChatsViewModel : ReactiveObject
 
             _ => new ConversationViewModel(chat.Id, chat.Title, _chatService)
         };
+
+        _contentCache[chat.Id] = newViewModel;
+
+        return newViewModel;
+    }
+
+    public void ClearCache()
+    {
+        _contentCache.Clear();
     }
 }

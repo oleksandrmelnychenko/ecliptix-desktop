@@ -1,0 +1,83 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:newContent="clr-namespace:Ecliptix.Core.Features.NewContent"
+             xmlns:views="clr-namespace:Ecliptix.Core.Features.NewContent.Views"
+             xmlns:page="clr-namespace:Ecliptix.Core.Shared.Transitions.Page"
+             xmlns:viewModels="clr-namespace:Ecliptix.Core.Features.NewContent.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:DataType="newContent:CreateWizardViewModel"
+             x:Class="Ecliptix.Core.Features.NewContent.Views.CreateWizardView">
+
+
+    <UserControl.Styles>
+        <!-- Стиль для контейнера, що змінює розмір -->
+        <Style Selector="Border.sizing-container">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="ClipToBounds" Value="True"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <!-- Важливо: центруємо, щоб анімація йшла від центру -->
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+
+            <Setter Property="Transitions">
+                <Transitions>
+                    <!-- Плавна зміна ширини та висоти (CubicEaseOut) -->
+                    <!-- Тривалість 0.3s синхронізована зі слайдом сторінок -->
+                    <DoubleTransition Property="Width" Duration="0:0:0.3" Easing="CubicEaseOut"/>
+                    <DoubleTransition Property="Height" Duration="0:0:0.3" Easing="CubicEaseOut"/>
+                </Transitions>
+            </Setter>
+        </Style>
+    </UserControl.Styles>
+
+     <Grid>
+        <!-- Цей Border буде анімувати свої Width/Height -->
+        <Border x:Name="SizingContainer" Classes="sizing-container">
+
+            <TransitioningContentControl Content="{Binding CurrentPage}"
+>
+
+                <TransitioningContentControl.PageTransition>
+                    <page:SharedAxisPageTransition Duration="0:0:0.3"
+                                                   Orientation="Horizontal"
+                                                   SlideDistance="40"
+                                                   FadeThreshold="0.2"/>
+                </TransitioningContentControl.PageTransition>
+
+                <TransitioningContentControl.DataTemplates>
+                    <!-- 1. Меню вибору -->
+                    <DataTemplate DataType="{x:Type viewModels:CreateSelectionViewModel}">
+                        <views:CreateSelectionView />
+                    </DataTemplate>
+
+                    <!-- 2. Форми контенту -->
+                    <DataTemplate DataType="{x:Type newContent:NewChannelViewModel}">
+                        <newContent:NewChannelView />
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type viewModels:NewGroupChatViewModel}">
+                        <newContent:NewGroupChatView />
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type newContent:NewPostViewModel}">
+                        <newContent:NewPostView />
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type viewModels:NewContactViewModel}">
+                        <views:NewContactView />
+                    </DataTemplate>
+
+                </TransitioningContentControl.DataTemplates>
+            </TransitioningContentControl>
+        </Border>
+
+        <!-- Прихований контейнер для вимірювання наступної сторінки -->
+        <Canvas x:Name="HiddenMeasureContainer"
+                Opacity="0"
+                IsHitTestVisible="False"
+                Width="0" Height="0"/>
+    </Grid>
+</UserControl>
+

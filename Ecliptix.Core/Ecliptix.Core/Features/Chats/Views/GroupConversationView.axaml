@@ -23,10 +23,13 @@
             </DrawingBrush>
         </Grid.Background>
 
-        <Border Grid.Row="0" Background="White" BorderBrush="#F0F0F0" BorderThickness="0,0,0,1" Padding="20,10">
-             </Border>
+        <views:GroupChatHeaderView Grid.Row="0" />
 
-        <ScrollViewer Grid.Row="1" Padding="20" VerticalScrollBarVisibility="Visible" x:Name="ChatScrollViewer">
+        <ScrollViewer Grid.Row="1"
+                      Padding="20"
+                      VerticalScrollBarVisibility="Visible"
+                      x:Name="ChatScrollViewer">
+
             <ItemsControl ItemsSource="{Binding Messages}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -34,7 +37,12 @@
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
 
-                <ItemsControl.ItemTemplate>
+                <ItemsControl.DataTemplates>
+
+                    <DataTemplate DataType="{x:Type msgVm:DateSeparatorViewModel}">
+                        <views:DateSeparatorView />
+                    </DataTemplate>
+
                     <DataTemplate DataType="{x:Type msgVm:MessageViewModelBase}">
                         <Grid ColumnDefinitions="Auto, *, Auto">
 
@@ -63,12 +71,12 @@
                             </Border>
                         </Grid>
                     </DataTemplate>
-                </ItemsControl.ItemTemplate>
+
+                </ItemsControl.DataTemplates>
             </ItemsControl>
         </ScrollViewer>
 
         <views:ChatInputView Grid.Row="2" />
-
     </Grid>
 </UserControl>
 

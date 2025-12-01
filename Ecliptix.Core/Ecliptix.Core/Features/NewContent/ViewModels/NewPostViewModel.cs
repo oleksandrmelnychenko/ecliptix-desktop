@@ -16,7 +16,6 @@ public class NewPostViewModel : ReactiveObject
     [Reactive] public bool HideLikeViewCounts { get; set; }
     [Reactive] public bool TurnOffCommenting { get; set; }
 
-    // Властивість для лічильника символів, яка автоматично оновлюється
     [ObservableAsProperty] public int CaptionLength { get; }
 
     public ReactiveCommand<Unit, Unit> CloseCommand { get; }
@@ -28,7 +27,6 @@ public class NewPostViewModel : ReactiveObject
         _messageBus = Locator.Current.GetService<IMessageBus>();
 
 
-        // Правильний спосіб для ObservableAsProperty:
         this.WhenAnyValue(x => x.Caption)
             .Select(text => text?.Length ?? 0)
             .ToPropertyEx(this, x => x.CaptionLength);
@@ -49,4 +47,8 @@ public class NewPostViewModel : ReactiveObject
             System.Console.WriteLine("Add Media Clicked");
         });
     }
+}
+
+public class CloseOverlayEvent
+{
 }

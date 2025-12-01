@@ -13,8 +13,11 @@ namespace Ecliptix.Core.Features.Chats.Services;
 public interface IChatService
 {
     Task<IEnumerable<ChatListItemViewModel>> GetChatsAsync();
-
     IAsyncEnumerable<IEnumerable<MessageViewModelBase>> GetMessagesStreamAsync(Guid chatId);
+
+    Task<List<Bitmap>> GetChatParticipantsAvatarsAsync(Guid chatId, int limit = 4);
+    int GetChatParticipantsCount(Guid chatId);
+
 }
 
 public class ChatService : IChatService
@@ -31,50 +34,12 @@ public class ChatService : IChatService
         _chats = new List<ChatModel>();
         _messages = new List<MessageModel>();
 
-        Participant me = new Participant(_currentUserId, "Me", "");
-        Participant sarah = new Participant(Guid.NewGuid(), "Sarah Chen", "user1.jpg");
-        Participant marcus = new Participant(Guid.NewGuid(), "Marcus Reid", "user2.jpg");
-        Participant emma = new Participant(Guid.NewGuid(), "Emma Wilson", "user3.jpg");
-
-        _users.AddRange(new[] { me, sarah, marcus, emma });
-
-        Guid chatSarahId = Guid.NewGuid();
-        Guid chatGroupId = Guid.NewGuid();
-
-        _chats.Add(new ChatModel(chatSarahId, "Sarah Chen", ChatType.Personal, new List<Guid> { me.Id, sarah.Id }));
-
-
-        _chats.Add(new ChatModel(chatGroupId, "Design Team", ChatType.Group, new List<Guid> { me.Id, sarah.Id, marcus.Id, emma.Id }));
-
-        _chats.Add(new ChatModel(Guid.NewGuid(), "Announcements", ChatType.Channel, null));
-
-        _messages.Add(new MessageModel(Guid.NewGuid(), chatSarahId, sarah.Id, "Awesome! Can't wait to see them.", DateTime.Now.AddMinutes(-5), MessageType.Text));
-
-        _messages.Add(new MessageModel(Guid.NewGuid(), chatGroupId, marcus.Id, "Guys, check the Figma updates.", DateTime.Now.AddMinutes(-30), MessageType.Text));
-
-    }
-
-    private Bitmap? LoadAvatar(string fileName)
-    {
-        if (string.IsNullOrEmpty(fileName))
-        {
-            return null;
-        }
-
-        try
-        {
-            Uri uri = new($"avares://Ecliptix.Core/Assets/DataSeed/{fileName}");
-            return new Bitmap(AssetLoader.Open(uri));
-        }
-        catch
-        {
-            return null;
-        }
+        InitializeData();
     }
 
     public async Task<IEnumerable<ChatListItemViewModel>> GetChatsAsync()
     {
-        await Task.Delay(10);
+        await Task.Delay(5);
 
         List<ChatListItemViewModel> sidebarItems = new List<ChatListItemViewModel>();
         Random rnd = new Random();
@@ -93,7 +58,6 @@ public class ChatService : IChatService
             {
                 Guid partnerId = chat.ParticipantIds.FirstOrDefault(id => id != _currentUserId);
                 Participant? partner = _users.FirstOrDefault(u => u.Id == partnerId);
-
                 if (partner != null)
                 {
                     avatarFileName = partner.AvatarPath;
@@ -101,26 +65,54 @@ public class ChatService : IChatService
                 }
             }
 
-            ChatListItemViewModel item = new ChatListItemViewModel
+            sidebarItems.Add(new ChatListItemViewModel
             {
                 Id = chat.Id,
                 Title = chatTitle,
                 Type = chat.Type,
-
                 LastMessageRaw = lastMsg?.Text ?? "No messages yet",
                 LastMessageTime = lastMsg?.Timestamp ?? DateTime.Now,
                 LastMessageSender = _users.FirstOrDefault(u => u.Id == lastMsg?.SenderId)?.Name ?? "",
-
                 UnreadCount = rnd.Next(0, 6),
-
                 IsOnline = true,
                 AvatarImage = LoadAvatar(avatarFileName)
-            };
-
-            sidebarItems.Add(item);
+            });
         }
 
         return sidebarItems.OrderByDescending(x => x.LastMessageTime);
+    }
+
+    public async Task<List<Bitmap>> GetChatParticipantsAvatarsAsync(Guid chatId, int limit = 4)
+    {
+        ChatModel? chat = _chats.FirstOrDefault(c => c.Id == chatId);
+        if (chat == null)
+        {
+            return new List<Bitmap>();
+        }
+
+        List<Guid> participantIds = chat.ParticipantIds
+            .Where(id => id != _currentUserId)
+            .Take(limit)
+            .ToList();
+
+        List<Bitmap> avatars = new List<Bitmap>();
+        foreach (Guid id in participantIds)
+        {
+            Participant? user = _users.FirstOrDefault(u => u.Id == id);
+            Bitmap? avatar = LoadAvatar(user?.AvatarPath ?? "");
+            if (avatar != null)
+            {
+                avatars.Add(avatar);
+            }
+        }
+
+        return avatars;
+    }
+
+    public int GetChatParticipantsCount(Guid chatId)
+    {
+        ChatModel? chat = _chats.FirstOrDefault(c => c.Id == chatId);
+        return chat?.ParticipantIds.Count ?? 0;
     }
 
     public async IAsyncEnumerable<IEnumerable<MessageViewModelBase>> GetMessagesStreamAsync(Guid chatId)
@@ -131,180 +123,239 @@ public class ChatService : IChatService
             yield break;
         }
 
-        Participant me = _users.First(u => u.Id == _currentUserId);
-        Participant? marcus = _users.FirstOrDefault(u => u.Name.Contains("Marcus"));
-        Participant? emma = _users.FirstOrDefault(u => u.Name.Contains("Emma"));
-        Participant? sarah = _users.FirstOrDefault(u => u.Name.Contains("Sarah"));
+        DateTime? lastDate = null;
 
-        if (marcus == null)
+        IAsyncEnumerable<IEnumerable<MessageViewModelBase>> stream = chat.Type switch
         {
-            marcus = _users.First(u => u.Id != _currentUserId);
+            ChatType.Channel => GenerateChannelStream(),
+            ChatType.Group => GenerateGroupStream(chatId),
+            ChatType.Personal => GeneratePersonalStream(chatId),
+            _ => throw new ArgumentOutOfRangeException()
+        };
+
+        await foreach (IEnumerable<MessageViewModelBase> batch in stream)
+        {
+            yield return batch;
         }
+    }
 
-        if (emma == null)
+
+    private async IAsyncEnumerable<IEnumerable<MessageViewModelBase>> GenerateChannelStream()
+    {
+        Random rnd = new Random();
+        DateTime? lastDate = null;
+
+        string veryLongText =
+            "🚀 **Ecliptix v2.4.0 Release Notes**\n\n" +
+            "We are excited to announce the rollout of the latest update. This release focuses heavily on performance optimizations and UI consistency.\n\n" +
+            "**Key Highlights:**\n" +
+            "1. **Rendering Engine**: Switched to a new composition target, resulting in 60fps animations on lower-end devices.\n" +
+            "2. **Memory Usage**: Reduced idle memory footprint by ~30% by optimizing image caching strategies.\n" +
+            "3. **Dark Mode**: Fixed contrast issues in the settings panel and sidebar navigation.\n\n" +
+            "**Bug Fixes:**\n" +
+            "- Resolved an issue where the chat history would jump when loading new messages.\n" +
+            "- Fixed a crash occurring when uploading large PDF files.\n" +
+            "- Corrected timestamp formatting for users in UTC-12 timezones.\n\n" +
+            "Please make sure to update your local environments by EOD. If you encounter any regressions, report them immediately to the QA channel. Great work everyone!";
+
+        string mediumText =
+            "Just a reminder that the design review meeting has been moved to Friday at 10:00 AM. Please have your Figma prototypes ready for presentation. We need to finalize the dashboard layout before the next sprint begins.";
+
+        string shortText =
+            "Server maintenance is scheduled for tonight at 02:00 AM UTC. Expected downtime: 15 mins.";
+
+        for (int q = 0; q < 5; q++)
         {
-            emma = marcus;
-        }
-
-
-        if (chat.Type == ChatType.Channel)
-        {
-            Random rnd = new Random();
-            DateTime? lastDate = null;
-
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 4; i++)
             {
-                await Task.Delay(10);
-                List<MessageViewModelBase> batchViewModels = new List<MessageViewModelBase>();
-
+                await Task.Delay(30);
+                List<MessageViewModelBase> batch = new List<MessageViewModelBase>();
                 DateTime baseTime = DateTime.Now.AddDays(i - 2);
 
-                for (int j = 0; j < 4; j++)
+                for (int j = 0; j < 1; j++)
                 {
-                    DateTime postTime = baseTime.AddMinutes(j * 30);
+                    DateTime postTime = baseTime.AddHours(10);
 
                     if (lastDate == null || lastDate.Value.Date != postTime.Date)
                     {
-                        batchViewModels.Add(new DateSeparatorViewModel { Time = postTime });
+                        batch.Add(new DateSeparatorViewModel { Time = postTime });
                     }
+
                     lastDate = postTime;
 
                     ChannelPostViewModel post = new ChannelPostViewModel
                     {
                         Time = postTime,
-                        Likes = rnd.Next(10, 500),
-                        Comments = rnd.Next(0, 50),
-                        Views = rnd.Next(100, 5000),
-                        Shares = rnd.Next(0, 20),
-                        SenderName = "Admin"
+                        Likes = rnd.Next(50, 2000),
+                        Comments = rnd.Next(5, 100),
+                        Views = rnd.Next(500, 15000),
+                        Shares = rnd.Next(2, 50),
+                        SenderName = "System Admin"
                     };
 
-                    int postType = rnd.Next(0, 3);
+                    switch (i)
+                    {
+                        case 0:
+                            post.Text = "Check out the new marketing assets for the upcoming campaign! 🎨";
+                            post.PostImage = LoadAvatar("user1.jpg");
+                            break;
 
-                    if (postType == 0)
-                    {
-                        post.Text = "New mockups are ready for review! Check out the latest design updates 🎨";
-                        post.PostImage = LoadAvatar("user1.jpg");
-                    }
-                    else if (postType == 1)
-                    {
-                        post.Text = "Don't forget about tomorrow's team meeting at 10 AM. See you there!";
-                    }
-                    else
-                    {
-                        post.Text = "Identified several key areas where we can improve. First, we need to establish better documentation standards that include code examples, usage guidelines, and accessibility considerations.\n\nSecond, our component library should be more modular, allowing teams to compose complex interfaces from simple, reusable building blocks.\n\nThird, we should implement automated testing to catch regressions early and ensure consistent behavior across different browsers and devices.";
+                        case 1:
+                            post.Text = shortText;
+                            break;
+
+                        case 2:
+                            post.Text = veryLongText;
+                            break;
+
+                        case 3:
+                            post.Text = mediumText;
+                            break;
                     }
 
-                    batchViewModels.Add(post);
+                    batch.Add(post);
                 }
-
-                yield return batchViewModels;
+                yield return batch;
             }
         }
-        else if (chat.Type == ChatType.Group)
-        {
 
+
+    }
+
+    private async IAsyncEnumerable<IEnumerable<MessageViewModelBase>> GenerateGroupStream(Guid chatId)
+    {
+        Participant marcus = _users.FirstOrDefault(u => u.Name.Contains("Marcus")) ?? _users.First();
+        Participant emma = _users.FirstOrDefault(u => u.Name.Contains("Emma")) ?? _users.First();
+        Participant sarah = _users.FirstOrDefault(u => u.Name.Contains("Sarah")) ?? _users.First();
+        Participant me = _users.First(u => u.Id == _currentUserId);
+
+        DateTime? lastDate = null;
+
+        for (int i = 0; i < 5; i++)
+        {
+            await Task.Delay(30);
+            List<MessageModel> batchModels = new List<MessageModel>();
+            Guid msgId = Guid.NewGuid();
+
+            DateTime baseTime = (i == 0) ? DateTime.Now.AddDays(-2) : DateTime.Now.AddMinutes(-10 + i);
+
+            switch (i)
+            {
+                case 0:
+                    batchModels.Add(new MessageModel(msgId, chatId, marcus.Id, "Hey team! Just uploaded the new icons.", baseTime, MessageType.Text));
+                    batchModels.Add(new MessageModel(Guid.NewGuid(), chatId, emma.Id, "Thanks Marcus! Checking them now.", baseTime.AddMinutes(1), MessageType.Text));
+                    break;
+                case 1:
+                    batchModels.Add(new MessageModel(Guid.NewGuid(), chatId, me.Id, "They look clean. Good job.", baseTime, MessageType.Text));
+                    break;
+                case 2:
+                    batchModels.Add(new MessageModel(Guid.NewGuid(), chatId, marcus.Id, "Thanks! I used the outlined style.", baseTime, MessageType.Reply, msgId));
+                    break;
+                case 3:
+                    batchModels.Add(new MessageModel(Guid.NewGuid(), chatId, sarah.Id, "I think the 'Settings' icon is a bit too small.", baseTime, MessageType.Text));
+                    break;
+                case 4:
+                    batchModels.Add(new MessageModel(Guid.NewGuid(), chatId, emma.Id, "Agreed. Let's sync at 5 PM.", baseTime, MessageType.Text));
+                    break;
+            }
+
+            if (batchModels.Any())
+            {
+                IEnumerable<MessageViewModelBase> vms = MapToViewModels(batchModels);
+                List<MessageViewModelBase> vmsWithDates = InjectDateSeparators(vms, ref lastDate);
+
+                yield return vmsWithDates;
+            }
+        }
+    }
+
+    private List<MessageViewModelBase> InjectDateSeparators(IEnumerable<MessageViewModelBase> messages, ref DateTime? lastDate)
+    {
+        List<MessageViewModelBase> result = new List<MessageViewModelBase>();
+
+        foreach (MessageViewModelBase msg in messages.OrderBy(m => m.Time))
+        {
+            if (lastDate == null || lastDate.Value.Date != msg.Time.Date)
+            {
+                result.Add(new DateSeparatorViewModel { Time = msg.Time });
+            }
+
+            lastDate = msg.Time;
+            result.Add(msg);
+        }
+        return result;
+    }
+
+    private async IAsyncEnumerable<IEnumerable<MessageViewModelBase>> GeneratePersonalStream(Guid chatId)
+    {
+        Participant me = _users.First(u => u.Id == _currentUserId);
+        Participant partner = _users.FirstOrDefault(u => u.Id != _currentUserId) ?? new Participant(Guid.NewGuid(), "Partner", "");
+
+        DateTime? lastDate = null;
+
+        for (int i = 0; i < 5; i++)
+        {
+            await Task.Delay(30);
             List<MessageModel> batchModels = new List<MessageModel>();
 
-            for (int i = 0; i < 10; i++)
-            {
-                await Task.Delay(2);
+            DateTime baseTime = (i == 0) ? DateTime.Now.AddDays(-1) : DateTime.Now.AddMinutes(-20 + i * 5);
 
-
-                Guid msgId = Guid.NewGuid();
-
-                switch (i)
+            if (i == 0) {
+                batchModels.Add(new MessageModel(Guid.NewGuid(), chatId, partner.Id, "Hey, did you see the report?", baseTime, MessageType.Text));
+            }
+            else {
+                batchModels.Add(new MessageModel(Guid.NewGuid(), chatId, me.Id, $"adsfadsdafadsfsadfasdfWorking on step {i}...", baseTime, MessageType.Text));
+                if (i % 2 == 0)
                 {
-                    case 0:
-                        batchModels.Add(new MessageModel(msgId, chatId, marcus.Id, "Hey team! Just uploaded the new icons to Figma.", DateTime.Now.AddMinutes(-10), MessageType.Text));
-                        batchModels.Add(new MessageModel(Guid.NewGuid(), chatId, emma.Id, "Thanks Marcus! Checking them now.", DateTime.Now.AddMinutes(-9), MessageType.Text));
-                        break;
-                    case 1:
-                        batchModels.Add(new MessageModel(Guid.NewGuid(), chatId, me.Id, "They look clean. Are we using the outlined version?", DateTime.Now.AddMinutes(-8), MessageType.Text));
-                        break;
-                    case 2:
-                        batchModels.Add(new MessageModel(msgId, chatId, marcus.Id, "Yes, outlined for the main UI, filled for active states.", DateTime.Now.AddMinutes(-7), MessageType.Reply, msgId)); // Відповідь мені
-                        break;
-                    case 3:
-                        batchModels.Add(new MessageModel(Guid.NewGuid(), chatId, sarah.Id, "I think the 'Settings' icon is a bit too small compared to others.", DateTime.Now.AddMinutes(-5), MessageType.Text));
-                        batchModels.Add(new MessageModel(Guid.NewGuid(), chatId, marcus.Id, "Good catch, Sarah. I'll resize it to 24px.", DateTime.Now.AddMinutes(-4), MessageType.Text));
-                        break;
-                    case 4:
-                        batchModels.Add(new MessageModel(Guid.NewGuid(), chatId, emma.Id, "Perfect. Let's freeze the design by 5 PM.", DateTime.Now.AddMinutes(-2), MessageType.Text));
-                        break;
+                    batchModels.Add(new MessageModel(Guid.NewGuid(), chatId, partner.Id, "Cool.", baseTime.AddMinutes(1), MessageType.Text));
                 }
+            }
 
-                yield return MapToViewModels(batchModels);
+            if (batchModels.Any())
+            {
+                IEnumerable<MessageViewModelBase> vms = MapToViewModels(batchModels);
+                yield return InjectDateSeparators(vms, ref lastDate);
             }
         }
-        else
-        {
-            List<MessageModel> batchModels = new();
-            for (int i = 0; i < 10; i++)
-            {
-                await Task.Delay(10);
+    }
 
-                Guid msg1Id = Guid.NewGuid();
+    private void InitializeData()
+    {
+        // 1. Створюємо 6 юзерів (у мене картинки до user6.jpg)
+        Participant me = new Participant(_currentUserId, "Me", "");
+        Participant sarah = new Participant(Guid.NewGuid(), "Sarah Chen", "user1.jpg");
+        Participant marcus = new Participant(Guid.NewGuid(), "Marcus Reid", "user2.jpg");
+        Participant emma = new Participant(Guid.NewGuid(), "Emma Wilson", "user3.jpg");
+        Participant alex = new Participant(Guid.NewGuid(), "Alex Chen", "user4.jpg");
+        Participant lisa = new Participant(Guid.NewGuid(), "Lisa Park", "user5.jpg");
+        Participant john = new Participant(Guid.NewGuid(), "John Doe", "user6.jpg");
 
-                Participant? partner = sarah;
+        _users.AddRange(new[] { me, sarah, marcus, emma, alex, lisa, john });
 
-                batchModels.AddRange(new List<MessageModel>
-                {
-                    new MessageModel(msg1Id, chatId, partner.Id, $"Batch {i+1}: Hey! How's the project going?", DateTime.Now.AddMinutes(-50 + i), MessageType.Text),
+        // 2. Створюємо чати
+        Guid chatSarahId = Guid.NewGuid();
+        Guid chatGroupId = Guid.NewGuid();
+        Guid chatChannelId = Guid.NewGuid();
 
-                    new MessageModel(Guid.NewGuid(), chatId, me.Id, "Going great! Just finished the new designs", DateTime.Now.AddMinutes(-45 + i), MessageType.Text),
+        _chats.Add(new ChatModel(chatSarahId, "Sarah Chen", ChatType.Personal, new List<Guid> { me.Id, sarah.Id }));
 
-                    new MessageModel(Guid.NewGuid(), chatId, me.Id, "Yes, absolutely! I'll send you the files right now.", DateTime.Now.AddMinutes(-40 + i), MessageType.Reply, msg1Id),
+        // ГРУПА: Додаємо 5 учасників (щоб побачити накладання аватарок)
+        _chats.Add(new ChatModel(chatGroupId, "Design Team", ChatType.Group, new List<Guid> { me.Id, sarah.Id, marcus.Id, emma.Id, alex.Id }));
 
-                    new MessageModel(Guid.NewGuid(), chatId, partner.Id, "Awesome! Can't wait to see them.", DateTime.Now.AddMinutes(-35 + i), MessageType.Text)
-                });
+        _chats.Add(new ChatModel(chatChannelId, "Announcements", ChatType.Channel, new List<Guid> { me.Id }));
 
-                List<MessageViewModelBase> batchViewModels = new List<MessageViewModelBase>();
-
-                foreach (MessageModel msg in batchModels)
-                {
-                    Participant sender = (msg.SenderId == me.Id) ? me : partner;
-                    bool isMine = msg.SenderId == _currentUserId;
-
-                    if (msg.Type == MessageType.Reply && msg.ReplyToMessageId.HasValue)
-                    {
-
-                        MessageModel? originalMsg = batchModels.FirstOrDefault(m => m.Id == msg.ReplyToMessageId.Value);
-                        Participant? originalSender = (originalMsg?.SenderId == me.Id) ? me : partner;
-
-                        batchViewModels.Add(new ReplyMessageViewModel
-                        {
-                            Text = msg.Text,
-                            Time = msg.Timestamp,
-                            IsMine = isMine,
-                            SenderName = sender.Name,
-                            QuotedText = originalMsg?.Text ?? "Deleted message",
-                            QuotedAuthor = originalSender?.Name ?? "Unknown"
-                        });
-                    }
-                    else
-                    {
-                        batchViewModels.Add(new SimpleMessageViewModel
-                        {
-                            Text = msg.Text,
-                            Time = msg.Timestamp,
-                            IsMine = isMine,
-                            SenderName = sender.Name
-                        });
-                    }
-                }
-
-                yield return batchViewModels;
-            }
-        }
-
-
-
+        // 3. Початкові повідомлення
+        _messages.Add(new MessageModel(Guid.NewGuid(), chatSarahId, sarah.Id, "Awesome! Can't wait to see them.", DateTime.Now.AddMinutes(-5), MessageType.Text));
+        _messages.Add(new MessageModel(Guid.NewGuid(), chatGroupId, marcus.Id, "Guys, check the Figma updates.", DateTime.Now.AddMinutes(-30), MessageType.Text));
+        _messages.Add(new MessageModel(Guid.NewGuid(), chatChannelId, me.Id, "Release notes v2.0", DateTime.Now.AddDays(-1), MessageType.Text));
     }
 
     private IEnumerable<MessageViewModelBase> MapToViewModels(List<MessageModel> models)
     {
         List<MessageViewModelBase> result = new List<MessageViewModelBase>();
+
+        List<MessageModel> allKnownMessages = _messages.Concat(models).ToList();
+
         foreach (MessageModel msg in models)
         {
             Participant? sender = _users.FirstOrDefault(u => u.Id == msg.SenderId);
@@ -313,7 +364,7 @@ public class ChatService : IChatService
 
             if (msg.Type == MessageType.Reply && msg.ReplyToMessageId.HasValue)
             {
-                MessageModel? originalMsg = _messages.Concat(models).FirstOrDefault(m => m.Id == msg.ReplyToMessageId.Value);
+                MessageModel? originalMsg = allKnownMessages.FirstOrDefault(m => m.Id == msg.ReplyToMessageId.Value);
                 Participant? originalSender = _users.FirstOrDefault(u => u.Id == originalMsg?.SenderId);
 
                 result.Add(new ReplyMessageViewModel
@@ -323,8 +374,8 @@ public class ChatService : IChatService
                     IsMine = isMine,
                     SenderName = sender?.Name ?? "Unknown",
                     SenderAvatar = avatar,
-                    QuotedText = originalMsg?.Text ?? "...",
-                    QuotedAuthor = originalSender?.Name ?? "..."
+                    QuotedText = originalMsg?.Text ?? "Deleted message",
+                    QuotedAuthor = originalSender?.Name ?? "Unknown"
                 });
             }
             else
@@ -340,5 +391,20 @@ public class ChatService : IChatService
             }
         }
         return result;
+    }
+
+    private Bitmap? LoadAvatar(string fileName)
+    {
+        if (string.IsNullOrEmpty(fileName))
+        {
+            return null;
+        }
+
+        try
+        {
+            Uri uri = new($"avares://Ecliptix.Core/Assets/DataSeed/{fileName}");
+            return new Bitmap(AssetLoader.Open(uri));
+        }
+        catch { return null; }
     }
 }
