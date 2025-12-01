@@ -1,108 +1,122 @@
 <UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="clr-namespace:Ecliptix.Core.Features.Feed.ViewModels"
-             xmlns:feedItem="clr-namespace:Ecliptix.Core.Features.Feed.Controls.FeedItem"
-             mc:Ignorable="d"
-             d:DesignWidth="800"
-             d:DesignHeight="600"
-             x:DataType="vm:FeedViewModel"
-             x:Class="Ecliptix.Core.Features.Feed.Views.FeedView">
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+			 xmlns:vm="clr-namespace:Ecliptix.Core.Features.Feed.ViewModels"
+			 xmlns:feedItem="clr-namespace:Ecliptix.Core.Features.Feed.Controls.FeedItem"
+			 xmlns:navigation="clr-namespace:Ecliptix.Core.Controls.Navigation"
+			 xmlns:chatInput="clr-namespace:Ecliptix.Core.Features.Chats.Views"
+			 mc:Ignorable="d"
+			 d:DesignWidth="800"
+			 d:DesignHeight="600"
+			 x:DataType="vm:FeedViewModel"
+			 x:Name="ThisControl"
+			 x:Class="Ecliptix.Core.Features.Feed.Views.FeedView">
 
-    <Grid Background="#FFFFFF">
-        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
-                      VerticalScrollBarVisibility="Auto">
-            <!-- Twitter-like centered feed container -->
-            <Border MaxWidth="1020"
-                    HorizontalAlignment="Center"
-                    Padding="20,0">
-                <Grid RowDefinitions="Auto,*,Auto">
+	<Grid Background="#fff">
+		<ScrollViewer HorizontalScrollBarVisibility="Disabled"
+					  VerticalScrollBarVisibility="Auto">
+			<!-- Twitter-like centered feed container -->
+			<Border MaxWidth="1020"
+					HorizontalAlignment="Center"
+					Padding="40,0">
+				<Grid RowDefinitions="Auto,*,Auto">
 
-                    <!-- Loading Indicator -->
-                    <Border Grid.Row="0"
-                            Padding="16"
-                            IsVisible="{Binding IsLoadingPosts}">
-                        <TextBlock Text="Loading feed..."
-                                   FontSize="14"
-                                   Foreground="#6B7280"
-                                   HorizontalAlignment="Center" />
-                    </Border>
+					<!-- Loading Indicator -->
+					<Border Grid.Row="0"
+							Padding="16"
+							IsVisible="{Binding IsLoadingPosts}">
+						<TextBlock Text="Loading feed..."
+								   FontSize="14"
+								   Foreground="#6B7280"
+								   HorizontalAlignment="Center" />
+					</Border>
 
-                    <!-- Feed Posts -->
-                    <ItemsControl Grid.Row="1"
-                                  ItemsSource="{Binding Posts}"
-                                  Margin="0,8">
-                        <ItemsControl.DataTemplates>
-                            <DataTemplate DataType="vm:TextPostViewModel">
-                                <feedItem:TextPostControl />
-                            </DataTemplate>
-                        </ItemsControl.DataTemplates>
-                    </ItemsControl>
+					<navigation:FloatingNavBar Grid.Row="0"
+											   Margin="0,20,0,0"
+											   HorizontalAlignment="Center"
+											   Items="{Binding MenuItems}" />
 
-                    <!-- Load More Button -->
-                    <Border Grid.Row="2"
-                            Padding="16"
-                            IsVisible="{Binding HasMorePosts}">
-                        <Button Content="Load More"
-                                Command="{Binding LoadMorePostsCommand}"
-                                HorizontalAlignment="Center"
-                                Background="#3B82F6"
-                                Foreground="#FFFFFF"
-                                BorderThickness="0"
-                                CornerRadius="8"
-                                Padding="24,12"
-                                FontSize="14"
-                                FontWeight="SemiBold" />
-                    </Border>
+					<!-- Feed Posts -->
+					<ItemsControl Grid.Row="1"
+								  ItemsSource="{Binding Posts}"
+								  Margin="0,8">
+						<ItemsControl.DataTemplates>
+							<DataTemplate DataType="vm:TextPostViewModel">
+								<feedItem:TextPostControl />
+							</DataTemplate>
+						</ItemsControl.DataTemplates>
+					</ItemsControl>
 
-                    <!-- Error Message -->
-                    <Border Grid.Row="2"
-                            Padding="16"
-                            IsVisible="{Binding ErrorMessage, Converter={StaticResource NotNullOrEmptyConverter}}">
-                        <Border Background="#FEF2F2"
-                                BorderBrush="#FCA5A5"
-                                BorderThickness="1"
-                                CornerRadius="8"
-                                Padding="16">
-                            <StackPanel Spacing="8">
-                                <TextBlock Text="Error"
-                                           FontSize="14"
-                                           FontWeight="SemiBold"
-                                           Foreground="#DC2626" />
-                                <TextBlock Text="{Binding ErrorMessage}"
-                                           FontSize="13"
-                                           Foreground="#991B1B"
-                                           TextWrapping="Wrap" />
-                            </StackPanel>
-                        </Border>
-                    </Border>
+					<!-- Load More Button -->
+					<Border Grid.Row="2"
+							Padding="16"
+							IsVisible="{Binding HasMorePosts}">
+						<Button Content="Load More"
+								Command="{Binding LoadMorePostsCommand}"
+								HorizontalAlignment="Center"
+								Background="#3B82F6"
+								Foreground="#FFFFFF"
+								BorderThickness="0"
+								CornerRadius="8"
+								Padding="24,12"
+								FontSize="14"
+								FontWeight="SemiBold" />
+					</Border>
 
-                </Grid>
-            </Border>
-        </ScrollViewer>
+					<!-- Error Message -->
+					<Border Grid.Row="2"
+							Padding="16"
+							IsVisible="{Binding ErrorMessage, Converter={StaticResource NotNullOrEmptyConverter}}">
+						<Border Background="#FEF2F2"
+								BorderBrush="#FCA5A5"
+								BorderThickness="1"
+								CornerRadius="8"
+								Padding="16">
+							<StackPanel Spacing="8">
+								<TextBlock Text="Error"
+										   FontSize="14"
+										   FontWeight="SemiBold"
+										   Foreground="#DC2626" />
+								<TextBlock Text="{Binding ErrorMessage}"
+										   FontSize="13"
+										   Foreground="#991B1B"
+										   TextWrapping="Wrap" />
+							</StackPanel>
+						</Border>
+					</Border>
 
-        <!-- Empty State -->
-        <Border IsVisible="{Binding !Posts.Count}"
-                Background="Transparent"
-                MaxWidth="1020"
-                HorizontalAlignment="Center"
-                Margin="20"
-                CornerRadius="12"
-                Padding="40">
-            <StackPanel Spacing="20"
-                        VerticalAlignment="Center"
-                        HorizontalAlignment="Center">
-                <TextBlock Text="Your Feed"
-                           FontSize="32"
-                           FontWeight="Bold"
-                           HorizontalAlignment="Center"
-                           Foreground="#1A1A1A" />
-                <TextBlock Text="Your personalized feed will appear here"
-                           FontSize="16"
-                           Foreground="#6B7280"
-                           HorizontalAlignment="Center" />
-            </StackPanel>
-        </Border>
-    </Grid>
+				</Grid>
+			</Border>
+		</ScrollViewer>
+
+		<!--Add post input-->
+		<chatInput:ChatInputView Margin="80,0" />
+
+		<!--Edit post overlay-->
+		<feedItem:EditPostControl IsVisible="{Binding DataContext.IsEdit, ElementName=ThisControl}" DataContext="{Binding SelectedPost}" />
+
+		<!-- Empty State -->
+		<Border IsVisible="{Binding !Posts.Count}"
+				Background="Transparent"
+				MaxWidth="1020"
+				HorizontalAlignment="Center"
+				Margin="20"
+				CornerRadius="12"
+				Padding="40">
+			<StackPanel Spacing="20"
+						VerticalAlignment="Center"
+						HorizontalAlignment="Center">
+				<TextBlock Text="Your Feed"
+						   FontSize="32"
+						   FontWeight="Bold"
+						   HorizontalAlignment="Center"
+						   Foreground="#1A1A1A" />
+				<TextBlock Text="Your personalized feed will appear here"
+						   FontSize="16"
+						   Foreground="#6B7280"
+						   HorizontalAlignment="Center" />
+			</StackPanel>
+		</Border>
+	</Grid>
 </UserControl>

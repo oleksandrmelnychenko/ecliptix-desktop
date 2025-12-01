@@ -1,9 +1,11 @@
 using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using CommunityToolkit.Mvvm.Messaging;
+using Ecliptix.Core.Core.Messaging.Messages;
+using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Core.Features.Feed.Models;
 using Ecliptix.Core.Features.Feed.Services.Abstractions;
-using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
 using ReactiveUI;
@@ -21,6 +23,8 @@ public abstract class FeedItemViewModel : ViewModelBase
     [Reactive] public CommentSectionViewModel Comments { get; set; }
     [Reactive] public string RelativeTime { get; set; }
     [Reactive] public bool ShowComments { get; set; }
+    [Reactive] public bool IsEdit { get; set; }
+    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> BackCommand { get; }
 
     protected FeedItemViewModel(
         FeedPost post,
@@ -48,8 +52,12 @@ public abstract class FeedItemViewModel : ViewModelBase
             commentService
         );
 
+        BackCommand = ReactiveCommand.Create(Back);
+
         UpdateRelativeTime();
     }
+
+    private void Back() => WeakReferenceMessenger.Default.Send(new BackMessage(true));
 
     private void UpdateRelativeTime()
     {

@@ -21,7 +21,7 @@
         <StackPanel Spacing="0">
 
             <!-- Post Header -->
-            <header:PostHeaderControl DataContext="{Binding Post.Author}" />
+            <header:PostHeaderControl DataContext="{Binding}" />
 
             <!-- Video Player -->
             <media:VideoPlayerControl />

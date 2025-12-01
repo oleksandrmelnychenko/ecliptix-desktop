@@ -1,9 +1,10 @@
-using System.Reactive;
 using System.Reactive.Disposables;
 using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.Messaging;
+using Ecliptix.Core.Core.Messaging.Messages;
+using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Core.Features.Feed.Models;
 using Ecliptix.Core.Features.Feed.Services.Abstractions;
-using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Utilities;
@@ -21,9 +22,11 @@ public sealed class PostInteractionsViewModel : ViewModelBase
 
     [Reactive] public PostInteraction Interaction { get; set; }
     [Reactive] public bool IsProcessing { get; set; }
+    [Reactive] public bool IsEdit { get; set; }
 
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> ToggleLikeCommand { get; }
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> ToggleSaveCommand { get; }
+    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> ToggleCommentsCommand { get; }
 
     public PostInteractionsViewModel(
         string postId,
@@ -39,6 +42,13 @@ public sealed class PostInteractionsViewModel : ViewModelBase
 
         ToggleLikeCommand = ReactiveCommand.CreateFromTask(ToggleLikeAsync);
         ToggleSaveCommand = ReactiveCommand.CreateFromTask(ToggleSaveAsync);
+        ToggleCommentsCommand = ReactiveCommand.Create(() =>
+        {
+            if (!IsEdit)
+            {
+                WeakReferenceMessenger.Default.Send(new EditPostMessage(postId));
+            }
+        });
     }
 
     private async Task ToggleLikeAsync()

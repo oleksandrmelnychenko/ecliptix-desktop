@@ -1,10 +1,13 @@
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Reactive;
+using System.Linq;
 using System.Reactive.Disposables;
 using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.Messaging;
+using Ecliptix.Core.Core.Messaging.Messages;
+using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Core.Features.Feed.Models;
 using Ecliptix.Core.Features.Feed.Services.Abstractions;
-using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Utilities;
@@ -20,13 +23,15 @@ public sealed class CommentSectionViewModel : ViewModelBase
     private readonly CompositeDisposable _disposables = new();
     private bool _isDisposed;
     private int _currentPage = 1;
-    private const int PageSize = 10;
+    private const int PAGE_SIZE = 10;
 
-    [Reactive] public ObservableCollection<Comment> Comments { get; set; }
+    [Reactive] public ObservableCollection<CommentViewModel> Comments { get; set; }
     [Reactive] public string CommentText { get; set; }
     [Reactive] public bool IsLoadingComments { get; set; }
     [Reactive] public bool IsPostingComment { get; set; }
     [Reactive] public bool HasMoreComments { get; set; }
+    [Reactive] public bool HasReplyComment { get; set; }
+    [Reactive] public Comment? ReplyComment { get; set; }
 
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> LoadCommentsCommand { get; }
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> PostCommentCommand { get; }
@@ -41,12 +46,18 @@ public sealed class CommentSectionViewModel : ViewModelBase
     {
         _postId = postId;
         _commentService = commentService;
-        Comments = new ObservableCollection<Comment>();
+        Comments = new ObservableCollection<CommentViewModel>();
         CommentText = string.Empty;
 
         LoadCommentsCommand = ReactiveCommand.CreateFromTask(LoadCommentsAsync);
         PostCommentCommand = ReactiveCommand.CreateFromTask(PostCommentAsync);
         LoadMoreCommentsCommand = ReactiveCommand.CreateFromTask(LoadMoreCommentsAsync);
+
+        WeakReferenceMessenger.Default.Register<ReplyCommentMessage>(this, (r, m) =>
+        {
+            ReplyComment = m.Value;
+            HasReplyComment = m.Value != null;
+        });
     }
 
     private async Task LoadCommentsAsync()
@@ -64,16 +75,13 @@ public sealed class CommentSectionViewModel : ViewModelBase
             Result<CommentsPage, string> result = await _commentService.LoadCommentsAsync(
                 _postId,
                 _currentPage,
-                PageSize
+                PAGE_SIZE
             );
 
             if (result.IsOk && result.Unwrap() != null)
             {
                 Comments.Clear();
-                foreach (Comment comment in result.Unwrap().Comments)
-                {
-                    Comments.Add(comment);
-                }
+                AddCommentsToCollection(result.Unwrap().Comments);
                 HasMoreComments = result.Unwrap().HasNextPage;
             }
         }
@@ -81,6 +89,26 @@ public sealed class CommentSectionViewModel : ViewModelBase
         {
             IsLoadingComments = false;
         }
+    }
+
+    private void AddCommentsToCollection(List<Comment> comments)
+    {
+        foreach (Comment comment in comments)
+        {
+            CommentViewModel viewModel = CreateCommentViewModel(comment);
+            Comments.Add(viewModel);
+
+            // Replies (temp).
+            foreach (Comment comment1 in comments)
+            {
+                CommentViewModel viewModel1 = CreateCommentViewModel(comment1);
+                viewModel.OrigonalReplies.Add(viewModel1);
+            }
+        }
+
+        //temp
+        CommentViewModel tt = Comments.First();
+        tt.Comment.Text = "Deserialization vulnerabilities are a threat category where request payloads are processed insecurely. An attacker who successfully leverages these vulnerabilities against an app can cause denial of service (DoS), information disclosure, or remote code execution inside the target app. This risk category consistently makes the OWASP Top 10. Targets include";
     }
 
     private async Task LoadMoreCommentsAsync()
@@ -98,15 +126,12 @@ public sealed class CommentSectionViewModel : ViewModelBase
             Result<CommentsPage, string> result = await _commentService.LoadCommentsAsync(
                 _postId,
                 _currentPage,
-                PageSize
+                PAGE_SIZE
             );
 
             if (result.IsOk && result.Unwrap() != null)
             {
-                foreach (Comment comment in result.Unwrap().Comments)
-                {
-                    Comments.Add(comment);
-                }
+                AddCommentsToCollection(result.Unwrap().Comments);
                 HasMoreComments = result.Unwrap().HasNextPage;
             }
         }
@@ -135,14 +160,21 @@ public sealed class CommentSectionViewModel : ViewModelBase
 
             if (result.IsOk && result.Unwrap() != null)
             {
-                Comments.Insert(0, result.Unwrap());
+                Comments.Insert(0, CreateCommentViewModel(result.Unwrap()));
                 CommentText = string.Empty;
             }
         }
         finally
         {
             IsPostingComment = false;
+            HasReplyComment = false;
+            ReplyComment = null;
         }
+    }
+
+    private CommentViewModel CreateCommentViewModel(Comment comment)
+    {
+        return new CommentViewModel(comment);
     }
 
     protected override void Dispose(bool disposing)
@@ -155,6 +187,7 @@ public sealed class CommentSectionViewModel : ViewModelBase
         if (disposing)
         {
             _disposables.Dispose();
+            WeakReferenceMessenger.Default.Unregister<ReplyCommentMessage>(this);
         }
 
         _isDisposed = true;

@@ -1,79 +1,88 @@
 <UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:models="clr-namespace:Ecliptix.Core.Features.Feed.Models"
-             mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="60"
-             x:Class="Ecliptix.Core.Features.Feed.Controls.PostHeader.PostHeaderControl"
-             x:DataType="models:PostAuthor">
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+			 xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
+			 mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="60"
+			 xmlns:vm="clr-namespace:Ecliptix.Core.Features.Feed.ViewModels"
+			 x:Class="Ecliptix.Core.Features.Feed.Controls.PostHeader.PostHeaderControl"
+			 x:DataType="vm:FeedItemViewModel">
 
-    <UserControl.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceInclude Source="/Features/Feed/Resources/IconGeometries.axaml"/>
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
-    </UserControl.Resources>
+	<UserControl.Resources>
+		<ResourceDictionary>
+			<ResourceDictionary.MergedDictionaries>
+				<ResourceInclude Source="/Features/Feed/Resources/IconGeometries.axaml"/>
+			</ResourceDictionary.MergedDictionaries>
+		</ResourceDictionary>
+	</UserControl.Resources>
 
-    <Border Padding="16,12">
-        <Grid ColumnDefinitions="Auto,*,Auto">
+	<Border Padding="16,8">
+		<Grid ColumnDefinitions="Auto,*,Auto">
 
-            <!-- Avatar -->
-            <Border Grid.Column="0"
-                    Width="40"
-                    Height="40"
-                    CornerRadius="20"
-                    ClipToBounds="True"
-                    Background="#F0F0F0">
-                <Panel>
-                    <Image Source="{Binding AvatarUrl}"
-                           Stretch="UniformToFill"
-                           IsVisible="{Binding AvatarUrl, Converter={x:Static ObjectConverters.IsNotNull}}" />
-                    <TextBlock Text="{Binding DisplayName, Converter={StaticResource InitialsConverter}}"
-                               FontSize="16"
-                               FontWeight="SemiBold"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               IsVisible="{Binding AvatarUrl, Converter={x:Static ObjectConverters.IsNull}}" />
-                </Panel>
-            </Border>
+			<!-- Avatar -->
+			<Border Grid.Column="0"
+					Width="32"
+					Height="32"
+					CornerRadius="20"
+					ClipToBounds="True"
+					Background="#F0F0F0">
+				<Panel>
+					<Image asyncImageLoader:ImageLoader.Source="{Binding Post.Author.AvatarUrl}"
+						   Stretch="UniformToFill"
+						   IsVisible="{Binding Post.Author.AvatarUrl, Converter={x:Static ObjectConverters.IsNotNull}}" />
+					<TextBlock Text="{Binding Post.Author.DisplayName, Converter={StaticResource InitialsConverter}}"
+							   FontSize="16"
+							   FontWeight="SemiBold"
+							   HorizontalAlignment="Center"
+							   VerticalAlignment="Center"
+							   IsVisible="{Binding Post.Author.AvatarUrl, Converter={x:Static ObjectConverters.IsNull}}" />
+				</Panel>
+			</Border>
 
-            <!-- User Info -->
-            <StackPanel Grid.Column="1"
-                        Margin="12,0,0,0"
-                        VerticalAlignment="Center"
-                        Spacing="2">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <TextBlock Text="{Binding DisplayName}"
-                               FontSize="15"
-                               FontWeight="Bold"
-                               Foreground="#1A1A1A" />
-                    <Path Width="16"
-                          Height="16"
-                          Fill="#1DA1F2"
-                          Data="{StaticResource VerifiedIconGeometry}"
-                          IsVisible="{Binding IsVerified}" />
-                </StackPanel>
-                <TextBlock Text="{Binding Username, StringFormat='@{0}'}"
-                           FontSize="12"
-                           Foreground="#9CA3AF" />
-            </StackPanel>
+			<!-- User Info -->
+			<StackPanel Grid.Column="1"
+						Margin="10,0,0,0"
+						VerticalAlignment="Center">
+				<StackPanel Orientation="Horizontal" Spacing="6">
+					<TextBlock Text="{Binding Post.Author.DisplayName}"
+							   FontSize="16"
+							   FontWeight="Medium"							  
+							   Foreground="#0f172b" />
+					<Ellipse Width="16"
+							 Height="16"
+							 Fill="#6a5acd"
+							 IsVisible="{Binding Post.Author.IsVerified}" />
+					<TextBlock Text="{Binding RelativeTime, StringFormat='· {0}'}"
+							   FontSize="14"
+							   LineHeight="20"
+							   Foreground="#62748e" />
+				</StackPanel>
+				<TextBlock Text="{Binding Post.Author.Username, StringFormat='@{0}'}"
+						   FontSize="14"
+						   LineHeight="20"
+						   Foreground="#62748e" />
+			</StackPanel>
 
-            <!-- Menu Button -->
-            <Button Grid.Column="2"
-                    Width="32"
-                    Height="32"
-                    Padding="0"
-                    Background="Transparent"
-                    BorderThickness="0"
-                    VerticalAlignment="Center">
-                <Path Width="4"
-                      Height="16"
-                      Fill="#9CA3AF"
-                      Data="{StaticResource MenuIconGeometry}" />
-            </Button>
-
-        </Grid>
-    </Border>
-
+			<!-- Menu Button -->
+			<Button Grid.Column="2"
+					CornerRadius="20"
+					Width="36"
+					Height="36"
+					Padding="0"
+					Background="Transparent"
+					BorderThickness="0"
+					VerticalAlignment="Center">
+				<Path Width="35"
+					  Height="4"
+					  Fill="#6a5acd"					  
+					  Data="{StaticResource MenuIconGeometry}">
+					<Path.RenderTransform>
+						<TransformGroup>
+							<RotateTransform Angle="90" CenterX="2" CenterY="8"/>
+					</TransformGroup>
+					</Path.RenderTransform>
+				</Path>
+			</Button>
+		</Grid>
+	</Border>
 </UserControl>

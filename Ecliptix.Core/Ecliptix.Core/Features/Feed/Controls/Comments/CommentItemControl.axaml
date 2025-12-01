@@ -1,75 +1,23 @@
 <UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:models="clr-namespace:Ecliptix.Core.Features.Feed.Models"
-             mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="80"
-             x:Class="Ecliptix.Core.Features.Feed.Controls.Comments.CommentItemControl"
-             x:DataType="models:Comment">
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+			 xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
+			 xmlns:models="clr-namespace:Ecliptix.Core.Features.Feed.Models"
+			 xmlns:viewModels="clr-namespace:Ecliptix.Core.Features.Feed.ViewModels"
+			 xmlns:commentItem="clr-namespace:Ecliptix.Core.Features.Feed.Controls.Comments"
+			 mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="80"
+			 x:Class="Ecliptix.Core.Features.Feed.Controls.Comments.CommentItemControl"
+			 x:DataType="viewModels:CommentSectionViewModel">
 
-    <Border Padding="16,8">
-        <Grid ColumnDefinitions="Auto,*">
-
-            <!-- Avatar -->
-            <Border Grid.Column="0"
-                    Width="32"
-                    Height="32"
-                    CornerRadius="16"
-                    ClipToBounds="True"
-                    Background="#F0F0F0"
-                    VerticalAlignment="Top">
-                <Image Source="{Binding Author.AvatarUrl}"
-                       Stretch="UniformToFill"
-                       IsVisible="{Binding Author.AvatarUrl, Converter={x:Static ObjectConverters.IsNotNull}}" />
-            </Border>
-
-            <!-- Comment Content -->
-            <StackPanel Grid.Column="1"
-                        Margin="12,0,0,0"
-                        Spacing="4">
-
-                <!-- Username and Time -->
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="{Binding Author.Username, StringFormat='@{0}'}"
-                               FontSize="13"
-                               FontWeight="SemiBold"
-                               Foreground="#1A1A1A" />
-                    <TextBlock Text="{Binding CreatedAt, Converter={StaticResource RelativeTimeConverter}}"
-                               FontSize="12"
-                               Foreground="#9CA3AF" />
-                </StackPanel>
-
-                <!-- Comment Text -->
-                <TextBlock Text="{Binding Text}"
-                           TextWrapping="Wrap"
-                           FontSize="14"
-                           Foreground="#374151" />
-
-                <!-- Actions -->
-                <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,4,0,0">
-                    <Button Background="Transparent"
-                            BorderThickness="0"
-                            Padding="0"
-                            FontSize="12"
-                            Foreground="#6B7280">
-                        <StackPanel Orientation="Horizontal" Spacing="4">
-                            <TextBlock Text="{Binding LikesCount}" IsVisible="{Binding LikesCount, Converter={StaticResource GreaterThanZeroConverter}}" />
-                            <TextBlock Text="Like" />
-                        </StackPanel>
-                    </Button>
-
-                    <Button Background="Transparent"
-                            BorderThickness="0"
-                            Padding="0"
-                            FontSize="12"
-                            Foreground="#6B7280">
-                        <TextBlock Text="Reply" />
-                    </Button>
-                </StackPanel>
-
-            </StackPanel>
-
-        </Grid>
-    </Border>
-
+	<ScrollViewer HorizontalScrollBarVisibility="Disabled"
+				  VerticalScrollBarVisibility="Auto">		
+		<ItemsControl ItemsSource="{Binding Comments}">
+			<ItemsControl.ItemTemplate>
+				<DataTemplate x:DataType="viewModels:CommentViewModel">
+					<commentItem:CommentControl />
+				</DataTemplate>
+			</ItemsControl.ItemTemplate>
+		</ItemsControl>
+	</ScrollViewer>
 </UserControl>
