@@ -1,10 +1,16 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    
+
     <!-- ===================================== -->
     <!-- BASE BUTTON STYLES -->
     <!-- ===================================== -->
-    
+
+    <Styles.Resources>
+        <LinearGradientBrush x:Key="ButtonGlowGradient" StartPoint="0%,50%" EndPoint="100%,50%">
+            <GradientStop Offset="0" Color="#FF8C00"/> <GradientStop Offset="1" Color="#FF00FF"/> </LinearGradientBrush>
+    </Styles.Resources>
+
+
     <Style Selector="Button">
         <Setter Property="Transitions">
             <Transitions>
@@ -13,7 +19,7 @@
             </Transitions>
         </Setter>
     </Style>
-    
+
     <Style Selector="Button:disabled">
         <Setter Property="Opacity" Value="0.5" />
         <Setter Property="RenderTransform" Value="scale(0.98)" />
@@ -27,11 +33,11 @@
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Opacity" Value="0.9"/>
     </Style>
-    
+
     <!-- ===================================== -->
     <!-- AUTH BUTTON - GENERAL STYLE -->
     <!-- ===================================== -->
-    
+
     <Style Selector="Button.auth-button">
         <Setter Property="Height" Value="{StaticResource Button.Height}" />
         <Setter Property="MinWidth" Value="{StaticResource Button.MinWidth}" />
@@ -46,14 +52,14 @@
         <Setter Property="RenderTransform" Value="scale(1)"/>
         <Setter Property="Transitions">
             <Transitions>
-                <BrushTransition Property="Background" 
-                                 Duration="{StaticResource Button.TransitionDuration}" 
+                <BrushTransition Property="Background"
+                                 Duration="{StaticResource Button.TransitionDuration}"
                                  Easing="CubicEaseOut" />
-                <DoubleTransition Property="Opacity" 
-                                  Duration="{StaticResource Button.TransitionDuration}" 
+                <DoubleTransition Property="Opacity"
+                                  Duration="{StaticResource Button.TransitionDuration}"
                                   Easing="CubicEaseOut" />
-                <TransformOperationsTransition Property="RenderTransform" 
-                                               Duration="{StaticResource Button.TransitionDuration}" 
+                <TransformOperationsTransition Property="RenderTransform"
+                                               Duration="{StaticResource Button.TransitionDuration}"
                                                Easing="CubicEaseOut" />
             </Transitions>
         </Setter>
@@ -77,67 +83,67 @@
         <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
         <Setter Property="BorderThickness" Value="1" />
     </Style>
-    
+
     <!-- ===================================== -->
     <!-- CONTINUE BUTTON -->
     <!-- ===================================== -->
-    
+
     <Style Selector="Button.continue-button">
         <Setter Property="Background" Value="{DynamicResource Secondary}" />
         <Setter Property="Foreground" Value="{DynamicResource OnSecondary}" />
     </Style>
-    
+
     <Style Selector="Button.continue-button:pointerover">
         <Setter Property="Background" Value="{DynamicResource Button.Primary.Hover}" />
     </Style>
-    
+
     <Style Selector="Button.continue-button:pressed">
         <Setter Property="Background" Value="{DynamicResource Button.Primary.Pressed}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Button.Primary.Pressed}" />
         <Setter Property="BorderThickness" Value="0" />
     </Style>
-    
+
     <!-- ===================================== -->
     <!-- AUTH PRIMARY BUTTON -->
     <!-- ===================================== -->
-    
+
     <Style Selector="Button.auth-primary">
         <Setter Property="Background" Value="{DynamicResource Secondary}" />
         <Setter Property="Foreground" Value="{DynamicResource OnSecondary}" />
     </Style>
-    
+
     <Style Selector="Button.auth-primary:pointerover">
         <Setter Property="Background" Value="{DynamicResource Button.Primary.Hover}" />
     </Style>
-    
+
     <Style Selector="Button.auth-primary:pressed">
         <Setter Property="Background" Value="{DynamicResource Button.Primary.Pressed}" />
     </Style>
-    
+
     <!-- ===================================== -->
     <!-- CREATE ACCOUNT BUTTON -->
     <!-- ===================================== -->
-    
+
     <Style Selector="Button.create-account-button">
         <Setter Property="CornerRadius" Value="{StaticResource Radius.L}" />
         <Setter Property="Background" Value="{DynamicResource Secondary}" />
         <Setter Property="Foreground" Value="{DynamicResource OnSecondary}" />
     </Style>
-    
+
     <Style Selector="Button.create-account-button:pointerover">
         <Setter Property="Background" Value="#262626" />
     </Style>
-    
+
     <Style Selector="Button.create-account-button:pressed">
         <Setter Property="Background" Value="#1f1f1f" />
         <Setter Property="Opacity" Value="0.95" />
         <Setter Property="RenderTransform" Value="scale(0.98)" />
     </Style>
-    
+
     <!-- ===================================== -->
     <!-- RECOVERY BUTTON -->
     <!-- ===================================== -->
-    
+
     <Style Selector="Button.recovery-button">
         <Setter Property="Background" Value="{DynamicResource Surface}" />
         <Setter Property="Foreground" Value="{DynamicResource OnSurface}" />
@@ -150,46 +156,46 @@
     <Style Selector="Button.recovery-button:pressed">
         <Setter Property="Background" Value="{DynamicResource Button.Secondary.Pressed}" />
     </Style>
-    
+
     <!-- ===================================== -->
     <!-- SIGN-IN BUTTON -->
     <!-- ===================================== -->
-    
+
     <Style Selector="Button.signin-button">
         <Setter Property="CornerRadius" Value="{StaticResource Radius.M}" />
         <Setter Property="Background" Value="{DynamicResource Surface}" />
         <Setter Property="Foreground" Value="{DynamicResource OnSurface}" />
     </Style>
-    
+
     <Style Selector="Button.signin-button:pointerover">
         <Setter Property="Background" Value="{DynamicResource Button.Secondary.Hover}" />
     </Style>
-    
+
     <Style Selector="Button.signin-button:pressed">
         <Setter Property="Background" Value="{DynamicResource Button.Secondary.Pressed}" />
     </Style>
-    
+
     <!-- ===================================== -->
     <!-- AUTH SECONDARY BUTTON -->
     <!-- ===================================== -->
-    
+
     <Style Selector="Button.auth-secondary">
         <Setter Property="Background" Value="{DynamicResource Surface}" />
         <Setter Property="Foreground" Value="{DynamicResource OnSurface}" />
     </Style>
-    
+
     <Style Selector="Button.auth-secondary:pointerover">
         <Setter Property="Background" Value="{DynamicResource Button.Secondary.Hover}" />
     </Style>
-    
+
     <Style Selector="Button.auth-secondary:pressed">
         <Setter Property="Background" Value="{DynamicResource Button.Secondary.Pressed}" />
     </Style>
-    
+
     <!-- ===================================== -->
     <!-- BACK BUTTON -->
     <!-- ===================================== -->
-    
+
     <Style Selector="Button.back-button">
         <Setter Property="Width" Value="{StaticResource Back.ButtonSize}" />
         <Setter Property="Height" Value="{StaticResource Back.ButtonSize}" />
@@ -215,11 +221,11 @@
         <Setter Property="Background" Value="#D1D0D0" />
         <Setter Property="RenderTransform" Value="scale(0.95)" />
     </Style>
-    
+
     <!-- ===================================== -->
     <!-- FOOTER LINK BUTTON -->
     <!-- ===================================== -->
-    
+
     <Style Selector="Button.footer-link">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderBrush" Value="Transparent" />
@@ -232,7 +238,7 @@
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Transitions">
             <Transitions>
-                <BrushTransition Property="Foreground" 
+                <BrushTransition Property="Foreground"
                                  Duration="{StaticResource Duration.Medium}" />
             </Transitions>
         </Setter>
@@ -241,64 +247,107 @@
     <Style Selector="Button.footer-link:pointerover">
         <Setter Property="Foreground" Value="{DynamicResource Footer.Link.Hover}" />
     </Style>
-    
+
     <!-- ===================================== -->
     <!-- LOADING BUTTON -->
     <!-- ===================================== -->
-    
+
     <Style Selector="Button.loading-button">
+        <Setter Property="ClipToBounds" Value="False" />
         <Setter Property="Template">
             <ControlTemplate>
-                <Border Name="PART_Border"
-                        Background="{TemplateBinding Background}"
-                        BorderBrush="{TemplateBinding BorderBrush}"
-                        BorderThickness="{TemplateBinding BorderThickness}"
-                        CornerRadius="{TemplateBinding CornerRadius}"
-                        Padding="{TemplateBinding Padding}"
-                        ClipToBounds="False"
-                        Focusable="True"
-                        RenderTransform="{TemplateBinding RenderTransform}">
-                    
-                    <Grid ClipToBounds="False">
-                        <ContentPresenter Name="PART_ContentPresenter"
-                                          Background="Transparent"
-                                        Content="{TemplateBinding Content}"
-                                        ContentTemplate="{TemplateBinding ContentTemplate}"
-                                        HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                        TextBlock.Foreground="{TemplateBinding Foreground}"
-                                        Focusable="False"/>
+                <Grid ClipToBounds="False">
 
-                        <Grid Name="PART_LoadingOverlay"
-                              Background="Transparent"
-                              IsVisible="True"
-                              Opacity="0"
-                              IsHitTestVisible="False"
-                              Focusable="False">
-                            <Viewbox Width="20" Height="20"
-                                     HorizontalAlignment="Center"
-                                     VerticalAlignment="Center">
-                                <Canvas Width="26" Height="26"
-                                        Margin="0 -1 0 0"
-                                        VerticalAlignment="Center"
-                                        HorizontalAlignment="Center">
-                                    <Ellipse Width="4" Height="4" Canvas.Left="10" Canvas.Top="2"  Fill="{TemplateBinding Foreground}" Name="Dot1" Opacity="1"/>
-                                    <Ellipse Width="4" Height="4" Canvas.Left="17" Canvas.Top="5"  Fill="{TemplateBinding Foreground}" Name="Dot2" Opacity="0.85"/>
-                                    <Ellipse Width="4" Height="4" Canvas.Left="20" Canvas.Top="12" Fill="{TemplateBinding Foreground}" Name="Dot3" Opacity="0.7"/>
-                                    <Ellipse Width="4" Height="4" Canvas.Left="17" Canvas.Top="19" Fill="{TemplateBinding Foreground}" Name="Dot4" Opacity="0.55"/>
-                                    <Ellipse Width="4" Height="4" Canvas.Left="10" Canvas.Top="22" Fill="{TemplateBinding Foreground}" Name="Dot5" Opacity="0.4"/>
-                                    <Ellipse Width="4" Height="4" Canvas.Left="3"  Canvas.Top="19" Fill="{TemplateBinding Foreground}" Name="Dot6" Opacity="0.25"/>
-                                    <Ellipse Width="4" Height="4" Canvas.Left="0"  Canvas.Top="12" Fill="{TemplateBinding Foreground}" Name="Dot7" Opacity="0.15"/>
-                                    <Ellipse Width="4" Height="4" Canvas.Left="3"  Canvas.Top="5"  Fill="{TemplateBinding Foreground}" Name="Dot8" Opacity="0.1"/>
-                                </Canvas>
-                            </Viewbox>
+                    <Border Name="PART_Glow"
+                            Background="{DynamicResource ButtonGlowGradient}"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            Margin="0"
+                            Opacity="0"
+                            IsHitTestVisible="False">
+                        <Border.Effect>
+                            <BlurEffect Radius="20"/>
+                        </Border.Effect>
+                        <Border.Transitions>
+                            <Transitions>
+                                <DoubleTransition Property="Opacity" Duration="0:0:0.3" Easing="CubicEaseOut"/>
+                                <ThicknessTransition Property="Margin" Duration="0:0:0.3" Easing="CubicEaseOut"/>
+                            </Transitions>
+                        </Border.Transitions>
+                    </Border>
+
+                    <Border Name="PART_Border"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            Padding="{TemplateBinding Padding}"
+                            ClipToBounds="False"
+                            Focusable="True"
+                            RenderTransform="{TemplateBinding RenderTransform}">
+
+                        <Border.Transitions>
+                            <Transitions>
+                                <BrushTransition Property="Background" Duration="0:0:0.2"/>
+                            </Transitions>
+                        </Border.Transitions>
+
+                        <Grid ClipToBounds="False">
+                            <ContentPresenter Name="PART_ContentPresenter"
+                                            Background="Transparent"
+                                            Content="{TemplateBinding Content}"
+                                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                            TextBlock.Foreground="{TemplateBinding Foreground}"
+                                            Focusable="False"/>
+
+                            <Grid Name="PART_LoadingOverlay"
+                                  Background="Transparent"
+                                  IsVisible="True"
+                                  Opacity="0"
+                                  IsHitTestVisible="False"
+                                  Focusable="False">
+                                <Viewbox Width="20" Height="20"
+                                         HorizontalAlignment="Center"
+                                         VerticalAlignment="Center">
+                                    <Canvas Width="26" Height="26"
+                                            Margin="0 -1 0 0"
+                                            VerticalAlignment="Center"
+                                            HorizontalAlignment="Center">
+                                        <Ellipse Width="4" Height="4" Canvas.Left="10" Canvas.Top="2"  Fill="{TemplateBinding Foreground}" Name="Dot1" Opacity="1"/>
+                                        <Ellipse Width="4" Height="4" Canvas.Left="17" Canvas.Top="5"  Fill="{TemplateBinding Foreground}" Name="Dot2" Opacity="0.85"/>
+                                        <Ellipse Width="4" Height="4" Canvas.Left="20" Canvas.Top="12" Fill="{TemplateBinding Foreground}" Name="Dot3" Opacity="0.7"/>
+                                        <Ellipse Width="4" Height="4" Canvas.Left="17" Canvas.Top="19" Fill="{TemplateBinding Foreground}" Name="Dot4" Opacity="0.55"/>
+                                        <Ellipse Width="4" Height="4" Canvas.Left="10" Canvas.Top="22" Fill="{TemplateBinding Foreground}" Name="Dot5" Opacity="0.4"/>
+                                        <Ellipse Width="4" Height="4" Canvas.Left="3"  Canvas.Top="19" Fill="{TemplateBinding Foreground}" Name="Dot6" Opacity="0.25"/>
+                                        <Ellipse Width="4" Height="4" Canvas.Left="0"  Canvas.Top="12" Fill="{TemplateBinding Foreground}" Name="Dot7" Opacity="0.15"/>
+                                        <Ellipse Width="4" Height="4" Canvas.Left="3"  Canvas.Top="5"  Fill="{TemplateBinding Foreground}" Name="Dot8" Opacity="0.1"/>
+                                    </Canvas>
+                                </Viewbox>
+                            </Grid>
                         </Grid>
-                    </Grid>
-                </Border>
+                    </Border>
+                </Grid>
             </ControlTemplate>
         </Setter>
     </Style>
-    
+
+    <Style Selector="Button.glow-shadow /template/ Border#PART_Glow">
+        <Setter Property="Opacity" Value="0.6"/> </Style>
+
+    <Style Selector="Button.glow-shadow:pointerover">
+        <Setter Property="Background" Value="#000000" />
+    </Style>
+
+    <Style Selector="Button.glow-shadow:pointerover /template/ Border#PART_Glow">
+        <Setter Property="Opacity" Value="0.9"/>
+        </Style>
+
+    <Style Selector="Button.glow-shadow:disabled /template/ Border#PART_Glow">
+        <Setter Property="Opacity" Value="0"/>
+    </Style>
+
+
     <Style Selector="Button.loading-button /template/ ContentPresenter#PART_ContentPresenter TextBlock">
         <Setter Property="IsHitTestVisible" Value="False"/>
         <Setter Property="Background" Value="Transparent"/>
@@ -308,15 +357,15 @@
         <Setter Property="Cursor" Value="Wait"/>
         <Setter Property="RenderTransform" Value="scale(1)"/>
     </Style>
-    
+
     <Style Selector="Button.loading-button.is-busy:disabled /template/ Border#PART_Border">
         <Setter Property="Opacity" Value="1"/>
     </Style>
-    
+
     <Style Selector="Button.loading-button.is-busy:focus-visible">
         <Setter Property="RenderTransform" Value="scale(1)"/>
     </Style>
-    
+
     <Style Selector="Button.loading-button.is-busy:pressed /template/ Border#PART_Border">
         <Setter Property="Background" Value="Transparent" />
     </Style>
@@ -418,7 +467,7 @@
             </Animation>
         </Style.Animations>
     </Style>
-    
+
     <!-- ===================================== -->
     <!-- MODIFIER STYLES -->
     <!-- ===================================== -->
@@ -444,7 +493,7 @@
         <Setter Property="FontSize" Value="{StaticResource Font.XL}" />
         <Setter Property="Padding" Value="{StaticResource Padding.L}" />
     </Style>
-    
+
     <!-- ===================================== -->
     <!-- FOOTER SECTION STYLES -->
     <!-- ===================================== -->

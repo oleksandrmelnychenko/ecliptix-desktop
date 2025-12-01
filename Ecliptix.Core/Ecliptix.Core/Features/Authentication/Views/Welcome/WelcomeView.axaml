@@ -53,11 +53,10 @@
                     HorizontalAlignment="Stretch" />
 
             <Border Grid.Column="1"
-                    BoxShadow="0 8 20 0 #60000000"
                     CornerRadius="{StaticResource Button.CornerRadius}">
                 <Button Content="{Binding LocalizationService[Welcome.CreateAccountButton]}"
                         Command="{Binding NavToCreateAccountCommand}"
-                        Classes="auth-button continue-button loading-button"
+                        Classes="auth-button continue-button loading-button glow-shadow"
                         Classes.is-busy="{Binding IsCreateAccountBusy}"
                         HorizontalAlignment="Stretch" />
             </Border>

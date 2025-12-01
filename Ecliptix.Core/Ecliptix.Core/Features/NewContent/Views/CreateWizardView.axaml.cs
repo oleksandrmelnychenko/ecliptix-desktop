@@ -18,13 +18,11 @@ public partial class CreateWizardView : ReactiveUserControl<CreateWizardViewMode
     {
         InitializeComponent();
 
-        // Підписуємось на активацію View (коли вона з'являється на екрані)
         this.WhenActivated(disposables =>
         {
             _sizingContainer = this.FindControl<Border>("SizingContainer");
             _measureContainer = this.FindControl<Canvas>("HiddenMeasureContainer");
 
-            // Слухаємо зміну поточної сторінки у ViewModel
             ViewModel!.WhenAnyValue(x => x.CurrentPage)
                 .Subscribe(OnPageChanged)
                 .DisposeWith(disposables);
@@ -43,9 +41,6 @@ public partial class CreateWizardView : ReactiveUserControl<CreateWizardViewMode
             return;
         }
 
-        // 1. Створюємо View для нової ViewModel
-        // Оскільки у нас DataTemplates в XAML, тут ми вручну мапимо типи
-        // для цілей вимірювання.
         Control? viewToMeasure = CreateViewForViewModel(newPageViewModel);
 
         if (viewToMeasure == null)
@@ -53,39 +48,26 @@ public partial class CreateWizardView : ReactiveUserControl<CreateWizardViewMode
             return;
         }
 
-        // 2. Вимірюємо розмір
         _measureContainer.Children.Add(viewToMeasure);
 
-        // Size.Infinity дозволяє контенту зайняти стільки місця, скільки йому треба
         viewToMeasure.Measure(Size.Infinity);
 
         Size desiredSize = viewToMeasure.DesiredSize;
 
-        // Прибираємо з контейнера вимірювання
         _measureContainer.Children.Remove(viewToMeasure);
-
-        // 3. Задаємо розміри контейнеру.
-        // Оскільки у Border є Transitions, він плавно анімується до нових значень.
-
-        // Якщо це перший показ (Width is NaN), ставимо миттєво без анімації,
-        // або використовуємо Dispatcher для плавності.
 
         if (double.IsNaN(_sizingContainer.Width))
         {
-             // Перший рендер - ставимо жорстко, щоб не було анімації "з нуля"
             _sizingContainer.Width = desiredSize.Width;
             _sizingContainer.Height = desiredSize.Height;
         }
         else
         {
-            // Наступні переходи - анімуємо
             _sizingContainer.Width = desiredSize.Width;
             _sizingContainer.Height = desiredSize.Height;
         }
     }
 
-    // Фабричний метод для створення View (мапінг)
-    // Це потрібно тільки для пре-калькуляції розміру
     private Control? CreateViewForViewModel(object viewModel)
     {
         return viewModel switch

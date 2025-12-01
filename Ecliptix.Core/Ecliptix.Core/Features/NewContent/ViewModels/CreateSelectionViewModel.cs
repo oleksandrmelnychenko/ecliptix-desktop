@@ -31,7 +31,6 @@ public class CreateSelectionViewModel : ReactiveObject
             "MESSAGING",
             true));
 
-        // 3. Інші елементи MESSAGING (Заголовок буде приховано)
         Items.Add(new CreateMenuItem(
             "New Channel",
             "Create a broadcast channel",
