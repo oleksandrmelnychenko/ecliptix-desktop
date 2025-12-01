@@ -16,7 +16,7 @@
 		</ResourceDictionary>
 	</UserControl.Resources>
 
-	<Border Padding="16,12">
+	<Border Padding="16,8">
 		<Grid ColumnDefinitions="Auto,*,Auto">
 
 			<!-- Avatar -->
@@ -41,9 +41,8 @@
 
 			<!-- User Info -->
 			<StackPanel Grid.Column="1"
-						Margin="12,0,0,0"
-						VerticalAlignment="Center"
-						Spacing="2">
+						Margin="10,0,0,0"
+						VerticalAlignment="Center">
 				<StackPanel Orientation="Horizontal" Spacing="6">
 					<TextBlock Text="{Binding Post.Author.DisplayName}"
 							   FontSize="16"

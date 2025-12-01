@@ -20,7 +20,7 @@
             <header:PostHeaderControl DataContext="{Binding}" />
 
             <!-- Text Content -->
-            <Border Padding="16,12">
+            <Border Padding="16,0">
                 <TextBlock Text="{Binding TextContent.Text}"
                            TextWrapping="Wrap"
                            FontSize="16"
