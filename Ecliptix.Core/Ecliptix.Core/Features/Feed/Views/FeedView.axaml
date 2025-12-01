@@ -4,6 +4,8 @@
 			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 			 xmlns:vm="clr-namespace:Ecliptix.Core.Features.Feed.ViewModels"
 			 xmlns:feedItem="clr-namespace:Ecliptix.Core.Features.Feed.Controls.FeedItem"
+			 xmlns:navigation="clr-namespace:Ecliptix.Core.Controls.Navigation"
+			 xmlns:chatInput="clr-namespace:Ecliptix.Core.Features.Chats.Views"
 			 mc:Ignorable="d"
 			 d:DesignWidth="800"
 			 d:DesignHeight="600"
@@ -30,14 +32,10 @@
 								   HorizontalAlignment="Center" />
 					</Border>
 
-					<Border Grid.Row="0"
-							Margin="0,20,0,30"
-							Width="142"
-							Height="54"
-							HorizontalAlignment="Center"
-							Background="LightGray">
-						
-					</Border>
+					<navigation:FloatingNavBar Grid.Row="0"
+											   Margin="0,20,0,0"
+											   HorizontalAlignment="Center"
+											   Items="{Binding MenuItems}" />
 
 					<!-- Feed Posts -->
 					<ItemsControl Grid.Row="1"
@@ -92,6 +90,10 @@
 			</Border>
 		</ScrollViewer>
 
+		<!--Add post input-->
+		<chatInput:ChatInputView Margin="80,0" />
+
+		<!--Edit post overlay-->
 		<feedItem:EditPostControl IsVisible="{Binding DataContext.IsEdit, ElementName=ThisControl}" DataContext="{Binding SelectedPost}" />
 
 		<!-- Empty State -->

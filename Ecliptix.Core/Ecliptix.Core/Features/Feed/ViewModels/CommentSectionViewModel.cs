@@ -3,6 +3,8 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive.Disposables;
 using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.Messaging;
+using Ecliptix.Core.Core.Messaging.Messages;
 using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Core.Features.Feed.Models;
 using Ecliptix.Core.Features.Feed.Services.Abstractions;
@@ -28,6 +30,8 @@ public sealed class CommentSectionViewModel : ViewModelBase
     [Reactive] public bool IsLoadingComments { get; set; }
     [Reactive] public bool IsPostingComment { get; set; }
     [Reactive] public bool HasMoreComments { get; set; }
+    [Reactive] public bool HasReplyComment { get; set; }
+    [Reactive] public Comment? ReplyComment { get; set; }
 
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> LoadCommentsCommand { get; }
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> PostCommentCommand { get; }
@@ -48,6 +52,12 @@ public sealed class CommentSectionViewModel : ViewModelBase
         LoadCommentsCommand = ReactiveCommand.CreateFromTask(LoadCommentsAsync);
         PostCommentCommand = ReactiveCommand.CreateFromTask(PostCommentAsync);
         LoadMoreCommentsCommand = ReactiveCommand.CreateFromTask(LoadMoreCommentsAsync);
+
+        WeakReferenceMessenger.Default.Register<ReplyCommentMessage>(this, (r, m) =>
+        {
+            ReplyComment = m.Value;
+            HasReplyComment = m.Value != null;
+        });
     }
 
     private async Task LoadCommentsAsync()
@@ -88,6 +98,7 @@ public sealed class CommentSectionViewModel : ViewModelBase
             CommentViewModel viewModel = CreateCommentViewModel(comment);
             Comments.Add(viewModel);
 
+            // Replies (temp).
             foreach (Comment comment1 in comments)
             {
                 CommentViewModel viewModel1 = CreateCommentViewModel(comment1);
@@ -156,6 +167,8 @@ public sealed class CommentSectionViewModel : ViewModelBase
         finally
         {
             IsPostingComment = false;
+            HasReplyComment = false;
+            ReplyComment = null;
         }
     }
 
@@ -174,6 +187,7 @@ public sealed class CommentSectionViewModel : ViewModelBase
         if (disposing)
         {
             _disposables.Dispose();
+            WeakReferenceMessenger.Default.Unregister<ReplyCommentMessage>(this);
         }
 
         _isDisposed = true;

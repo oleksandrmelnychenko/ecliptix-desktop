@@ -145,7 +145,8 @@
 					Padding="0"
 					Foreground="#6A7383"
 					FontWeight="600"
-					FontSize="12"/>
+					FontSize="12"
+					Command="{Binding ReplyCommand}"/>
 		</StackPanel>
 
 		<!--Replies section-->
