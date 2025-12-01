@@ -56,7 +56,7 @@
                 Content="{Binding LocalizationService[Authentication.SignUp.PassPhase.Button]}"
                 Command="{Binding SubmitCommand}"
                 IsEnabled="{Binding SubmitCommand.CanExecute}"
-                Classes="auth-button continue-button"
+                Classes="primary large glow"
                 />
     </Grid>
 </UserControl>
