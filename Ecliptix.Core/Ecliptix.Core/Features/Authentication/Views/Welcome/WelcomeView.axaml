@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Welcome"
+             xmlns:carousels="clr-namespace:Ecliptix.Core.Controls.Carousels"
              mc:Ignorable="d"
              d:DesignWidth="320"
              d:DesignHeight="480"
@@ -30,14 +31,19 @@
             </Border>
         </StackPanel>
 
-        <Border Grid.Row="1"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center">
-            <Svg Path="../../../../Assets/Screens/Welcome/welcome-circle.svg"
-                 Width="{StaticResource Circle.Size}"
-                 Height="{StaticResource Circle.Size}"
-                 Stretch="Uniform" />
-        </Border>
+        <carousels:WelcomeCarouselView Grid.Row="1"
+                                  ItemsSource="{Binding Slides}"
+                                  SelectedIndex="{Binding CurrentSlideIndex, Mode=TwoWay}" />
+
+        <!-- <Border Grid.Row="1" -->
+        <!--         HorizontalAlignment="Center" -->
+        <!--         VerticalAlignment="Center"> -->
+        <!--     <Svg Path="avares://Ecliptix.Core/Assets/Screens/Welcome/welcome-circle.svg" -->
+        <!--          Width="{StaticResource Circle.Size}" -->
+        <!--          Height="{StaticResource Circle.Size}" -->
+        <!--          Stretch="Uniform" /> -->
+        <!-- </Border> -->
+
 
         <Grid Grid.Row="2"
               ColumnDefinitions="*,*"
@@ -53,11 +59,10 @@
                     HorizontalAlignment="Stretch" />
 
             <Border Grid.Column="1"
-                    BoxShadow="0 8 20 0 #60000000"
                     CornerRadius="{StaticResource Button.CornerRadius}">
                 <Button Content="{Binding LocalizationService[Welcome.CreateAccountButton]}"
                         Command="{Binding NavToCreateAccountCommand}"
-                        Classes="auth-button continue-button loading-button"
+                        Classes="auth-button continue-button loading-button glow-shadow"
                         Classes.is-busy="{Binding IsCreateAccountBusy}"
                         HorizontalAlignment="Stretch" />
             </Border>

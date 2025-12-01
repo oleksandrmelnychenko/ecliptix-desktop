@@ -12,19 +12,16 @@
 
 
     <UserControl.Styles>
-        <!-- Стиль для контейнера, що змінює розмір -->
         <Style Selector="Border.sizing-container">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="ClipToBounds" Value="True"/>
             <Setter Property="CornerRadius" Value="12"/>
-            <!-- Важливо: центруємо, щоб анімація йшла від центру -->
+
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
 
             <Setter Property="Transitions">
                 <Transitions>
-                    <!-- Плавна зміна ширини та висоти (CubicEaseOut) -->
-                    <!-- Тривалість 0.3s синхронізована зі слайдом сторінок -->
                     <DoubleTransition Property="Width" Duration="0:0:0.3" Easing="CubicEaseOut"/>
                     <DoubleTransition Property="Height" Duration="0:0:0.3" Easing="CubicEaseOut"/>
                 </Transitions>
@@ -33,11 +30,10 @@
     </UserControl.Styles>
 
      <Grid>
-        <!-- Цей Border буде анімувати свої Width/Height -->
+
         <Border x:Name="SizingContainer" Classes="sizing-container">
 
-            <TransitioningContentControl Content="{Binding CurrentPage}"
->
+            <TransitioningContentControl Content="{Binding CurrentPage}">
 
                 <TransitioningContentControl.PageTransition>
                     <page:SharedAxisPageTransition Duration="0:0:0.3"
@@ -47,12 +43,11 @@
                 </TransitioningContentControl.PageTransition>
 
                 <TransitioningContentControl.DataTemplates>
-                    <!-- 1. Меню вибору -->
+
                     <DataTemplate DataType="{x:Type viewModels:CreateSelectionViewModel}">
                         <views:CreateSelectionView />
                     </DataTemplate>
 
-                    <!-- 2. Форми контенту -->
                     <DataTemplate DataType="{x:Type newContent:NewChannelViewModel}">
                         <newContent:NewChannelView />
                     </DataTemplate>
@@ -73,7 +68,6 @@
             </TransitioningContentControl>
         </Border>
 
-        <!-- Прихований контейнер для вимірювання наступної сторінки -->
         <Canvas x:Name="HiddenMeasureContainer"
                 Opacity="0"
                 IsHitTestVisible="False"
