@@ -54,7 +54,7 @@
             <Button Grid.Column="0"
                     Content="{Binding LocalizationService[Welcome.SignInButton]}"
                     Command="{Binding NavToSignInCommand}"
-                    Classes="auth-button recovery-button loading-button"
+                    Classes="secondary large"
                     Classes.is-busy="{Binding IsSignInBusy}"
                     HorizontalAlignment="Stretch" />
 
@@ -62,7 +62,7 @@
                     CornerRadius="{StaticResource Button.CornerRadius}">
                 <Button Content="{Binding LocalizationService[Welcome.CreateAccountButton]}"
                         Command="{Binding NavToCreateAccountCommand}"
-                        Classes="auth-button continue-button loading-button glow-shadow"
+                        Classes="primary large glow"
                         Classes.is-busy="{Binding IsCreateAccountBusy}"
                         HorizontalAlignment="Stretch" />
             </Border>

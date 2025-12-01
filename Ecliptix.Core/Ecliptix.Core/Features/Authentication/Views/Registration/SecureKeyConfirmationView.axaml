@@ -76,7 +76,7 @@
             Command="{Binding SubmitCommand}"
             Content="{Binding ButtonText}"
             IsEnabled="{Binding CanSubmit}"
-            Classes="auth-button continue-button loading-button glow-shadow"
+            Classes="primary large glow"
             Classes.is-busy="{Binding IsBusy}"
             />
         <Border Grid.Row="4"

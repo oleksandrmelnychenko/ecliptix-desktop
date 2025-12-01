@@ -28,7 +28,7 @@
                 Command="{Binding NavigateBack}"
                 Margin="24,24,0,0"
                 Grid.Row="0"
-                Classes="back-button"
+                Classes="ghost icon-only"
                 Opacity="{Binding CanNavigateBack, Converter={StaticResource BoolToOpacityConverter}}">
             <Image Source="avares://Ecliptix.Core/Assets/Icons/UI/back-icon.png"
                    Stretch="Uniform"
@@ -77,7 +77,7 @@
                            TextWrapping="NoWrap" />
                 <Button Content="{Binding LocalizationService[Footer.TermsOfService]}"
                         Command="{Binding OpenTermsOfServiceCommand}"
-                        Classes="footer-link"
+                        Classes="ghost"
                         Padding="0"
                         Opacity="0.6"
                         VerticalAlignment="Center">
@@ -92,7 +92,7 @@
                            TextWrapping="NoWrap" />
                 <Button Content="{Binding LocalizationService[Footer.PrivacyPolicy]}"
                         Command="{Binding OpenPrivacyPolicyCommand}"
-                        Classes="footer-link"
+                        Classes="ghost"
                         Padding="0"
                         Opacity="0.6"
                         VerticalAlignment="Center">

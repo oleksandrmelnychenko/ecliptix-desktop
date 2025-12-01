@@ -11,7 +11,7 @@
              x:DataType="signUp:MobileVerificationViewModel"
              MinWidth="{StaticResource Content.MaxWidth}"
              Width="{StaticResource Content.MaxWidth}">
-    
+
     <Grid VerticalAlignment="Top"
           RowSpacing="{StaticResource Spacing.Authentication}"
           RowDefinitions="Auto,Auto,Auto"
@@ -60,7 +60,7 @@
                 Content="{Binding ButtonText}"
                 Command="{Binding VerifyMobileNumberCommand}"
                 IsEnabled="{Binding VerifyMobileNumberCommand.CanExecute}"
-                Classes="auth-button continue-button loading-button glow-shadow"
+                Classes="primary large glow"
                 Classes.is-busy="{Binding IsBusy}" />
     </Grid>
 </UserControl>
