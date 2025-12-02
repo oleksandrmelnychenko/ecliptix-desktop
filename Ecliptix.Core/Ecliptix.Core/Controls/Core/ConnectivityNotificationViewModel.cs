@@ -31,6 +31,7 @@ namespace Ecliptix.Core.Controls.Core;
 public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposable
 {
     private readonly ILocalizationService _localizationService;
+    private readonly IConnectivityService _connectivityService;
 
     private readonly CompositeDisposable _disposables = new();
     private readonly SemaphoreSlim _statusUpdateSemaphore = new(1, 1);
@@ -67,6 +68,8 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
     [ObservableAsProperty] public ConnectivityErrorType IssueCategory { get; }
     [ObservableAsProperty] public DetailedConnectivityStatus DetailedStatus { get; }
 
+    public TimeSpan RestoredStateDuration { get; set; } = TimeSpan.FromSeconds(3);
+
     public ReactiveCommand<Unit, Unit> RetryCommand { get; }
 
     public void SetView(ConnectivityNotificationView view)
@@ -74,6 +77,7 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         _view = view;
         _mainBorder = view.FindControl<Border>("MainBorder");
         CreateAnimations();
+        HandleConnectivityVisualEffects(_connectivityService.CurrentSnapshot);
     }
 
     // For debug purposes
@@ -109,6 +113,7 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         IPendingRequestManager pendingRequestManager)
     {
         _localizationService = localizationService;
+        _connectivityService = connectivityService;
 
         IObservable<Unit> languageTrigger = CreateLanguageTrigger();
         ConnectivityObservables connectivityObservables = CreateConnectivityObservables(connectivityService);
@@ -267,7 +272,7 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
             _ => ConnectivityErrorType.SERVER_UNREACHABLE
         };
 
-    private static VisibilityObservables CreateVisibilityObservables(
+    private VisibilityObservables CreateVisibilityObservables(
         IObservable<ConnectivitySnapshot> snapshots,
         IObservable<ManualRetryRequestedEvent> manualRetryEvents)
     {
@@ -294,13 +299,13 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         return new VisibilityObservables(showRetryButton, isVisible);
     }
 
-    private static IObservable<bool> MapSnapshotToVisibility(ConnectivitySnapshot snapshot) =>
+    private IObservable<bool> MapSnapshotToVisibility(ConnectivitySnapshot snapshot) =>
         snapshot.Status switch
         {
             ConnectivityStatus.CONNECTED when snapshot.Source == ConnectivitySource.INTERNET_PROBE =>
                 Observable.Return(false),
             ConnectivityStatus.CONNECTED => Observable.Return(true)
-                .Delay(TimeSpan.FromMilliseconds(NetworkStatusConstants.AUTO_HIDE_DELAY_MS))
+                .Delay(RestoredStateDuration)
                 .Select(_ => false),
             ConnectivityStatus.RETRIES_EXHAUSTED or
                 ConnectivityStatus.DISCONNECTED or
@@ -403,7 +408,8 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
 
         bool isServerIssue = snapshot.Status is ConnectivityStatus.RETRIES_EXHAUSTED
             or ConnectivityStatus.DISCONNECTED
-            or ConnectivityStatus.SHUTTING_DOWN;
+            or ConnectivityStatus.SHUTTING_DOWN
+            or ConnectivityStatus.RECOVERING;
 
         bool isOffline = snapshot.Status == ConnectivityStatus.UNAVAILABLE;
 

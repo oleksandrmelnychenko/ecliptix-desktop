@@ -131,6 +131,11 @@ public sealed partial class ConnectivityNotificationView : ReactiveUserControl<C
             return;
         }
 
+        if (this.TryGetResource("RestoredStateDuration", null, out object? resource) && resource is TimeSpan duration)
+        {
+            viewModel.RestoredStateDuration = duration;
+        }
+
         viewModel.SetView(this);
 
         viewModel.AppearDuration = AppearDuration;

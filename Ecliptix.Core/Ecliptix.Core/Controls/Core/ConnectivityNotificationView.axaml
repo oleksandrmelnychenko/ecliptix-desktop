@@ -3,10 +3,15 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:core="clr-namespace:Ecliptix.Core.Controls.Core"
+             xmlns:system="clr-namespace:System;assembly=System.Runtime"
              mc:Ignorable="d" d:DesignWidth="350" d:DesignHeight="60"
              x:Class="Ecliptix.Core.Controls.Core.ConnectivityNotificationView"
              x:Name="Root"
              x:DataType="core:ConnectivityNotificationViewModel">
+
+    <UserControl.Resources>
+        <system:TimeSpan x:Key="RestoredStateDuration">0:0:3</system:TimeSpan>
+    </UserControl.Resources>
 
     <UserControl.Styles>
         <Style Selector="Ellipse.Pulse">
@@ -41,7 +46,9 @@
         <Style Selector="Border.Restored Border#PART_TimerBar">
             <Setter Property="Opacity" Value="1"/>
             <Style.Animations>
-                <Animation Duration="0:0:3" FillMode="Forward" Easing="LinearEasing">
+                <Animation Duration="{StaticResource RestoredStateDuration}"
+                           FillMode="Forward"
+                           Easing="LinearEasing">
                     <KeyFrame Cue="0%">
                         <Setter Property="ScaleTransform.ScaleX" Value="1"/>
                     </KeyFrame>
