@@ -103,20 +103,11 @@
                         Classes.is-busy="{Binding IsBusy}"/>
             </Grid>
 
-            <Border Grid.Row="4"
-                    Background="Transparent"
-                    HorizontalAlignment="Stretch"
-                    CornerRadius="{StaticResource Radius.M}"
-                    IsVisible="{Binding HasServerError, Mode=OneWay}"
-                    ClipToBounds="True"
-                    Margin="0">
-                    <TextBlock Text="{Binding ServerError, Mode=OneWay}"
-                               Classes="server-error"
-                               TextAlignment="Center"
-                               VerticalAlignment="Center"
-                               TextWrapping="Wrap"
-                               MaxWidth="{StaticResource Content.MaxWidth}"
-                               Foreground="{DynamicResource Error}"/>
-            </Border>
+            <coreControls:ErrorNotificationView
+                Grid.Row="4"
+                x:Name="ErrorNotification"
+                VerticalAlignment="Top"
+                HorizontalAlignment="Stretch"
+                Margin="0,0,0,0"/>
         </Grid>
     </UserControl>
