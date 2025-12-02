@@ -76,6 +76,33 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         CreateAnimations();
     }
 
+    // For debug purposes
+    // public void Debug_ForceState(string state)
+    // {
+    //     Dispatcher.UIThread.Post(() => ApplyClasses(false, false, false));
+    //
+    //     Task.Delay(50).ContinueWith(_ =>
+    //     {
+    //         Dispatcher.UIThread.Post(() =>
+    //         {
+    //             switch (state.ToLower())
+    //             {
+    //                 case "offline":
+    //                     ApplyClasses(isOffline: true, isServerIssue: false, isRestored: false);
+    //                     break;
+    //
+    //                 case "server":
+    //                     ApplyClasses(isOffline: false, isServerIssue: true, isRestored: false);
+    //                     break;
+    //
+    //                 case "restored":
+    //                     ApplyClasses(isOffline: false, isServerIssue: false, isRestored: true);
+    //                     break;
+    //             }
+    //         });
+    //     });
+    // }
+
     public ConnectivityNotificationViewModel(
         ILocalizationService localizationService,
         IConnectivityService connectivityService,
@@ -371,26 +398,40 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
 
     private void HandleConnectivityVisualEffects(ConnectivitySnapshot snapshot)
     {
+        bool isRestored = snapshot.Reason == ConnectivityReason.INTERNET_RECOVERED ||
+                          snapshot.Status == ConnectivityStatus.CONNECTED;
+
         bool isServerIssue = snapshot.Status is ConnectivityStatus.RETRIES_EXHAUSTED
             or ConnectivityStatus.DISCONNECTED
             or ConnectivityStatus.SHUTTING_DOWN;
-        Dispatcher.UIThread.InvokeAsync(() => ApplyClasses(serverIssue: isServerIssue));
+
+        bool isOffline = snapshot.Status == ConnectivityStatus.UNAVAILABLE;
+
+        Dispatcher.UIThread.InvokeAsync(() => ApplyClasses(isOffline, isServerIssue, isRestored));
     }
 
-    private void ApplyClasses(bool serverIssue)
+    private void ApplyClasses(bool isOffline, bool isServerIssue, bool isRestored)
     {
         if (_mainBorder == null)
         {
             return;
         }
 
-        if (serverIssue)
+        _mainBorder.Classes.Remove("Offline");
+        _mainBorder.Classes.Remove("ServerIssue");
+        _mainBorder.Classes.Remove("Restored");
+
+        if (isRestored)
         {
-            _mainBorder.Classes.Add("CircuitOpen");
+            _mainBorder.Classes.Add("Restored");
         }
-        else
+        else if (isServerIssue)
         {
-            _mainBorder.Classes.Remove("CircuitOpen");
+            _mainBorder.Classes.Add("ServerIssue");
+        }
+        else if (isOffline)
+        {
+            _mainBorder.Classes.Add("Offline");
         }
 
         _mainBorder.Classes.Remove("Retrying");

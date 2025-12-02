@@ -1,5 +1,7 @@
 using System;
 using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.ReactiveUI;
@@ -87,6 +89,33 @@ public sealed partial class ConnectivityNotificationView : ReactiveUserControl<C
             IconData = Geometry.Parse("M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z");
         }
     }
+
+    //For debug purposes
+    // private int _debugClickCount = 0;
+    //
+    // protected override void OnPointerPressed(PointerPressedEventArgs e)
+    // {
+    //     base.OnPointerPressed(e);
+    //
+    //     if (DataContext is ConnectivityNotificationViewModel vm)
+    //     {
+    //         _debugClickCount++;
+    //
+    //         if (_debugClickCount == 1)
+    //         {
+    //             vm.Debug_ForceState("offline");
+    //         }
+    //         else if (_debugClickCount == 2)
+    //         {
+    //             vm.Debug_ForceState("server");
+    //         }
+    //         else if (_debugClickCount == 3)
+    //         {
+    //             vm.Debug_ForceState("restored");
+    //             _debugClickCount = 0; // Скидаємо лічильник
+    //         }
+    //     }
+    // }
 
     private void InitializeComponent()
     {
