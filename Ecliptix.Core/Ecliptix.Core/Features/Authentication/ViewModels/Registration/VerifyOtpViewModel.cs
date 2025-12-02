@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
@@ -43,6 +44,10 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
     private IDisposable? _cooldownTimer;
     private CancellationTokenSource? _cancellationTokenSource;
     private volatile bool _isDisposed;
+
+    private readonly Subject<string> _executionErrorSubject = new();
+    public IObservable<string> ExecutionError => _executionErrorSubject.AsObservable();
+
 
     public VerifyOtpViewModel(
         IConnectivityService connectivityService,
@@ -88,8 +93,7 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
                     return;
                 }
 
-                ErrorMessage = ex.Message;
-                HasError = true;
+                PublishError(ex.Message);
             })
             .DisposeWith(_disposables);
 
@@ -112,35 +116,13 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
                     return;
                 }
 
-                ErrorMessage = ex.Message;
-                HasError = true;
+                PublishError(ex.Message);
             })
-            .DisposeWith(_disposables);
-
-        SendVerificationCodeCommand.IsExecuting
-            .ToPropertyEx(this, x => x.IsBusy)
-            .DisposeWith(_disposables);
-
-        ResendSendVerificationCodeCommand.IsExecuting
-            .ToPropertyEx(this, x => x.IsResending)
             .DisposeWith(_disposables);
 
         this.WhenActivated(disposables =>
         {
             OnViewLoaded().Subscribe().DisposeWith(disposables).DisposeWith(_disposables);
-
-            this.WhenAnyValue(x => x.ErrorMessage)
-                .DistinctUntilChanged()
-                .Subscribe(err
-                    =>
-                {
-                    HasError = !string.IsNullOrEmpty(err);
-                    if (!string.IsNullOrEmpty(err) && HostScreen is AuthenticationViewModel hostWindow)
-                    {
-                        ShowServerErrorNotification(hostWindow, err);
-                    }
-                })
-                .DisposeWith(disposables).DisposeWith(_disposables);
 
             this.WhenAnyValue(x => x.SecondsRemaining)
                 .Select(FormatRemainingTime)
@@ -182,6 +164,13 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
     [ObservableAsProperty] public bool IsBusy { get; }
 
     [ObservableAsProperty] public bool IsResending { get; }
+
+    private void PublishError(string message)
+    {
+        _executionErrorSubject.OnNext(message);
+        ErrorMessage = message;
+        HasError = !string.IsNullOrEmpty(message);
+    }
 
     private Guid? VerificationSessionIdentifier
     {
@@ -243,6 +232,7 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
             _autoRedirectTimer?.Dispose();
             _cooldownTimer?.Dispose();
             _disposables.Dispose();
+            _executionErrorSubject.Dispose();
         }
 
         base.Dispose(disposing);
@@ -311,7 +301,7 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
 
         if (shouldSetError)
         {
-            ErrorMessage = result.UnwrapErr();
+            PublishError(result.UnwrapErr());
         }
     }
 
@@ -351,11 +341,7 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
         }
     }
 
-    private void HandleNoValidSession()
-    {
-        HasError = true;
-        ErrorMessage = _localizationService[AuthenticationConstants.NO_VERIFICATION_SESSION_KEY];
-    }
+    private void HandleNoValidSession() => PublishError(_localizationService[AuthenticationConstants.NO_VERIFICATION_SESSION_KEY]);
 
     private Task<Result<Membership, string>> CreateVerifyTask(uint connectId, CancellationToken cancellationToken)
     {
@@ -419,7 +405,7 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
         }
     }
 
-    private void HandleVerificationError(string error) => ErrorMessage = error;
+    private void HandleVerificationError(string error) => PublishError(error);
 
     private Task ReSendVerificationCode()
     {
@@ -512,7 +498,7 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
 
             if (IsServerUnavailableError(error))
             {
-                ErrorMessage = error;
+                PublishError(error);
                 StartAutoRedirectAsync(5, MembershipViewType.WELCOME_VIEW, error).ContinueWith(
                     task =>
                     {
@@ -527,8 +513,7 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
             }
             else
             {
-                ErrorMessage = error;
-                HasError = true;
+                PublishError(error);
                 SecondsRemaining = 0;
             }
         });
@@ -537,8 +522,7 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
     private void HandleNoActiveSession()
     {
         SecondsRemaining = 0;
-        ErrorMessage = _localizationService[AuthenticationConstants.NO_ACTIVE_VERIFICATION_SESSION_KEY];
-        HasError = true;
+        PublishError(_localizationService[AuthenticationConstants.NO_ACTIVE_VERIFICATION_SESSION_KEY]);
         HasValidSession = false;
     }
 
@@ -557,8 +541,7 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
                 messageWithSeconds = message;
             }
 
-            ErrorMessage = messageWithSeconds;
-            HasError = true;
+            PublishError(messageWithSeconds);
         }
 
         CooldownBufferSeconds = seconds;

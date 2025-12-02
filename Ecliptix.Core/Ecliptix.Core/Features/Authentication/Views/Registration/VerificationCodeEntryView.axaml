@@ -80,22 +80,12 @@
                     />
         </Grid>
 
-        <Border Grid.Row="4"
-                Background="Transparent"
-                HorizontalAlignment="Stretch"
-                CornerRadius="8"
-                IsVisible ="{Binding HasError}"
-                ClipToBounds="True"
-                Margin="0">
-            <TextBlock Text="{Binding ErrorMessage}"
-                       Classes="server-error"
-                       TextAlignment="Center"
-                       VerticalAlignment="Center"
-                       TextWrapping="Wrap"
-                       MaxWidth="{StaticResource Content.MaxWidth}"
-                       Foreground="{DynamicResource Error}" />
-        </Border>
-
+        <coreControls:ErrorNotificationView
+            Grid.Row="4"
+            x:Name="ErrorNotification"
+            VerticalAlignment="Top"
+            HorizontalAlignment="Stretch"
+            Margin="0,0,0,0"/>
 
         </Grid>
 </UserControl>

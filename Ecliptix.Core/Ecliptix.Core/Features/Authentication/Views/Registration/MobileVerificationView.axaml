@@ -14,7 +14,7 @@
 
     <Grid VerticalAlignment="Top"
           RowSpacing="{StaticResource Spacing.Authentication}"
-          RowDefinitions="Auto,Auto,Auto"
+          RowDefinitions="Auto,Auto,Auto, Auto"
           HorizontalAlignment="Stretch"
           Width="{StaticResource Content.MaxWidth}">
 
@@ -62,5 +62,13 @@
                 IsEnabled="{Binding VerifyMobileNumberCommand.CanExecute}"
                 Classes="primary large glow"
                 Classes.is-busy="{Binding IsBusy}" />
+
+        <coreControls:ErrorNotificationView
+            Grid.Row="3"
+            x:Name="ErrorNotification"
+            VerticalAlignment="Top"
+            HorizontalAlignment="Stretch"
+            Margin="0,0,0,0"/>
+
     </Grid>
 </UserControl>

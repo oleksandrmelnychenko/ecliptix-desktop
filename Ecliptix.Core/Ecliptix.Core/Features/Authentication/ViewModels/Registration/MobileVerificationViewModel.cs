@@ -1,6 +1,7 @@
 using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Abstractions;
@@ -37,6 +38,9 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
     private CancellationTokenSource? _cancellationTokenSource;
     private bool _hasMobileNumberBeenTouched;
     private bool _isDisposed;
+
+    private readonly Subject<string> _executionErrorSubject = new();
+    public IObservable<string> ExecutionError => _executionErrorSubject.AsObservable();
 
     public MobileVerificationViewModel(
         IConnectivityService connectivityService,
@@ -109,6 +113,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         _hasMobileNumberBeenTouched = false;
         HasMobileNumberError = false;
         MobileNumberError = string.Empty;
+        _executionErrorSubject.OnNext(string.Empty);
     }
 
     private IObservable<bool> SetupValidation()
@@ -397,10 +402,9 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
 
     private void ShowError(string errorMessage)
     {
-        if (HostScreen is AuthenticationViewModel hostWindow &&
-            !string.IsNullOrEmpty(errorMessage))
+        if (!string.IsNullOrEmpty(errorMessage))
         {
-            ShowServerErrorNotification(hostWindow, errorMessage);
+            _executionErrorSubject.OnNext(errorMessage);
         }
     }
 
@@ -450,6 +454,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         if (disposing)
         {
             CancelCurrentOperation();
+            _executionErrorSubject.Dispose();
             _disposables.Dispose();
         }
 

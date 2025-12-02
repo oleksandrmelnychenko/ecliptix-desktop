@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -47,6 +48,9 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
     private bool _hasSecureKeyBeenTouched;
     private bool _hasVerifySecureKeyBeenTouched;
     private bool _isDisposed;
+
+    private readonly Subject<string> _executionErrorSubject = new();
+    public IObservable<string> ExecutionError => _executionErrorSubject.AsObservable();
 
     public SecureKeyVerifierViewModel(
         IConnectivityService connectivityService,
@@ -108,6 +112,16 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
 
     private ByteString? MembershipUniqueId { get; set; }
 
+    private void SetServerError(string? error)
+    {
+        string message = error ?? string.Empty;
+
+        _executionErrorSubject.OnNext(message);
+
+        ServerError = message;
+        HasServerError = !string.IsNullOrEmpty(message);
+    }
+
     private void SetupCommands(IObservable<bool> isFormLogicallyValid)
     {
         IObservable<bool> canExecuteSubmit = this.WhenAnyValue(
@@ -154,19 +168,6 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
                         ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
                         ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.WELCOME_VIEW);
                     })
-                .DisposeWith(disposables);
-
-            this.WhenAnyValue(x => x.ServerError)
-                .DistinctUntilChanged()
-                .Subscribe(err
-                    =>
-                {
-                    HasServerError = !string.IsNullOrEmpty(err);
-                    if (!string.IsNullOrEmpty(err) && HostScreen is AuthenticationViewModel hostWindow)
-                    {
-                        ShowServerErrorNotification(hostWindow, err);
-                    }
-                })
                 .DisposeWith(disposables);
 
             SubmitCommand
@@ -249,6 +250,8 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
 
         IsMembershipLoading = true;
         MembershipUniqueId = null;
+
+        SetServerError(string.Empty);
     }
 
     private string Localize(string registrationKey, string recoveryKey) =>
@@ -438,20 +441,12 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
         return string.IsNullOrEmpty(message) ? strengthText : $"{strengthText}: {message}";
     }
 
-    private void SetServerError(string? error)
-    {
-        ServerError = error;
-        HasServerError = !string.IsNullOrEmpty(error);
-    }
-
     private async Task<SystemU> SubmitAsync()
     {
         if (IsBusy || !CanSubmit)
         {
             return SystemU.Default;
         }
-
-        SetServerError(string.Empty);
 
         try
         {
@@ -576,6 +571,7 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
             CancelCurrentOperation();
             _secureKeyBuffer.Dispose();
             _verifySecureKeyBuffer.Dispose();
+            _executionErrorSubject.Dispose();
         }
 
         _isDisposed = true;
