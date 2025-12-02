@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Welcome"
              xmlns:carousels="clr-namespace:Ecliptix.Core.Controls.Carousels"
+             xmlns:core="clr-namespace:Ecliptix.Core.Controls.Core"
              mc:Ignorable="d"
              d:DesignWidth="320"
              d:DesignHeight="480"
@@ -12,7 +13,7 @@
              MinWidth="320"
              Width="320">
 
-    <Grid RowDefinitions="Auto,*,Auto"
+    <Grid RowDefinitions="Auto,*,Auto, Auto"
           HorizontalAlignment="Stretch"
           VerticalAlignment="Top"
           Margin="{StaticResource Welcome.Container.Margin}"
@@ -35,16 +36,6 @@
                                   ItemsSource="{Binding Slides}"
                                   SelectedIndex="{Binding CurrentSlideIndex, Mode=TwoWay}" />
 
-        <!-- <Border Grid.Row="1" -->
-        <!--         HorizontalAlignment="Center" -->
-        <!--         VerticalAlignment="Center"> -->
-        <!--     <Svg Path="avares://Ecliptix.Core/Assets/Screens/Welcome/welcome-circle.svg" -->
-        <!--          Width="{StaticResource Circle.Size}" -->
-        <!--          Height="{StaticResource Circle.Size}" -->
-        <!--          Stretch="Uniform" /> -->
-        <!-- </Border> -->
-
-
         <Grid Grid.Row="2"
               ColumnDefinitions="*,*"
               ColumnSpacing="{StaticResource Spacing.M}"
@@ -66,6 +57,23 @@
                         Classes.is-busy="{Binding IsCreateAccountBusy}"
                         HorizontalAlignment="Stretch" />
             </Border>
+        </Grid>
+
+        <Grid Grid.Row="3" Margin="0,10,0,0">
+            <StackPanel Spacing="10">
+
+                <core:StatusBadge Classes="step"
+                                    Text="Step 1 of 4" />
+
+                <core:StatusBadge Classes="purple"
+                                    Text="Protected by EPP"
+                                    HoverText="Protected by Ecliptix Protection Protocol"
+                                    Icon="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+
+                <core:StatusBadge Classes="green"
+                                    Text="Online"
+                                    Icon="M12.01 21.49L16.64 16.86C15.4 15.63 13.78 14.97 12.01 14.97C10.27 14.97 8.64 15.63 7.38 16.86L12.01 21.49ZM18.96 14.54L21.08 12.42C18.66 10.02 15.45 8.7 12.01 8.7C8.59 8.7 5.37 10.02 2.94 12.42L5.06 14.54C6.9 12.7 9.36 11.7 12.01 11.7C14.67 11.7 17.13 12.7 18.96 14.54ZM24 9.5L21.88 7.38C19.23 4.74 15.72 3.28 12.01 3.28C8.31 3.28 4.79 4.74 2.14 7.38L0.02 9.5C3.21 6.32 7.45 4.56 12.01 4.56C16.58 4.56 20.82 6.32 24 9.5Z"/>
+            </StackPanel>
         </Grid>
     </Grid>
 </UserControl>

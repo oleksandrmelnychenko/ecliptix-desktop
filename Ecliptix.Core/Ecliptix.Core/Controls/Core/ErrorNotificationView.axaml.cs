@@ -41,7 +41,6 @@ public partial class ErrorNotificationView : UserControl
         AvaloniaXamlLoader.Load(this);
     }
 
-    // Публічний метод для показу помилки
     public void ShowError(string message)
     {
         if (string.IsNullOrEmpty(message))
@@ -50,22 +49,17 @@ public partial class ErrorNotificationView : UserControl
             return;
         }
 
-        // Скасовуємо попередній таймер
         _timerCts?.Cancel();
         _timerCts?.Dispose();
 
-        // Встановлюємо текст
         Text = message;
 
-        // Показуємо (або залишаємо видимим якщо вже показано)
         IsActive = true;
 
-        // Запускаємо новий таймер
         _timerCts = new CancellationTokenSource();
         _ = AutoHideAsync(_timerCts.Token);
     }
 
-    // Публічний метод для приховування
     public void Hide()
     {
         _timerCts?.Cancel();
@@ -92,7 +86,6 @@ public partial class ErrorNotificationView : UserControl
         }
         catch (TaskCanceledException)
         {
-            // Ігноруємо скасування
         }
     }
 
