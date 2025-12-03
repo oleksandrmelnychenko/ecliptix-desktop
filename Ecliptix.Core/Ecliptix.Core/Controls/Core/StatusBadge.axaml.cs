@@ -17,62 +17,42 @@ namespace Ecliptix.Core.Controls.Core;
 
 public partial class StatusBadge : UserControl
 {
-    public static readonly StyledProperty<string> TextProperty =
-        AvaloniaProperty.Register<StatusBadge, string>(nameof(Text));
+    // --- Styled Properties ---
+    public static readonly StyledProperty<string> TextProperty = AvaloniaProperty.Register<StatusBadge, string>(nameof(Text));
+    public static readonly StyledProperty<Geometry> IconProperty = AvaloniaProperty.Register<StatusBadge, Geometry>(nameof(Icon));
+    public static readonly StyledProperty<IBrush> BadgeBrushProperty = AvaloniaProperty.Register<StatusBadge, IBrush>(nameof(BadgeBrush), Brushes.Gray);
+    public static readonly StyledProperty<IBrush> BadgeBackgroundProperty = AvaloniaProperty.Register<StatusBadge, IBrush>(nameof(BadgeBackground), Brushes.Transparent);
+    public static readonly StyledProperty<string?> HoverTextProperty = AvaloniaProperty.Register<StatusBadge, string?>(nameof(HoverText));
 
-    public static readonly StyledProperty<Geometry> IconProperty =
-        AvaloniaProperty.Register<StatusBadge, Geometry>(nameof(Icon));
+    public string Text { get => GetValue(TextProperty); set => SetValue(TextProperty, value); }
+    public string? HoverText { get => GetValue(HoverTextProperty); set => SetValue(HoverTextProperty, value); }
+    public Geometry Icon { get => GetValue(IconProperty); set => SetValue(IconProperty, value); }
+    public IBrush BadgeBrush { get => GetValue(BadgeBrushProperty); set => SetValue(BadgeBrushProperty, value); }
+    public IBrush BadgeBackground { get => GetValue(BadgeBackgroundProperty); set => SetValue(BadgeBackgroundProperty, value); }
 
-    public static readonly StyledProperty<IBrush> BadgeBrushProperty =
-        AvaloniaProperty.Register<StatusBadge, IBrush>(nameof(BadgeBrush), Brushes.Gray);
-
-    public static readonly StyledProperty<IBrush> BadgeBackgroundProperty =
-        AvaloniaProperty.Register<StatusBadge, IBrush>(nameof(BadgeBackground), Brushes.Transparent);
-
-    public static readonly StyledProperty<string?> HoverTextProperty =
-        AvaloniaProperty.Register<StatusBadge, string?>(nameof(HoverText));
-
-    public string Text
-    {
-        get => GetValue(TextProperty);
-        set => SetValue(TextProperty, value);
-    }
-
-    public string? HoverText
-    {
-        get => GetValue(HoverTextProperty);
-        set => SetValue(HoverTextProperty, value);
-    }
-
-    public Geometry Icon
-    {
-        get => GetValue(IconProperty);
-        set => SetValue(IconProperty, value);
-    }
-
-    public IBrush BadgeBrush
-    {
-        get => GetValue(BadgeBrushProperty);
-        set => SetValue(BadgeBrushProperty, value);
-    }
-
-    public IBrush BadgeBackground
-    {
-        get => GetValue(BadgeBackgroundProperty);
-        set => SetValue(BadgeBackgroundProperty, value);
-    }
-
+    // --- UI Elements ---
     private Border? _containerBorder;
     private TextBlock? _measuringBlock;
+
+    // --- Logic ---
     private CancellationTokenSource? _animCts;
     private string? _originalText;
 
-    private const string DurationResourceKey = "BadgeAnimationDuration";
-    private const string ColorDurationResourceKey = "BadgeColorDuration";
-    private const string PaddingResourceKey = "BadgePadding";
-    private const string BorderThicknessResourceKey = "BadgeBorderThickness";
-    private const string IconSizeResourceKey = "BadgeIconSize";
-    private const string IconSpacingResourceKey = "BadgeIconSpacing";
+    // --- CACHED VALUES (Зберігаємо параметри тут) ---
+    private Thickness _cachedPadding;
+    private Thickness _cachedBorderThickness;
+    private double _cachedIconSize;
+    private double _cachedIconSpacing;
+    private TimeSpan _cachedAnimDuration;
+    private TimeSpan _cachedColorDuration;
+
+    // --- Resource Keys ---
+    private const string DurationKey = "BadgeAnimationDuration";
+    private const string ColorDurationKey = "BadgeColorDuration";
+    private const string PaddingKey = "BadgePadding";
+    private const string BorderKey = "BadgeBorderThickness";
+    private const string IconSizeKey = "BadgeIconSize";
+    private const string IconSpacingKey = "BadgeIconSpacing";
 
     public StatusBadge()
     {
@@ -86,10 +66,25 @@ public partial class StatusBadge : UserControl
         AvaloniaXamlLoader.Load(this);
     }
 
+    // Цей метод викликається один раз, коли контрол додається на екран
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+
+        // Тут ми "запікаємо" значення.
+        // DefaultValue (другий параметр) МАЄ співпадати з XAML, про всяк випадок.
+        _cachedPadding = GetResourceValue(PaddingKey, new Thickness(8, 0));
+        _cachedBorderThickness = GetResourceValue(BorderKey, new Thickness(1));
+        _cachedIconSize = GetResourceValue(IconSizeKey, 10.0);
+        _cachedIconSpacing = GetResourceValue(IconSpacingKey, 2.0);
+
+        _cachedAnimDuration = GetResourceValue(DurationKey, TimeSpan.FromSeconds(0.3));
+        _cachedColorDuration = GetResourceValue(ColorDurationKey, TimeSpan.FromSeconds(0.2));
+    }
+
     protected override void OnPointerEntered(PointerEventArgs e)
     {
         base.OnPointerEntered(e);
-
         if (!string.IsNullOrEmpty(HoverText) && HoverText != Text)
         {
             _originalText = Text;
@@ -100,7 +95,6 @@ public partial class StatusBadge : UserControl
     protected override void OnPointerExited(PointerEventArgs e)
     {
         base.OnPointerExited(e);
-
         if (_originalText != null)
         {
             AnimateToNewText(_originalText);
@@ -121,8 +115,10 @@ public partial class StatusBadge : UserControl
 
         try
         {
+            // 1. Фіксація поточної ширини
             double currentVisualWidth = _containerBorder.Bounds.Width;
 
+            // Якщо контрол ще не видний - просто сетим текст
             if (currentVisualWidth <= 0 || double.IsNaN(currentVisualWidth))
             {
                 Text = newText;
@@ -132,52 +128,69 @@ public partial class StatusBadge : UserControl
             _containerBorder.Transitions = null;
             _containerBorder.Width = currentVisualWidth;
 
+            // Коротка пауза для рендера
             await Task.Delay(15, token);
 
+            // 2. Розрахунок нової ширини (використовує кеш)
             double targetWidth = CalculateRequiredWidth(newText);
-            TimeSpan duration = GetResourceValue(DurationResourceKey, TimeSpan.FromSeconds(0.3));
 
-            UpdateTransitions(duration);
+            // 3. Увімкнення анімації (використовує кеш часу)
+            UpdateTransitions();
 
+            // 4. Старт
             Text = newText;
             _containerBorder.Width = targetWidth;
 
-            int delayMs = (int)duration.TotalMilliseconds + 50;
+            // 5. Очікування
+            int delayMs = (int)_cachedAnimDuration.TotalMilliseconds + 50;
             await Task.Delay(delayMs, token);
 
+            // 6. Завершення
             if (!token.IsCancellationRequested)
             {
+                // Вимикаємо анімацію перед скиданням в Auto, щоб не було зворотнього руху
                 _containerBorder.Transitions = null;
                 _containerBorder.Width = double.NaN;
 
+                // Повертаємо транзішни назад
                 await Task.Delay(20, token);
-                UpdateTransitions(duration);
+                UpdateTransitions();
             }
         }
-        catch (TaskCanceledException)
-        {
-        }
+        catch (TaskCanceledException) { }
     }
 
-    private void UpdateTransitions(TimeSpan duration)
+    private void UpdateTransitions()
     {
         if (_containerBorder == null)
         {
             return;
         }
 
+        // Якщо транзішни вже є - не перестворюємо
         if (_containerBorder.Transitions != null && _containerBorder.Transitions.Count > 0)
         {
             return;
         }
 
-        TimeSpan colorDuration = GetResourceValue(ColorDurationResourceKey, TimeSpan.FromSeconds(0.2));
-
         _containerBorder.Transitions = new Transitions
         {
-            new DoubleTransition { Property = Layoutable.WidthProperty, Duration = duration, Easing = new CubicEaseOut() },
-            new BrushTransition { Property = TemplatedControl.BackgroundProperty, Duration = colorDuration },
-            new BrushTransition { Property = TemplatedControl.BorderBrushProperty, Duration = colorDuration }
+            new DoubleTransition
+            {
+                Property = Layoutable.WidthProperty,
+                Duration = _cachedAnimDuration,
+                Easing = new CubicEaseOut()
+            },
+            new BrushTransition
+            {
+                Property = TemplatedControl.BackgroundProperty,
+                Duration = _cachedColorDuration
+            },
+            new BrushTransition
+            {
+                Property = TemplatedControl.BorderBrushProperty,
+                Duration = _cachedColorDuration
+            }
         };
     }
 
@@ -191,18 +204,17 @@ public partial class StatusBadge : UserControl
         _measuringBlock.Text = text;
         _measuringBlock.Measure(Size.Infinity);
 
+        // Тут ми беремо реальну ширину тексту
         double textWidth = _measuringBlock.DesiredSize.Width;
 
-        Thickness padding = GetResourceValue(PaddingResourceKey, new Thickness(12, 0));
-        Thickness border = GetResourceValue(BorderThicknessResourceKey, new Thickness(1));
-        double iconSize = GetResourceValue(IconSizeResourceKey, 16.0);
-        double iconSpacing = GetResourceValue(IconSpacingResourceKey, 8.0);
-
-        double totalWidth = textWidth + padding.Left + padding.Right + border.Left + border.Right;
+        // І додаємо КЕШОВАНІ відступи.
+        // Оскільки вони 1-в-1 з XAML, математика зійдеться ідеально.
+        double totalWidth = textWidth + _cachedPadding.Left + _cachedPadding.Right
+                                      + _cachedBorderThickness.Left + _cachedBorderThickness.Right;
 
         if (Icon != null)
         {
-            totalWidth += iconSize + iconSpacing;
+            totalWidth += _cachedIconSize + _cachedIconSpacing;
         }
 
         return totalWidth;

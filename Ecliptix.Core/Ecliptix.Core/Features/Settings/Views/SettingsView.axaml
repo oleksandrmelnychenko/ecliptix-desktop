@@ -124,7 +124,20 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </StackPanel>
+
+                <Button Grid.Row="2"
+                        Classes="exit-button"
+                        Command="{Binding LogoutCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <PathIcon Data="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"
+                                  Foreground="{DynamicResource Error}" />
+                        <TextBlock Text="Exit"
+                                   Classes="nav-text"
+                                   Foreground="{DynamicResource Error}" />
+                    </StackPanel>
+                </Button>
             </Grid>
+
         </Border>
 
         <Grid Grid.Column="1" Margin="12,16" >

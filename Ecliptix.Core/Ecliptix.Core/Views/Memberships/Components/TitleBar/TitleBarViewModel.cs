@@ -14,7 +14,6 @@ public partial class TitleBarViewModel : ReactiveObject
     public ObservableCollection<object> LeftContent { get; } = new();
     public ObservableCollection<object> RightContent { get; } = new();
 
-    // Абсолютний центр
     [Reactive] public object? CenterContent { get; set; }
 
     [Reactive] public bool IsDragging { get; set; }

@@ -121,11 +121,18 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
             }, DispatcherPriority.Loaded);
 
-            await AnimateWindowResizeAsync(520, 800, TimeSpan.FromMilliseconds(450)).ConfigureAwait(false);
 
+            await AnimateWindowResizeAsync(532, 812, TimeSpan.FromMilliseconds(450)).ConfigureAwait(false);
 
-            TitleBarViewModel.DisableMaximizeButton = true;
-            SetMirroredContent(LanguageSelector);
+            Dispatcher.UIThread.Post(() =>
+            {
+                ClearTitleBarContent();
+
+                TitleBarViewModel.DisableMaximizeButton = true;
+                SetMirroredContent(LanguageSelector);
+                TitleBarViewModel.RightContent.Add(new EppBadgeViewModel());
+                TitleBarViewModel.RightContent.Add(new NetworkBadgeViewModel());
+            });
 
             await SetContentWithFadeAsync(content).ConfigureAwait(false);
         }

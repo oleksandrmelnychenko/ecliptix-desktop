@@ -112,6 +112,8 @@ public static class Program
             Splat.Locator.CurrentMutable.Register(() => new ToggleNavigationSideBarView(), typeof(ReactiveUI.IViewFor<ToggleNavigationSideBarViewModel>));
             Splat.Locator.CurrentMutable.Register(() => new ToggleThemeView(), typeof(ReactiveUI.IViewFor<ToggleThemeViewModel>));
             Splat.Locator.CurrentMutable.Register(() => new PersonalTagView(), typeof(ReactiveUI.IViewFor<PersonalTagViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new EppBadgeView(), typeof(ReactiveUI.IViewFor<EppBadgeViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new NetworkBadgeView(), typeof(ReactiveUI.IViewFor<NetworkBadgeViewModel>));
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
         }
         catch (Exception ex)
