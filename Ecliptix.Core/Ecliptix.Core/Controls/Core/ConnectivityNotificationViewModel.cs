@@ -299,27 +299,60 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         return new VisibilityObservables(showRetryButton, isVisible);
     }
 
-    private IObservable<bool> MapSnapshotToVisibility(ConnectivitySnapshot snapshot) =>
-        snapshot.Status switch
+    private IObservable<bool> MapSnapshotToVisibility(ConnectivitySnapshot snapshot)
+    {
+        Log.Information("[NetworkUI] Mapping Visibility for: {Status} | Source: {Source} | Reason: {Reason}", snapshot.Status, snapshot.Source, snapshot.Reason);
+
+        return snapshot.Status switch
         {
-            ConnectivityStatus.CONNECTED when snapshot.Source == ConnectivitySource.INTERNET_PROBE =>
-                Observable.Return(false),
-            ConnectivityStatus.CONNECTED => Observable.Return(true)
-                .Delay(RestoredStateDuration)
-                .Select(_ => false),
+            ConnectivityStatus.CONNECTED =>
+                Observable.Defer(() =>
+                    {
+                        Log.Information("[NetworkUI] Visibility Logic: CONNECTED -> Starting Timer ({Duration})", RestoredStateDuration);
+                        return Observable.Timer(RestoredStateDuration, RxApp.TaskpoolScheduler)
+                            .Do(_ => Log.Information("[NetworkUI] Visibility Logic: CONNECTED -> Timer Expired, Hiding"))
+                            .Select(_ => false)
+                            .StartWith(true);
+                    }),
             ConnectivityStatus.RETRIES_EXHAUSTED or
                 ConnectivityStatus.DISCONNECTED or
                 ConnectivityStatus.SHUTTING_DOWN or
                 ConnectivityStatus.RECOVERING or
-                ConnectivityStatus.UNAVAILABLE => Observable.Return(true),
+                ConnectivityStatus.UNAVAILABLE =>
+                Observable.Defer(() =>
+                {
+                    Log.Information("[NetworkUI] Visibility Logic: ERROR STATE -> Showing");
+                    return Observable.Return(true);
+                }),
             ConnectivityStatus.CONNECTING when snapshot is
                     { Source: ConnectivitySource.INTERNET_PROBE, Reason: ConnectivityReason.INTERNET_RECOVERED } =>
-                Observable.Return(false),
+                Observable.Defer(() =>
+                {
+                    Log.Information("[NetworkUI] Visibility Logic: INTERNET_RECOVERED -> Starting Timer ({Duration})", RestoredStateDuration);
+                    return Observable.Timer(RestoredStateDuration, RxApp.TaskpoolScheduler)
+                        .Do(_ => Log.Information("[NetworkUI] Visibility Logic: INTERNET_RECOVERED -> Timer Expired, Hiding"))
+                        .Select(_ => false)
+                        .StartWith(true);
+                }),
             ConnectivityStatus.CONNECTING when snapshot.Source == ConnectivitySource.INTERNET_PROBE =>
-                Observable.Return(true),
-            ConnectivityStatus.CONNECTING => Observable.Empty<bool>(),
-            _ => Observable.Return(false)
+                Observable.Defer(() =>
+                {
+                    Log.Information("[NetworkUI] Visibility Logic: CHECKING INTERNET -> Showing");
+                    return Observable.Return(true);
+                }),
+            ConnectivityStatus.CONNECTING =>
+                Observable.Defer(() =>
+                {
+                    Log.Information("[NetworkUI] Visibility Logic: OTHER CONNECTING -> Empty (Ignoring)");
+                    return Observable.Empty<bool>();
+                }),
+            _ => Observable.Defer(() =>
+                {
+                    Log.Information("[NetworkUI] Visibility Logic: DEFAULT -> Hiding");
+                    return Observable.Return(false);
+                })
         };
+    }
 
     private ReactiveCommand<Unit, Unit> CreateRetryCommand(
         IConnectivityService connectivityService,
