@@ -7,6 +7,7 @@ using Avalonia.Animation.Easings;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Styling;
@@ -31,16 +32,16 @@ public partial class StatusBadge : UserControl
     public static readonly StyledProperty<string?> HoverTextProperty =
         AvaloniaProperty.Register<StatusBadge, string?>(nameof(HoverText));
 
-    public string? HoverText
-    {
-        get => GetValue(HoverTextProperty);
-        set => SetValue(HoverTextProperty, value);
-    }
-
     public string Text
     {
         get => GetValue(TextProperty);
         set => SetValue(TextProperty, value);
+    }
+
+    public string? HoverText
+    {
+        get => GetValue(HoverTextProperty);
+        set => SetValue(HoverTextProperty, value);
     }
 
     public Geometry Icon
@@ -62,13 +63,22 @@ public partial class StatusBadge : UserControl
     }
 
     private Border? _containerBorder;
-    private CancellationTokenSource? _animationCts;
+    private TextBlock? _measuringBlock;
+    private CancellationTokenSource? _animCts;
     private string? _originalText;
+
+    private const string DurationResourceKey = "BadgeAnimationDuration";
+    private const string ColorDurationResourceKey = "BadgeColorDuration";
+    private const string PaddingResourceKey = "BadgePadding";
+    private const string BorderThicknessResourceKey = "BadgeBorderThickness";
+    private const string IconSizeResourceKey = "BadgeIconSize";
+    private const string IconSpacingResourceKey = "BadgeIconSpacing";
 
     public StatusBadge()
     {
         InitializeComponent();
         _containerBorder = this.FindControl<Border>("ContainerBorder");
+        _measuringBlock = this.FindControl<TextBlock>("MeasuringBlock");
     }
 
     private void InitializeComponent()
@@ -83,7 +93,7 @@ public partial class StatusBadge : UserControl
         if (!string.IsNullOrEmpty(HoverText) && HoverText != Text)
         {
             _originalText = Text;
-            Text = HoverText;
+            AnimateToNewText(HoverText);
         }
     }
 
@@ -93,73 +103,118 @@ public partial class StatusBadge : UserControl
 
         if (_originalText != null)
         {
-            Text = _originalText;
+            AnimateToNewText(_originalText);
             _originalText = null;
         }
     }
 
-    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    private async void AnimateToNewText(string newText)
     {
-        base.OnPropertyChanged(change);
-
-        if (change.Property == TextProperty || change.Property == IconProperty)
+        if (_containerBorder == null || _measuringBlock == null)
         {
-            if (_containerBorder != null && _containerBorder.IsLoaded && _containerBorder.Bounds.Width > 0)
+            return;
+        }
+
+        _animCts?.Cancel();
+        _animCts = new CancellationTokenSource();
+        CancellationToken token = _animCts.Token;
+
+        try
+        {
+            double currentVisualWidth = _containerBorder.Bounds.Width;
+
+            if (currentVisualWidth <= 0 || double.IsNaN(currentVisualWidth))
             {
-                _containerBorder.Width = _containerBorder.Bounds.Width;
-                Dispatcher.UIThread.Post(AnimateSizeChange, DispatcherPriority.Background);
+                Text = newText;
+                return;
             }
+
+            _containerBorder.Transitions = null;
+            _containerBorder.Width = currentVisualWidth;
+
+            await Task.Delay(15, token);
+
+            double targetWidth = CalculateRequiredWidth(newText);
+            TimeSpan duration = GetResourceValue(DurationResourceKey, TimeSpan.FromSeconds(0.3));
+
+            UpdateTransitions(duration);
+
+            Text = newText;
+            _containerBorder.Width = targetWidth;
+
+            int delayMs = (int)duration.TotalMilliseconds + 50;
+            await Task.Delay(delayMs, token);
+
+            if (!token.IsCancellationRequested)
+            {
+                _containerBorder.Transitions = null;
+                _containerBorder.Width = double.NaN;
+
+                await Task.Delay(20, token);
+                UpdateTransitions(duration);
+            }
+        }
+        catch (TaskCanceledException)
+        {
         }
     }
 
-    private async void AnimateSizeChange()
+    private void UpdateTransitions(TimeSpan duration)
     {
         if (_containerBorder == null)
         {
             return;
         }
 
-        _animationCts?.Cancel();
-        _animationCts = new CancellationTokenSource();
-        CancellationToken token = _animationCts.Token;
-
-        double oldWidth = _containerBorder.Width;
-
-        _containerBorder.InvalidateMeasure();
-
-        _containerBorder.Measure(Size.Infinity);
-        double targetWidth = _containerBorder.DesiredSize.Width;
-
-        if (Math.Abs(oldWidth - targetWidth) < 1)
+        if (_containerBorder.Transitions != null && _containerBorder.Transitions.Count > 0)
         {
-            _containerBorder.Width = double.NaN;
             return;
         }
 
-        Animation animation = new Animation
-        {
-            Duration = TimeSpan.FromMilliseconds(300),
-            Easing = new CubicEaseOut(),
-            FillMode = FillMode.Forward,
-            Children =
-            {
-                new KeyFrame { Cue = new Cue(0), Setters = { new Setter(WidthProperty, oldWidth) } },
-                new KeyFrame { Cue = new Cue(1), Setters = { new Setter(WidthProperty, targetWidth) } }
-            }
-        };
+        TimeSpan colorDuration = GetResourceValue(ColorDurationResourceKey, TimeSpan.FromSeconds(0.2));
 
-        try
+        _containerBorder.Transitions = new Transitions
         {
-            await animation.RunAsync(_containerBorder, token);
-        }
-        catch (TaskCanceledException) { }
-        finally
+            new DoubleTransition { Property = Layoutable.WidthProperty, Duration = duration, Easing = new CubicEaseOut() },
+            new BrushTransition { Property = TemplatedControl.BackgroundProperty, Duration = colorDuration },
+            new BrushTransition { Property = TemplatedControl.BorderBrushProperty, Duration = colorDuration }
+        };
+    }
+
+    private double CalculateRequiredWidth(string text)
+    {
+        if (_measuringBlock == null)
         {
-            if (!token.IsCancellationRequested)
-            {
-                _containerBorder.Width = double.NaN;
-            }
+            return 0;
         }
+
+        _measuringBlock.Text = text;
+        _measuringBlock.Measure(Size.Infinity);
+
+        double textWidth = _measuringBlock.DesiredSize.Width;
+
+        Thickness padding = GetResourceValue(PaddingResourceKey, new Thickness(12, 0));
+        Thickness border = GetResourceValue(BorderThicknessResourceKey, new Thickness(1));
+        double iconSize = GetResourceValue(IconSizeResourceKey, 16.0);
+        double iconSpacing = GetResourceValue(IconSpacingResourceKey, 8.0);
+
+        double totalWidth = textWidth + padding.Left + padding.Right + border.Left + border.Right;
+
+        if (Icon != null)
+        {
+            totalWidth += iconSize + iconSpacing;
+        }
+
+        return totalWidth;
+    }
+
+    private T GetResourceValue<T>(string key, T defaultValue)
+    {
+        if (this.TryGetResource(key, null, out object? res) && res is T typedRes)
+        {
+            return typedRes;
+        }
+        return defaultValue;
     }
 }
 
