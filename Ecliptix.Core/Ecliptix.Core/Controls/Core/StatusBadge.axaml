@@ -8,15 +8,14 @@
              x:Name="Root"
              x:Class="Ecliptix.Core.Controls.Core.StatusBadge">
 
-    <UserControl.Resources>
+   <UserControl.Resources>
         <sys:TimeSpan x:Key="BadgeAnimationDuration">0:0:0.3</sys:TimeSpan>
         <sys:TimeSpan x:Key="BadgeColorDuration">0:0:0.2</sys:TimeSpan>
-
         <sys:Double x:Key="BadgeFontSize">8</sys:Double>
         <Thickness x:Key="BadgePadding">8,0</Thickness>
         <Thickness x:Key="BadgeBorderThickness">1</Thickness>
-        <sys:Double x:Key="BadgeIconSize">12</sys:Double>
-        <sys:Double x:Key="BadgeIconSpacing">4</sys:Double>
+        <sys:Double x:Key="BadgeIconSize">10</sys:Double>
+        <sys:Double x:Key="BadgeIconSpacing">2</sys:Double>
     </UserControl.Resources>
 
     <UserControl.Styles>
@@ -24,6 +23,7 @@
             <Setter Property="Height" Value="18"/>
             <Setter Property="BadgeBrush" Value="#6B7280"/>
             <Setter Property="BadgeBackground" Value="#F3F4F6"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
         </Style>
 
         <Style Selector="Border#ContainerBorder">
@@ -75,19 +75,25 @@
                 Background="{Binding BadgeBackground, ElementName=Root}"
                 BorderBrush="{Binding BadgeBrush, ElementName=Root}"
                 Padding="{StaticResource BadgePadding}"
-                HorizontalAlignment="Right"
+                HorizontalAlignment="{Binding HorizontalAlignment, ElementName=Root}"
                 VerticalAlignment="Center"
                 ClipToBounds="True">
 
             <StackPanel Orientation="Horizontal"
                         Spacing="{StaticResource BadgeIconSpacing}"
-                        VerticalAlignment="Center">
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="{Binding HorizontalAlignment, ElementName=Root}">
 
                 <PathIcon Data="{Binding Icon, ElementName=Root}"
                           Foreground="{Binding BadgeBrush, ElementName=Root}"
                           Width="{StaticResource BadgeIconSize}"
                           Height="{StaticResource BadgeIconSize}"
                           IsVisible="{Binding Icon, ElementName=Root, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <PathIcon.Transitions>
+                        <Transitions>
+                            <BrushTransition Property="Foreground" Duration="{StaticResource BadgeColorDuration}"/>
+                        </Transitions>
+                    </PathIcon.Transitions>
                 </PathIcon>
 
                 <TextBlock Text="{Binding Text, ElementName=Root}"
@@ -96,6 +102,11 @@
                            FontWeight="SemiBold"
                            VerticalAlignment="Center"
                            TextTrimming="CharacterEllipsis">
+                    <TextBlock.Transitions>
+                        <Transitions>
+                            <BrushTransition Property="Foreground" Duration="{StaticResource BadgeColorDuration}"/>
+                        </Transitions>
+                    </TextBlock.Transitions>
                 </TextBlock>
             </StackPanel>
         </Border>

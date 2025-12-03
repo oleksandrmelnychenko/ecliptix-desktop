@@ -30,15 +30,12 @@ public partial class StatusBadge : UserControl
     public IBrush BadgeBrush { get => GetValue(BadgeBrushProperty); set => SetValue(BadgeBrushProperty, value); }
     public IBrush BadgeBackground { get => GetValue(BadgeBackgroundProperty); set => SetValue(BadgeBackgroundProperty, value); }
 
-    // --- UI Elements ---
     private Border? _containerBorder;
     private TextBlock? _measuringBlock;
 
-    // --- Logic ---
     private CancellationTokenSource? _animCts;
     private string? _originalText;
 
-    // --- CACHED VALUES (Зберігаємо параметри тут) ---
     private Thickness _cachedPadding;
     private Thickness _cachedBorderThickness;
     private double _cachedIconSize;
@@ -46,7 +43,6 @@ public partial class StatusBadge : UserControl
     private TimeSpan _cachedAnimDuration;
     private TimeSpan _cachedColorDuration;
 
-    // --- Resource Keys ---
     private const string DurationKey = "BadgeAnimationDuration";
     private const string ColorDurationKey = "BadgeColorDuration";
     private const string PaddingKey = "BadgePadding";
@@ -66,13 +62,10 @@ public partial class StatusBadge : UserControl
         AvaloniaXamlLoader.Load(this);
     }
 
-    // Цей метод викликається один раз, коли контрол додається на екран
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
 
-        // Тут ми "запікаємо" значення.
-        // DefaultValue (другий параметр) МАЄ співпадати з XAML, про всяк випадок.
         _cachedPadding = GetResourceValue(PaddingKey, new Thickness(8, 0));
         _cachedBorderThickness = GetResourceValue(BorderKey, new Thickness(1));
         _cachedIconSize = GetResourceValue(IconSizeKey, 10.0);
@@ -115,10 +108,8 @@ public partial class StatusBadge : UserControl
 
         try
         {
-            // 1. Фіксація поточної ширини
             double currentVisualWidth = _containerBorder.Bounds.Width;
 
-            // Якщо контрол ще не видний - просто сетим текст
             if (currentVisualWidth <= 0 || double.IsNaN(currentVisualWidth))
             {
                 Text = newText;
@@ -128,31 +119,23 @@ public partial class StatusBadge : UserControl
             _containerBorder.Transitions = null;
             _containerBorder.Width = currentVisualWidth;
 
-            // Коротка пауза для рендера
             await Task.Delay(15, token);
 
-            // 2. Розрахунок нової ширини (використовує кеш)
             double targetWidth = CalculateRequiredWidth(newText);
 
-            // 3. Увімкнення анімації (використовує кеш часу)
             UpdateTransitions();
 
-            // 4. Старт
             Text = newText;
             _containerBorder.Width = targetWidth;
 
-            // 5. Очікування
             int delayMs = (int)_cachedAnimDuration.TotalMilliseconds + 50;
             await Task.Delay(delayMs, token);
 
-            // 6. Завершення
             if (!token.IsCancellationRequested)
             {
-                // Вимикаємо анімацію перед скиданням в Auto, щоб не було зворотнього руху
                 _containerBorder.Transitions = null;
                 _containerBorder.Width = double.NaN;
 
-                // Повертаємо транзішни назад
                 await Task.Delay(20, token);
                 UpdateTransitions();
             }
@@ -167,7 +150,6 @@ public partial class StatusBadge : UserControl
             return;
         }
 
-        // Якщо транзішни вже є - не перестворюємо
         if (_containerBorder.Transitions != null && _containerBorder.Transitions.Count > 0)
         {
             return;
@@ -204,11 +186,8 @@ public partial class StatusBadge : UserControl
         _measuringBlock.Text = text;
         _measuringBlock.Measure(Size.Infinity);
 
-        // Тут ми беремо реальну ширину тексту
         double textWidth = _measuringBlock.DesiredSize.Width;
 
-        // І додаємо КЕШОВАНІ відступи.
-        // Оскільки вони 1-в-1 з XAML, математика зійдеться ідеально.
         double totalWidth = textWidth + _cachedPadding.Left + _cachedPadding.Right
                                       + _cachedBorderThickness.Left + _cachedBorderThickness.Right;
 

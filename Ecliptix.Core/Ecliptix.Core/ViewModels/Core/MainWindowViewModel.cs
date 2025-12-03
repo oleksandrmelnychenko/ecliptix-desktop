@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
 using System.Runtime.InteropServices;
@@ -25,6 +27,15 @@ using ReactiveUI.Fody.Helpers;
 using Serilog;
 
 namespace Ecliptix.Core.ViewModels.Core;
+
+//TODO move out
+public enum TitleBarPosition
+{
+    Left,
+    Right,
+    Mirrored,
+    ReverseMirrored
+}
 
 public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 {
@@ -124,14 +135,24 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
             await AnimateWindowResizeAsync(532, 812, TimeSpan.FromMilliseconds(450)).ConfigureAwait(false);
 
+            NetworkBadgeViewModel networkBadgeViewmodel = new();
+            EppBadgeViewModel eppBadgeViewmodel = new();
+
+            object[] badges = [eppBadgeViewmodel, networkBadgeViewmodel];
+
             Dispatcher.UIThread.Post(() =>
             {
                 ClearTitleBarContent();
 
                 TitleBarViewModel.DisableMaximizeButton = true;
-                SetMirroredContent(LanguageSelector);
-                TitleBarViewModel.RightContent.Add(new EppBadgeViewModel());
-                TitleBarViewModel.RightContent.Add(new NetworkBadgeViewModel());
+                SetTitleBarContent(LanguageSelector, TitleBarPosition.ReverseMirrored);
+
+                SetMultipleTitleBarContent(
+                    badges,
+                    TitleBarPosition.Mirrored,
+                    reverseOrder: !RuntimeInformation.IsOSPlatform(OSPlatform.OSX),
+                    clearOthers: false
+                );
             });
 
             await SetContentWithFadeAsync(content).ConfigureAwait(false);
@@ -146,14 +167,11 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     }
 
-    private void ClearTitleBarContent()
-    {
-        TitleBarViewModel.LeftContent.Clear();
-        TitleBarViewModel.CenterContent = null;
-        TitleBarViewModel.RightContent.Clear();
-    }
-
-    private void SetMirroredContent(object content, bool clearOthers = true)
+    public void SetMultipleTitleBarContent(
+        IEnumerable<object> items,
+        TitleBarPosition position = TitleBarPosition.Mirrored,
+        bool reverseOrder = false,
+        bool clearOthers = false)
     {
         if (clearOthers)
         {
@@ -162,16 +180,96 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
         bool isMac = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
 
-        if (isMac)
+        System.Collections.ObjectModel.ObservableCollection<object> targetCollection = null;
+
+        switch (position)
         {
-            TitleBarViewModel.RightContent.Add(content);
+            case TitleBarPosition.Left:
+                targetCollection = TitleBarViewModel.LeftContent;
+                break;
+            case TitleBarPosition.Right:
+                targetCollection = TitleBarViewModel.RightContent;
+                break;
+            case TitleBarPosition.Mirrored:
+                targetCollection = isMac ? TitleBarViewModel.RightContent : TitleBarViewModel.LeftContent;
+                break;
+            case TitleBarPosition.ReverseMirrored:
+                targetCollection = isMac ? TitleBarViewModel.LeftContent : TitleBarViewModel.RightContent;
+                break;
         }
-        else
+
+        if (targetCollection == null)
         {
-            TitleBarViewModel.LeftContent.Add(content);
+            return;
+        }
+
+        List<object> itemsList = items.ToList();
+
+        if (reverseOrder)
+        {
+            itemsList.Reverse();
+        }
+
+        foreach (object item in itemsList)
+        {
+            targetCollection.Add(item);
         }
     }
 
+    private void SetTitleBarContent(
+        object content,
+        TitleBarPosition position = TitleBarPosition.Mirrored,
+        bool clearOthers = true)
+    {
+        if (clearOthers)
+        {
+            ClearTitleBarContent();
+        }
+
+        bool isMac = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+
+        switch (position)
+        {
+            case TitleBarPosition.Left:
+                TitleBarViewModel.LeftContent.Add(content);
+                break;
+
+            case TitleBarPosition.Right:
+                TitleBarViewModel.RightContent.Add(content);
+                break;
+
+            case TitleBarPosition.Mirrored:
+                if (isMac)
+                {
+                    TitleBarViewModel.RightContent.Add(content);
+                }
+                else
+                {
+                    TitleBarViewModel.LeftContent.Add(content);
+                }
+
+                break;
+
+            case TitleBarPosition.ReverseMirrored:
+                if (isMac)
+                {
+                    TitleBarViewModel.LeftContent.Add(content);
+                }
+                else
+                {
+                    TitleBarViewModel.RightContent.Add(content);
+                }
+
+                break;
+        }
+    }
+
+    private void ClearTitleBarContent()
+    {
+        TitleBarViewModel.LeftContent.Clear();
+        TitleBarViewModel.CenterContent = null;
+        TitleBarViewModel.RightContent.Clear();
+    }
 
     public async Task SetMainContentAsync(object content)
     {
