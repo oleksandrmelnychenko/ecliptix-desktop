@@ -17,7 +17,6 @@ namespace Ecliptix.Core.Controls.Core;
 
 public partial class StatusBadge : UserControl
 {
-    // --- Styled Properties ---
     public static readonly StyledProperty<string> TextProperty = AvaloniaProperty.Register<StatusBadge, string>(nameof(Text));
     public static readonly StyledProperty<Geometry> IconProperty = AvaloniaProperty.Register<StatusBadge, Geometry>(nameof(Icon));
     public static readonly StyledProperty<IBrush> BadgeBrushProperty = AvaloniaProperty.Register<StatusBadge, IBrush>(nameof(BadgeBrush), Brushes.Gray);

@@ -55,6 +55,16 @@
             <Setter Property="BadgeBrush" Value="#7E22CE"/>
             <Setter Property="BadgeBackground" Value="#F3E8FF"/>
         </Style>
+        <Style Selector="local|StatusBadge.gray">
+            <Setter Property="BadgeBrush" Value="#6B7280"/>
+            <Setter Property="BadgeBackground" Value="#F3F4F6"/>
+        </Style>
+        <Style Selector="local|StatusBadge.green">
+            <Setter Property="BadgeBrush" Value="#10B981"/>
+            <Setter Property="BadgeBackground" Value="#1510B981"/> </Style>
+        <Style Selector="local|StatusBadge.red">
+            <Setter Property="BadgeBrush" Value="#EF4444"/>
+            <Setter Property="BadgeBackground" Value="#15EF4444"/> </Style>
         <Style Selector="local|StatusBadge.step Border#ContainerBorder">
             <Setter Property="BorderThickness" Value="0"/>
         </Style>

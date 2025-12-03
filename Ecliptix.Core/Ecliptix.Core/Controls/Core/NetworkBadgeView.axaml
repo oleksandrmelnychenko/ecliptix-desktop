@@ -6,8 +6,12 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="core:NetworkBadgeViewModel"
              x:Class="Ecliptix.Core.Controls.Core.NetworkBadgeView">
-    <core:StatusBadge Classes="green"
-                      Text="{Binding Text}"
-                      Icon="{Binding Icon}"/>
+    <core:StatusBadge Text="{Binding Text}"
+                      Icon="{Binding Icon}"
+                      Classes.green="{Binding IsConnected}"
+                      Classes.gray="{Binding IsDisconnected}"
+                      Classes.red="{Binding IsServerError}"
+                      VerticalAlignment="Top"
+                      HorizontalAlignment="Right"/>
 </UserControl>
 
