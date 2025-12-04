@@ -11,6 +11,7 @@ using Avalonia.Input.Platform;
 using Avalonia.Threading;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Controls.LanguageSelector;
+using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
@@ -42,6 +43,8 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     private readonly IBottomSheetService _bottomSheetService;
     private readonly ISideSheetService _sideSheetService;
     private readonly IApplicationSecureStorageProvider _storageProvider;
+    private readonly ILocalizationService _localizationService;
+    private readonly IRpcMetaDataProvider _rpcMetaDataProvider;
 
     private bool _isDisposed;
 
@@ -82,6 +85,8 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         _sideSheetService = sideSheetService;
         _bottomSheetService = bottomSheetService;
         _storageProvider = storageProvider;
+        _localizationService = localizationService;
+        _rpcMetaDataProvider = rpcMetaDataProvider;
 
         MinWindowWidth = 200;
         MinWindowHeight = 300;
@@ -148,7 +153,14 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
                 ClearTitleBarContent();
 
                 TitleBarViewModel.DisableMaximizeButton = true;
-                SetTitleBarContent(LanguageSelector, TitleBarPosition.ReverseMirrored);
+                //SetTitleBarContent(LanguageSelector, TitleBarPosition.ReverseMirrored);
+
+                SetTitleBarContent(new LanguageSwitcherViewModel(
+                    _sideSheetService,
+                    _storageProvider,
+                    _localizationService,
+                    _rpcMetaDataProvider
+                    ), TitleBarPosition.ReverseMirrored);
 
                 SetMultipleTitleBarContent(
                     badges,

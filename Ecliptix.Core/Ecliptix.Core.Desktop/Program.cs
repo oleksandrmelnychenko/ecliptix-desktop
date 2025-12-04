@@ -13,6 +13,7 @@ using Avalonia.ReactiveUI;
 using DotNetEnv;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Controls.LanguageSelector;
+using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Controls.Modals.BottomSheetModal;
 using Ecliptix.Core.Controls.Modals.SideSheetModal;
 using Ecliptix.Core.Core.Abstractions;
@@ -115,6 +116,7 @@ public static class Program
             Splat.Locator.CurrentMutable.Register(() => new PersonalTagView(), typeof(ReactiveUI.IViewFor<PersonalTagViewModel>));
             Splat.Locator.CurrentMutable.Register(() => new EppBadgeView(), typeof(ReactiveUI.IViewFor<EppBadgeViewModel>));
             Splat.Locator.CurrentMutable.Register(() => new NetworkBadgeView(), typeof(ReactiveUI.IViewFor<NetworkBadgeViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new LanguageSwitcherView(), typeof(ReactiveUI.IViewFor<LanguageSwitcherViewModel>));
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
         }
         catch (Exception ex)
@@ -517,6 +519,7 @@ public static class Program
         services.AddTransient<Ecliptix.Core.Features.Settings.ViewModels.SettingsViewModel>();
         services.AddTransient<Ecliptix.Core.Features.Profile.ViewModels.ProfileViewModel>();
 
+        services.AddTransient<LanguageSelectionViewModel>();
         services.AddTransient<LanguageSelectorViewModel>();
         services.AddSingleton<BottomSheetViewModel>();
         services.AddSingleton<SideSheetViewModel>();
