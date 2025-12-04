@@ -9,76 +9,82 @@
              Width="340"
              x:DataType="vm:LanguageSelectionViewModel">
 
-   <Grid RowDefinitions="Auto, *" Margin="16">
-
+  <Grid RowDefinitions="Auto, *" Margin="16">
         <Grid ColumnDefinitions="*, Auto" Margin="0,0,0,20">
             <StackPanel Grid.Column="0" Spacing="2">
                 <TextBlock Text="App language"
-                           FontSize="16"
-                           FontWeight="Bold"
+                           FontSize="16" FontWeight="Bold"
                            Foreground="{DynamicResource OnSurface}"/>
                 <TextBlock Text="Choose your preferred language"
-                           FontSize="12"
-                           FontWeight="Normal"
+                           FontSize="12" FontWeight="Normal"
                            Foreground="{DynamicResource TextSecondary}"/>
             </StackPanel>
-
-            <Button Grid.Column="1"
-                    Command="{Binding CloseCommand}"
-                    Padding="8"
-                    Background="Transparent"
-                    BorderThickness="0"
-                    Cursor="Hand">
+            <Button Grid.Column="1" Command="{Binding CloseCommand}"
+                    Padding="8" Background="Transparent"
+                    BorderThickness="0" Cursor="Hand">
                 <PathIcon Data="M13.41,12l4.3-4.29a1,1,0,1,0-1.42-1.42L12,10.59,7.71,6.29A1,1,0,0,0,6.29,7.71L10.59,12l-4.3,4.29a1,1,0,0,0,0,1.42,1,1,0,0,0,1.42,0L12,13.41l4.29,4.3a1,1,0,0,0,1.42,0,1,1,0,0,0,0-1.42Z"
                           Width="12" Height="12"
                           Foreground="{DynamicResource OnSurface}"/>
             </Button>
         </Grid>
 
-        <ScrollViewer Grid.Row="1">
-            <ItemsControl ItemsSource="{Binding Languages}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="settings:LanguageItem">
-                        <Button Background="Transparent"
-                                BorderThickness="0"
-                                HorizontalAlignment="Stretch"
-                                HorizontalContentAlignment="Stretch"
-                                Padding="12,8"
-                                Margin="0,0,0,4"
-                                CornerRadius="8"
-                                Cursor="Hand"
-                                Command="{Binding $parent[UserControl].((vm:LanguageSelectionViewModel)DataContext).SelectLanguageCommand}"
-                                CommandParameter="{Binding .}">
+             <ListBox Grid.Row="1"
+                   x:Name="LanguageList"
+                   ItemsSource="{Binding Languages}"
+                   Background="Transparent"
+                   BorderThickness="0"
+                   Padding="4"
+                   ClipToBounds="False"
+                   SelectionMode="Single">
 
-                            <Button.Styles>
-                                <Style Selector="Button:pointerover /template/ ContentPresenter">
-                                    <Setter Property="Background" Value="{DynamicResource Button.Secondary.Hover}" />
-                                </Style>
-                                <Style Selector="Button:pressed /template/ ContentPresenter">
-                                    <Setter Property="Background" Value="{DynamicResource Button.Secondary.Pressed}" />
-                                </Style>
-                            </Button.Styles>
+                 <ListBox.ItemsPanel>
+                     <ItemsPanelTemplate>
+                         <StackPanel Orientation="Vertical" />
+                     </ItemsPanelTemplate>
+                 </ListBox.ItemsPanel>
 
-                            <Grid ColumnDefinitions="Auto, *">
-                                <Svg Grid.Column="0"
-                                     Path="{Binding FlagImagePath}"
-                                     Width="28"
-                                     Height="28"
-                                     Margin="0,0,16,0"
-                                     VerticalAlignment="Center"/>
+              <ListBox.Styles>
+                  <Style Selector="ListBoxItem" x:DataType="vm:SelectableLanguageViewModel">
+                      <Setter Property="Classes.SidebarItem" Value="True"/>
 
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding DisplayName}"
-                                               FontSize="14"
-                                               FontWeight="SemiBold"
-                                               Foreground="{DynamicResource OnSurface}"/>
-                                    </StackPanel>
-                            </Grid>
-                        </Button>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
+                      <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                  </Style>
+              </ListBox.Styles>
+
+              <Interaction.Behaviors>
+                  <EventTriggerBehavior EventName="SelectionChanged">
+                      <InvokeCommandAction Command="{Binding SelectLanguageCommand}"
+                                           CommandParameter="{Binding #LanguageList.SelectedItem}" />
+                  </EventTriggerBehavior>
+              </Interaction.Behaviors>
+
+              <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:SelectableLanguageViewModel">
+                      <Grid ColumnDefinitions="Auto, *, Auto">
+
+                          <Svg Grid.Column="0"
+                               Path="{Binding Model.FlagImagePath}"
+                               Width="28" Height="28"
+                               Margin="0,0,16,0"
+                               VerticalAlignment="Center"/>
+
+                          <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                              <TextBlock Text="{Binding Model.DisplayName}"
+                                         FontSize="14"
+                                         Foreground="{DynamicResource OnSurface}"/>
+                              </StackPanel>
+
+                          <PathIcon Grid.Column="2"
+                                    Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"
+                                    Width="16" Height="16"
+                                    Foreground="{DynamicResource Primary}"
+                                    IsVisible="{Binding IsSelected}"
+                                    VerticalAlignment="Center"
+                                    Margin="8,0,0,0"/>
+                      </Grid>
+                  </DataTemplate>
+              </ListBox.ItemTemplate>
+          </ListBox>
     </Grid>
 </UserControl>
 

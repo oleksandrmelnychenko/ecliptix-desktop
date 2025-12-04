@@ -520,7 +520,7 @@ public static class Program
         services.AddTransient<Ecliptix.Core.Features.Settings.ViewModels.SettingsViewModel>();
         services.AddTransient<Ecliptix.Core.Features.Profile.ViewModels.ProfileViewModel>();
 
-        services.AddTransient<LanguageSelectionViewModel>();
+        services.AddSingleton<LanguageSelectionViewModel>();
         services.AddTransient<LanguageSelectorViewModel>();
         services.AddSingleton<BottomSheetViewModel>();
         services.AddSingleton<SideSheetViewModel>();

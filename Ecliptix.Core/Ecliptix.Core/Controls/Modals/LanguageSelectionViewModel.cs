@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Core.Messaging.Services;
@@ -10,11 +12,27 @@ using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Settings;
 using Ecliptix.Utilities;
 using ReactiveUI;
+using ReactiveUI.Fody.Helpers;
 using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Controls.Modals;
 
 public record LanguageItemViewModel(string Code, string EnglishName, string NativeName);
+
+
+public class SelectableLanguageViewModel : ReactiveObject
+{
+    public LanguageItem Model { get; }
+
+    [Reactive]
+    public bool IsSelected { get; set; }
+
+    public SelectableLanguageViewModel(LanguageItem model, bool isSelected)
+    {
+        Model = model;
+        IsSelected = isSelected;
+    }
+}
 
 public class LanguageSelectionViewModel : ReactiveObject, IActivatableViewModel
 {
@@ -25,11 +43,11 @@ public class LanguageSelectionViewModel : ReactiveObject, IActivatableViewModel
 
     public ViewModelActivator Activator { get; } = new();
 
-    public ObservableCollection<LanguageItem> Languages { get; }
+    public ObservableCollection<SelectableLanguageViewModel> Languages { get; }
 
     public ReactiveCommand<Unit, Unit> CloseCommand { get; }
 
-    public ReactiveCommand<LanguageItem, Unit> SelectLanguageCommand { get; }
+    public ReactiveCommand<SelectableLanguageViewModel, Unit> SelectLanguageCommand { get; }
 
     public LanguageSelectionViewModel(
         ISideSheetService sideSheetService,
@@ -42,30 +60,40 @@ public class LanguageSelectionViewModel : ReactiveObject, IActivatableViewModel
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _rpcMetaDataProvider = rpcMetaDataProvider;
 
-        Languages = new ObservableCollection<LanguageItem>(AppCultureSettings.Default.SupportedLanguages);
+        string currentCulture = _localizationService.CurrentCultureName;
+
+        IEnumerable<SelectableLanguageViewModel> selectableLanguages = AppCultureSettings.Default.SupportedLanguages
+            .Select(lang => new SelectableLanguageViewModel(lang, lang.Code == currentCulture));
+
+        Languages = new ObservableCollection<SelectableLanguageViewModel>(selectableLanguages);
 
         CloseCommand = ReactiveCommand.CreateFromTask(async () =>
         {
             await _sideSheetService.HideAsync();
         });
 
-        SelectLanguageCommand = ReactiveCommand.CreateFromTask<LanguageItem>(async (languageItem) =>
+        SelectLanguageCommand = ReactiveCommand.CreateFromTask<SelectableLanguageViewModel>(async (selectedItem) =>
         {
-            await SelectLanguageAsync(languageItem);
+            await SelectLanguageAsync(selectedItem);
         });
     }
 
-    private async Task SelectLanguageAsync(LanguageItem languageItem)
+    private async Task SelectLanguageAsync(SelectableLanguageViewModel selectedItem)
     {
-        if (_localizationService.CurrentCultureName == languageItem.Code)
+        if (selectedItem is null)
+        {
+            return;
+        }
+
+        if (_localizationService.CurrentCultureName == selectedItem.Model.Code)
         {
             await _sideSheetService.HideAsync();
             return;
         }
 
-        _localizationService.SetCulture(languageItem.Code, () =>
+        _localizationService.SetCulture(selectedItem.Model.Code, () =>
         {
-            HandleCultureChange(languageItem.Code);
+            HandleCultureChange(selectedItem.Model.Code);
         });
 
         await _sideSheetService.HideAsync();
