@@ -28,7 +28,7 @@
 
         <SolidColorBrush x:Key="CounterForegroundBrush">Gray</SolidColorBrush>
         <BoxShadows x:Key="DefaultShadow">0 2 12 0 #00000000</BoxShadows>
-        <BoxShadows x:Key="FocusShadow">0 2 12 0 #99FF6D00</BoxShadows>
+        <BoxShadows x:Key="FocusShadow">0 2 12 0 #996a5acd</BoxShadows>
         <BoxShadows x:Key="ErrorShadow">0 2 12 0 #99ef3a3a</BoxShadows>
 
         <BoxShadows x:Key="InvalidStrengthShadow">0 2 12 0 #99ef3a3a</BoxShadows>
