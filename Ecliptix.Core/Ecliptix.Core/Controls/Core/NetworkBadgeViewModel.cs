@@ -5,6 +5,7 @@ using Ecliptix.Core.Core.Messaging.Connectivity;
 using Ecliptix.Core.Core.Messaging.Services;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
+using Serilog;
 using Splat;
 
 namespace Ecliptix.Core.Controls.Core;
@@ -21,16 +22,13 @@ public class NetworkBadgeViewModel : ReactiveObject, IDisposable
     private readonly CompositeDisposable _disposables = new();
     private readonly IConnectivityService _connectivityService;
 
-    // SVG Paths
     private const string IconOnline = "M12.01 21.49L16.64 16.86C15.4 15.63 13.78 14.97 12.01 14.97C10.27 14.97 8.64 15.63 7.38 16.86L12.01 21.49ZM18.96 14.54L21.08 12.42C18.66 10.02 15.45 8.7 12.01 8.7C8.59 8.7 5.37 10.02 2.94 12.42L5.06 14.54C6.9 12.7 9.36 11.7 12.01 11.7C14.67 11.7 17.13 12.7 18.96 14.54ZM24 9.5L21.88 7.38C19.23 4.74 15.72 3.28 12.01 3.28C8.31 3.28 4.79 4.74 2.14 7.38L0.02 9.5C3.21 6.32 7.45 4.56 12.01 4.56C16.58 4.56 20.82 6.32 24 9.5Z";
     private const string IconOffline = "M23.64 7c-.45-.34-4.93-4-11.64-4-1.5 0-2.89.19-4.15.48L18.18 13.8 23.64 7zm-6.6 8.22L3.27 1.44 2 2.72l2.05 2.06C1.91 5.17 1.5 5.48 1.5 5.48c-.5.39.06 1.07.57 1.07.21 0 .4-.09.52-.23 0 0 4.05-3.15 9.41-3.15 1.56 0 3 .26 4.31.7L18.7 6.3C17.06 5.86 15.09 5.5 13 5.5c-6.14 0-10.3 3.43-10.66 3.73l9.66 12.02c.3.37.86.37 1.16 0l2.76-3.44 3.4 3.41L20.71 20 17.04 15.22z";
     private const string IconError = "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z";
 
-    // Output Properties
     [ObservableAsProperty] public string Text { get; }
     [ObservableAsProperty] public string Icon { get; }
 
-    // State Flags for View Styling
     [ObservableAsProperty] public bool IsConnected { get; }
     [ObservableAsProperty] public bool IsDisconnected { get; }
     [ObservableAsProperty] public bool IsServerError { get; }
@@ -40,11 +38,13 @@ public class NetworkBadgeViewModel : ReactiveObject, IDisposable
         _connectivityService = Locator.Current.GetService<IConnectivityService>()
             ?? throw new InvalidOperationException("IConnectivityService not found in Locator");
 
+        ConnectivitySnapshot initialSnapshot = _connectivityService.CurrentSnapshot;
+        Log.Information("[BadgeVM] Init Snapshot: Source={Source}, Status={Status}", initialSnapshot.Source, initialSnapshot.Status);
+
         IObservable<ConnectivitySnapshot> sharedStream = _connectivityService.ConnectivityStream
+            .Do(s => Log.Debug("[BadgeVM] Stream Event: {Source} -> {Status}", s.Source, s.Status)) // Лог вхідних подій
             .Publish()
             .RefCount();
-
-        ConnectivitySnapshot initialSnapshot = _connectivityService.CurrentSnapshot;
 
         ConnectivityStatus initialInternetState = initialSnapshot.Source == ConnectivitySource.INTERNET_PROBE
             ? initialSnapshot.Status
@@ -57,19 +57,25 @@ public class NetworkBadgeViewModel : ReactiveObject, IDisposable
         IObservable<ConnectivityStatus> internetStatus = sharedStream
             .Where(s => s.Source == ConnectivitySource.INTERNET_PROBE)
             .Select(s => s.Status)
-            .StartWith(initialInternetState);
+            .StartWith(initialInternetState)
+            .Do(s => Log.Debug("[BadgeVM] Internet Status Update: {Status}", s)) // Лог зміни статусу інтернету
+            .DistinctUntilChanged();
 
         IObservable<ConnectivityStatus> serverStatus = sharedStream
             .Where(s => s.Source == ConnectivitySource.DATA_CENTER)
             .Select(s => s.Status)
-            .StartWith(initialServerState);
-
-        IObservable<NetworkBadgeState> badgeState = Observable.CombineLatest(
-            internetStatus,
-            serverStatus,
-            DetermineBadgeState)
+            .StartWith(initialServerState)
+            .Do(s => Log.Debug("[BadgeVM] Server Status Update: {Status}", s)) // Лог зміни статусу сервера
             .DistinctUntilChanged();
 
+        IObservable<NetworkBadgeState> badgeState = Observable.CombineLatest(
+                internetStatus,
+                serverStatus,
+                DetermineBadgeState)
+            .Do(state => Log.Information("[BadgeVM] Final Calculated State: {State}", state)) // Лог фінального рішення
+            .DistinctUntilChanged();
+
+        // Підписка на властивості
         badgeState.Select(s => s == NetworkBadgeState.Connected)
             .ObserveOn(RxApp.MainThreadScheduler)
             .ToPropertyEx(this, x => x.IsConnected)
@@ -98,30 +104,21 @@ public class NetworkBadgeViewModel : ReactiveObject, IDisposable
 
     private NetworkBadgeState DetermineBadgeState(ConnectivityStatus internet, ConnectivityStatus server)
     {
-        if (server == ConnectivityStatus.CONNECTED)
-        {
-            return NetworkBadgeState.Connected;
-        }
+        Log.Verbose("[BadgeVM] DetermineBadgeState Input: Internet={Internet}, Server={Server}", internet, server);
 
-        if (internet == ConnectivityStatus.UNAVAILABLE ||
-            internet == ConnectivityStatus.CONNECTING)
+        if (internet == ConnectivityStatus.UNAVAILABLE)
         {
+            Log.Verbose("[BadgeVM] Result -> Disconnected (No Internet)");
             return NetworkBadgeState.Disconnected;
         }
 
-        switch (server)
+        if (server == ConnectivityStatus.CONNECTED)
         {
-            case ConnectivityStatus.DISCONNECTED:
-            case ConnectivityStatus.RETRIES_EXHAUSTED:
-            case ConnectivityStatus.SHUTTING_DOWN:
-            case ConnectivityStatus.UNAVAILABLE:
-            case ConnectivityStatus.RECOVERING:
-            case ConnectivityStatus.CONNECTING:
-                return NetworkBadgeState.ServerError;
-
-            default:
-                return NetworkBadgeState.Disconnected;
+            Log.Verbose("[BadgeVM] Result -> Connected (OK)");
+            return NetworkBadgeState.Connected;
         }
+        Log.Verbose("[BadgeVM] Result -> ServerError");
+        return NetworkBadgeState.ServerError;
     }
 
     private string GetTextForState(NetworkBadgeState state) => state switch
@@ -140,6 +137,7 @@ public class NetworkBadgeViewModel : ReactiveObject, IDisposable
 
     public void Dispose()
     {
+        Log.Debug("[BadgeVM] Disposing NetworkBadgeViewModel");
         _disposables.Dispose();
     }
 
