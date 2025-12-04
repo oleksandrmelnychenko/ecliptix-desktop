@@ -40,6 +40,7 @@ public enum TitleBarPosition
 public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 {
     private readonly IBottomSheetService _bottomSheetService;
+    private readonly ISideSheetService _sideSheetService;
     private readonly IApplicationSecureStorageProvider _storageProvider;
 
     private bool _isDisposed;
@@ -71,12 +72,14 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     public event Action<PixelPoint>? OnWindowRepositionRequested;
 
     public MainWindowViewModel(
+        ISideSheetService sideSheetService,
         IBottomSheetService bottomSheetService,
         ILocalizationService localizationService,
         IApplicationSecureStorageProvider storageProvider,
         IRpcMetaDataProvider rpcMetaDataProvider,
         ConnectivityNotificationViewModel connectivityNotification)
     {
+        _sideSheetService = sideSheetService;
         _bottomSheetService = bottomSheetService;
         _storageProvider = storageProvider;
 
@@ -345,9 +348,21 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         bool isDismissable = false) =>
         await _bottomSheetService.ShowAsync(type, view, showScrim, isDismissable).ConfigureAwait(false);
 
+    public async Task ShowSideSheetAsync(
+        SideSheetComponentType type,
+        UserControl view,
+        bool showScrim = true,
+        bool isDismissable = false) =>
+        await _sideSheetService.ShowAsync(type, view, showScrim, isDismissable).ConfigureAwait(false);
+
     public async Task HideBottomSheetAsync() => await _bottomSheetService.HideAsync().ConfigureAwait(false);
 
+    public async Task HideSideSheetAsync() => await _sideSheetService.HideAsync().ConfigureAwait(false);
+
     public IDisposable OnBottomSheetHidden(Func<BottomSheetHiddenEvent, Task> handler, SubscriptionLifetime lifetime) => _bottomSheetService.OnBottomSheetHidden(handler, lifetime);
+
+    public IDisposable OnSideSheetHidden(Func<SideSheetHiddenEvent, Task> handler, SubscriptionLifetime lifetime) => _sideSheetService.OnSideSheetHidden(handler, lifetime);
+
 
     public void Dispose()
     {

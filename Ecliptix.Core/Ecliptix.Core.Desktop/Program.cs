@@ -14,6 +14,7 @@ using DotNetEnv;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Controls.Modals.BottomSheetModal;
+using Ecliptix.Core.Controls.Modals.SideSheetModal;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.Communication;
 using Ecliptix.Core.Core.Messaging;
@@ -356,6 +357,7 @@ public static class Program
         services.AddSingleton<IMessageBus, MessageBus>();
         services.AddSingleton<IConnectivityService, ConnectivityService>();
         services.AddSingleton<IBottomSheetService, BottomSheetService>();
+        services.AddSingleton<ISideSheetService, SideSheetService>();
         services.AddSingleton<IProfileMenuService, ProfileMenuService>();
         services.AddSingleton<ILanguageDetectionService, LanguageDetectionService>();
         services.AddSingleton<ILocalizationService, LocalizationService>();
@@ -517,6 +519,7 @@ public static class Program
 
         services.AddTransient<LanguageSelectorViewModel>();
         services.AddSingleton<BottomSheetViewModel>();
+        services.AddSingleton<SideSheetViewModel>();
         services.AddSingleton<ConnectivityNotificationViewModel>();
         services.AddSingleton<Ecliptix.Core.ViewModels.Core.MainWindowViewModel>();
         services.AddTransient<SplashWindowViewModel>();

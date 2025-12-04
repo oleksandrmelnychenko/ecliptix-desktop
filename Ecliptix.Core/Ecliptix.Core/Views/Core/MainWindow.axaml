@@ -7,6 +7,7 @@
         xmlns:coreControls="clr-namespace:Ecliptix.Core.Controls.Core"
         xmlns:controls="clr-namespace:Ecliptix.Core.Controls.Modals.BottomSheetModal"
         xmlns:vm="clr-namespace:Ecliptix.Core.ViewModels.Core"
+        xmlns:sideSheetModal="clr-namespace:Ecliptix.Core.Controls.Modals.SideSheetModal"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
         x:Class="Ecliptix.Core.Views.Core.MainWindow"
         x:DataType="vm:MainWindowViewModel"
@@ -88,6 +89,20 @@
             x:Name="BottomSheetContainer">
             <controls:BottomSheetControl
                 x:Name="BottomSheetControl"
+                ZIndex="1000"
+                VerticalAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                DismissableScrimColor="DarkGray"
+                UnDismissableScrimColor="Black"
+                IsDismissableOnScrimClick="True" />
+        </Border>
+
+        <Border
+            ClipToBounds="True"
+            ZIndex="1001"
+            x:Name="SideSheetContainer">
+            <sideSheetModal:SideSheetControl
+                x:Name="SideSheetControl"
                 ZIndex="1000"
                 VerticalAlignment="Stretch"
                 HorizontalAlignment="Stretch"
