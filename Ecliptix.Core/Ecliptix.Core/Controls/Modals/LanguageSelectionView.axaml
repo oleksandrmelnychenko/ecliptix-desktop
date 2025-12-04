@@ -1,0 +1,68 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ecliptix.Core.Controls.Modals"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Ecliptix.Core.Controls.Modals.LanguageSelectionView"
+             Width="340"
+             x:DataType="vm:LanguageSelectionViewModel">
+
+    <Grid RowDefinitions="Auto, *" Margin="16">
+
+        <Grid ColumnDefinitions="*, Auto" Margin="0,0,0,20">
+            <StackPanel Grid.Column="0" Spacing="2">
+                <TextBlock Text="App language"
+                           FontSize="16"
+                           FontWeight="Bold" />
+                <TextBlock Text="Choose your preferred language"
+                           FontSize="12"
+                           FontWeight="Normal"
+                           Foreground="Gray"/>
+            </StackPanel>
+
+            <Button Grid.Column="1"
+                    Command="{Binding CloseCommand}"
+                    Padding="8"
+                    Background="Transparent"
+                    BorderThickness="0">
+                <PathIcon Data="M13.41,12l4.3-4.29a1,1,0,1,0-1.42-1.42L12,10.59,7.71,6.29A1,1,0,0,0,6.29,7.71L10.59,12l-4.3,4.29a1,1,0,0,0,0,1.42,1,1,0,0,0,1.42,0L12,13.41l4.29,4.3a1,1,0,0,0,1.42,0,1,1,0,0,0,0-1.42Z"
+                          Width="12" Height="12" />
+            </Button>
+        </Grid>
+
+        <ScrollViewer Grid.Row="1">
+            <ItemsControl ItemsSource="{Binding Languages}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="Transparent"
+                                Margin="0,0,0,16"
+                                CornerRadius="8">
+
+                            <Grid ColumnDefinitions="Auto, *">
+                                <TextBlock Grid.Column="0"
+                                           Text="{Binding Code}"
+                                           FontSize="24"
+                                           FontWeight="Bold"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,16,0"
+                                           Foreground="{DynamicResource SystemAccentColor}"/>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding EnglishName}"
+                                               FontSize="16"
+                                               FontWeight="Normal" />
+                                    <TextBlock Text="{Binding NativeName}"
+                                               FontSize="12"
+                                               FontWeight="Normal"
+                                               Foreground="Gray"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
+

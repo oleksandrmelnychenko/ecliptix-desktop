@@ -401,13 +401,13 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
 
                 if (!string.Equals(currentCulture, expectedCulture, StringComparison.OrdinalIgnoreCase))
                 {
-                    DetectLanguageDialogViewModel detectLanguageViewModel = new(
-                        LocalizationService,
-                        _languageDetectionService,
-                        _networkProvider
-                    );
-
-                    DetectLanguageDialog detectLanguageView = new() { DataContext = detectLanguageViewModel };
+                    // DetectLanguageDialogViewModel detectLanguageViewModel = new(
+                    //     LocalizationService,
+                    //     _languageDetectionService,
+                    //     _networkProvider
+                    // );
+                    //
+                    // DetectLanguageDialog detectLanguageView = new() { DataContext = detectLanguageViewModel };
 
                     // await _mainWindowViewModel.ShowBottomSheetAsync(
                     //     BottomSheetComponentType.DETECTED_LOCALIZATION,
@@ -416,9 +416,12 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
                     //     isDismissable: true
                     // ).ConfigureAwait(false);
 
+                    LanguageSelectionViewModel langViewModel = new LanguageSelectionViewModel();
+                    LanguageSelectionView langView = new LanguageSelectionView { DataContext = langViewModel };
+
                     await _mainWindowViewModel.ShowSideSheetAsync(
                         SideSheetComponentType.DETECTED_LOCALIZATION,
-                        detectLanguageView,
+                        langView,
                         showScrim: true,
                         isDismissable: true
                     ).ConfigureAwait(false);
