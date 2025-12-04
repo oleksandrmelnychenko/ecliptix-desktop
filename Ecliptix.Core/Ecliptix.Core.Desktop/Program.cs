@@ -117,6 +117,7 @@ public static class Program
             Splat.Locator.CurrentMutable.Register(() => new EppBadgeView(), typeof(ReactiveUI.IViewFor<EppBadgeViewModel>));
             Splat.Locator.CurrentMutable.Register(() => new NetworkBadgeView(), typeof(ReactiveUI.IViewFor<NetworkBadgeViewModel>));
             Splat.Locator.CurrentMutable.Register(() => new LanguageSwitcherView(), typeof(ReactiveUI.IViewFor<LanguageSwitcherViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new VerticalSeparatorView(), typeof(ReactiveUI.IViewFor<VerticalSeparatorViewModel>));
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
         }
         catch (Exception ex)

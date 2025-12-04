@@ -143,30 +143,35 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
             await AnimateWindowResizeAsync(532, 812, TimeSpan.FromMilliseconds(450)).ConfigureAwait(false);
 
-            NetworkBadgeViewModel networkBadgeViewmodel = new();
-            EppBadgeViewModel eppBadgeViewmodel = new();
-
-            object[] badges = [eppBadgeViewmodel, networkBadgeViewmodel];
+            VerticalSeparatorViewModel separator = new VerticalSeparatorViewModel();
+            LanguageSwitcherViewModel languageSwitcher = new LanguageSwitcherViewModel(
+                _sideSheetService,
+                _storageProvider,
+                _localizationService,
+                _rpcMetaDataProvider
+            );
+            EppBadgeViewModel eppBadge = new EppBadgeViewModel();
+            NetworkBadgeViewModel networkBadge = new NetworkBadgeViewModel();
 
             Dispatcher.UIThread.Post(() =>
             {
                 ClearTitleBarContent();
-
                 TitleBarViewModel.DisableMaximizeButton = true;
-                //SetTitleBarContent(LanguageSelector, TitleBarPosition.ReverseMirrored);
-
-                SetTitleBarContent(new LanguageSwitcherViewModel(
-                    _sideSheetService,
-                    _storageProvider,
-                    _localizationService,
-                    _rpcMetaDataProvider
-                    ), TitleBarPosition.ReverseMirrored);
 
                 SetMultipleTitleBarContent(
-                    badges,
+                    TitleBarPosition.ReverseMirrored,
+                    reverseOrder: !RuntimeInformation.IsOSPlatform(OSPlatform.OSX),
+                    clearOthers: false,
+                    separator,
+                    languageSwitcher 
+                );
+
+                SetMultipleTitleBarContent(
                     TitleBarPosition.Mirrored,
                     reverseOrder: !RuntimeInformation.IsOSPlatform(OSPlatform.OSX),
-                    clearOthers: false
+                    clearOthers: false,
+                    eppBadge,
+                    networkBadge
                 );
             });
 
@@ -183,10 +188,10 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     }
 
     public void SetMultipleTitleBarContent(
-        IEnumerable<object> items,
-        TitleBarPosition position = TitleBarPosition.Mirrored,
-        bool reverseOrder = false,
-        bool clearOthers = false)
+        TitleBarPosition position,
+        bool reverseOrder,
+        bool clearOthers,
+        params object[] items)
     {
         if (clearOthers)
         {
@@ -195,39 +200,33 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
         bool isMac = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
 
-        System.Collections.ObjectModel.ObservableCollection<object> targetCollection = null;
-
-        switch (position)
+        System.Collections.ObjectModel.ObservableCollection<object>? targetCollection = position switch
         {
-            case TitleBarPosition.Left:
-                targetCollection = TitleBarViewModel.LeftContent;
-                break;
-            case TitleBarPosition.Right:
-                targetCollection = TitleBarViewModel.RightContent;
-                break;
-            case TitleBarPosition.Mirrored:
-                targetCollection = isMac ? TitleBarViewModel.RightContent : TitleBarViewModel.LeftContent;
-                break;
-            case TitleBarPosition.ReverseMirrored:
-                targetCollection = isMac ? TitleBarViewModel.LeftContent : TitleBarViewModel.RightContent;
-                break;
-        }
+            TitleBarPosition.Left => TitleBarViewModel.LeftContent,
+            TitleBarPosition.Right => TitleBarViewModel.RightContent,
+            TitleBarPosition.Mirrored => isMac ? TitleBarViewModel.RightContent : TitleBarViewModel.LeftContent,
+            TitleBarPosition.ReverseMirrored => isMac ? TitleBarViewModel.LeftContent : TitleBarViewModel.RightContent,
+            _ => null
+        };
 
-        if (targetCollection == null)
+        if (targetCollection == null || items == null || items.Length == 0)
         {
             return;
         }
 
-        List<object> itemsList = items.ToList();
-
         if (reverseOrder)
         {
-            itemsList.Reverse();
+            for (int i = items.Length - 1; i >= 0; i--)
+            {
+                targetCollection.Add(items[i]);
+            }
         }
-
-        foreach (object item in itemsList)
+        else
         {
-            targetCollection.Add(item);
+            foreach (object item in items)
+            {
+                targetCollection.Add(item);
+            }
         }
     }
 

@@ -12,7 +12,7 @@
                 Background="Transparent"
                 BorderThickness="0"
                 Cursor="Hand"
-                Padding="8,4"
+                Padding="0,4"
                 CornerRadius="8">
 
             <Button.Styles>
