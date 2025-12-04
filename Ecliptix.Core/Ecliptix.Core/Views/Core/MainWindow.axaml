@@ -22,8 +22,8 @@
         SystemDecorations="Full"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaChromeHints="NoChrome"
-        ExtendClientAreaTitleBarHeightHint="-1"
-
+        ExtendClientAreaTitleBarHeightHint="35"
+        UseLayoutRounding="True"
 
         TransparencyLevelHint="Transparent"
         Background="Transparent"
