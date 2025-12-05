@@ -79,7 +79,12 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
         SetupSubscriptions();
     }
 
-    public string StepBadgeText => string.Format(StepFormatKey, CURRENT_STEP, TOTAL_STEPS);
+    public string StepBadgeText => _flowContext switch
+    {
+        AuthenticationFlowContext.REGISTRATION => string.Format(StepFormatKey, CURRENT_STEP, TOTAL_STEPS),
+        AuthenticationFlowContext.SECURE_KEY_RECOVERY => string.Format(StepFormatKey, CURRENT_STEP, TOTAL_RECOVERY_STEPS),
+        _ => string.Format(StepFormatKey, CURRENT_STEP, TOTAL_STEPS)
+    };
     public string Title => Localize(Keys.REGISTRATION_TITLE, Keys.RECOVERY_TITLE);
     public string Description => Localize(Keys.REGISTRATION_DESCRIPTION, Keys.RECOVERY_DESCRIPTION);
     public string SecureKeyPlaceholder => Localize(Keys.SECURE_KEY_PLACEHOLDER, Keys.RECOVERY_SECURE_KEY_PLACEHOLDER);

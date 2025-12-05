@@ -132,7 +132,12 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
         });
     }
 
-    public string StepBadgeText => string.Format(StepFormatKey, CURRENT_STEP, TOTAL_STEPS);
+    public string StepBadgeText => _flowContext switch
+    {
+        AuthenticationFlowContext.REGISTRATION => string.Format(StepFormatKey, CURRENT_STEP, TOTAL_STEPS),
+        AuthenticationFlowContext.SECURE_KEY_RECOVERY => string.Format(StepFormatKey, CURRENT_STEP, TOTAL_RECOVERY_STEPS),
+        _ => string.Format(StepFormatKey, CURRENT_STEP, TOTAL_STEPS)
+    };
 
     public string? UrlPathSegment { get; } = "/verification-code-entry";
 
