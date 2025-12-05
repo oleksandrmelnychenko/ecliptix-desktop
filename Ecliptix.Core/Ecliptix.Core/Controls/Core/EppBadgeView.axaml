@@ -11,6 +11,7 @@
                       Text="{Binding Text}"
                       HoverText="{Binding HoverText}"
                       Icon="{Binding Icon}"
+                      BorderThickness="0"
                       Margin="0,0,8,0"/>
 
 </UserControl>

@@ -12,16 +12,26 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 namespace Ecliptix.Core.Controls.Core;
 
 public partial class StatusBadge : UserControl
 {
-    public static readonly StyledProperty<string> TextProperty = AvaloniaProperty.Register<StatusBadge, string>(nameof(Text));
-    public static readonly StyledProperty<Geometry> IconProperty = AvaloniaProperty.Register<StatusBadge, Geometry>(nameof(Icon));
-    public static readonly StyledProperty<IBrush> BadgeBrushProperty = AvaloniaProperty.Register<StatusBadge, IBrush>(nameof(BadgeBrush), Brushes.Gray);
-    public static readonly StyledProperty<IBrush> BadgeBackgroundProperty = AvaloniaProperty.Register<StatusBadge, IBrush>(nameof(BadgeBackground), Brushes.Transparent);
-    public static readonly StyledProperty<string?> HoverTextProperty = AvaloniaProperty.Register<StatusBadge, string?>(nameof(HoverText));
+    public static readonly StyledProperty<string> TextProperty =
+        AvaloniaProperty.Register<StatusBadge, string>(nameof(Text));
+
+    public static readonly StyledProperty<Geometry> IconProperty =
+        AvaloniaProperty.Register<StatusBadge, Geometry>(nameof(Icon));
+
+    public static readonly StyledProperty<IBrush> BadgeBrushProperty =
+        AvaloniaProperty.Register<StatusBadge, IBrush>(nameof(BadgeBrush), Brushes.Gray);
+
+    public static readonly StyledProperty<IBrush> BadgeBackgroundProperty =
+        AvaloniaProperty.Register<StatusBadge, IBrush>(nameof(BadgeBackground), Brushes.Transparent);
+
+    public static readonly StyledProperty<string?> HoverTextProperty =
+        AvaloniaProperty.Register<StatusBadge, string?>(nameof(HoverText));
 
     public string Text { get => GetValue(TextProperty); set => SetValue(TextProperty, value); }
     public string? HoverText { get => GetValue(HoverTextProperty); set => SetValue(HoverTextProperty, value); }
@@ -29,31 +39,19 @@ public partial class StatusBadge : UserControl
     public IBrush BadgeBrush { get => GetValue(BadgeBrushProperty); set => SetValue(BadgeBrushProperty, value); }
     public IBrush BadgeBackground { get => GetValue(BadgeBackgroundProperty); set => SetValue(BadgeBackgroundProperty, value); }
 
+    private Popup? _infoPopup;
+    private Border? _popupContentBorder;
     private Border? _containerBorder;
-    private TextBlock? _measuringBlock;
 
-    private CancellationTokenSource? _animCts;
-    private string? _originalText;
-
-    private Thickness _cachedPadding;
-    private Thickness _cachedBorderThickness;
-    private double _cachedIconSize;
-    private double _cachedIconSpacing;
-    private TimeSpan _cachedAnimDuration;
-    private TimeSpan _cachedColorDuration;
-
-    private const string DurationKey = "BadgeAnimationDuration";
-    private const string ColorDurationKey = "BadgeColorDuration";
-    private const string PaddingKey = "BadgePadding";
-    private const string BorderKey = "BadgeBorderThickness";
-    private const string IconSizeKey = "BadgeIconSize";
-    private const string IconSpacingKey = "BadgeIconSpacing";
+    private CancellationTokenSource? _closeCts;
+    private readonly TimeSpan _animDuration = TimeSpan.FromMilliseconds(150);
 
     public StatusBadge()
     {
         InitializeComponent();
+        _infoPopup = this.FindControl<Popup>("InfoPopup");
+        _popupContentBorder = this.FindControl<Border>("PopupContentBorder");
         _containerBorder = this.FindControl<Border>("ContainerBorder");
-        _measuringBlock = this.FindControl<TextBlock>("MeasuringBlock");
     }
 
     private void InitializeComponent()
@@ -61,150 +59,108 @@ public partial class StatusBadge : UserControl
         AvaloniaXamlLoader.Load(this);
     }
 
-    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    private void AdjustPopupPosition()
     {
-        base.OnAttachedToVisualTree(e);
+        if (_infoPopup == null || _popupContentBorder == null || _containerBorder == null)
+        {
+            return;
+        }
 
-        _cachedPadding = GetResourceValue(PaddingKey, new Thickness(8, 0));
-        _cachedBorderThickness = GetResourceValue(BorderKey, new Thickness(1));
-        _cachedIconSize = GetResourceValue(IconSizeKey, 10.0);
-        _cachedIconSpacing = GetResourceValue(IconSpacingKey, 2.0);
+        TopLevel? topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null)
+        {
+            return;
+        }
 
-        _cachedAnimDuration = GetResourceValue(DurationKey, TimeSpan.FromSeconds(0.3));
-        _cachedColorDuration = GetResourceValue(ColorDurationKey, TimeSpan.FromSeconds(0.2));
+        _popupContentBorder.Measure(Size.Infinity);
+        Size popupSize = _popupContentBorder.DesiredSize;
+
+        Point? targetPos = _containerBorder.TranslatePoint(new Point(0, 0), topLevel);
+        if (targetPos == null)
+        {
+            return;
+        }
+
+        Rect targetRect = new Rect(targetPos.Value, _containerBorder.Bounds.Size);
+        Rect windowBounds = new Rect(0, 0, topLevel.Bounds.Width, topLevel.Bounds.Height);
+
+        double padding = 10.0;
+        double spacing = 4.0;
+
+        double finalHorizontalOffset = 0;
+        double projectedRightEdge = targetRect.X + popupSize.Width;
+
+        if (projectedRightEdge > windowBounds.Width - padding)
+        {
+            double overflow = projectedRightEdge - (windowBounds.Width - padding);
+            finalHorizontalOffset = -overflow;
+        }
+
+        if (targetRect.X + finalHorizontalOffset < padding)
+        {
+
+             finalHorizontalOffset = padding - targetRect.X;
+        }
+
+        double finalVerticalOffset = spacing;
+        double projectedBottomEdge = targetRect.Bottom + spacing + popupSize.Height;
+
+        if (projectedBottomEdge > windowBounds.Height - padding)
+        {
+
+            finalVerticalOffset = -targetRect.Height - popupSize.Height - spacing;
+        }
+
+        _infoPopup.HorizontalOffset = finalHorizontalOffset;
+        _infoPopup.VerticalOffset = finalVerticalOffset;
     }
 
     protected override void OnPointerEntered(PointerEventArgs e)
     {
         base.OnPointerEntered(e);
-        if (!string.IsNullOrEmpty(HoverText) && HoverText != Text)
+
+        _closeCts?.Cancel();
+        _closeCts = null;
+
+        if (_infoPopup != null && !string.IsNullOrEmpty(HoverText))
         {
-            _originalText = Text;
-            AnimateToNewText(HoverText);
+            AdjustPopupPosition();
+
+            _infoPopup.IsOpen = true;
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                _popupContentBorder?.Classes.Add("visible");
+            }, DispatcherPriority.Render);
         }
     }
 
     protected override void OnPointerExited(PointerEventArgs e)
     {
         base.OnPointerExited(e);
-        if (_originalText != null)
-        {
-            AnimateToNewText(_originalText);
-            _originalText = null;
-        }
-    }
 
-    private async void AnimateToNewText(string newText)
-    {
-        if (_containerBorder == null || _measuringBlock == null)
+        if (_infoPopup == null)
         {
             return;
         }
 
-        _animCts?.Cancel();
-        _animCts = new CancellationTokenSource();
-        CancellationToken token = _animCts.Token;
+        _popupContentBorder?.Classes.Remove("visible");
 
-        try
+        _closeCts = new CancellationTokenSource();
+        CancellationToken token = _closeCts.Token;
+
+        Task.Delay(_animDuration, token).ContinueWith(t =>
         {
-            double currentVisualWidth = _containerBorder.Bounds.Width;
-
-            if (currentVisualWidth <= 0 || double.IsNaN(currentVisualWidth))
+            if (!t.IsCanceled)
             {
-                Text = newText;
-                return;
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (_closeCts != null && !_closeCts.IsCancellationRequested)
+                    {
+                        _infoPopup.IsOpen = false;
+                    }
+                });
             }
-
-            _containerBorder.Transitions = null;
-            _containerBorder.Width = currentVisualWidth;
-
-            await Task.Delay(15, token);
-
-            double targetWidth = CalculateRequiredWidth(newText);
-
-            UpdateTransitions();
-
-            Text = newText;
-            _containerBorder.Width = targetWidth;
-
-            int delayMs = (int)_cachedAnimDuration.TotalMilliseconds + 50;
-            await Task.Delay(delayMs, token);
-
-            if (!token.IsCancellationRequested)
-            {
-                _containerBorder.Transitions = null;
-                _containerBorder.Width = double.NaN;
-
-                await Task.Delay(20, token);
-                UpdateTransitions();
-            }
-        }
-        catch (TaskCanceledException) { }
-    }
-
-    private void UpdateTransitions()
-    {
-        if (_containerBorder == null)
-        {
-            return;
-        }
-
-        if (_containerBorder.Transitions != null && _containerBorder.Transitions.Count > 0)
-        {
-            return;
-        }
-
-        _containerBorder.Transitions = new Transitions
-        {
-            new DoubleTransition
-            {
-                Property = Layoutable.WidthProperty,
-                Duration = _cachedAnimDuration,
-                Easing = new CubicEaseOut()
-            },
-            new BrushTransition
-            {
-                Property = TemplatedControl.BackgroundProperty,
-                Duration = _cachedColorDuration
-            },
-            new BrushTransition
-            {
-                Property = TemplatedControl.BorderBrushProperty,
-                Duration = _cachedColorDuration
-            }
-        };
-    }
-
-    private double CalculateRequiredWidth(string text)
-    {
-        if (_measuringBlock == null)
-        {
-            return 0;
-        }
-
-        _measuringBlock.Text = text;
-        _measuringBlock.Measure(Size.Infinity);
-
-        double textWidth = _measuringBlock.DesiredSize.Width;
-
-        double totalWidth = textWidth + _cachedPadding.Left + _cachedPadding.Right
-                                      + _cachedBorderThickness.Left + _cachedBorderThickness.Right;
-
-        if (Icon != null)
-        {
-            totalWidth += _cachedIconSize + _cachedIconSpacing;
-        }
-
-        return totalWidth;
-    }
-
-    private T GetResourceValue<T>(string key, T defaultValue)
-    {
-        if (this.TryGetResource(key, null, out object? res) && res is T typedRes)
-        {
-            return typedRes;
-        }
-        return defaultValue;
+        });
     }
 }
-

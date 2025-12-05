@@ -7,37 +7,25 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Name="Root"
              x:Class="Ecliptix.Core.Controls.Core.StatusBadge">
-
-   <UserControl.Resources>
-        <sys:TimeSpan x:Key="BadgeAnimationDuration">0:0:0.3</sys:TimeSpan>
-        <sys:TimeSpan x:Key="BadgeColorDuration">0:0:0.2</sys:TimeSpan>
-        <sys:Double x:Key="BadgeFontSize">8</sys:Double>
-        <Thickness x:Key="BadgePadding">8,0</Thickness>
+    <UserControl.Resources>
+        <sys:TimeSpan x:Key="FlyoutAnimDuration">0:0:0.150</sys:TimeSpan>
+        <Thickness x:Key="BadgePadding">8,2</Thickness>
         <Thickness x:Key="BadgeBorderThickness">1</Thickness>
-        <sys:Double x:Key="BadgeIconSize">10</sys:Double>
-        <sys:Double x:Key="BadgeIconSpacing">2</sys:Double>
+        <sys:Double x:Key="BadgeIconSize">12</sys:Double>
+        <sys:Double x:Key="BadgeFontSize">12</sys:Double>
+        <sys:Double x:Key="BadgeIconSpacing">4</sys:Double>
     </UserControl.Resources>
 
     <UserControl.Styles>
+        <Style Selector="local|StatusBadge Border#ContainerBorder">
+             <Setter Property="BorderThickness" Value="{StaticResource BadgeBorderThickness}"/>
+        </Style>
+
         <Style Selector="local|StatusBadge">
-            <Setter Property="Height" Value="18"/>
+            <Setter Property="Height" Value="22"/>
             <Setter Property="BadgeBrush" Value="#6B7280"/>
             <Setter Property="BadgeBackground" Value="#F3F4F6"/>
             <Setter Property="HorizontalAlignment" Value="Left"/>
-        </Style>
-
-        <Style Selector="Border#ContainerBorder">
-            <Setter Property="Transitions">
-                <Transitions>
-                    <DoubleTransition Property="Width"
-                                      Duration="{StaticResource BadgeAnimationDuration}"
-                                      Easing="CubicEaseOut"/>
-                    <BrushTransition Property="Background"
-                                     Duration="{StaticResource BadgeColorDuration}"/>
-                    <BrushTransition Property="BorderBrush"
-                                     Duration="{StaticResource BadgeColorDuration}"/>
-                </Transitions>
-            </Setter>
         </Style>
 
         <Style Selector="local|StatusBadge.purple">
@@ -47,41 +35,36 @@
         <Style Selector="local|StatusBadge.purple Border#ContainerBorder">
             <Setter Property="BorderThickness" Value="0"/>
         </Style>
+
         <Style Selector="local|StatusBadge.green">
             <Setter Property="BadgeBrush" Value="#10B981"/>
             <Setter Property="BadgeBackground" Value="#1510B981"/>
         </Style>
-        <Style Selector="local|StatusBadge.step">
-            <Setter Property="BadgeBrush" Value="#7E22CE"/>
-            <Setter Property="BadgeBackground" Value="#F3E8FF"/>
-        </Style>
-        <Style Selector="local|StatusBadge.gray">
-            <Setter Property="BadgeBrush" Value="#6B7280"/>
-            <Setter Property="BadgeBackground" Value="#F3F4F6"/>
-        </Style>
-        <Style Selector="local|StatusBadge.green">
-            <Setter Property="BadgeBrush" Value="#10B981"/>
-            <Setter Property="BadgeBackground" Value="#1510B981"/> </Style>
+
         <Style Selector="local|StatusBadge.red">
             <Setter Property="BadgeBrush" Value="#EF4444"/>
-            <Setter Property="BadgeBackground" Value="#15EF4444"/> </Style>
-        <Style Selector="local|StatusBadge.step Border#ContainerBorder">
-            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="BadgeBackground" Value="#15EF4444"/>
+        </Style>
+
+        <Style Selector="Border.popupContent">
+            <Setter Property="Opacity" Value="0"/>
+            <Setter Property="RenderTransform" Value="translateY(5px)"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="{StaticResource FlyoutAnimDuration}" Easing="CircularEaseOut"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="{StaticResource FlyoutAnimDuration}" Easing="CircularEaseOut"/>
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Border.popupContent.visible">
+            <Setter Property="Opacity" Value="1"/>
+            <Setter Property="RenderTransform" Value="translateY(0px)"/>
         </Style>
     </UserControl.Styles>
 
-    <Grid>
-        <TextBlock x:Name="MeasuringBlock"
-                   FontSize="{StaticResource BadgeFontSize}"
-                   FontWeight="SemiBold"
-                   Opacity="0"
-                   IsHitTestVisible="False"
-                   HorizontalAlignment="Left"
-                   VerticalAlignment="Top"/>
-
-        <Border x:Name="ContainerBorder"
+    <Grid Background="Transparent"> <Border x:Name="ContainerBorder"
                 CornerRadius="50"
-                BorderThickness="{StaticResource BadgeBorderThickness}"
                 Background="{Binding BadgeBackground, ElementName=Root}"
                 BorderBrush="{Binding BadgeBrush, ElementName=Root}"
                 Padding="{StaticResource BadgePadding}"
@@ -91,35 +74,45 @@
 
             <StackPanel Orientation="Horizontal"
                         Spacing="{StaticResource BadgeIconSpacing}"
-                        VerticalAlignment="Center"
-                        HorizontalAlignment="{Binding HorizontalAlignment, ElementName=Root}">
+                        VerticalAlignment="Center">
 
                 <PathIcon Data="{Binding Icon, ElementName=Root}"
                           Foreground="{Binding BadgeBrush, ElementName=Root}"
                           Width="{StaticResource BadgeIconSize}"
                           Height="{StaticResource BadgeIconSize}"
-                          IsVisible="{Binding Icon, ElementName=Root, Converter={x:Static ObjectConverters.IsNotNull}}">
-                    <PathIcon.Transitions>
-                        <Transitions>
-                            <BrushTransition Property="Foreground" Duration="{StaticResource BadgeColorDuration}"/>
-                        </Transitions>
-                    </PathIcon.Transitions>
-                </PathIcon>
+                          IsVisible="{Binding Icon, ElementName=Root, Converter={x:Static ObjectConverters.IsNotNull}}"/>
 
                 <TextBlock Text="{Binding Text, ElementName=Root}"
                            Foreground="{Binding BadgeBrush, ElementName=Root}"
                            FontSize="{StaticResource BadgeFontSize}"
                            FontWeight="SemiBold"
-                           VerticalAlignment="Center"
-                           TextTrimming="CharacterEllipsis">
-                    <TextBlock.Transitions>
-                        <Transitions>
-                            <BrushTransition Property="Foreground" Duration="{StaticResource BadgeColorDuration}"/>
-                        </Transitions>
-                    </TextBlock.Transitions>
-                </TextBlock>
+                           VerticalAlignment="Center"/>
             </StackPanel>
         </Border>
+
+        <Popup x:Name="InfoPopup"
+               PlacementTarget="{Binding ElementName=ContainerBorder}"
+               Placement="Bottom"
+               VerticalOffset="4"
+               IsHitTestVisible="False"
+               WindowManagerAddShadowHint="True">
+
+            <Border x:Name="PopupContentBorder"
+                    Classes="popupContent"
+                    Background="White"
+                    BorderBrush="{Binding BadgeBrush, ElementName=Root}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="12,8"
+                    MaxWidth="300">
+
+                <TextBlock Text="{Binding HoverText, ElementName=Root}"
+                           Foreground="{Binding BadgeBrush, ElementName=Root}"
+                           FontSize="12"
+                           FontWeight="Medium"
+                           TextWrapping="Wrap"/>
+            </Border>
+        </Popup>
     </Grid>
 </UserControl>
 

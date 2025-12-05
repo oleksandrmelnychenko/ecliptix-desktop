@@ -29,6 +29,8 @@ public class NetworkBadgeViewModel : ReactiveObject, IDisposable
     [ObservableAsProperty] public string Text { get; }
     [ObservableAsProperty] public string Icon { get; }
 
+    [ObservableAsProperty] public string HoverText { get; }
+
     [ObservableAsProperty] public bool IsConnected { get; }
     [ObservableAsProperty] public bool IsDisconnected { get; }
     [ObservableAsProperty] public bool IsServerError { get; }
@@ -75,7 +77,6 @@ public class NetworkBadgeViewModel : ReactiveObject, IDisposable
             .Do(state => Log.Information("[BadgeVM] Final Calculated State: {State}", state)) // Лог фінального рішення
             .DistinctUntilChanged();
 
-        // Підписка на властивості
         badgeState.Select(s => s == NetworkBadgeState.Connected)
             .ObserveOn(RxApp.MainThreadScheduler)
             .ToPropertyEx(this, x => x.IsConnected)
@@ -94,6 +95,11 @@ public class NetworkBadgeViewModel : ReactiveObject, IDisposable
         badgeState.Select(GetTextForState)
             .ObserveOn(RxApp.MainThreadScheduler)
             .ToPropertyEx(this, x => x.Text)
+            .DisposeWith(_disposables);
+
+        badgeState.Select(GetHoverTextForState)
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .ToPropertyEx(this, x => x.HoverText)
             .DisposeWith(_disposables);
 
         badgeState.Select(GetIconForState)
@@ -126,6 +132,13 @@ public class NetworkBadgeViewModel : ReactiveObject, IDisposable
         NetworkBadgeState.Connected => "Online",
         NetworkBadgeState.ServerError => "Server Error",
         _ => "Offline"
+    };
+
+    private string GetHoverTextForState(NetworkBadgeState state) => state switch
+    {
+        NetworkBadgeState.Connected => "You are connected to the interned",
+        NetworkBadgeState.ServerError => "No connection to the server, reconnecting",
+        _ => "You are not connected to the internet"
     };
 
     private string GetIconForState(NetworkBadgeState state) => state switch
