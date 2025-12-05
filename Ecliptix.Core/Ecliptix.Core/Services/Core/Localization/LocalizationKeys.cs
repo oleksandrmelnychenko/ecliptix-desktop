@@ -133,6 +133,7 @@ public static class LocalizationKeys
         {
             public const string REDIRECTING = "Verification.Info.Redirecting";
             public const string REDIRECTING_IN_SECONDS = "Verification.Info.RedirectingInSeconds";
+            public const string STEP_OF = "Verification.Info.StepOf";
         }
     }
 

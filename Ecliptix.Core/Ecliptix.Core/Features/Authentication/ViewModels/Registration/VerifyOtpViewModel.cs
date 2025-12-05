@@ -48,6 +48,7 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
     private readonly Subject<string> _executionErrorSubject = new();
     public IObservable<string> ExecutionError => _executionErrorSubject.AsObservable();
 
+    private const int CURRENT_STEP = 2;
 
     public VerifyOtpViewModel(
         IConnectivityService connectivityService,
@@ -130,6 +131,8 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
                 .DisposeWith(disposables).DisposeWith(_disposables);
         });
     }
+
+    public string StepBadgeText => string.Format(StepFormatKey, CURRENT_STEP, TOTAL_STEPS);
 
     public string? UrlPathSegment { get; } = "/verification-code-entry";
 

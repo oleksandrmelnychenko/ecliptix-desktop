@@ -13,6 +13,7 @@ using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Authentication.Constants;
+using Ecliptix.Core.Services.Core.Localization;
 using Ecliptix.Core.Services.Membership;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
@@ -38,6 +39,8 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
     private CancellationTokenSource? _cancellationTokenSource;
     private bool _hasMobileNumberBeenTouched;
     private bool _isDisposed;
+
+    private const int CURRENT_STEP = 1;
 
     private readonly Subject<string> _executionErrorSubject = new();
     public IObservable<string> ExecutionError => _executionErrorSubject.AsObservable();
@@ -69,6 +72,13 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
 
     private string Localize(string registrationKey, string recoveryKey) =>
         GetSecureKeyLocalization(_flowContext, registrationKey, recoveryKey);
+
+    public string StepBadgeText => _flowContext switch
+    {
+        AuthenticationFlowContext.REGISTRATION => string.Format(StepFormatKey, CURRENT_STEP, TOTAL_STEPS),
+        AuthenticationFlowContext.SECURE_KEY_RECOVERY => string.Format(StepFormatKey, CURRENT_STEP, TOTAL_RECOVERY_STEPS),
+        _ => string.Format(StepFormatKey, CURRENT_STEP, TOTAL_STEPS)
+    };
 
     public string Title => Localize(Keys.REGISTRATION_TITLE, Keys.RECOVERY_TITLE);
 

@@ -22,11 +22,17 @@
                     Spacing="{StaticResource Spacing.S}"
                     MaxWidth="{StaticResource Header.MaxWidth}"
                     HorizontalAlignment="Left">
-            <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Title]}"
-                       FontSize="{StaticResource Font.XXL}"
-                       FontWeight="Light"
-                       Foreground="{DynamicResource OnSurface}"
-                       LineHeight="{StaticResource LineHeight.Loose}" />
+
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Title]}"
+                           FontSize="{StaticResource Font.XXL}"
+                           FontWeight="Light"
+                           Foreground="{DynamicResource OnSurface}"
+                           LineHeight="{StaticResource LineHeight.Loose}" />
+                <coreControls:StepBadgeView Text="{Binding StepBadgeText}"
+                                            VerticalAlignment="Center"/>
+            </StackPanel>
+
             <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Description]}"
                        TextWrapping="Wrap"
                        FontSize="{StaticResource Font.XXXL}"

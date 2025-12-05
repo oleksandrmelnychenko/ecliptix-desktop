@@ -19,6 +19,7 @@ using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Authentication;
 using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Core.Services.Common;
+using Ecliptix.Core.Services.Core.Localization;
 using Ecliptix.Core.Services.Membership;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Protocol;
@@ -35,6 +36,8 @@ namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
 {
     private const int VALIDATION_THROTTLE_MS = 150;
+
+    private const int CURRENT_STEP = 3;
 
     private readonly SecureTextBuffer _secureKeyBuffer = new();
     private readonly SecureTextBuffer _verifySecureKeyBuffer = new();
@@ -76,6 +79,7 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
         SetupSubscriptions();
     }
 
+    public string StepBadgeText => string.Format(StepFormatKey, CURRENT_STEP, TOTAL_STEPS);
     public string Title => Localize(Keys.REGISTRATION_TITLE, Keys.RECOVERY_TITLE);
     public string Description => Localize(Keys.REGISTRATION_DESCRIPTION, Keys.RECOVERY_DESCRIPTION);
     public string SecureKeyPlaceholder => Localize(Keys.SECURE_KEY_PLACEHOLDER, Keys.RECOVERY_SECURE_KEY_PLACEHOLDER);
