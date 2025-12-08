@@ -5,9 +5,9 @@
              xmlns:vm="clr-namespace:Ecliptix.Core.Features.Main.ViewModels"
              xmlns:nav="clr-namespace:Ecliptix.Core.Controls.Navigation"
              xmlns:page="clr-namespace:Ecliptix.Core.Shared.Transitions.Page"
-             xmlns:newContent="clr-namespace:Ecliptix.Core.Features.NewContent"
              xmlns:transitions="clr-namespace:Ecliptix.Core.Shared.Transitions"
              xmlns:views="clr-namespace:Ecliptix.Core.Features.NewContent.Views"
+             xmlns:viewModels="clr-namespace:Ecliptix.Core.Features.NewContent.ViewModels"
              mc:Ignorable="d"
              d:DesignWidth="1200"
              d:DesignHeight="800"
@@ -123,7 +123,7 @@
                     <ContentControl Content="{Binding OverlayContent}">
                         <ContentControl.DataTemplates>
 
-                            <DataTemplate DataType="{x:Type newContent:CreateWizardViewModel}">
+                            <DataTemplate DataType="{x:Type viewModels:CreateWizardViewModel}">
                                 <views:CreateWizardView />
                             </DataTemplate>
 

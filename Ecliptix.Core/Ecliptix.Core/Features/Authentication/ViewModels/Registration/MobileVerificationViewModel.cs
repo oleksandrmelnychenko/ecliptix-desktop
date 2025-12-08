@@ -1,6 +1,7 @@
 using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Abstractions;
@@ -38,6 +39,11 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
     private bool _hasMobileNumberBeenTouched;
     private bool _isDisposed;
 
+    private const int CURRENT_STEP = 1;
+
+    private readonly Subject<string> _executionErrorSubject = new();
+    public IObservable<string> ExecutionError => _executionErrorSubject.AsObservable();
+
     public MobileVerificationViewModel(
         IConnectivityService connectivityService,
         NetworkProvider networkProvider,
@@ -65,6 +71,13 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
 
     private string Localize(string registrationKey, string recoveryKey) =>
         GetSecureKeyLocalization(_flowContext, registrationKey, recoveryKey);
+
+    public string StepBadgeText => _flowContext switch
+    {
+        AuthenticationFlowContext.REGISTRATION => string.Format(StepFormatKey, CURRENT_STEP, TOTAL_STEPS),
+        AuthenticationFlowContext.SECURE_KEY_RECOVERY => string.Format(StepFormatKey, CURRENT_STEP, TOTAL_RECOVERY_STEPS),
+        _ => string.Format(StepFormatKey, CURRENT_STEP, TOTAL_STEPS)
+    };
 
     public string Title => Localize(Keys.REGISTRATION_TITLE, Keys.RECOVERY_TITLE);
 
@@ -109,6 +122,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         _hasMobileNumberBeenTouched = false;
         HasMobileNumberError = false;
         MobileNumberError = string.Empty;
+        _executionErrorSubject.OnNext(string.Empty);
     }
 
     private IObservable<bool> SetupValidation()
@@ -397,10 +411,9 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
 
     private void ShowError(string errorMessage)
     {
-        if (HostScreen is AuthenticationViewModel hostWindow &&
-            !string.IsNullOrEmpty(errorMessage))
+        if (!string.IsNullOrEmpty(errorMessage))
         {
-            ShowServerErrorNotification(hostWindow, errorMessage);
+            _executionErrorSubject.OnNext(errorMessage);
         }
     }
 
@@ -450,6 +463,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         if (disposing)
         {
             CancelCurrentOperation();
+            _executionErrorSubject.Dispose();
             _disposables.Dispose();
         }
 

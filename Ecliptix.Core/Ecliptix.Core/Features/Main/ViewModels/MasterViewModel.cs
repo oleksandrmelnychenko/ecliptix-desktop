@@ -11,6 +11,7 @@ using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Core.Features.Chats.Views;
 using Ecliptix.Core.Features.NewContent;
+using Ecliptix.Core.Features.NewContent.ViewModels;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
@@ -77,7 +78,7 @@ public sealed class MasterViewModel : ViewModelBase
 
         Dispatcher.UIThread.Post(() =>
         {
-            ConversationView dummy = new ConversationView();
+            ConversationView dummy = new();
         });
 
         CloseOverlayCommand = ReactiveCommand.Create(() =>

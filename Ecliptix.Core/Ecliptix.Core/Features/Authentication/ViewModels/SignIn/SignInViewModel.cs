@@ -82,6 +82,8 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
 
     public ReactiveCommand<SystemU, SystemU>? AccountRecoveryCommand { get; private set; }
 
+    public IObservable<string> ExecutionError => _signInErrorSubject.AsObservable();
+
     public void InsertSecureKeyChars(int index, string chars)
     {
         if (!_hasSecureKeyBeenTouched)
@@ -238,7 +240,6 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
             .DisposeWith(_disposables);
 
         _signInErrorSubject
-            .DistinctUntilChanged()
             .Subscribe(err => ServerError = err)
             .DisposeWith(_disposables);
 
@@ -295,11 +296,10 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
             .Subscribe(error =>
             {
                 _hasSecureKeyBeenTouched = true;
+
                 _signInErrorSubject.OnNext(error.Message);
-                if (HostScreen is AuthenticationViewModel hostWindow)
-                {
-                    ShowServerErrorNotification(hostWindow, error.Message);
-                }
+
+                ServerError = error.Message;
             })
             .DisposeWith(_disposables);
 
@@ -307,7 +307,7 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
             .Where(result => result.IsOk)
             .Subscribe(_ =>
             {
-                _signInErrorSubject.OnNext(string.Empty);
+                ServerError = string.Empty;
 
                 _hostWindowModel.SwitchToMainWindowCommand.Execute().Subscribe(
                     _ => { },

@@ -11,8 +11,8 @@
                 <ResourceDictionary x:Key="Light">
 
                     <!-- Primary Brand Colors -->
-                    <Color x:Key="Primary">#FF6D00</Color>
-                    <Color x:Key="PrimaryVariant">#FF7527</Color>
+                    <Color x:Key="Primary">#6a5acd</Color>
+                    <Color x:Key="PrimaryVariant">#553c9a</Color>
                     <Color x:Key="OnPrimary">#FFFFFF</Color>
 
                     <!-- Secondary Colors -->
@@ -94,7 +94,7 @@
                     <!-- ComboBox Colors -->
                     <Color x:Key="ComboBox.Background">#FFFFFF</Color>
                     <Color x:Key="ComboBox.BorderBrush">#E0E0E0</Color>
-                    
+
                     <!-- Segmented TextBox Colors -->
                     <SolidColorBrush x:Key="SegmentedTextBoxBackgroundColor" Color="#f2f2f2" />
 
@@ -109,8 +109,8 @@
                 <ResourceDictionary x:Key="Dark">
 
                     <!-- Primary Brand Colors -->
-                    <Color x:Key="Primary">#FF6D00</Color>
-                    <Color x:Key="PrimaryVariant">#FF7527</Color>
+                    <Color x:Key="Primary">#8b7dd8</Color>
+                    <Color x:Key="PrimaryVariant">#7c6cd4</Color>
                     <Color x:Key="OnPrimary">#000000</Color>
 
                     <!-- Secondary Colors -->
@@ -195,7 +195,7 @@
 
                     <!-- Segmented TextBox Colors -->
                     <SolidColorBrush x:Key="SegmentedTextBoxBackgroundColor" Color="#f2f2f2" />
-                    
+
                     <!-- Common Brushes -->
                     <SolidColorBrush x:Key="TransparentBrush" Color="Transparent" />
                     <SolidColorBrush x:Key="ErrorForegroundBrush" Color="{DynamicResource Error}" />

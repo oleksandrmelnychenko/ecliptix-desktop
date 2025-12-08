@@ -3,7 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 
-namespace Ecliptix.Core.Views.Memberships.Components.Platform.OSX;
+namespace Ecliptix.Core.Views.Memberships.Components.TitleBar.Platform.OSX;
 
 public sealed partial class MacosTitleBarLayout : UserControl, ITitleBar
 {

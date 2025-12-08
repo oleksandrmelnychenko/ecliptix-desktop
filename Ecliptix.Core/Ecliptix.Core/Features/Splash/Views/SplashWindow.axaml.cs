@@ -64,16 +64,16 @@ public partial class SplashWindow : ReactiveWindow<SplashWindowViewModel>
 
         if (_currentConnectivityStatus != ConnectivityStatus.DISCONNECTED)
         {
-            string oldClass = GetClassForStatusFast(_currentConnectivityStatus);
-            Classes.Remove(oldClass);
+            string previousStyleClass = GetStyleForStatus(_currentConnectivityStatus);
+            Classes.Remove(previousStyleClass);
         }
 
-        string newClass = GetClassForStatusFast(status);
-        Classes.Add(newClass);
+        string currentStyleClass = GetStyleForStatus(status);
+        Classes.Add(currentStyleClass);
         _currentConnectivityStatus = status;
     }
 
-    private static string GetClassForStatusFast(ConnectivityStatus status) =>
+    private static string GetStyleForStatus(ConnectivityStatus status) =>
         StatusClassMap.GetValueOrDefault(status, DEFAULT_CLASS);
 
     protected override void OnUnloaded(RoutedEventArgs e)

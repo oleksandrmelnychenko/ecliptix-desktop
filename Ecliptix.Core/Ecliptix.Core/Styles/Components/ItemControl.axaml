@@ -1,0 +1,121 @@
+﻿<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Design.PreviewWith>
+        <Border Padding="40" Background="#F2F2F2">
+            <StackPanel Width="300" Spacing="10">
+                <TextBlock Text="Sidebar Style Preview"
+                           FontWeight="Bold"
+                           Margin="0,0,0,10"/>
+
+                <ListBox Background="Transparent">
+                    <ListBoxItem Classes="SidebarItem">
+                        <Grid ColumnDefinitions="Auto, *">
+                            <TextBlock Text="🏠" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="Dashboard" VerticalAlignment="Center"/>
+                        </Grid>
+                    </ListBoxItem>
+
+                    <ListBoxItem Classes="SidebarItem" IsSelected="True">
+                        <Grid ColumnDefinitions="Auto, *">
+                            <TextBlock Text="💬" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="Chats" FontWeight="Bold" VerticalAlignment="Center"/>
+                        </Grid>
+                    </ListBoxItem>
+
+                    <ListBoxItem Classes="SidebarItem">
+                        <Grid ColumnDefinitions="Auto, *">
+                            <TextBlock Text="⚙️" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="Settings" VerticalAlignment="Center"/>
+                        </Grid>
+                    </ListBoxItem>
+                </ListBox>
+            </StackPanel>
+        </Border>
+    </Design.PreviewWith>
+
+    <Styles.Resources>
+        <SolidColorBrush x:Key="SidebarItemSelectedBackground" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="SidebarItemHoverBackground" Color="#F7F9FA" />
+        <SolidColorBrush x:Key="SidebarItemActiveIndicator" Color="#5856D6"/>
+
+        <BoxShadows x:Key="SidebarItemDefaultShadow">0 2 8 0 #00000000, 0 1 2 0 #00000000</BoxShadows>
+        <BoxShadows x:Key="SidebarItemActiveShadow">0 2 8 0 #15000000, 0 1 2 0 #08000000</BoxShadows>
+    </Styles.Resources>
+
+    <Style Selector="ListBoxItem.SidebarItem">
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="ClipToBounds" Value="False" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="CardBorder"
+                        Background="{TemplateBinding Background}"
+                        CornerRadius="12"
+                        Padding="0"
+                        BoxShadow="{StaticResource SidebarItemDefaultShadow}">
+
+                    <Border.Transitions>
+                        <Transitions>
+                            <BrushTransition Property="Background" Duration="0:0:0.1" />
+                            <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.15" />
+                        </Transitions>
+                    </Border.Transitions>
+
+                    <Panel>
+                        <Border Name="ActiveIndicator"
+                                Width="4" Height="24"
+                                Background="{StaticResource SidebarItemActiveIndicator}"
+                                CornerRadius="0,2,2,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                IsVisible="False"/>
+
+                        <ContentPresenter Name="PART_ContentPresenter"
+                                          Margin="12,10,10,10"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          CornerRadius="12"/>
+                    </Panel>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="ListBoxItem.SidebarItem /template/ ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBoxItem.SidebarItem:selected /template/ ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBoxItem.SidebarItem:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBoxItem.SidebarItem:pressed /template/ ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <Style Selector="ListBoxItem.SidebarItem:pointerover /template/ Border#CardBorder">
+        <Setter Property="Background" Value="{StaticResource SidebarItemHoverBackground}" />
+    </Style>
+
+    <Style Selector="ListBoxItem.SidebarItem:selected /template/ Border#CardBorder">
+        <Setter Property="Background" Value="{StaticResource SidebarItemSelectedBackground}" />
+        <Setter Property="BoxShadow" Value="{StaticResource SidebarItemActiveShadow}" />
+    </Style>
+
+    <Style Selector="ListBoxItem.SidebarItem:selected:pointerover /template/ Border#CardBorder">
+        <Setter Property="Background" Value="{StaticResource SidebarItemSelectedBackground}" />
+        <Setter Property="BoxShadow" Value="{StaticResource SidebarItemActiveShadow}" />
+    </Style>
+
+    <Style Selector="ListBoxItem.SidebarItem:selected /template/ Border#ActiveIndicator">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+
+    <Style Selector="ListBoxItem.SidebarItem:pressed">
+        <Setter Property="RenderTransform" Value="scale(1)" />
+    </Style>
+</Styles>
+

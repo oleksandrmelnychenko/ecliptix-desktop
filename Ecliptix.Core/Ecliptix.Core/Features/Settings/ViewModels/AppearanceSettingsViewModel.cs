@@ -2,8 +2,6 @@ using System.Collections.ObjectModel;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 
-using SystemU = System.Reactive.Unit;
-
 namespace Ecliptix.Core.Features.Settings.ViewModels;
 
 public class AppearanceSettingsViewModel : ReactiveObject

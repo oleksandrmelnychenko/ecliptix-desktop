@@ -1,13 +1,10 @@
 <UserControl
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:windows="clr-namespace:Ecliptix.Core.Views.Memberships.Components.Platform.Windows"
-    xmlns:vm="clr-namespace:Ecliptix.Core.Views.Memberships.Components"
-    xmlns:osx="clr-namespace:Ecliptix.Core.Views.Memberships.Components.Platform.OSX"
-    xmlns:reactiveUi="http://reactiveui.net"
-    x:Class="Ecliptix.Core.Views.Memberships.Components.TitleBar"
+    xmlns:titleBar="clr-namespace:Ecliptix.Core.Views.Memberships.Components.TitleBar"
+    x:Class="Ecliptix.Core.Views.Memberships.Components.TitleBar.TitleBar"
     Height="35"
-    x:DataType="vm:TitleBarViewModel">
+    x:DataType="titleBar:TitleBarViewModel">
 
 
     <ContentControl x:Name="PART_Root"/>

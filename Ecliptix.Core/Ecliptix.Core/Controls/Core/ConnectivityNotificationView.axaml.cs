@@ -88,6 +88,33 @@ public sealed partial class ConnectivityNotificationView : ReactiveUserControl<C
         }
     }
 
+    //For debug purposes
+    // private int _debugClickCount = 0;
+    //
+    // protected override void OnPointerPressed(PointerPressedEventArgs e)
+    // {
+    //     base.OnPointerPressed(e);
+    //
+    //     if (DataContext is ConnectivityNotificationViewModel vm)
+    //     {
+    //         _debugClickCount++;
+    //
+    //         if (_debugClickCount == 1)
+    //         {
+    //             vm.Debug_ForceState("offline");
+    //         }
+    //         else if (_debugClickCount == 2)
+    //         {
+    //             vm.Debug_ForceState("server");
+    //         }
+    //         else if (_debugClickCount == 3)
+    //         {
+    //             vm.Debug_ForceState("restored");
+    //             _debugClickCount = 0; // Скидаємо лічильник
+    //         }
+    //     }
+    // }
+
     private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);
@@ -100,6 +127,11 @@ public sealed partial class ConnectivityNotificationView : ReactiveUserControl<C
         if (DataContext is not ConnectivityNotificationViewModel viewModel)
         {
             return;
+        }
+
+        if (this.TryGetResource("RestoredStateDuration", null, out object? resource) && resource is TimeSpan duration)
+        {
+            viewModel.RestoredStateDuration = duration;
         }
 
         viewModel.SetView(this);

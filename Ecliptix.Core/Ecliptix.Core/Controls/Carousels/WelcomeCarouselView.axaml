@@ -5,7 +5,8 @@
              xmlns:vm="clr-namespace:Ecliptix.Core.Controls.Carousels"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ecliptix.Core.Controls.Carousels.WelcomeCarouselView"
-             x:Name="Root">
+             x:Name="Root"
+             x:CompileBindings="True">
     <UserControl.Styles>
 
         <Style Selector="Border.indicator">
@@ -28,7 +29,7 @@
         </Style>
     </UserControl.Styles>
 
-    <Grid RowDefinitions="*,Auto">
+    <Grid RowDefinitions="Auto,Auto,*">
 
         <Carousel Name="MainCarousel"
                   Grid.Row="0"
@@ -40,42 +41,14 @@
             </Carousel.PageTransition>
 
             <Carousel.ItemTemplate>
-                <DataTemplate x:DataType="vm:WelcomeSlide">
-                    <Grid RowDefinitions="*,Auto,Auto" Margin="24,0">
-
-                        <!-- <Border Grid.Row="0" -->
-                        <!--         HorizontalAlignment="Center" -->
-                        <!--         VerticalAlignment="Center" -->
-                        <!--         Margin="0,20,0,40"> -->
-                        <!--     <Svg Path="{Binding ImagePath}" -->
-                        <!--          Width="{StaticResource Circle.Size}" -->
-                        <!--          Height="{StaticResource Circle.Size}" -->
-                        <!--          Stretch="Uniform" /> -->
-                        <!-- </Border> -->
-
-                        <!-- For not temporaly images, they have better perfmanse but i have to add animated images somehow-->
-                        <Image Grid.Row="0"
-                               Source="{Binding Image}"
-                               Stretch="UniformToFill"
+                <DataTemplate x:DataType="vm:WelcomeSlideItemTemplate">
+                    <Grid Margin="24,0,24,0">
+                        <Image Source="{Binding Image}"
+                               Stretch="Uniform"
+                               MaxHeight="220"
                                Margin="0,0,0,0"
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"/>
-
-                        <TextBlock Grid.Row="1"
-                                   Text="{Binding Title}"
-                                   FontSize="16"
-                                   FontWeight="SemiBold"
-                                   TextAlignment="Center"
-                                   Foreground="#111111"
-                                   Margin="0,0,0,12"/>
-
-                        <TextBlock Grid.Row="2"
-                                   Text="{Binding Description}"
-                                   FontSize="13"
-                                   TextAlignment="Center"
-                                   Foreground="#666666"
-                                   TextWrapping="Wrap"
-                                   Margin="0,0,0,32"/>
                     </Grid>
                 </DataTemplate>
             </Carousel.ItemTemplate>
@@ -84,7 +57,7 @@
         <ItemsControl Name="IndicatorsControl"
                       Grid.Row="1"
                       HorizontalAlignment="Center"
-                      Margin="0,0,0,24">
+                      Margin="0,16,0,16">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                     <StackPanel Orientation="Horizontal"/>
@@ -101,6 +74,38 @@
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
+
+        <Grid Grid.Row="2">
+            <Carousel ItemsSource="{Binding ItemsSource, ElementName=Root}"
+                      SelectedIndex="{Binding SelectedIndex, Mode=TwoWay, ElementName=Root}">
+                <Carousel.PageTransition>
+                    <PageSlide Duration="0.4" Orientation="Horizontal" SlideInEasing="CubicEaseOut" SlideOutEasing="CubicEaseOut"/>
+                </Carousel.PageTransition>
+                <Carousel.ItemTemplate>
+                    <DataTemplate x:DataType="vm:WelcomeSlideItemTemplate">
+                        <Grid RowDefinitions="Auto,Auto" Margin="24,0,24,0">
+                            <TextBlock Grid.Row="0"
+                                       Text="{Binding Title}"
+                                       FontSize="16"
+                                       FontWeight="Normal"
+                                       FontFamily="Segoe UI"
+                                       TextAlignment="Center"
+                                       Foreground="#111111"
+                                       Margin="0,0,0,16"/>
+
+                            <TextBlock Grid.Row="1"
+                                       Text="{Binding Description}"
+                                       FontSize="13"
+                                       FontFamily="Segoe UI"
+                                       TextAlignment="Center"
+                                       Foreground="#666666"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,24"/>
+                        </Grid>
+                    </DataTemplate>
+                </Carousel.ItemTemplate>
+            </Carousel>
+        </Grid>
     </Grid>
 </UserControl>
 

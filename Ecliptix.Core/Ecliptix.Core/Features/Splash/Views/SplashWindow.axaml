@@ -3,8 +3,6 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:splash="clr-namespace:Ecliptix.Core.Features.Splash.ViewModels"
-        xmlns:sharedConverters="clr-namespace:Ecliptix.Core.Shared.Converters"
-        xmlns:converters="clr-namespace:Avalonia.Markup.Xaml.Converters;assembly=Avalonia.Markup.Xaml"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Ecliptix.Core.Features.Splash.Views.SplashWindow"
         Title="Ecliptix"
@@ -19,8 +17,6 @@
         TransparencyLevelHint="Transparent">
 
     <Window.Resources>
-        <converters:ColorToBrushConverter x:Key="ColorToBrushConverter" />
-        <sharedConverters:EqualityConverter x:Key="EqualityConverter" />
         <SolidColorBrush x:Key="BrushBlurConnected" Color="#28C940" Opacity="1" />
         <SolidColorBrush x:Key="BrushBlurConnecting" Color="#FFBD2E" Opacity="1" />
         <SolidColorBrush x:Key="BrushBlurDisconnected" Color="#FF5F57" Opacity="1" />
@@ -29,7 +25,7 @@
         <SolidColorBrush x:Key="BrushContentConnecting" Color="#FFF8F0" />
         <SolidColorBrush x:Key="BrushContentDisconnected" Color="#FFF0F0" />
         <SolidColorBrush x:Key="BrushContentDefault" Color="#FAFAFA" />
-        
+
         <BoxShadows x:Key="BoxShadowDefault">0 0 10 8 #409966CC</BoxShadows>
         <BoxShadows x:Key="BoxShadowConnected">0 0 10 8 #4028C940</BoxShadows>
         <BoxShadows x:Key="BoxShadowConnecting">0 0 10 8 #40FFBD2E</BoxShadows>
@@ -81,7 +77,7 @@
             <Grid RowDefinitions="*, Auto">
 
                 <Svg Grid.Row="0"
-                     Path="../../../../Assets/Branding/Logos/ecliptix_logo.svg"
+                     Path="avares://Ecliptix.Core/Assets/Branding/Logos/ecliptix_logo.svg"
                      VerticalAlignment="Center"
                      Width="160"
                      Height="160"

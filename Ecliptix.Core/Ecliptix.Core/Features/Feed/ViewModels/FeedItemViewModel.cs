@@ -1,6 +1,5 @@
 using System;
 using System.Reactive.Disposables;
-using System.Reactive.Linq;
 using CommunityToolkit.Mvvm.Messaging;
 using Ecliptix.Core.Core.Messaging.Messages;
 using Ecliptix.Core.Core.MVVM;

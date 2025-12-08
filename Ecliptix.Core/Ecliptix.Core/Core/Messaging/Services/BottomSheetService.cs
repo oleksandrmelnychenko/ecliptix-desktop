@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Ecliptix.Core.Core.Messaging.Events;
-using Serilog;
 
 namespace Ecliptix.Core.Core.Messaging.Services;
 

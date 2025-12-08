@@ -13,15 +13,22 @@ using Ecliptix.Core.Features.Authentication.Common;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Services.Core.Localization;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Welcome;
 
-public sealed class WelcomeViewModel : ViewModelBase, IRoutableViewModel, IResettable, IActivatableViewModel
+public sealed class WelcomeViewModel : ViewModelBase, IRoutableViewModel, IResettable
 {
+    private const string ROUTE_WELCOME = "/welcome";
     private const string CREATE_ACCOUNT_KEY = "CreateAccount";
     private const string SIGN_IN_KEY = "SignIn";
+
+    private const string SAFETY_IMAGE_PATH = "avares://Ecliptix.Core/Assets/DataSeed/safety.png";
+    private const string MENTAL_PROTECTION_IMAGE_PATH = "avares://Ecliptix.Core/Assets/DataSeed/mentalprotection.png";
+    private const string SMART_COMMUNITIES_IMAGE_PATH = "avares://Ecliptix.Core/Assets/DataSeed/smartcommunities.png";
+    private const string WELLNESS_IMAGE_PATH = "avares://Ecliptix.Core/Assets/DataSeed/wellness.png";
 
     private static readonly FrozenDictionary<string, MembershipViewType> NavigationCache =
         new Dictionary<string, MembershipViewType>
@@ -33,44 +40,12 @@ public sealed class WelcomeViewModel : ViewModelBase, IRoutableViewModel, IReset
     private readonly CompositeDisposable _disposables = new();
     private bool _isDisposed;
 
-
-    public ViewModelActivator Activator { get; } = new();
-
     public WelcomeViewModel(IScreen hostScreen, ILocalizationService localizationService,
         NetworkProvider networkProvider)
         : base(networkProvider, localizationService)
     {
         HostScreen = hostScreen;
-
-        Slides = new List<WelcomeSlide>
-        {
-            new()
-            {
-                Title = "AI powered safety",
-                Description = "Your personal AI companion monitors and protects your mental wellbeing",
-                Image = LoadImage("avares://Ecliptix.Core/Assets/DataSeed/safety.png")
-            },
-            new()
-            {
-                Title = "Mental Protection",
-                Description = "Real-time content filtering and emotional support when you need it most",
-                Image = LoadImage("avares://Ecliptix.Core/Assets/DataSeed/mentalprotection.png")
-            },
-            new()
-            {
-                Title = "Smart Communities",
-                Description = "Connect with friends in verified, positive spaces designed for your safety",
-                Image = LoadImage("avares://Ecliptix.Core/Assets/DataSeed/smartcommunities.png")
-            },
-            new()
-            {
-                Title = "Wellness First",
-                Description = "Track your emotional health with insights and suggestions from our AI",
-                Image = LoadImage("avares://Ecliptix.Core/Assets/DataSeed/wellness.png")
-            }
-        };
-
-
+        Slides = InitializeSlides(localizationService);
 
         this.WhenActivated(disposables =>
         {
@@ -113,11 +88,35 @@ public sealed class WelcomeViewModel : ViewModelBase, IRoutableViewModel, IReset
         _disposables.Add(NavToSignInCommand);
     }
 
+    private List<WelcomeSlideItemTemplate> InitializeSlides(ILocalizationService localizationService) =>
+    [
+        new(
+            localizationService[LocalizationKeys.Welcome.Carousel.Slide1.TITLE],
+            localizationService[LocalizationKeys.Welcome.Carousel.Slide1.DESCRIPTION],
+            LoadImage(SAFETY_IMAGE_PATH)
+        ),
+        new(
+            localizationService[LocalizationKeys.Welcome.Carousel.Slide2.TITLE],
+            localizationService[LocalizationKeys.Welcome.Carousel.Slide2.DESCRIPTION],
+            LoadImage(MENTAL_PROTECTION_IMAGE_PATH)
+        ),
+        new(
+            localizationService[LocalizationKeys.Welcome.Carousel.Slide3.TITLE],
+            localizationService[LocalizationKeys.Welcome.Carousel.Slide3.DESCRIPTION],
+            LoadImage(SMART_COMMUNITIES_IMAGE_PATH)
+        ),
+        new(
+            localizationService[LocalizationKeys.Welcome.Carousel.Slide4.TITLE],
+            localizationService[LocalizationKeys.Welcome.Carousel.Slide4.DESCRIPTION],
+            LoadImage(WELLNESS_IMAGE_PATH)
+        )
+    ];
+
     private Bitmap? LoadImage(string path)
     {
         try
         {
-            Uri uri = new Uri(path);
+            Uri uri = new(path);
             return new Bitmap(AssetLoader.Open(uri));
         }
         catch (Exception)
@@ -126,7 +125,7 @@ public sealed class WelcomeViewModel : ViewModelBase, IRoutableViewModel, IReset
         }
     }
 
-    public string UrlPathSegment => "/welcome";
+    public string UrlPathSegment => ROUTE_WELCOME;
 
     public IScreen HostScreen { get; }
 
@@ -138,15 +137,12 @@ public sealed class WelcomeViewModel : ViewModelBase, IRoutableViewModel, IReset
 
     [ObservableAsProperty] public bool IsSignInBusy { get; }
 
-    public List<WelcomeSlide> Slides { get; }
+    public List<WelcomeSlideItemTemplate> Slides { get; }
 
     [Reactive]
     public int CurrentSlideIndex { get; set; }
 
-    public void ResetState()
-    {
-        CurrentSlideIndex = 0;
-    }
+    public void ResetState() => CurrentSlideIndex = 0;
 
     protected override void Dispose(bool disposing)
     {

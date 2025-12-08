@@ -29,7 +29,7 @@ public sealed class FeedService : IFeedService
 
             List<FeedPost> mockPosts = GenerateMockPosts(page, pageSize);
 
-            FeedPage feedPage = new FeedPage
+            FeedPage feedPage = new()
             {
                 Posts = mockPosts,
                 CurrentPage = page,
@@ -75,7 +75,7 @@ public sealed class FeedService : IFeedService
 
     private List<FeedPost> GenerateMockPosts(int page, int pageSize)
     {
-        List<FeedPost> posts = new List<FeedPost>();
+        List<FeedPost> posts = new();
         int startIndex = (page - 1) * pageSize;
 
         for (int i = 0; i < pageSize; i++)
@@ -83,7 +83,7 @@ public sealed class FeedService : IFeedService
             int postIndex = startIndex + i;
             PostContent content = CreateMockText(postIndex);
 
-            FeedPost post = new FeedPost
+            FeedPost post = new()
             {
                 PostId = $"post_{postIndex}",
                 Author = new PostAuthor
@@ -116,7 +116,7 @@ public sealed class FeedService : IFeedService
     private ImageCarouselContent CreateMockImageCarousel(int index)
     {
         int imageCount = Random.Shared.Next(1, 5);
-        List<ImageItem> images = new List<ImageItem>();
+        List<ImageItem> images = new();
 
         for (int i = 0; i < imageCount; i++)
         {
@@ -153,7 +153,7 @@ public sealed class FeedService : IFeedService
 
     private TextContent CreateMockText(int index)
     {
-        List<string> sampleTexts = new List<string>
+        List<string> sampleTexts = new()
         {
             "Just finished an amazing book on software architecture! The patterns discussed are game-changing for scalable applications. Highly recommend it to all developers out there.",
             "Working on a new feature for our desktop app. The UI is looking sleek and the performance improvements are incredible. Can't wait to share more updates soon!",
@@ -169,7 +169,7 @@ public sealed class FeedService : IFeedService
 
         string text = sampleTexts[index % sampleTexts.Count];
 
-        List<List<string>> hashtagSets = new List<List<string>>
+        List<List<string>> hashtagSets = new()
         {
             new List<string> { "coding", "development", "tech" },
             new List<string> { "software", "engineering", "design" },

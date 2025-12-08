@@ -229,6 +229,39 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
         }
     }
 
+    public async Task ShowSideSheet(SideSheetComponentType componentType, UserControl redirectView,
+        bool showScrim = true, bool isDismissable = false)
+    {
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime)
+        {
+            await Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                await _mainWindowViewModel.ShowSideSheetAsync(componentType, redirectView,
+                    showScrim: showScrim, isDismissable: isDismissable).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
+        else
+        {
+            await _mainWindowViewModel.ShowSideSheetAsync(componentType, redirectView,
+                showScrim: showScrim, isDismissable: isDismissable).ConfigureAwait(false);
+        }
+    }
+
+    public async Task HideSideSheetAsync()
+    {
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime)
+        {
+            await Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                await _mainWindowViewModel.HideSideSheetAsync().ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
+        else
+        {
+            await _mainWindowViewModel.HideSideSheetAsync().ConfigureAwait(false);
+        }
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)

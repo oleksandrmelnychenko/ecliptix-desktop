@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Features.NewContent;
+using Ecliptix.Core.Features.NewContent.ViewModels;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Models.Navigation;

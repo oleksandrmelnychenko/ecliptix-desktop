@@ -5,7 +5,6 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input.Platform;
 using Avalonia.Threading;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Controls.LanguageSelector;
@@ -17,6 +16,7 @@ using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Views.Memberships.Components;
+using Ecliptix.Core.Views.Memberships.Components.TitleBar;
 using Ecliptix.Core.Views.Memberships.Components.TitleBarUtilities.ViewModels;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Utilities;
@@ -26,10 +26,22 @@ using Serilog;
 
 namespace Ecliptix.Core.ViewModels.Core;
 
+//TODO move out
+public enum TitleBarPosition
+{
+    Left,
+    Right,
+    Mirrored,
+    ReverseMirrored
+}
+
 public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 {
     private readonly IBottomSheetService _bottomSheetService;
+    private readonly ISideSheetService _sideSheetService;
     private readonly IApplicationSecureStorageProvider _storageProvider;
+    private readonly ILocalizationService _localizationService;
+    private readonly IRpcMetaDataProvider _rpcMetaDataProvider;
 
     private bool _isDisposed;
 
@@ -60,14 +72,18 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     public event Action<PixelPoint>? OnWindowRepositionRequested;
 
     public MainWindowViewModel(
+        ISideSheetService sideSheetService,
         IBottomSheetService bottomSheetService,
         ILocalizationService localizationService,
         IApplicationSecureStorageProvider storageProvider,
         IRpcMetaDataProvider rpcMetaDataProvider,
         ConnectivityNotificationViewModel connectivityNotification)
     {
+        _sideSheetService = sideSheetService;
         _bottomSheetService = bottomSheetService;
         _storageProvider = storageProvider;
+        _localizationService = localizationService;
+        _rpcMetaDataProvider = rpcMetaDataProvider;
 
         MinWindowWidth = 200;
         MinWindowHeight = 300;
@@ -118,14 +134,42 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
                 CanResize = false;
                 MinWindowWidth = 0;
                 MinWindowHeight = 0;
-
             }, DispatcherPriority.Loaded);
 
-            await AnimateWindowResizeAsync(520, 800, TimeSpan.FromMilliseconds(450)).ConfigureAwait(false);
 
+            await AnimateWindowResizeAsync(532, 812, TimeSpan.FromMilliseconds(450)).ConfigureAwait(false);
 
-            TitleBarViewModel.DisableMaximizeButton = true;
-            SetMirroredContent(LanguageSelector);
+            VerticalSeparatorViewModel separator = new();
+            LanguageSwitcherViewModel languageSwitcher = new(
+                _sideSheetService,
+                _storageProvider,
+                _localizationService,
+                _rpcMetaDataProvider
+            );
+            EppBadgeViewModel eppBadge = new();
+            NetworkBadgeViewModel networkBadge = new();
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                ClearTitleBarContent();
+                TitleBarViewModel.DisableMaximizeButton = true;
+
+                SetMultipleTitleBarContent(
+                    TitleBarPosition.ReverseMirrored,
+                    reverseOrder: !RuntimeInformation.IsOSPlatform(OSPlatform.OSX),
+                    clearOthers: false,
+                    separator,
+                    languageSwitcher
+                );
+
+                SetMultipleTitleBarContent(
+                    TitleBarPosition.Mirrored,
+                    reverseOrder: !RuntimeInformation.IsOSPlatform(OSPlatform.OSX),
+                    clearOthers: false,
+                    eppBadge,
+                    networkBadge
+                );
+            });
 
             await SetContentWithFadeAsync(content).ConfigureAwait(false);
         }
@@ -136,17 +180,13 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
                 TitleBarViewModel.IsDraggingEnabled = true;
             });
         }
-
     }
 
-    private void ClearTitleBarContent()
-    {
-        TitleBarViewModel.LeftContent.Clear();
-        TitleBarViewModel.CenterContent = null;
-        TitleBarViewModel.RightContent.Clear();
-    }
-
-    private void SetMirroredContent(object content, bool clearOthers = true)
+    public void SetMultipleTitleBarContent(
+        TitleBarPosition position,
+        bool reverseOrder,
+        bool clearOthers,
+        params object[] items)
     {
         if (clearOthers)
         {
@@ -155,16 +195,90 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
         bool isMac = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
 
-        if (isMac)
+        System.Collections.ObjectModel.ObservableCollection<object>? targetCollection = position switch
         {
-            TitleBarViewModel.RightContent.Add(content);
+            TitleBarPosition.Left => TitleBarViewModel.LeftContent,
+            TitleBarPosition.Right => TitleBarViewModel.RightContent,
+            TitleBarPosition.Mirrored => isMac ? TitleBarViewModel.RightContent : TitleBarViewModel.LeftContent,
+            TitleBarPosition.ReverseMirrored => isMac ? TitleBarViewModel.LeftContent : TitleBarViewModel.RightContent,
+            _ => null
+        };
+
+        if (targetCollection == null || items == null || items.Length == 0)
+        {
+            return;
+        }
+
+        if (reverseOrder)
+        {
+            for (int i = items.Length - 1; i >= 0; i--)
+            {
+                targetCollection.Add(items[i]);
+            }
         }
         else
         {
-            TitleBarViewModel.LeftContent.Add(content);
+            foreach (object item in items)
+            {
+                targetCollection.Add(item);
+            }
         }
     }
 
+    private void SetTitleBarContent(
+        object content,
+        TitleBarPosition position = TitleBarPosition.Mirrored,
+        bool clearOthers = true)
+    {
+        if (clearOthers)
+        {
+            ClearTitleBarContent();
+        }
+
+        bool isMac = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+
+        switch (position)
+        {
+            case TitleBarPosition.Left:
+                TitleBarViewModel.LeftContent.Add(content);
+                break;
+
+            case TitleBarPosition.Right:
+                TitleBarViewModel.RightContent.Add(content);
+                break;
+
+            case TitleBarPosition.Mirrored:
+                if (isMac)
+                {
+                    TitleBarViewModel.RightContent.Add(content);
+                }
+                else
+                {
+                    TitleBarViewModel.LeftContent.Add(content);
+                }
+
+                break;
+
+            case TitleBarPosition.ReverseMirrored:
+                if (isMac)
+                {
+                    TitleBarViewModel.LeftContent.Add(content);
+                }
+                else
+                {
+                    TitleBarViewModel.RightContent.Add(content);
+                }
+
+                break;
+        }
+    }
+
+    private void ClearTitleBarContent()
+    {
+        TitleBarViewModel.LeftContent.Clear();
+        TitleBarViewModel.CenterContent = null;
+        TitleBarViewModel.RightContent.Clear();
+    }
 
     public async Task SetMainContentAsync(object content)
     {
@@ -193,13 +307,12 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
                 TitleBarViewModel.LeftContent.Add(new ToggleNavigationSideBarViewModel());
                 TitleBarViewModel.RightContent.Add(new ToggleThemeViewModel());
 
-                PersonalTagViewModel tagVm = new PersonalTagViewModel(
+                PersonalTagViewModel tagVm = new(
                     "Ecliptix",
                     "@oleksandr.melnychenko"
                 );
 
                 TitleBarViewModel.CenterContent = tagVm;
-
             }, DispatcherPriority.Loaded);
 
             await SetContentWithFadeAsync(content).ConfigureAwait(false);
@@ -211,9 +324,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
                 TitleBarViewModel.IsDraggingEnabled = true;
             });
         }
-
     }
-
 
 
     private async Task WaitUntilNotDragging()
@@ -223,14 +334,10 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        Log.Debug("[MAIN-WINDOW-VM] Drag in progress, waiting for it to finish...");
-
         await TitleBarViewModel.WhenAnyValue(x => x.IsDragging)
             .Where(isDragging => !isDragging)
             .Take(1)
             .ToTask();
-
-        Log.Debug("[MAIN-WINDOW-VM] Drag finished, proceeding.");
     }
 
     public async Task ShowBottomSheetAsync(
@@ -240,9 +347,22 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         bool isDismissable = false) =>
         await _bottomSheetService.ShowAsync(type, view, showScrim, isDismissable).ConfigureAwait(false);
 
+    public async Task ShowSideSheetAsync(
+        SideSheetComponentType type,
+        UserControl view,
+        bool showScrim = true,
+        bool isDismissable = false) =>
+        await _sideSheetService.ShowAsync(type, view, showScrim, isDismissable).ConfigureAwait(false);
+
     public async Task HideBottomSheetAsync() => await _bottomSheetService.HideAsync().ConfigureAwait(false);
 
-    public IDisposable OnBottomSheetHidden(Func<BottomSheetHiddenEvent, Task> handler, SubscriptionLifetime lifetime) => _bottomSheetService.OnBottomSheetHidden(handler, lifetime);
+    public async Task HideSideSheetAsync() => await _sideSheetService.HideAsync().ConfigureAwait(false);
+
+    public IDisposable OnBottomSheetHidden(Func<BottomSheetHiddenEvent, Task> handler, SubscriptionLifetime lifetime) =>
+        _bottomSheetService.OnBottomSheetHidden(handler, lifetime);
+
+    public IDisposable OnSideSheetHidden(Func<SideSheetHiddenEvent, Task> handler, SubscriptionLifetime lifetime) =>
+        _sideSheetService.OnSideSheetHidden(handler, lifetime);
 
     public void Dispose()
     {
@@ -348,7 +468,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
         double startWidth = 0;
         double startHeight = 0;
-        PixelPoint startPosition = new PixelPoint(0, 0);
+        PixelPoint startPosition = new(0, 0);
 
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
@@ -436,14 +556,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     {
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
             await _storageProvider.GetApplicationInstanceSettingsAsync();
-        if (settingsResult.IsOk)
-        {
-            return settingsResult.Unwrap().WindowPlacement;
-        }
-
-        Log.Warning("[MAIN-WINDOW-VM] Cannot load the previous window state from secure storage: {Error}",
-            settingsResult.UnwrapErr().Message);
-        return null;
+        return settingsResult.IsOk ? settingsResult.Unwrap().WindowPlacement : null;
     }
 
     private async Task InvalidateWindowPlacementAsync()
@@ -497,16 +610,12 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     private async Task SetContentWithFadeAsync(object content)
     {
-        Log.Information("[MAIN-WINDOW-VM] SetContentWithFadeAsync called with content: {Type}", content?.GetType().Name ?? "null");
-
         if (CurrentContent != null)
         {
-            Log.Information("[MAIN-WINDOW-VM] Clearing existing content: {Type}", CurrentContent.GetType().Name);
             await Task.Delay(100).ConfigureAwait(false);
         }
 
         CurrentContent = content;
-        Log.Information("[MAIN-WINDOW-VM] CurrentContent set to: {Type}", content?.GetType().Name ?? "null");
 
         await Task.Delay(100).ConfigureAwait(false);
     }

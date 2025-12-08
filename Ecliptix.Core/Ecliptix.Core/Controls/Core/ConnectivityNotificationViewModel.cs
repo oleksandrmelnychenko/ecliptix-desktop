@@ -31,6 +31,7 @@ namespace Ecliptix.Core.Controls.Core;
 public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposable
 {
     private readonly ILocalizationService _localizationService;
+    private readonly IConnectivityService _connectivityService;
 
     private readonly CompositeDisposable _disposables = new();
     private readonly SemaphoreSlim _statusUpdateSemaphore = new(1, 1);
@@ -57,6 +58,8 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
     public TimeSpan DisappearDuration { get; set; } =
         TimeSpan.FromMilliseconds(NetworkStatusConstants.DEFAULT_DISAPPEAR_DURATION_MS);
 
+    private bool _requiresRestorationFeedback = false;
+
     [ObservableAsProperty] public string RetryButtonText { get; }
     [ObservableAsProperty] public bool IsVisible { get; }
     [ObservableAsProperty] public bool IsAnimating { get; }
@@ -67,6 +70,8 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
     [ObservableAsProperty] public ConnectivityErrorType IssueCategory { get; }
     [ObservableAsProperty] public DetailedConnectivityStatus DetailedStatus { get; }
 
+    public TimeSpan RestoredStateDuration { get; set; } = TimeSpan.FromSeconds(3);
+
     public ReactiveCommand<Unit, Unit> RetryCommand { get; }
 
     public void SetView(ConnectivityNotificationView view)
@@ -74,7 +79,35 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         _view = view;
         _mainBorder = view.FindControl<Border>("MainBorder");
         CreateAnimations();
+        HandleConnectivityVisualEffects(_connectivityService.CurrentSnapshot);
     }
+
+    // For debug purposes
+    // public void Debug_ForceState(string state)
+    // {
+    //     Dispatcher.UIThread.Post(() => ApplyClasses(false, false, false));
+    //
+    //     Task.Delay(50).ContinueWith(_ =>
+    //     {
+    //         Dispatcher.UIThread.Post(() =>
+    //         {
+    //             switch (state.ToLower())
+    //             {
+    //                 case "offline":
+    //                     ApplyClasses(isOffline: true, isServerIssue: false, isRestored: false);
+    //                     break;
+    //
+    //                 case "server":
+    //                     ApplyClasses(isOffline: false, isServerIssue: true, isRestored: false);
+    //                     break;
+    //
+    //                 case "restored":
+    //                     ApplyClasses(isOffline: false, isServerIssue: false, isRestored: true);
+    //                     break;
+    //             }
+    //         });
+    //     });
+    // }
 
     public ConnectivityNotificationViewModel(
         ILocalizationService localizationService,
@@ -82,6 +115,7 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         IPendingRequestManager pendingRequestManager)
     {
         _localizationService = localizationService;
+        _connectivityService = connectivityService;
 
         IObservable<Unit> languageTrigger = CreateLanguageTrigger();
         ConnectivityObservables connectivityObservables = CreateConnectivityObservables(connectivityService);
@@ -240,7 +274,7 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
             _ => ConnectivityErrorType.SERVER_UNREACHABLE
         };
 
-    private static VisibilityObservables CreateVisibilityObservables(
+    private VisibilityObservables CreateVisibilityObservables(
         IObservable<ConnectivitySnapshot> snapshots,
         IObservable<ManualRetryRequestedEvent> manualRetryEvents)
     {
@@ -267,27 +301,78 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         return new VisibilityObservables(showRetryButton, isVisible);
     }
 
-    private static IObservable<bool> MapSnapshotToVisibility(ConnectivitySnapshot snapshot) =>
-        snapshot.Status switch
+    private IObservable<bool> MapSnapshotToVisibility(ConnectivitySnapshot snapshot)
+    {
+        Log.Information("[NetworkUI] Mapping Visibility for: {Status} | Source: {Source} | Reason: {Reason}", snapshot.Status, snapshot.Source, snapshot.Reason);
+
+        return snapshot.Status switch
         {
-            ConnectivityStatus.CONNECTED when snapshot.Source == ConnectivitySource.INTERNET_PROBE =>
-                Observable.Return(false),
-            ConnectivityStatus.CONNECTED => Observable.Return(true)
-                .Delay(TimeSpan.FromMilliseconds(NetworkStatusConstants.AUTO_HIDE_DELAY_MS))
-                .Select(_ => false),
+            ConnectivityStatus.CONNECTED =>
+                Observable.Defer(() =>
+                {
+                    if (_requiresRestorationFeedback)
+                    {
+                        _requiresRestorationFeedback = false;
+                        Log.Information("[NetworkUI] Visibility Logic: CONNECTED (Recovered) -> Starting Timer ({Duration})", RestoredStateDuration);
+                        return Observable.Timer(RestoredStateDuration, RxApp.TaskpoolScheduler)
+                            .Do(_ => Log.Information("[NetworkUI] Visibility Logic: CONNECTED -> Timer Expired, Hiding"))
+                            .Select(_ => false)
+                            .StartWith(true);
+                    }
+
+                    Log.Information("[NetworkUI] Visibility Logic: CONNECTED (Routine) -> Stay Hidden");
+                    return Observable.Return(false);
+                }),
+
             ConnectivityStatus.RETRIES_EXHAUSTED or
-                ConnectivityStatus.DISCONNECTED or
-                ConnectivityStatus.SHUTTING_DOWN or
-                ConnectivityStatus.RECOVERING or
-                ConnectivityStatus.UNAVAILABLE => Observable.Return(true),
+            ConnectivityStatus.DISCONNECTED or
+            ConnectivityStatus.SHUTTING_DOWN or
+            ConnectivityStatus.RECOVERING or
+            ConnectivityStatus.UNAVAILABLE =>
+                Observable.Defer(() =>
+                {
+                    _requiresRestorationFeedback = true;
+
+                    Log.Information("[NetworkUI] Visibility Logic: ERROR STATE -> Showing");
+                    return Observable.Return(true);
+                }),
+
             ConnectivityStatus.CONNECTING when snapshot is
                     { Source: ConnectivitySource.INTERNET_PROBE, Reason: ConnectivityReason.INTERNET_RECOVERED } =>
-                Observable.Return(false),
+                Observable.Defer(() =>
+                {
+                     _requiresRestorationFeedback = false;
+
+                    Log.Information("[NetworkUI] Visibility Logic: INTERNET_RECOVERED -> Starting Timer ({Duration})", RestoredStateDuration);
+                    return Observable.Timer(RestoredStateDuration, RxApp.TaskpoolScheduler)
+                        .Do(_ => Log.Information("[NetworkUI] Visibility Logic: INTERNET_RECOVERED -> Timer Expired, Hiding"))
+                        .Select(_ => false)
+                        .StartWith(true);
+                }),
+
             ConnectivityStatus.CONNECTING when snapshot.Source == ConnectivitySource.INTERNET_PROBE =>
-                Observable.Return(true),
-            ConnectivityStatus.CONNECTING => Observable.Empty<bool>(),
-            _ => Observable.Return(false)
+                Observable.Defer(() =>
+                {
+                    _requiresRestorationFeedback = true;
+
+                    Log.Information("[NetworkUI] Visibility Logic: CHECKING INTERNET -> Showing");
+                    return Observable.Return(true);
+                }),
+
+            ConnectivityStatus.CONNECTING =>
+                Observable.Defer(() =>
+                {
+                    Log.Information("[NetworkUI] Visibility Logic: OTHER CONNECTING -> Empty (Ignoring)");
+                    return Observable.Empty<bool>();
+                }),
+
+            _ => Observable.Defer(() =>
+                {
+                    Log.Information("[NetworkUI] Visibility Logic: DEFAULT -> Hiding");
+                    return Observable.Return(false);
+                })
         };
+    }
 
     private ReactiveCommand<Unit, Unit> CreateRetryCommand(
         IConnectivityService connectivityService,
@@ -371,26 +456,41 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
 
     private void HandleConnectivityVisualEffects(ConnectivitySnapshot snapshot)
     {
+        bool isRestored = snapshot.Reason == ConnectivityReason.INTERNET_RECOVERED ||
+                          snapshot.Status == ConnectivityStatus.CONNECTED;
+
         bool isServerIssue = snapshot.Status is ConnectivityStatus.RETRIES_EXHAUSTED
             or ConnectivityStatus.DISCONNECTED
-            or ConnectivityStatus.SHUTTING_DOWN;
-        Dispatcher.UIThread.InvokeAsync(() => ApplyClasses(serverIssue: isServerIssue));
+            or ConnectivityStatus.SHUTTING_DOWN
+            or ConnectivityStatus.RECOVERING;
+
+        bool isOffline = snapshot.Status == ConnectivityStatus.UNAVAILABLE;
+
+        Dispatcher.UIThread.InvokeAsync(() => ApplyClasses(isOffline, isServerIssue, isRestored));
     }
 
-    private void ApplyClasses(bool serverIssue)
+    private void ApplyClasses(bool isOffline, bool isServerIssue, bool isRestored)
     {
         if (_mainBorder == null)
         {
             return;
         }
 
-        if (serverIssue)
+        _mainBorder.Classes.Remove("Offline");
+        _mainBorder.Classes.Remove("ServerIssue");
+        _mainBorder.Classes.Remove("Restored");
+
+        if (isRestored)
         {
-            _mainBorder.Classes.Add("CircuitOpen");
+            _mainBorder.Classes.Add("Restored");
         }
-        else
+        else if (isServerIssue)
         {
-            _mainBorder.Classes.Remove("CircuitOpen");
+            _mainBorder.Classes.Add("ServerIssue");
+        }
+        else if (isOffline)
+        {
+            _mainBorder.Classes.Add("Offline");
         }
 
         _mainBorder.Classes.Remove("Retrying");

@@ -3,7 +3,6 @@ using System.Collections.ObjectModel;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using ReactiveUI;
-using ReactiveUI.Fody.Helpers;
 
 namespace Ecliptix.Core.Features.Profile.ViewModels;
 
@@ -77,7 +76,7 @@ public class PersonalPostsProfileViewModel : ReactiveObject
     {
         try
         {
-            Uri uri = new Uri($"avares://Ecliptix.Core/Assets/DataSeed/{fileName}");
+            Uri uri = new($"avares://Ecliptix.Core/Assets/DataSeed/{fileName}");
             return new Bitmap(AssetLoader.Open(uri));
         }
         catch (Exception)

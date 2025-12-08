@@ -5,7 +5,7 @@ using ReactiveUI.Fody.Helpers;
 using Splat;
 using IMessageBus = Ecliptix.Core.Core.Messaging.IMessageBus;
 
-namespace Ecliptix.Core.Features.NewContent;
+namespace Ecliptix.Core.Features.NewContent.ViewModels;
 
 public class NewPostViewModel : ReactiveObject
 {

@@ -7,11 +7,9 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
-using Ecliptix.Core.Views.Memberships.Components.Platform.OSX;
-using Ecliptix.Core.Views.Memberships.Components.Platform.Windows;
 using ReactiveUI;
 
-namespace Ecliptix.Core.Views.Memberships.Components;
+namespace Ecliptix.Core.Views.Memberships.Components.TitleBar;
 
 public partial class TitleBar : ReactiveUserControl<TitleBarViewModel>
 {
@@ -132,11 +130,11 @@ public partial class TitleBar : ReactiveUserControl<TitleBarViewModel>
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
-            layout = new MacosTitleBarLayout();
+            layout = new Platform.OSX.MacosTitleBarLayout();
         }
         else
         {
-            layout = new WindowsTitleBarLayout();
+            layout = new Platform.Windows.WindowsTitleBarLayout();
         }
 
         layout.Bind(DataContextProperty, this.GetObservable(DataContextProperty));

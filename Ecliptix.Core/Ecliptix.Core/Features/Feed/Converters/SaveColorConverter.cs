@@ -7,8 +7,8 @@ namespace Ecliptix.Core.Features.Feed.Converters;
 
 public sealed class SaveColorConverter : IValueConverter
 {
-    private static readonly SolidColorBrush SavedColor = new SolidColorBrush(Color.Parse("#3B82F6"));
-    private static readonly SolidColorBrush NotSavedColor = new SolidColorBrush(Color.Parse("#6B7280"));
+    private static readonly SolidColorBrush SavedColor = new(Color.Parse("#3B82F6"));
+    private static readonly SolidColorBrush NotSavedColor = new(Color.Parse("#6B7280"));
 
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {

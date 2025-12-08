@@ -1,0 +1,46 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:sideSheetModal="clr-namespace:Ecliptix.Core.Controls.Modals.SideSheetModal"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Ecliptix.Core.Controls.Modals.SideSheetModal.SideSheetControl"
+             ZIndex="20"
+             x:DataType="sideSheetModal:SideSheetViewModel">
+    <UserControl.Styles>
+        <Style Selector="Border.sheet">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="CornerRadius" Value="16" /> <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="LightGray" />
+            <Setter Property="ZIndex" Value="1" />
+            <Setter Property="BoxShadow" Value="0 4 10 0 #40000000" />
+        </Style>
+
+        <Style Selector="Border.scrim">
+            <Setter Property="Background"
+                    Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type sideSheetModal:SideSheetControl}}, Path=ScrimColor}" />
+            <Setter Property="ZIndex" Value="0" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid x:Name="RootGrid">
+        <Border x:Name="ScrimBorder" Classes="scrim" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" IsHitTestVisible="True" />
+
+        <Border x:Name="HitTestBorder" Background="Transparent" Opacity="0" IsVisible="True" PointerPressed="OnScrimPointerPressed" />
+
+        <Border x:Name="SheetBorder"
+                Classes="sheet"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Center"
+                Margin="0,0,10,0"
+                MaxWidth="450"
+                IsHitTestVisible="True">
+
+            <ContentControl
+                x:Name="ContentControl"
+                Content="{Binding Content}"
+                IsHitTestVisible="True" />
+        </Border>
+    </Grid>
+</UserControl>
+

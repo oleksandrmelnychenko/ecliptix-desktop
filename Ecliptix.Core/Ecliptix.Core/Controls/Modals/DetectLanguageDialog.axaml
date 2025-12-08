@@ -7,11 +7,11 @@
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="200"
              x:DataType="modals:DetectLanguageDialogViewModel"
              x:Class="Ecliptix.Core.Controls.Modals.DetectLanguageDialog">
-    <Border 
+    <Border
         Padding="24"
         HorizontalAlignment="Stretch"
         VerticalAlignment="Stretch">
-        <Grid 
+        <Grid
             RowDefinitions="Auto, Auto, Auto ,Auto"
             RowSpacing="24">
             <TextBlock
@@ -39,7 +39,7 @@
             </StackPanel>
             <Grid Grid.Row="2">
                 <Image anim:ImageBehavior.AnimatedSource="avares://Ecliptix.Core/Assets/Animations/language.gif"
-                       Width="126" 
+                       Width="126"
                        Height="96"
                        Stretch="Uniform"
                        HorizontalAlignment="Center"
@@ -55,13 +55,13 @@
                     x:Name="DeclineButton"
                     Content="{Binding DeclineButtonText}"
                     Command="{Binding DeclineCommand}"
-                    Classes="auth-button recovery-button" />
+                    Classes="secondary large" />
                 <Button
                     Grid.Column="1"
                     x:Name="ConfirmButton"
                     Content="{Binding ConfirmButtonText}"
                     Command="{Binding ConfirmCommand}"
-                    Classes="auth-button continue-button" />
+                    Classes="primary large glow" />
             </Grid>
         </Grid>
     </Border>

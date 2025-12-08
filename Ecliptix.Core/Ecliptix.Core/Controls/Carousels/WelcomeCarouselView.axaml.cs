@@ -4,41 +4,27 @@ using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
-using System;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 
 namespace Ecliptix.Core.Controls.Carousels;
 
-
-
-public class WelcomeSlide
-
-{
-    public string Title { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public Bitmap? Image { get; set; } = null;
-
-}
-
-
+public record WelcomeSlideItemTemplate(string Title, string Description, Bitmap? Image);
 
 public partial class WelcomeCarouselView : UserControl
-
 {
-    private Carousel _carousel;
-    private ItemsControl _indicators;
+    private const string INDICATORS_CONTROL_NAME = "IndicatorsControl";
+    private const string ACTIVE_CLASS = "active";
 
-    #region Styled Properties
+    private ItemsControl? _indicators;
 
-    public static readonly StyledProperty<IEnumerable> ItemsSourceProperty =
-        AvaloniaProperty.Register<WelcomeCarouselView, IEnumerable>(nameof(ItemsSource));
+    public static readonly StyledProperty<IEnumerable?> ItemsSourceProperty =
+        AvaloniaProperty.Register<WelcomeCarouselView, IEnumerable?>(nameof(ItemsSource));
 
     public static readonly StyledProperty<int> SelectedIndexProperty =
         AvaloniaProperty.Register<WelcomeCarouselView, int>(nameof(SelectedIndex));
 
-    public IEnumerable ItemsSource
-
+    public IEnumerable? ItemsSource
     {
         get => GetValue(ItemsSourceProperty);
         set => SetValue(ItemsSourceProperty, value);
@@ -49,50 +35,40 @@ public partial class WelcomeCarouselView : UserControl
         get => GetValue(SelectedIndexProperty);
         set => SetValue(SelectedIndexProperty, value);
     }
-    #endregion
+
+    static WelcomeCarouselView()
+    {
+        ItemsSourceProperty.Changed.AddClassHandler<WelcomeCarouselView>((x, e) =>
+            x.OnItemsSourceChanged(e.NewValue as IEnumerable));
+        SelectedIndexProperty.Changed.AddClassHandler<WelcomeCarouselView>((x, e) =>
+            x.OnSelectedIndexChanged(e.NewValue is int i ? i : 0));
+    }
 
     public WelcomeCarouselView()
     {
         InitializeComponent();
     }
+
     private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);
-        _carousel = this.FindControl<Carousel>("MainCarousel");
-        _indicators = this.FindControl<ItemsControl>("IndicatorsControl");
-
-        this.GetObservable(ItemsSourceProperty).Subscribe(OnItemsSourceChanged);
-        this.GetObservable(SelectedIndexProperty).Subscribe(OnSelectedIndexChanged);
-
+        _indicators = this.FindControl<ItemsControl>(INDICATORS_CONTROL_NAME);
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
         Dispatcher.UIThread.Post(() => UpdateIndicators(SelectedIndex), DispatcherPriority.Loaded);
-
     }
 
-    private void OnItemsSourceChanged(IEnumerable items)
-
+    private void OnItemsSourceChanged(IEnumerable? items)
     {
-
-
-        if (_indicators != null)
-        {
-            _indicators.ItemsSource = items;
-        }
+        _indicators?.ItemsSource = items;
 
         UpdateIndicators(SelectedIndex);
-
     }
 
-
-
-    private void OnSelectedIndexChanged(int index)
-    {
-        UpdateIndicators(index);
-    }
+    private void OnSelectedIndexChanged(int index) => UpdateIndicators(index);
 
     private void UpdateIndicators(int activeIndex)
     {
@@ -102,44 +78,43 @@ public partial class WelcomeCarouselView : UserControl
         }
 
         int index = 0;
-
         foreach (Control item in _indicators.GetRealizedContainers())
         {
-            if (item is ContentPresenter cp && cp.Child is Border outerBorder && outerBorder.Child is Border dot)
+            if (item is ContentPresenter { Child: Border { Child: Border dot } })
             {
                 if (index == activeIndex)
                 {
-                    if (!dot.Classes.Contains("active"))
+                    if (!dot.Classes.Contains(ACTIVE_CLASS))
                     {
-                        dot.Classes.Add("active");
+                        dot.Classes.Add(ACTIVE_CLASS);
                     }
                 }
                 else
                 {
-                    dot.Classes.Remove("active");
+                    dot.Classes.Remove(ACTIVE_CLASS);
                 }
             }
+
             index++;
         }
     }
 
     private void OnIndicatorPressed(object sender, PointerPressedEventArgs e)
     {
-
-        if (sender is Border border && border.DataContext != null)
+        if (sender is not Border border || border.DataContext == null)
         {
+            return;
+        }
 
-            IList? list = ItemsSource as IList;
+        if (ItemsSource is not IList list)
+        {
+            return;
+        }
 
-            if (list != null)
-            {
-                int index = list.IndexOf(border.DataContext);
-                if (index >= 0)
-                {
-                    SelectedIndex = index;
-                }
-            }
+        int index = list.IndexOf(border.DataContext);
+        if (index >= 0)
+        {
+            SelectedIndex = index;
         }
     }
 }
-

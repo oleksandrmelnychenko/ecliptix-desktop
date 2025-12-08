@@ -41,8 +41,8 @@ public class ChatService : IChatService
     {
         await Task.Delay(5);
 
-        List<ChatListItemViewModel> sidebarItems = new List<ChatListItemViewModel>();
-        Random rnd = new Random();
+        List<ChatListItemViewModel> sidebarItems = new();
+        Random rnd = new();
 
         foreach (ChatModel chat in _chats)
         {
@@ -95,7 +95,7 @@ public class ChatService : IChatService
             .Take(limit)
             .ToList();
 
-        List<Bitmap> avatars = new List<Bitmap>();
+        List<Bitmap> avatars = new();
         foreach (Guid id in participantIds)
         {
             Participant? user = _users.FirstOrDefault(u => u.Id == id);
@@ -142,7 +142,7 @@ public class ChatService : IChatService
 
     private async IAsyncEnumerable<IEnumerable<MessageViewModelBase>> GenerateChannelStream()
     {
-        Random rnd = new Random();
+        Random rnd = new();
         DateTime? lastDate = null;
 
         string veryLongText =
@@ -169,7 +169,7 @@ public class ChatService : IChatService
             for (int i = 0; i < 4; i++)
             {
                 await Task.Delay(30);
-                List<MessageViewModelBase> batch = new List<MessageViewModelBase>();
+                List<MessageViewModelBase> batch = new();
                 DateTime baseTime = DateTime.Now.AddDays(i - 2);
 
                 for (int j = 0; j < 1; j++)
@@ -183,7 +183,7 @@ public class ChatService : IChatService
 
                     lastDate = postTime;
 
-                    ChannelPostViewModel post = new ChannelPostViewModel
+                    ChannelPostViewModel post = new()
                     {
                         Time = postTime,
                         Likes = rnd.Next(50, 2000),
@@ -234,7 +234,7 @@ public class ChatService : IChatService
         for (int i = 0; i < 5; i++)
         {
             await Task.Delay(30);
-            List<MessageModel> batchModels = new List<MessageModel>();
+            List<MessageModel> batchModels = new();
             Guid msgId = Guid.NewGuid();
 
             DateTime baseTime = (i == 0) ? DateTime.Now.AddDays(-2) : DateTime.Now.AddMinutes(-10 + i);
@@ -271,7 +271,7 @@ public class ChatService : IChatService
 
     private List<MessageViewModelBase> InjectDateSeparators(IEnumerable<MessageViewModelBase> messages, ref DateTime? lastDate)
     {
-        List<MessageViewModelBase> result = new List<MessageViewModelBase>();
+        List<MessageViewModelBase> result = new();
 
         foreach (MessageViewModelBase msg in messages.OrderBy(m => m.Time))
         {
@@ -296,7 +296,7 @@ public class ChatService : IChatService
         for (int i = 0; i < 5; i++)
         {
             await Task.Delay(30);
-            List<MessageModel> batchModels = new List<MessageModel>();
+            List<MessageModel> batchModels = new();
 
             DateTime baseTime = (i == 0) ? DateTime.Now.AddDays(-1) : DateTime.Now.AddMinutes(-20 + i * 5);
 
@@ -322,13 +322,13 @@ public class ChatService : IChatService
     private void InitializeData()
     {
         // 1. Створюємо 6 юзерів (у мене картинки до user6.jpg)
-        Participant me = new Participant(_currentUserId, "Me", "");
-        Participant sarah = new Participant(Guid.NewGuid(), "Sarah Chen", "user1.jpg");
-        Participant marcus = new Participant(Guid.NewGuid(), "Marcus Reid", "user2.jpg");
-        Participant emma = new Participant(Guid.NewGuid(), "Emma Wilson", "user3.jpg");
-        Participant alex = new Participant(Guid.NewGuid(), "Alex Chen", "user4.jpg");
-        Participant lisa = new Participant(Guid.NewGuid(), "Lisa Park", "user5.jpg");
-        Participant john = new Participant(Guid.NewGuid(), "John Doe", "user6.jpg");
+        Participant me = new(_currentUserId, "Me", "");
+        Participant sarah = new(Guid.NewGuid(), "Sarah Chen", "user1.jpg");
+        Participant marcus = new(Guid.NewGuid(), "Marcus Reid", "user2.jpg");
+        Participant emma = new(Guid.NewGuid(), "Emma Wilson", "user3.jpg");
+        Participant alex = new(Guid.NewGuid(), "Alex Chen", "user4.jpg");
+        Participant lisa = new(Guid.NewGuid(), "Lisa Park", "user5.jpg");
+        Participant john = new(Guid.NewGuid(), "John Doe", "user6.jpg");
 
         _users.AddRange(new[] { me, sarah, marcus, emma, alex, lisa, john });
 
@@ -352,7 +352,7 @@ public class ChatService : IChatService
 
     private IEnumerable<MessageViewModelBase> MapToViewModels(List<MessageModel> models)
     {
-        List<MessageViewModelBase> result = new List<MessageViewModelBase>();
+        List<MessageViewModelBase> result = new();
 
         List<MessageModel> allKnownMessages = _messages.Concat(models).ToList();
 

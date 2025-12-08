@@ -1,11 +1,7 @@
 using System;
 using System.Collections.Specialized;
-using System.Threading;
-using System.Threading.Tasks;
 using Avalonia;
-using Avalonia.Animation.Easings;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
@@ -229,7 +225,7 @@ public partial class ConversationView : UserControl
             return;
         }
 
-        MessageActionMenu menuContent = new MessageActionMenu { DataContext = messageViewModel };
+        MessageActionMenu menuContent = new() { DataContext = messageViewModel };
 
         measureContainer.Children.Add(menuContent);
         menuContent.Measure(Size.Infinity);

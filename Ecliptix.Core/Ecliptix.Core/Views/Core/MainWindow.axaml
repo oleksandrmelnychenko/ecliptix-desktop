@@ -3,10 +3,11 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:core="clr-namespace:Ecliptix.Core.Core.Controls"
-        xmlns:comp="clr-namespace:Ecliptix.Core.Views.Memberships.Components"
         xmlns:coreControls="clr-namespace:Ecliptix.Core.Controls.Core"
         xmlns:controls="clr-namespace:Ecliptix.Core.Controls.Modals.BottomSheetModal"
         xmlns:vm="clr-namespace:Ecliptix.Core.ViewModels.Core"
+        xmlns:sideSheetModal="clr-namespace:Ecliptix.Core.Controls.Modals.SideSheetModal"
+        xmlns:titleBar="clr-namespace:Ecliptix.Core.Views.Memberships.Components.TitleBar"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
         x:Class="Ecliptix.Core.Views.Core.MainWindow"
         x:DataType="vm:MainWindowViewModel"
@@ -21,23 +22,21 @@
         SystemDecorations="Full"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaChromeHints="NoChrome"
-        ExtendClientAreaTitleBarHeightHint="-1"
-
-
+        BorderThickness="0"
+        x:CompileBindings="True"
+        ExtendClientAreaTitleBarHeightHint="35"
+        UseLayoutRounding="True"
         TransparencyLevelHint="Transparent"
         Background="Transparent"
         Icon="avares://Ecliptix.Core/Assets/Branding/Logos/logo_256x256.png">
 
     <Window.Resources>
         <CornerRadius x:Key="WindowBorderRadiusZero">0</CornerRadius>
-
         <Thickness x:Key="MarginZero">0</Thickness>
         <Thickness x:Key="MarginMaximizedWindows">8</Thickness>
-
     </Window.Resources>
 
     <Window.Styles>
-
         <Style Selector="Window[WindowState=Normal] Border#MainBorder">
             <Setter Property="CornerRadius" Value="{StaticResource WindowBorderRadius}" />
         </Style>
@@ -55,7 +54,6 @@
                                Windows={StaticResource WindowBorderRadiusZero},
                                macOS={StaticResource WindowBorderRadius}}" />
         </Style>
-
 
         <Style Selector="Window[WindowState=Normal] Grid#MainContentGrid">
             <Setter Property="Margin" Value="{StaticResource MarginZero}" />
@@ -75,12 +73,10 @@
     </Window.Styles>
 
     <Grid x:Name="MainContentGrid" ClipToBounds="True">
-
-        <comp:TitleBar
+        <titleBar:TitleBar
             VerticalAlignment="Top"
             ZIndex="5"
-            DataContext="{Binding TitleBarViewModel}"
-            />
+            DataContext="{Binding TitleBarViewModel}" />
 
         <Border
             ClipToBounds="True"
@@ -88,6 +84,20 @@
             x:Name="BottomSheetContainer">
             <controls:BottomSheetControl
                 x:Name="BottomSheetControl"
+                ZIndex="1000"
+                VerticalAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                DismissableScrimColor="DarkGray"
+                UnDismissableScrimColor="Black"
+                IsDismissableOnScrimClick="True" />
+        </Border>
+
+        <Border
+            ClipToBounds="True"
+            ZIndex="1001"
+            x:Name="SideSheetContainer">
+            <sideSheetModal:SideSheetControl
+                x:Name="SideSheetControl"
                 ZIndex="1000"
                 VerticalAlignment="Stretch"
                 HorizontalAlignment="Stretch"

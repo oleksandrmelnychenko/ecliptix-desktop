@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive;
-using Ecliptix.Core.Core.Messaging.Events;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Splat;

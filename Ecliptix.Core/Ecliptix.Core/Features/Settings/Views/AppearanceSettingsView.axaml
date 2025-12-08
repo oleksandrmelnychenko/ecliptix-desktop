@@ -8,8 +8,6 @@
              x:Class="Ecliptix.Core.Features.Settings.Views.AppearanceSettingsView">
 
     <UserControl.Resources>
-        <SolidColorBrush x:Key="SidebarBackground" Color="#FEFEFE" />
-        <SolidColorBrush x:Key="OnSurface" Color="#242424"/>
     </UserControl.Resources>
 
     <UserControl.Styles>

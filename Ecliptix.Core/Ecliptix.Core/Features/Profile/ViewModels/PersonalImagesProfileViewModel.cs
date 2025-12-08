@@ -3,7 +3,6 @@ using System.Collections.ObjectModel;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using ReactiveUI;
-using ReactiveUI.Fody.Helpers;
 
 namespace Ecliptix.Core.Features.Profile.ViewModels;
 
@@ -34,11 +33,11 @@ public class PersonalImagesProfileViewModel : ReactiveObject
 
     private void AddImage(string fileName, int likes, int comments)
     {
-        Uri uri = new Uri($"avares://Ecliptix.Core/Assets/DataSeed/{fileName}");
+        Uri uri = new($"avares://Ecliptix.Core/Assets/DataSeed/{fileName}");
 
         try
         {
-            Bitmap bitmap = new Bitmap(AssetLoader.Open(uri));
+            Bitmap bitmap = new(AssetLoader.Open(uri));
 
             Images.Add(new ProfileImageItem
             {

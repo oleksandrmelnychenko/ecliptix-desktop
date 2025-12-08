@@ -12,23 +12,27 @@
              MinWidth="{StaticResource Content.MaxWidth}"
              Width="{StaticResource Content.MaxWidth}">
 
-    <!-- Main Layout -->
     <Grid VerticalAlignment="Top"
           RowSpacing="{StaticResource Spacing.Authentication}"
-          RowDefinitions="Auto,Auto,Auto"
+          RowDefinitions="Auto,Auto,Auto, Auto"
           HorizontalAlignment="Stretch"
           Width="{StaticResource Content.MaxWidth}">
 
-        <!-- Header Section -->
         <StackPanel Grid.Row="0"
                     Spacing="{StaticResource Spacing.S}"
                     MaxWidth="{StaticResource Header.MaxWidth}"
                     HorizontalAlignment="Left">
-            <TextBlock Text="{Binding Title}"
-                       FontSize="{StaticResource Font.XXL}"
-                       FontWeight="Light"
-                       Foreground="{DynamicResource OnSurface}"
-                       LineHeight="{StaticResource LineHeight.Loose}" />
+
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Title}"
+                           FontSize="{StaticResource Font.XXL}"
+                           FontWeight="Light"
+                           Foreground="{DynamicResource OnSurface}"
+                           LineHeight="{StaticResource LineHeight.Loose}" />
+                <coreControls:StepBadgeView Text="{Binding StepBadgeText}"
+                                            VerticalAlignment="Center"/>
+            </StackPanel>
+
             <TextBlock Text="{Binding Description}"
                        TextWrapping="Wrap"
                        FontSize="{StaticResource Font.XXXL}"
@@ -38,7 +42,6 @@
                        Opacity="0.8" />
         </StackPanel>
 
-        <!-- Mobile Number Input -->
         <coreControls:HintedTextBox
             Grid.Row="1"
             x:Name="MobileTextBox"
@@ -59,12 +62,19 @@
             FontWeight="Light"
             HorizontalAlignment="Stretch" />
 
-        <!-- Continue Button -->
         <Button Grid.Row="2"
                 Content="{Binding ButtonText}"
                 Command="{Binding VerifyMobileNumberCommand}"
                 IsEnabled="{Binding VerifyMobileNumberCommand.CanExecute}"
-                Classes="auth-button continue-button loading-button"
+                Classes="primary large glow"
                 Classes.is-busy="{Binding IsBusy}" />
+
+        <coreControls:ErrorNotificationView
+            Grid.Row="3"
+            x:Name="ErrorNotification"
+            VerticalAlignment="Top"
+            HorizontalAlignment="Stretch"
+            Margin="0,0,0,0"/>
+
     </Grid>
 </UserControl>

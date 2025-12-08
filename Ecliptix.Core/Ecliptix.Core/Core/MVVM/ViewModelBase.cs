@@ -13,6 +13,7 @@ using Ecliptix.Core.Features.Authentication.Common;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Services.Core.Localization;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
@@ -69,6 +70,11 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
 
     protected NetworkProvider NetworkProvider { get; }
     protected IObservable<SystemU> LanguageChanged { get; }
+
+    protected const int TOTAL_STEPS = 4;
+    protected const int TOTAL_RECOVERY_STEPS = 3;
+
+    protected string StepFormatKey => LocalizationService.GetString(LocalizationKeys.Verification.Info.STEP_OF);
 
     protected uint ComputeConnectId(PubKeyExchangeType pubKeyExchangeType)
     {
@@ -244,7 +250,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
             cts.Dispose();
         });
 
-        CancellationTokenSource newCts = new CancellationTokenSource();
+        CancellationTokenSource newCts = new();
         ctsOption = Option<CancellationTokenSource>.Some(newCts);
         return newCts;
     }

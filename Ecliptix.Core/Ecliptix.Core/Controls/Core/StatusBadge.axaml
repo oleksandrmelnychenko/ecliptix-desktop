@@ -1,0 +1,128 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="clr-namespace:Ecliptix.Core.Controls.Core"
+             xmlns:sys="clr-namespace:System;assembly=System.Runtime"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Name="Root"
+             x:Class="Ecliptix.Core.Controls.Core.StatusBadge">
+    <UserControl.Resources>
+        <sys:TimeSpan x:Key="FlyoutAnimDuration">0:0:0.150</sys:TimeSpan>
+        <Thickness x:Key="BadgePadding">8,2</Thickness>
+        <Thickness x:Key="BadgeBorderThickness">1</Thickness>
+        <sys:Double x:Key="BadgeIconSize">12</sys:Double>
+        <sys:Double x:Key="BadgeFontSize">7</sys:Double>
+        <sys:Double x:Key="BadgeIconSpacing">2</sys:Double>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="local|StatusBadge Border#ContainerBorder">
+             <Setter Property="BorderThickness" Value="{StaticResource BadgeBorderThickness}"/>
+        </Style>
+
+        <Style Selector="local|StatusBadge">
+            <Setter Property="Height" Value="22"/>
+            <Setter Property="BadgeBrush" Value="#6B7280"/>
+            <Setter Property="BadgeBackground" Value="#F3F4F6"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
+
+        <Style Selector="local|StatusBadge.purple">
+            <Setter Property="BadgeBrush" Value="#7e22ce"/>
+            <Setter Property="BadgeBackground" Value="#f3e8ff"/>
+        </Style>
+        <Style Selector="local|StatusBadge.purple Border#ContainerBorder">
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+
+        <Style Selector="local|StatusBadge.green">
+            <Setter Property="BadgeBrush" Value="#15803d"/>
+            <Setter Property="BadgeBackground" Value="#ecfdf5"/>
+        </Style>
+        <Style Selector="local|StatusBadge.green Border#ContainerBorder">
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+
+        <Style Selector="local|StatusBadge.red">
+            <Setter Property="BadgeBrush" Value="#EF4444"/>
+            <Setter Property="BadgeBackground" Value="#15EF4444"/>
+        </Style>
+
+        <Style Selector="Border.popupContent">
+            <Setter Property="Opacity" Value="0"/>
+            <Setter Property="RenderTransform" Value="translateY(5px)"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="{StaticResource FlyoutAnimDuration}" Easing="CircularEaseOut"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="{StaticResource FlyoutAnimDuration}" Easing="CircularEaseOut"/>
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Border.popupContent.visible">
+            <Setter Property="Opacity" Value="1"/>
+            <Setter Property="RenderTransform" Value="translateY(0px)"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Grid Background="Transparent"> <Border x:Name="ContainerBorder"
+                CornerRadius="50"
+                Background="{Binding BadgeBackground, ElementName=Root}"
+                BorderBrush="{Binding BadgeBrush, ElementName=Root}"
+                Padding="{StaticResource BadgePadding}"
+                HorizontalAlignment="{Binding HorizontalAlignment, ElementName=Root}"
+                VerticalAlignment="Center"
+                ClipToBounds="True">
+
+            <StackPanel Orientation="Horizontal"
+                        Spacing="{StaticResource BadgeIconSpacing}"
+                        VerticalAlignment="Center">
+
+                <Viewbox Width="{StaticResource BadgeIconSize}"
+                         Height="{StaticResource BadgeIconSize}"
+                         IsVisible="{Binding Icon, ElementName=Root, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <Canvas Width="24" Height="24">
+                        <Path Data="{Binding Icon, ElementName=Root}"
+                              Stroke="{Binding BadgeBrush, ElementName=Root}"
+                              StrokeThickness="2.5"
+                              StrokeLineCap="Round"
+                              Fill="Transparent"/>
+                    </Canvas>
+                </Viewbox>
+
+                <TextBlock Text="{Binding Text, ElementName=Root}"
+                           Foreground="{Binding BadgeBrush, ElementName=Root}"
+                           FontSize="{StaticResource BadgeFontSize}"
+                           FontWeight="Medium"
+                           LetterSpacing="0.5"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <Popup x:Name="InfoPopup"
+               PlacementTarget="{Binding ElementName=ContainerBorder}"
+               Placement="Bottom"
+               VerticalOffset="4"
+               IsHitTestVisible="False"
+               WindowManagerAddShadowHint="True">
+
+            <Border x:Name="PopupContentBorder"
+                    Classes="popupContent"
+                    Background="White"
+                    BorderBrush="{Binding BadgeBrush, ElementName=Root}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="12,8"
+                    MaxWidth="300">
+
+                <TextBlock Text="{Binding HoverText, ElementName=Root}"
+                           Foreground="{Binding BadgeBrush, ElementName=Root}"
+                           FontSize="12"
+                           FontWeight="Medium"
+                           TextWrapping="Wrap"/>
+            </Border>
+        </Popup>
+    </Grid>
+</UserControl>
+

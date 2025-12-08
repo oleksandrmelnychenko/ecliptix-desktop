@@ -7,13 +7,14 @@ using System.Reactive.Concurrency;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.ReactiveUI;
 using DotNetEnv;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Controls.LanguageSelector;
+using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Controls.Modals.BottomSheetModal;
+using Ecliptix.Core.Controls.Modals.SideSheetModal;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.Communication;
 using Ecliptix.Core.Core.Messaging;
@@ -112,6 +113,10 @@ public static class Program
             Splat.Locator.CurrentMutable.Register(() => new ToggleNavigationSideBarView(), typeof(ReactiveUI.IViewFor<ToggleNavigationSideBarViewModel>));
             Splat.Locator.CurrentMutable.Register(() => new ToggleThemeView(), typeof(ReactiveUI.IViewFor<ToggleThemeViewModel>));
             Splat.Locator.CurrentMutable.Register(() => new PersonalTagView(), typeof(ReactiveUI.IViewFor<PersonalTagViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new EppBadgeView(), typeof(ReactiveUI.IViewFor<EppBadgeViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new NetworkBadgeView(), typeof(ReactiveUI.IViewFor<NetworkBadgeViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new LanguageSwitcherView(), typeof(ReactiveUI.IViewFor<LanguageSwitcherViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new VerticalSeparatorView(), typeof(ReactiveUI.IViewFor<VerticalSeparatorViewModel>));
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
         }
         catch (Exception ex)
@@ -354,6 +359,7 @@ public static class Program
         services.AddSingleton<IMessageBus, MessageBus>();
         services.AddSingleton<IConnectivityService, ConnectivityService>();
         services.AddSingleton<IBottomSheetService, BottomSheetService>();
+        services.AddSingleton<ISideSheetService, SideSheetService>();
         services.AddSingleton<IProfileMenuService, ProfileMenuService>();
         services.AddSingleton<ILanguageDetectionService, LanguageDetectionService>();
         services.AddSingleton<ILocalizationService, LocalizationService>();
@@ -513,8 +519,10 @@ public static class Program
         services.AddTransient<Ecliptix.Core.Features.Settings.ViewModels.SettingsViewModel>();
         services.AddTransient<Ecliptix.Core.Features.Profile.ViewModels.ProfileViewModel>();
 
+        services.AddSingleton<LanguageSelectionViewModel>();
         services.AddTransient<LanguageSelectorViewModel>();
         services.AddSingleton<BottomSheetViewModel>();
+        services.AddSingleton<SideSheetViewModel>();
         services.AddSingleton<ConnectivityNotificationViewModel>();
         services.AddSingleton<Ecliptix.Core.ViewModels.Core.MainWindowViewModel>();
         services.AddTransient<SplashWindowViewModel>();

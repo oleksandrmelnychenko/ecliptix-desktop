@@ -1,7 +1,6 @@
 using System;
 using System.Threading;
 using Ecliptix.Core.Services.Network.Rpc;
-using Serilog;
 
 namespace Ecliptix.Core.Services.Network;
 

@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Linq;
-using Ecliptix.Core.Features.Settings.ViewModels;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;

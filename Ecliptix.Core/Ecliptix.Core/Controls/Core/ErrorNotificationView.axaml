@@ -1,0 +1,107 @@
+﻿    <UserControl xmlns="https://github.com/avaloniaui"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+                 x:Class="Ecliptix.Core.Controls.Core.ErrorNotificationView"
+                 x:Name="Root"
+                 >
+
+     <UserControl.Styles>
+            <Style Selector="Border.notification">
+                <Setter Property="Opacity" Value="0"/>
+
+                <Setter Property="RenderTransform" Value="translateY(-20px)"/>
+
+                <Setter Property="IsHitTestVisible" Value="False"/>
+
+                <Setter Property="Transitions">
+                    <Transitions>
+                        <DoubleTransition Property="Opacity"
+                                          Duration="0:0:0.4"
+                                          Easing="CubicEaseOut"/>
+
+                        <TransformOperationsTransition Property="RenderTransform"
+                                                       Duration="0:0:0.4"
+                                                       Easing="CubicEaseOut"/>
+                    </Transitions>
+                </Setter>
+            </Style>
+
+            <Style Selector="Border.notification.active">
+                <Setter Property="Opacity" Value="1"/>
+                <Setter Property="RenderTransform" Value="translateY(0px)"/> <Setter Property="IsHitTestVisible" Value="True"/>
+            </Style>
+
+         <Style Selector="Button.CloseBtn">
+             <Setter Property="Cursor" Value="Hand"/>
+             <Setter Property="Template">
+                 <ControlTemplate>
+                     <Border Background="Transparent" CornerRadius="4" Padding="4">
+
+                         <Path Data="M18 6L6 18 M6 6L18 18"
+                               Stroke="#F87171"
+                               StrokeThickness="2"
+                               StrokeLineCap="Round"
+                               Width="10" Height="10"
+                               Stretch="Uniform"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Center"/>
+                     </Border>
+                 </ControlTemplate>
+             </Setter>
+         </Style>
+
+         <Style Selector="Button.CloseBtn:pointerover /template/ Border">
+             <Setter Property="Background" Value="#FEE2E2"/>
+         </Style>
+
+         <Style Selector="Button.CloseBtn:pointerover /template/ Path">
+             <Setter Property="Stroke" Value="#DC2626"/>
+         </Style>
+
+        </UserControl.Styles>
+
+        <Border x:Name="Container"
+                Classes="notification"
+                Classes.active="{Binding IsActive, ElementName=Root}"
+                CornerRadius="12"
+                Background="#FEF2F2"
+                BorderBrush="#FECACA"
+                BorderThickness="1"
+                Padding="16,12"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Top"
+                Margin="0,10,0,0"
+                BoxShadow="0 2 12 0 #40EF4444"
+                ClipToBounds="False">
+
+            <Grid ColumnDefinitions="Auto, *, Auto">
+                <Path Grid.Column="0"
+                  Width="24" Height="24"
+                  VerticalAlignment="Top"
+                  Margin="0,0,12,0"
+                  Data="F1 M22 12Q22 12.2455 21.988 12.4907Q21.9759 12.7359 21.9518 12.9802Q21.9278 13.2245 21.8918 13.4673Q21.8557 13.7101 21.8078 13.9509Q21.76 14.1917 21.7003 14.4298Q21.6407 14.6679 21.5694 14.9028Q21.4981 15.1378 21.4154 15.3689Q21.3327 15.6 21.2388 15.8268Q21.1448 16.0536 21.0399 16.2755Q20.9349 16.4975 20.8192 16.714Q20.7035 16.9305 20.5773 17.141Q20.4511 17.3516 20.3147 17.5557Q20.1783 17.7598 20.0321 17.957Q19.8858 18.1542 19.7301 18.3439Q19.5744 18.5337 19.4095 18.7156Q19.2447 18.8975 19.0711 19.0711Q18.8975 19.2447 18.7156 19.4095Q18.5337 19.5744 18.3439 19.7301Q18.1542 19.8858 17.957 20.0321Q17.7598 20.1783 17.5557 20.3147Q17.3516 20.4511 17.141 20.5773Q16.9305 20.7035 16.714 20.8192Q16.4975 20.9349 16.2755 21.0399Q16.0536 21.1448 15.8268 21.2388Q15.6 21.3327 15.3689 21.4154Q15.1378 21.4981 14.9028 21.5694Q14.6679 21.6407 14.4298 21.7003Q14.1917 21.76 13.9509 21.8078Q13.7101 21.8557 13.4673 21.8918Q13.2245 21.9278 12.9802 21.9518Q12.7359 21.9759 12.4907 21.988Q12.2455 22 12 22Q11.7545 22 11.5093 21.988Q11.2641 21.9759 11.0198 21.9518Q10.7755 21.9278 10.5327 21.8918Q10.2899 21.8557 10.0491 21.8078Q9.80833 21.76 9.5702 21.7003Q9.33207 21.6407 9.09715 21.5694Q8.86224 21.4981 8.6311 21.4154Q8.39997 21.3327 8.17317 21.2388Q7.94637 21.1448 7.72445 21.0399Q7.50253 20.9349 7.28603 20.8192Q7.06953 20.7035 6.85897 20.5773Q6.64841 20.4511 6.4443 20.3147Q6.24018 20.1783 6.04301 20.0321Q5.84583 19.8858 5.65607 19.7301Q5.4663 19.5744 5.28441 19.4095Q5.10252 19.2447 4.92893 19.0711Q4.75535 18.8975 4.59049 18.7156Q4.42563 18.5337 4.2699 18.3439Q4.11416 18.1542 3.96792 17.957Q3.82169 17.7598 3.6853 17.5557Q3.54892 17.3516 3.42271 17.141Q3.29651 16.9305 3.18079 16.714Q3.06507 16.4975 2.96011 16.2755Q2.85515 16.0536 2.7612 15.8268Q2.66726 15.6 2.58456 15.3689Q2.50186 15.1378 2.4306 14.9028Q2.35934 14.6679 2.29969 14.4298Q2.24004 14.1917 2.19215 13.9509Q2.14425 13.7101 2.10823 13.4673Q2.07221 13.2245 2.04815 12.9802Q2.02409 12.7359 2.01205 12.4907Q2 12.2455 2 12Q2 11.7545 2.01205 11.5093Q2.02409 11.2641 2.04815 11.0198Q2.07221 10.7755 2.10823 10.5327Q2.14425 10.2899 2.19215 10.0491Q2.24004 9.80833 2.29969 9.5702Q2.35934 9.33207 2.4306 9.09715Q2.50186 8.86224 2.58456 8.6311Q2.66726 8.39997 2.7612 8.17317Q2.85515 7.94637 2.96011 7.72445Q3.06507 7.50253 3.18079 7.28603Q3.29651 7.06953 3.42271 6.85897Q3.54892 6.64841 3.6853 6.4443Q3.82169 6.24018 3.96792 6.04301Q4.11416 5.84583 4.2699 5.65607Q4.42563 5.4663 4.59049 5.28441Q4.75535 5.10252 4.92893 4.92893Q5.10252 4.75535 5.28441 4.59049Q5.4663 4.42563 5.65607 4.2699Q5.84583 4.11416 6.04301 3.96792Q6.24018 3.82169 6.4443 3.6853Q6.64841 3.54892 6.85897 3.42271Q7.06953 3.29651 7.28603 3.18079Q7.50253 3.06507 7.72445 2.96011Q7.94637 2.85515 8.17317 2.7612Q8.39997 2.66726 8.6311 2.58456Q8.86224 2.50186 9.09715 2.4306Q9.33207 2.35934 9.5702 2.29969Q9.80833 2.24004 10.0491 2.19215Q10.2899 2.14426 10.5327 2.10823Q10.7755 2.07221 11.0198 2.04815Q11.2641 2.02409 11.5093 2.01205Q11.7545 2 12 2Q12.2455 2 12.4907 2.01205Q12.7359 2.02409 12.9802 2.04815Q13.2245 2.07221 13.4673 2.10823Q13.7101 2.14426 13.9509 2.19215Q14.1917 2.24004 14.4298 2.29969Q14.6679 2.35934 14.9028 2.4306Q15.1378 2.50186 15.3689 2.58456Q15.6 2.66726 15.8268 2.7612Q16.0536 2.85515 16.2755 2.96011Q16.4975 3.06507 16.714 3.18079Q16.9305 3.29651 17.141 3.42271Q17.3516 3.54892 17.5557 3.6853Q17.7598 3.82169 17.957 3.96792Q18.1542 4.11416 18.3439 4.2699Q18.5337 4.42563 18.7156 4.59049Q18.8975 4.75535 19.0711 4.92893Q19.2447 5.10252 19.4095 5.28441Q19.5744 5.4663 19.7301 5.65607Q19.8858 5.84583 20.0321 6.04301Q20.1783 6.24018 20.3147 6.4443Q20.4511 6.64841 20.5773 6.85897Q20.7035 7.06953 20.8192 7.28603Q20.9349 7.50253 21.0399 7.72445Q21.1448 7.94637 21.2388 8.17317Q21.3327 8.39997 21.4154 8.6311Q21.4981 8.86224 21.5694 9.09715Q21.6407 9.33207 21.7003 9.5702Q21.76 9.80833 21.8078 10.0491Q21.8557 10.2899 21.8918 10.5327Q21.9278 10.7755 21.9518 11.0198Q21.9759 11.2641 21.988 11.5093Q22 11.7545 22 12Z M12 8L12 12 M12 16L12.01 16"
+                  Stroke="#EF4444"
+                  StrokeThickness="2"
+                  StrokeLineCap="Round"
+                  StrokeJoin="Round"
+                  Fill="Transparent"/>
+
+                <TextBlock Grid.Column="1"
+                           Text="{Binding Text, ElementName=Root}"
+                           Foreground="#B91C1C"
+                           FontSize="14"
+                           TextWrapping="Wrap"
+                           VerticalAlignment="Center"
+                           LineHeight="20"/>
+
+                <Button Grid.Column="2"
+                        Classes="CloseBtn"
+                        Click="CloseButton_OnClick"
+                        VerticalAlignment="Top"
+                        Margin="8,-4,-4,0"/>
+            </Grid>
+        </Border>
+    </UserControl>
+
