@@ -12,7 +12,6 @@ using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Ecliptix.Core.Services.Abstractions.Core;
 using ReactiveUI;
-using Serilog;
 
 namespace Ecliptix.Core.Controls.Carousels;
 
@@ -31,21 +30,15 @@ public class WelcomeSlideItemTemplate : INotifyPropertyChanged, IDisposable
 
         localizationService.WhenAnyValue(x => x.CurrentCultureName)
             .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(cultureName =>
+            .Subscribe(_ =>
             {
                 Title = localizationService[titleKey];
                 Description = localizationService[descriptionKey];
-
-                Log.Information("[WelcomeSlide] Culture: {Culture}, Title: {Title}, Description: {Description}",
-                    cultureName, Title, Description);
             })
             .DisposeWith(_disposables);
 
         Title = localizationService[titleKey];
         Description = localizationService[descriptionKey];
-
-        Log.Information("[WelcomeSlide] Initial creation - Title: {Title}, Description: {Description}",
-            Title, Description);
     }
 
     public string Title
@@ -57,7 +50,6 @@ public class WelcomeSlideItemTemplate : INotifyPropertyChanged, IDisposable
             {
                 _title = value;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Title)));
-                Log.Information("[WelcomeSlide] Title property changed and event raised: {Title}", value);
             }
         }
     }
@@ -71,7 +63,6 @@ public class WelcomeSlideItemTemplate : INotifyPropertyChanged, IDisposable
             {
                 _description = value;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Description)));
-                Log.Information("[WelcomeSlide] Description property changed and event raised: {Description}", value);
             }
         }
     }
