@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.ComponentModel;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Avalonia;
@@ -11,33 +12,72 @@ using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Ecliptix.Core.Services.Abstractions.Core;
 using ReactiveUI;
-using ReactiveUI.Fody.Helpers;
+using Serilog;
 
 namespace Ecliptix.Core.Controls.Carousels;
 
-public class WelcomeSlideItemTemplate : ReactiveObject, IDisposable
+public class WelcomeSlideItemTemplate : INotifyPropertyChanged, IDisposable
 {
     private readonly CompositeDisposable _disposables = new();
+    private string _title = string.Empty;
+    private string _description = string.Empty;
+
+    public event PropertyChangedEventHandler? PropertyChanged;
 
     public WelcomeSlideItemTemplate(string titleKey, string descriptionKey, Bitmap? image,
         ILocalizationService localizationService)
     {
         Image = image;
-        Title = localizationService[titleKey];
-        Description = localizationService[descriptionKey];
+        _title = localizationService[titleKey];
+        _description = localizationService[descriptionKey];
+
+        Log.Information("[WelcomeSlide] Created slide - TitleKey: {TitleKey}, Title: {Title}, DescriptionKey: {DescriptionKey}, Description: {Description}",
+            titleKey, _title, descriptionKey, _description);
 
         localizationService.WhenAnyValue(x => x.CurrentCultureName)
             .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(_ =>
+            .Subscribe(cultureName =>
             {
-                Title = localizationService[titleKey];
-                Description = localizationService[descriptionKey];
+                string newTitle = localizationService[titleKey];
+                string newDescription = localizationService[descriptionKey];
+
+                Log.Information("[WelcomeSlide] Culture changed to {Culture} - TitleKey: {TitleKey}, NewTitle: {NewTitle}, DescriptionKey: {DescriptionKey}, NewDescription: {NewDescription}",
+                    cultureName, titleKey, newTitle, descriptionKey, newDescription);
+
+                Title = newTitle;
+                Description = newDescription;
             })
             .DisposeWith(_disposables);
     }
 
-    [Reactive] public string Title { get; set; }
-    [Reactive] public string Description { get; set; }
+    public string Title
+    {
+        get => _title;
+        set
+        {
+            if (_title != value)
+            {
+                _title = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Title)));
+                Log.Information("[WelcomeSlide] Title property changed and event raised: {Title}", value);
+            }
+        }
+    }
+
+    public string Description
+    {
+        get => _description;
+        set
+        {
+            if (_description != value)
+            {
+                _description = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Description)));
+                Log.Information("[WelcomeSlide] Description property changed and event raised: {Description}", value);
+            }
+        }
+    }
+
     public Bitmap? Image { get; }
 
     public void Dispose() => _disposables.Dispose();
