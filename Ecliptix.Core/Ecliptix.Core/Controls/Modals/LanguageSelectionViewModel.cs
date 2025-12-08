@@ -17,9 +17,6 @@ using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Controls.Modals;
 
-public record LanguageItemViewModel(string Code, string EnglishName, string NativeName);
-
-
 public class SelectableLanguageViewModel : ReactiveObject
 {
     public LanguageItem Model { get; }
@@ -34,12 +31,13 @@ public class SelectableLanguageViewModel : ReactiveObject
     }
 }
 
-public class LanguageSelectionViewModel : ReactiveObject, IActivatableViewModel
+public class LanguageSelectionViewModel : ReactiveObject, IActivatableViewModel, IDisposable
 {
     private readonly ISideSheetService _sideSheetService;
     private readonly ILocalizationService _localizationService;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IRpcMetaDataProvider _rpcMetaDataProvider;
+    private bool _isDisposed;
 
     public ViewModelActivator Activator { get; } = new();
 
@@ -133,5 +131,18 @@ public class LanguageSelectionViewModel : ReactiveObject, IActivatableViewModel
             Serilog.Log.Error(ex, "[LANGUAGE-SELECTION] Exception persisting culture setting. CULTURE: {Culture}",
                 cultureCode);
         }
+    }
+
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        _isDisposed = true;
+
+        CloseCommand?.Dispose();
+        SelectLanguageCommand?.Dispose();
     }
 }
