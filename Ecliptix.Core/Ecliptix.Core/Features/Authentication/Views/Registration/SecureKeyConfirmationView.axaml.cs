@@ -8,6 +8,7 @@ using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core.Controls.Core;
+using Ecliptix.Core.Controls.Core.HintedTextControls;
 using Ecliptix.Core.Controls.EventArgs;
 using Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 using ReactiveUI;
@@ -86,7 +87,7 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
             return;
         }
 
-        if (this.FindControl<HintedTextBox>("SecureKeyTextBox") is { } secureKeyBox)
+        if (this.FindControl<HintedPasswordBox>("SecureKeyTextBox") is { } secureKeyBox)
         {
             secureKeyBox.SecureKeyCharactersAdded += OnSecureKeyCharactersAdded;
             secureKeyBox.SecureKeyCharactersRemoved += OnSecureKeyCharactersRemoved;
@@ -94,7 +95,7 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
             secureKeyBox.CharacterRejected += OnCharacterRejected;
         }
 
-        if (this.FindControl<HintedTextBox>("VerifySecureKeyTextBox") is { } verifySecureKeyBox)
+        if (this.FindControl<HintedPasswordBox>("VerifySecureKeyTextBox") is { } verifySecureKeyBox)
         {
             verifySecureKeyBox.SecureKeyCharactersAdded += OnVerifySecureKeyCharactersAdded;
             verifySecureKeyBox.SecureKeyCharactersRemoved += OnVerifySecureKeyCharactersRemoved;
@@ -112,7 +113,7 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
             return;
         }
 
-        if (this.FindControl<HintedTextBox>("SecureKeyTextBox") is HintedTextBox secureKeyBox)
+        if (this.FindControl<HintedPasswordBox>("SecureKeyTextBox") is HintedPasswordBox secureKeyBox)
         {
             secureKeyBox.SecureKeyCharactersAdded -= OnSecureKeyCharactersAdded;
             secureKeyBox.SecureKeyCharactersRemoved -= OnSecureKeyCharactersRemoved;
@@ -120,7 +121,7 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
             secureKeyBox.CharacterRejected -= OnCharacterRejected;
         }
 
-        if (this.FindControl<HintedTextBox>("VerifySecureKeyTextBox") is HintedTextBox verifySecureKeyBox)
+        if (this.FindControl<HintedPasswordBox>("VerifySecureKeyTextBox") is HintedPasswordBox verifySecureKeyBox)
         {
             verifySecureKeyBox.SecureKeyCharactersAdded -= OnVerifySecureKeyCharactersAdded;
             verifySecureKeyBox.SecureKeyCharactersRemoved -= OnVerifySecureKeyCharactersRemoved;
@@ -133,7 +134,7 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
 
     private void OnSecureKeyCharactersAdded(object? sender, SecureKeyCharactersAddedEventArgs e)
     {
-        if (DataContext is not SecureKeyVerifierViewModel vm || sender is not HintedTextBox tb)
+        if (DataContext is not SecureKeyVerifierViewModel vm || sender is not HintedPasswordBox tb)
         {
             return;
         }
@@ -144,7 +145,7 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
 
     private void OnSecureKeyCharactersRemoved(object? sender, SecureKeyCharactersRemovedEventArgs e)
     {
-        if (DataContext is not SecureKeyVerifierViewModel vm || sender is not HintedTextBox tb)
+        if (DataContext is not SecureKeyVerifierViewModel vm || sender is not HintedPasswordBox tb)
         {
             return;
         }
@@ -155,7 +156,7 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
 
     private void OnVerifySecureKeyCharactersAdded(object? sender, SecureKeyCharactersAddedEventArgs e)
     {
-        if (DataContext is not SecureKeyVerifierViewModel vm || sender is not HintedTextBox tb)
+        if (DataContext is not SecureKeyVerifierViewModel vm || sender is not HintedPasswordBox tb)
         {
             return;
         }
@@ -166,7 +167,7 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
 
     private void OnVerifySecureKeyCharactersRemoved(object? sender, SecureKeyCharactersRemovedEventArgs e)
     {
-        if (DataContext is not SecureKeyVerifierViewModel vm || sender is not HintedTextBox tb)
+        if (DataContext is not SecureKeyVerifierViewModel vm || sender is not HintedPasswordBox tb)
         {
             return;
         }
@@ -202,7 +203,7 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
 
     private void OnCharacterRejected(object? sender, CharacterRejectedEventArgs e)
     {
-        if (DataContext is not SecureKeyVerifierViewModel vm || sender is not HintedTextBox tb)
+        if (DataContext is not SecureKeyVerifierViewModel vm || sender is not HintedPasswordBox tb)
         {
             return;
         }

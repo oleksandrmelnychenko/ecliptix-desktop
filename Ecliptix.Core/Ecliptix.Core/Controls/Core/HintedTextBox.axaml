@@ -11,15 +11,15 @@
              x:Name="control"
              x:CompileBindings="True"
              x:DataType="core:HintedTextBox"
-             ClipToBounds="False">
+             ClipToBounds="False"
+             Focusable="False">
 
-    <UserControl.Resources>
+  <UserControl.Resources>
         <x:Double x:Key="MinControlHeight">56</x:Double>
         <x:Double x:Key="MinTextBoxHeight">28</x:Double>
 
         <Thickness x:Key="FocusBorderThickness">1.5</Thickness>
         <Thickness x:Key="MainBorderThickness">1</Thickness>
-
         <Thickness x:Key="MainBorderMargin">0.75</Thickness>
         <Thickness x:Key="InnerPanelMargin">14,8,12,8</Thickness>
         <Thickness x:Key="TextBoxMargin">0,0,12,0</Thickness>
@@ -27,20 +27,26 @@
         <Thickness x:Key="HintSectionMargin">0,4,0,0</Thickness>
 
         <SolidColorBrush x:Key="CounterForegroundBrush">Gray</SolidColorBrush>
-        <BoxShadows x:Key="DefaultShadow">0 2 12 0 #00000000</BoxShadows>
 
-        <!-- Shared between XAML and Code-behind -->
+        <BoxShadows x:Key="ShadowDefault">0 2 12 0 #00000000</BoxShadows>
+        <BoxShadows x:Key="ShadowFocus">0 2 12 0 #996a5acd</BoxShadows>
+        <BoxShadows x:Key="ShadowError">0 2 12 0 #99ef3a3a</BoxShadows>
 
-        <BoxShadows x:Key="FocusShadow">0 2 12 0 #996a5acd</BoxShadows>
-        <BoxShadows x:Key="ErrorShadow">0 2 12 0 #99ef3a3a</BoxShadows>
+        <BoxShadows x:Key="ShadowStrInvalid">0 2 12 0 #99ef3a3a</BoxShadows>
+        <BoxShadows x:Key="ShadowStrVeryWeak">0 2 12 0 #99ff6b35</BoxShadows>
+        <BoxShadows x:Key="ShadowStrWeak">0 2 12 0 #99ffa500</BoxShadows>
+        <BoxShadows x:Key="ShadowStrGood">0 2 12 0 #99f4c20d</BoxShadows>
+        <BoxShadows x:Key="ShadowStrStrong">0 2 12 0 #9900bcd4</BoxShadows>
+        <BoxShadows x:Key="ShadowStrVeryStrong">0 2 12 0 #9932cd32</BoxShadows>
 
-        <BoxShadows x:Key="InvalidStrengthShadow">0 2 12 0 #99ef3a3a</BoxShadows>
-        <BoxShadows x:Key="VeryWeakStrengthShadow">0 2 12 0 #99ff6b35</BoxShadows>
-        <BoxShadows x:Key="WeakStrengthShadow">0 2 12 0 #99ffa500</BoxShadows>
-        <BoxShadows x:Key="GoodStrengthShadow">0 2 12 0 #99f4c20d</BoxShadows>
-        <BoxShadows x:Key="StrongStrengthShadow">0 2 12 0 #9900bcd4</BoxShadows>
-        <BoxShadows x:Key="VeryStrongStrengthShadow">0 2 12 0 #9932cd32</BoxShadows>
+        <SolidColorBrush x:Key="BrushError" Color="#EF3A3A"/>
 
+        <SolidColorBrush x:Key="BrushStrInvalid" Color="#EF3A3A"/>
+        <SolidColorBrush x:Key="BrushStrVeryWeak" Color="#FF6B35"/>
+        <SolidColorBrush x:Key="BrushStrWeak" Color="#FFA500"/>
+        <SolidColorBrush x:Key="BrushStrGood" Color="#F4C20D"/>
+        <SolidColorBrush x:Key="BrushStrStrong" Color="#00BCD4"/>
+        <SolidColorBrush x:Key="BrushStrVeryStrong" Color="#32CD32"/>
 
         <converters:BooleanToOpacityConverter x:Key="BooleanToOpacityConverter"
                                               TrueOpacity="1.0"
@@ -48,6 +54,127 @@
     </UserControl.Resources>
 
     <UserControl.Styles>
+        <Style Selector="Border#FocusBorder">
+            <Setter Property="Opacity" Value="0"/>
+            <Setter Property="BorderBrush" Value="{Binding FocusBorderBrush, ElementName=control}"/>
+        </Style>
+
+        <Style Selector="core|HintedTextBox:focus-within Border#FocusBorder">
+            <Setter Property="Opacity" Value="1"/>
+        </Style>
+
+        <Style Selector="core|HintedTextBox:focus-within Border#ShadowBorder">
+            <Setter Property="BoxShadow" Value="{StaticResource ShadowFocus}"/>
+        </Style>
+
+        <Style Selector="core|HintedTextBox:focus-within Border#MainBorder">
+            <Setter Property="BorderBrush" Value="Transparent"/>
+        </Style>
+
+        <Style Selector="core|HintedTextBox.error Border#FocusBorder">
+            <Setter Property="Opacity" Value="1"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BrushError}"/>
+        </Style>
+
+        <Style Selector="core|HintedTextBox.error Border#MainBorder">
+            <Setter Property="BorderBrush" Value="{StaticResource BrushError}"/>
+        </Style>
+        <Style Selector="core|HintedTextBox.error Border#ShadowBorder">
+            <Setter Property="BoxShadow" Value="{StaticResource ShadowError}"/>
+        </Style>
+
+        <Style Selector="core|HintedTextBox.error:focus-within Border#FocusBorder">
+            <Setter Property="BorderBrush" Value="{StaticResource BrushError}"/>
+        </Style>
+        <Style Selector="core|HintedTextBox.error:focus-within Border#ShadowBorder">
+            <Setter Property="BoxShadow" Value="{StaticResource ShadowError}"/>
+        </Style>
+
+        <Style Selector="core|HintedTextBox.secure-mode Border#MainBorder">
+             <Setter Property="BorderBrush" Value="Transparent"/>
+        </Style>
+        <Style Selector="core|HintedTextBox.secure-mode Border#FocusBorder">
+            <Setter Property="Opacity" Value="1"/>
+        </Style>
+
+        <Style Selector="core|HintedTextBox.strength-invalid Border#FocusBorder">
+            <Setter Property="BorderBrush" Value="{StaticResource BrushStrInvalid}"/>
+        </Style>
+        <Style Selector="core|HintedTextBox.strength-invalid Border#ShadowBorder">
+            <Setter Property="BoxShadow" Value="{StaticResource ShadowStrInvalid}"/>
+        </Style>
+        <Style Selector="core|HintedTextBox.strength-invalid Path.strength-icon">
+            <Setter Property="Fill" Value="{StaticResource BrushStrInvalid}"/>
+        </Style>
+        <Style Selector="core|HintedTextBox.strength-invalid TextBlock.strength-text">
+            <Setter Property="Foreground" Value="{StaticResource BrushStrInvalid}"/>
+        </Style>
+
+        <Style Selector="core|HintedTextBox.strength-very-weak Border#FocusBorder">
+            <Setter Property="BorderBrush" Value="{StaticResource BrushStrVeryWeak}"/>
+        </Style>
+        <Style Selector="core|HintedTextBox.strength-very-weak Border#ShadowBorder">
+            <Setter Property="BoxShadow" Value="{StaticResource ShadowStrVeryWeak}"/>
+        </Style>
+        <Style Selector="core|HintedTextBox.strength-very-weak Path.strength-icon">
+             <Setter Property="Fill" Value="{StaticResource BrushStrVeryWeak}"/>
+        </Style>
+        <Style Selector="core|HintedTextBox.strength-very-weak TextBlock.strength-text">
+            <Setter Property="Foreground" Value="{StaticResource BrushStrVeryWeak}"/>
+        </Style>
+
+        <Style Selector="core|HintedTextBox.strength-weak Border#FocusBorder">
+            <Setter Property="BorderBrush" Value="{StaticResource BrushStrWeak}"/>
+        </Style>
+        <Style Selector="core|HintedTextBox.strength-weak Border#ShadowBorder">
+            <Setter Property="BoxShadow" Value="{StaticResource ShadowStrWeak}"/>
+        </Style>
+        <Style Selector="core|HintedTextBox.strength-weak Path.strength-icon">
+             <Setter Property="Fill" Value="{StaticResource BrushStrWeak}"/>
+        </Style>
+        <Style Selector="core|HintedTextBox.strength-weak TextBlock.strength-text">
+            <Setter Property="Foreground" Value="{StaticResource BrushStrWeak}"/>
+        </Style>
+
+        <Style Selector="core|HintedTextBox.strength-good Border#FocusBorder">
+            <Setter Property="BorderBrush" Value="{StaticResource BrushStrGood}"/>
+        </Style>
+        <Style Selector="core|HintedTextBox.strength-good Border#ShadowBorder">
+            <Setter Property="BoxShadow" Value="{StaticResource ShadowStrGood}"/>
+        </Style>
+        <Style Selector="core|HintedTextBox.strength-good Path.strength-icon">
+             <Setter Property="Fill" Value="{StaticResource BrushStrGood}"/>
+        </Style>
+        <Style Selector="core|HintedTextBox.strength-good TextBlock.strength-text">
+            <Setter Property="Foreground" Value="{StaticResource BrushStrGood}"/>
+        </Style>
+
+        <Style Selector="core|HintedTextBox.strength-strong Border#FocusBorder">
+            <Setter Property="BorderBrush" Value="{StaticResource BrushStrStrong}"/>
+        </Style>
+        <Style Selector="core|HintedTextBox.strength-strong Border#ShadowBorder">
+            <Setter Property="BoxShadow" Value="{StaticResource ShadowStrStrong}"/>
+        </Style>
+        <Style Selector="core|HintedTextBox.strength-strong Path.strength-icon">
+             <Setter Property="Fill" Value="{StaticResource BrushStrStrong}"/>
+        </Style>
+        <Style Selector="core|HintedTextBox.strength-strong TextBlock.strength-text">
+            <Setter Property="Foreground" Value="{StaticResource BrushStrStrong}"/>
+        </Style>
+
+        <Style Selector="core|HintedTextBox.strength-very-strong Border#FocusBorder">
+            <Setter Property="BorderBrush" Value="{StaticResource BrushStrVeryStrong}"/>
+        </Style>
+        <Style Selector="core|HintedTextBox.strength-very-strong Border#ShadowBorder">
+            <Setter Property="BoxShadow" Value="{StaticResource ShadowStrVeryStrong}"/>
+        </Style>
+        <Style Selector="core|HintedTextBox.strength-very-strong Path.strength-icon">
+             <Setter Property="Fill" Value="{StaticResource BrushStrVeryStrong}"/>
+        </Style>
+        <Style Selector="core|HintedTextBox.strength-very-strong TextBlock.strength-text">
+            <Setter Property="Foreground" Value="{StaticResource BrushStrVeryStrong}"/>
+        </Style>
+
         <Style Selector="TextBox#MainTextBox /template/ TextBlock#PART_Watermark">
             <Setter Property="Foreground" Value="{Binding TextForeground, ElementName=control}" />
             <Setter Property="Opacity" Value="0.7" />
@@ -58,14 +185,14 @@
         <Style Selector="TextBox#MainTextBox">
             <Setter Property="FocusAdorner" Value="{x:Null}" />
             <Setter Property="CaretBrush" Value="{DynamicResource OnSurface}" />
+            <Setter Property="ContextMenu" Value="{x:Null}" />
+            <Setter Property="ContextFlyout" Value="{x:Null}" />
             <Setter Property="Transitions">
                 <Transitions>
                     <DoubleTransition Property="Opacity" Duration="0:0:0.2" Easing="CubicEaseInOut" />
                     <BrushTransition Property="CaretBrush" Duration="0:0:0.15" Easing="CubicEaseOut" />
                 </Transitions>
             </Setter>
-            <Setter Property="ContextMenu" Value="{x:Null}" />
-            <Setter Property="ContextFlyout" Value="{x:Null}" />
         </Style>
 
         <Style Selector="TextBox#MainTextBox:focus">
@@ -78,20 +205,12 @@
             <Setter Property="Template">
                 <ControlTemplate>
                     <Grid>
-                        <Track Name="PART_Track"
-                               Minimum="{TemplateBinding Minimum}"
-                               Maximum="{TemplateBinding Maximum}"
-                               Value="{TemplateBinding Value}"
-                               ViewportSize="{TemplateBinding ViewportSize}">
+                        <Track Name="PART_Track" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value}" ViewportSize="{TemplateBinding ViewportSize}">
                             <Track.Thumb>
-                                <Thumb Name="PART_Thumb"
-                                       Background="{DynamicResource ScrollBar.ThumbColor}"
-                                       Width="{StaticResource ScrollBar.ThumbWidth}"
-                                       CornerRadius="{StaticResource ScrollBar.ThumbRadius}">
+                                <Thumb Name="PART_Thumb" Background="{DynamicResource ScrollBar.ThumbColor}" Width="{StaticResource ScrollBar.ThumbWidth}" CornerRadius="{StaticResource ScrollBar.ThumbRadius}">
                                     <Thumb.Styles>
                                         <Style Selector="Thumb:hover">
-                                            <Setter Property="Background"
-                                                    Value="{DynamicResource ScrollBar.ThumbHoverColor}" />
+                                            <Setter Property="Background" Value="{DynamicResource ScrollBar.ThumbHoverColor}" />
                                         </Style>
                                     </Thumb.Styles>
                                 </Thumb>
@@ -142,7 +261,7 @@
             <Setter Property="Margin" Value="{StaticResource Icon.Margin}" />
             <Setter Property="Data" Value="{StaticResource LampIcon.Path}" />
             <Setter Property="Stretch" Value="Uniform" />
-            <Setter Property="Fill" Value="{Binding SecureKeyStrengthIconBrush, ElementName=control}" />
+            <Setter Property="Fill" Value="Gray"/>
             <Setter Property="Transitions">
                 <Transitions>
                     <BrushTransition Property="Fill" Duration="{StaticResource Brush.TransitionDuration}" />
@@ -154,6 +273,13 @@
             <Setter Property="FontSize" Value="{StaticResource Hint.FontSize}" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="IsHitTestVisible" Value="False" />
+        </Style>
+
+        <Style Selector="TextBlock.strength-text">
+             <Setter Property="FontSize" Value="{StaticResource Hint.FontSize}" />
+             <Setter Property="VerticalAlignment" Value="Center" />
+             <Setter Property="IsHitTestVisible" Value="False" />
+             <Setter Property="Foreground" Value="Gray"/>
         </Style>
 
         <Style Selector="TextBlock.error-text">
@@ -221,14 +347,7 @@
             <Setter Property="IsHitTestVisible" Value="False" />
         </Style>
 
-
     </UserControl.Styles>
-
-    <UserControl.Transitions>
-        <Transitions>
-            <DoubleTransition Property="Opacity" Duration="{StaticResource Duration.Slower}" />
-        </Transitions>
-    </UserControl.Transitions>
 
     <Grid ClipToBounds="False">
 
@@ -242,10 +361,8 @@
 
         <Border x:Name="FocusBorder"
                 BorderThickness="{StaticResource FocusBorderThickness}"
-                BorderBrush="{Binding FocusBorderBrush, ElementName=control}"
                 Background="Transparent"
-                CornerRadius="{Binding CornerRadius, ElementName=control}"
-                Opacity="0">
+                CornerRadius="{Binding CornerRadius, ElementName=control}">
             <Border.Transitions>
                 <Transitions>
                     <DoubleTransition Property="Opacity" Duration="{StaticResource Input.OpacityDuration}" />
@@ -343,9 +460,8 @@
                               Margin="0,0,4,0" />
                         <TextBlock x:Name="SecureKeyStrengthTextBlock"
                                    Text="{Binding SecureKeyStrengthText, ElementName=control}"
-                                   Foreground="{Binding SecureKeyStrengthTextBrush, ElementName=control}"
                                    VerticalAlignment="Center"
-                                   Classes="hint-text" />
+                                   Classes="hint-text strength-text" />
                     </StackPanel>
 
                     <StackPanel Grid.Row="0"
@@ -367,7 +483,6 @@
                                 Height="8"
                                 Margin="6,2,0,0"
                                 Stretch="UniformToFill"/>
-
                         </Border>
                     </StackPanel>
                 </Grid>
