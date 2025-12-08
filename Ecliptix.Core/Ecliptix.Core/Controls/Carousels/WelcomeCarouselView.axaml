@@ -41,7 +41,7 @@
             </Carousel.PageTransition>
 
             <Carousel.ItemTemplate>
-                <DataTemplate x:DataType="vm:WelcomeSlideItemTemplate">
+                <DataTemplate x:CompileBindings="False">
                     <Grid Margin="24,0,24,0">
                         <Image Source="{Binding Image}"
                                Stretch="Uniform"
@@ -82,7 +82,7 @@
                     <PageSlide Duration="0.4" Orientation="Horizontal" SlideInEasing="CubicEaseOut" SlideOutEasing="CubicEaseOut"/>
                 </Carousel.PageTransition>
                 <Carousel.ItemTemplate>
-                    <DataTemplate x:DataType="vm:WelcomeSlideItemTemplate">
+                    <DataTemplate x:CompileBindings="False">
                         <Grid RowDefinitions="Auto,Auto" Margin="24,0,24,0">
                             <TextBlock Grid.Row="0"
                                        Text="{Binding Title}"
