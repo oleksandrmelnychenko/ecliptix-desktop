@@ -89,12 +89,10 @@ internal sealed class LocalizationService : ILocalizationService
                 .ValueOr(_defaultLanguageStrings);
         }
 
-        if (onCultureChanged is not null)
-        {
-            OnLanguageChanged();
-            NotifyAllPropertiesChanged();
-            onCultureChanged.Invoke();
-        }
+        OnLanguageChanged();
+        NotifyAllPropertiesChanged();
+
+        onCultureChanged?.Invoke();
     }
 
     private static CultureInfo CreateCultureInfo(string? cultureName)
