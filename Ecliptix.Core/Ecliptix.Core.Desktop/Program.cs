@@ -63,6 +63,9 @@ using Ecliptix.Core.Services.Network.Resilience;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Core.Services.Security;
 using Ecliptix.Core.Settings;
+using Ecliptix.Core.Views.Core.Configuration;
+using Ecliptix.Core.Views.Core.Factories;
+using Ecliptix.Core.Views.Core.Services;
 using Ecliptix.Core.Views.Memberships.Components.TitleBarUtilities.ViewModels;
 using Ecliptix.Core.Views.Memberships.Components.TitleBarUtilities.Views;
 using Ecliptix.Security.Certificate.Pinning.Services;
@@ -228,6 +231,11 @@ public static class Program
 
         services.AddSingleton(configuration);
         services.AddSingleton<IScheduler>(AvaloniaScheduler.Instance);
+
+        services.AddSingleton<MainWindowConfiguration>();
+        services.AddSingleton<IWindowAnimationService, WindowAnimationService>();
+        services.AddSingleton<IWindowPositionService, WindowPositionService>();
+        services.AddSingleton<IViewModelFactory, ViewModelFactory>();
     }
 
     private static void ConfigureNetworkServices(IServiceCollection services)
@@ -525,6 +533,13 @@ public static class Program
         services.AddSingleton<SideSheetViewModel>();
         services.AddSingleton<ConnectivityNotificationViewModel>();
         services.AddSingleton<Ecliptix.Core.ViewModels.Core.MainWindowViewModel>();
+        services.AddTransient<Ecliptix.Core.Controls.Core.VerticalSeparatorViewModel>();
+        services.AddTransient<Ecliptix.Core.Controls.Core.LanguageSwitcherViewModel>();
+        services.AddTransient<Ecliptix.Core.Controls.Core.EppBadgeViewModel>();
+        services.AddTransient<Ecliptix.Core.Controls.Core.NetworkBadgeViewModel>();
+        services.AddTransient<ToggleNavigationSideBarViewModel>();
+        services.AddTransient<ToggleThemeViewModel>();
+        services.AddTransient<PersonalTagViewModel>();
         services.AddTransient<SplashWindowViewModel>();
         services.AddTransient<AuthenticationViewModel>(sp => new AuthenticationViewModel(
             new AuthenticationViewModelDependencies

@@ -81,28 +81,30 @@
         <Border
             ClipToBounds="True"
             ZIndex="1000"
-            x:Name="BottomSheetContainer">
+            x:Name="BottomSheetContainer"
+            x:FieldModifier="public">
             <controls:BottomSheetControl
                 x:Name="BottomSheetControl"
                 ZIndex="1000"
                 VerticalAlignment="Stretch"
                 HorizontalAlignment="Stretch"
-                DismissableScrimColor="DarkGray"
-                UnDismissableScrimColor="Black"
+                DismissableScrimColor="{DynamicResource Modal.Scrim.Dismissable}"
+                UnDismissableScrimColor="{DynamicResource Modal.Scrim.Solid}"
                 IsDismissableOnScrimClick="True" />
         </Border>
 
         <Border
             ClipToBounds="True"
             ZIndex="1001"
-            x:Name="SideSheetContainer">
+            x:Name="SideSheetContainer"
+            x:FieldModifier="public">
             <sideSheetModal:SideSheetControl
                 x:Name="SideSheetControl"
                 ZIndex="1000"
                 VerticalAlignment="Stretch"
                 HorizontalAlignment="Stretch"
-                DismissableScrimColor="DarkGray"
-                UnDismissableScrimColor="Black"
+                DismissableScrimColor="{DynamicResource Modal.Scrim.Dismissable}"
+                UnDismissableScrimColor="{DynamicResource Modal.Scrim.Solid}"
                 IsDismissableOnScrimClick="True" />
         </Border>
 
@@ -111,9 +113,9 @@
             HorizontalAlignment="Center"
             VerticalAlignment="Top"
             Margin="0,50,0,0"
-            FontSize="12"
-            Width="320"
-            Height="70"
+            FontSize="{StaticResource Notification.FontSize}"
+            Width="{StaticResource Notification.Width}"
+            Height="{StaticResource Notification.Height}"
             ZIndex="1001"
             DataContext="{Binding ConnectivityNotification}" />
 

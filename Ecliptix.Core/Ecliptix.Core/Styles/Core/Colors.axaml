@@ -83,6 +83,10 @@
                     <Color x:Key="Window.Background">#FFFFFF</Color>
                     <Color x:Key="Window.Border">#4DFF6D00</Color>
 
+                    <!-- Modal Scrim Colors -->
+                    <Color x:Key="Modal.Scrim.Dismissable">#70808080</Color>
+                    <Color x:Key="Modal.Scrim.Solid">#CC000000</Color>
+
                     <!-- Control-specific Colors -->
                     <Color x:Key="ScrollBar.ThumbColor">#E0E0E0</Color>
                     <Color x:Key="ScrollBar.ThumbHoverColor">#BDBDBD</Color>
@@ -180,6 +184,10 @@
                     <Color x:Key="Circle.Border">#e3e3e3</Color>
                     <Color x:Key="Window.Background">#2d2d2d</Color>
                     <Color x:Key="Window.Border">#4DFF6D00</Color>
+
+                    <!-- Modal Scrim Colors -->
+                    <Color x:Key="Modal.Scrim.Dismissable">#70808080</Color>
+                    <Color x:Key="Modal.Scrim.Solid">#CC000000</Color>
 
                     <!-- Control-specific Colors -->
                     <Color x:Key="ScrollBar.ThumbColor">#4A4A4A</Color>
