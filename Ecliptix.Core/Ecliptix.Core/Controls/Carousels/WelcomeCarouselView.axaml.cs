@@ -1,4 +1,6 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
+using System.Reactive.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
@@ -6,10 +8,37 @@ using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using Ecliptix.Core.Services.Abstractions.Core;
+using ReactiveUI;
 
 namespace Ecliptix.Core.Controls.Carousels;
 
-public record WelcomeSlideItemTemplate(string Title, string Description, Bitmap? Image);
+public class WelcomeSlideItemTemplate : ReactiveObject
+{
+    private readonly ILocalizationService _localizationService;
+    private readonly string _titleKey;
+    private readonly string _descriptionKey;
+
+    public WelcomeSlideItemTemplate(string titleKey, string descriptionKey, Bitmap? image, ILocalizationService localizationService)
+    {
+        _titleKey = titleKey;
+        _descriptionKey = descriptionKey;
+        Image = image;
+        _localizationService = localizationService;
+
+        _localizationService.WhenAnyValue(x => x.CurrentCultureName)
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(_ =>
+            {
+                this.RaisePropertyChanged(nameof(Title));
+                this.RaisePropertyChanged(nameof(Description));
+            });
+    }
+
+    public string Title => _localizationService[_titleKey];
+    public string Description => _localizationService[_descriptionKey];
+    public Bitmap? Image { get; }
+}
 
 public partial class WelcomeCarouselView : UserControl
 {

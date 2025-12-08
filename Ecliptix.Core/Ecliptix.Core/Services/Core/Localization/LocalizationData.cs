@@ -222,9 +222,13 @@ public static class LocalizationData
         [LocalizationKeys.LanguageDetection.BUTTON_CONFIRM] = "Switch Language",
         [LocalizationKeys.LanguageDetection.BUTTON_DECLINE] = "Not Now",
         [LocalizationKeys.EcliptixProtectionProtocol.TITLE] = "Ecliptix Protection Protocol",
+        [LocalizationKeys.EcliptixProtectionProtocol.TEXT] = "Protected by EPP",
         [LocalizationKeys.EcliptixProtectionProtocol.FEATURE_END_TO_END_ENCRYPTION] = "End-to-end encrypted communications",
         [LocalizationKeys.EcliptixProtectionProtocol.FEATURE_FORWARD_SECRECY] = "Perfect forward secrecy for all messages",
-        [LocalizationKeys.EcliptixProtectionProtocol.FEATURE_OPAQUE_PROTOCOL] = "Passwords and PIN never leave device"
+        [LocalizationKeys.EcliptixProtectionProtocol.FEATURE_OPAQUE_PROTOCOL] = "Passwords and PIN never leave device",
+        [LocalizationKeys.NetworkStatus.ONLINE] = "Online",
+        [LocalizationKeys.NetworkStatus.OFFLINE] = "Offline",
+        [LocalizationKeys.NetworkStatus.SERVER_ERROR] = "Server Error"
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<string, string> UkrainianStrings = new Dictionary<string, string>
@@ -446,9 +450,13 @@ public static class LocalizationData
         [LocalizationKeys.LanguageDetection.BUTTON_CONFIRM] = "Змінити мову",
         [LocalizationKeys.LanguageDetection.BUTTON_DECLINE] = "Не зараз",
         [LocalizationKeys.EcliptixProtectionProtocol.TITLE] = "Протокол захисту Ecliptix",
+        [LocalizationKeys.EcliptixProtectionProtocol.TEXT] = "Захищено EPP",
         [LocalizationKeys.EcliptixProtectionProtocol.FEATURE_END_TO_END_ENCRYPTION] = "Наскрізне шифрування комунікацій",
         [LocalizationKeys.EcliptixProtectionProtocol.FEATURE_FORWARD_SECRECY] = "Досконала пряма секретність для всіх повідомлень",
-        [LocalizationKeys.EcliptixProtectionProtocol.FEATURE_OPAQUE_PROTOCOL] = "Паролі та PIN ніколи не залишають пристрій"
+        [LocalizationKeys.EcliptixProtectionProtocol.FEATURE_OPAQUE_PROTOCOL] = "Паролі та PIN ніколи не залишають пристрій",
+        [LocalizationKeys.NetworkStatus.ONLINE] = "Онлайн",
+        [LocalizationKeys.NetworkStatus.OFFLINE] = "Офлайн",
+        [LocalizationKeys.NetworkStatus.SERVER_ERROR] = "Помилка сервера"
     }.ToFrozenDictionary();
 
     public static readonly FrozenDictionary<string, FrozenDictionary<string, string>> AllLanguages =

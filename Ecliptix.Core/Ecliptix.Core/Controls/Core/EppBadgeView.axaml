@@ -8,11 +8,11 @@
              x:Class="Ecliptix.Core.Controls.Core.EppBadgeView">
 
     <core:StatusBadge Classes="purple"
-                      Text="{Binding Text}"
-                      TooltipTitle="{Binding TooltipTitle}"
-                      TooltipFeature1="{Binding TooltipFeature1}"
-                      TooltipFeature2="{Binding TooltipFeature2}"
-                      TooltipFeature3="{Binding TooltipFeature3}"
+                      Text="{Binding LocalizationService[EPP.Text]}"
+                      TooltipTitle="{Binding LocalizationService[EPP.Title]}"
+                      TooltipFeature1="{Binding LocalizationService[EPP.Feature.EndToEndEncryption]}"
+                      TooltipFeature2="{Binding LocalizationService[EPP.Feature.ForwardSecrecy]}"
+                      TooltipFeature3="{Binding LocalizationService[EPP.Feature.OpaqueProtocol]}"
                       Icon="{Binding Icon}"
                       BorderThickness="0"
                       Margin="0,0,8,0"/>

@@ -88,7 +88,7 @@
                                        Text="{Binding Title}"
                                        FontSize="16"
                                        FontWeight="Normal"
-                                       FontFamily="Segoe UI"
+                                       FontFamily="{StaticResource SegoeUI}"
                                        TextAlignment="Center"
                                        Foreground="#111111"
                                        Margin="0,0,0,16"/>
@@ -96,7 +96,7 @@
                             <TextBlock Grid.Row="1"
                                        Text="{Binding Description}"
                                        FontSize="13"
-                                       FontFamily="Segoe UI"
+                                       FontFamily="{StaticResource SegoeUI}"
                                        TextAlignment="Center"
                                        Foreground="#666666"
                                        TextWrapping="Wrap"
