@@ -17,26 +17,20 @@ namespace Ecliptix.Core.Controls.Carousels;
 
 public class WelcomeSlideItemTemplate : ReactiveObject, IDisposable
 {
-    private readonly ILocalizationService _localizationService;
-    private readonly string _titleKey;
-    private readonly string _descriptionKey;
     private readonly CompositeDisposable _disposables = new();
 
     public WelcomeSlideItemTemplate(string titleKey, string descriptionKey, Bitmap? image, ILocalizationService localizationService)
     {
-        _titleKey = titleKey;
-        _descriptionKey = descriptionKey;
         Image = image;
-        _localizationService = localizationService;
 
-        _localizationService.WhenAnyValue(x => x.CurrentCultureName)
-            .Select(_ => _localizationService[_titleKey])
+        localizationService.WhenAnyValue(x => x.CurrentCultureName)
+            .Select(_ => localizationService[titleKey])
             .ObserveOn(RxApp.MainThreadScheduler)
             .ToPropertyEx(this, x => x.Title)
             .DisposeWith(_disposables);
 
-        _localizationService.WhenAnyValue(x => x.CurrentCultureName)
-            .Select(_ => _localizationService[_descriptionKey])
+        localizationService.WhenAnyValue(x => x.CurrentCultureName)
+            .Select(_ => localizationService[descriptionKey])
             .ObserveOn(RxApp.MainThreadScheduler)
             .ToPropertyEx(this, x => x.Description)
             .DisposeWith(_disposables);
