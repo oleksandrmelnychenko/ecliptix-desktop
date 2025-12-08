@@ -1,4 +1,7 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
@@ -6,10 +9,54 @@ using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using Ecliptix.Core.Services.Abstractions.Core;
+using ReactiveUI;
 
 namespace Ecliptix.Core.Controls.Carousels;
 
-public record WelcomeSlideItemTemplate(string Title, string Description, Bitmap? Image);
+public class WelcomeSlideItemTemplate : ReactiveObject, IDisposable
+{
+    private readonly CompositeDisposable _disposables = new();
+
+    public WelcomeSlideItemTemplate(string titleKey, string descriptionKey, Bitmap? image,
+        ILocalizationService localizationService)
+    {
+        Image = image;
+
+        Observable.FromEvent(
+                handler => localizationService.LanguageChanged += handler,
+                handler => localizationService.LanguageChanged -= handler
+            )
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(_ =>
+            {
+                Title = localizationService[titleKey];
+                Description = localizationService[descriptionKey];
+            })
+            .DisposeWith(_disposables);
+
+        Title = localizationService[titleKey];
+        Description = localizationService[descriptionKey];
+    }
+
+    public string Title
+    {
+        get => _title;
+        set => this.RaiseAndSetIfChanged(ref _title, value);
+    }
+    private string _title = string.Empty;
+
+    public string Description
+    {
+        get => _description;
+        set => this.RaiseAndSetIfChanged(ref _description, value);
+    }
+    private string _description = string.Empty;
+
+    public Bitmap? Image { get; }
+
+    public void Dispose() => _disposables.Dispose();
+}
 
 public partial class WelcomeCarouselView : UserControl
 {

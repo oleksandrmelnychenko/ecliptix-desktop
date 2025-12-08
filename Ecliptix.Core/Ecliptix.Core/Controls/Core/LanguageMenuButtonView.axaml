@@ -12,8 +12,9 @@
                 Background="Transparent"
                 BorderThickness="0"
                 Cursor="Hand"
-                Padding="0,4"
-                CornerRadius="8">
+                Padding="6,4"
+                CornerRadius="6"
+                Height="28">
 
             <Button.Styles>
                 <Style Selector="Button:pointerover /template/ ContentPresenter">
@@ -23,7 +24,7 @@
 
             <Svg Path="{Binding CurrentLanguage.FlagImagePath}"
                  Width="24"
-                 Height="24"
+                 Height="16"
                  HorizontalAlignment="Center"
                  VerticalAlignment="Center"/>
 

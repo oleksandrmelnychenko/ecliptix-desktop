@@ -9,11 +9,11 @@
              x:Class="Ecliptix.Core.Controls.Core.StatusBadge">
     <UserControl.Resources>
         <sys:TimeSpan x:Key="FlyoutAnimDuration">0:0:0.200</sys:TimeSpan>
-        <Thickness x:Key="BadgePadding">8,2</Thickness>
+        <Thickness x:Key="BadgePadding">10,4</Thickness>
         <Thickness x:Key="BadgeBorderThickness">1</Thickness>
-        <sys:Double x:Key="BadgeIconSize">12</sys:Double>
-        <sys:Double x:Key="BadgeFontSize">7</sys:Double>
-        <sys:Double x:Key="BadgeIconSpacing">2</sys:Double>
+        <sys:Double x:Key="BadgeIconSize">14</sys:Double>
+        <sys:Double x:Key="BadgeFontSize">10</sys:Double>
+        <sys:Double x:Key="BadgeIconSpacing">4</sys:Double>
     </UserControl.Resources>
 
     <UserControl.Styles>
@@ -22,7 +22,7 @@
         </Style>
 
         <Style Selector="local|StatusBadge">
-            <Setter Property="Height" Value="22"/>
+            <Setter Property="Height" Value="28"/>
             <Setter Property="BadgeBrush" Value="#6B7280"/>
             <Setter Property="BadgeBackground" Value="#F3F4F6"/>
             <Setter Property="HorizontalAlignment" Value="Left"/>
@@ -94,7 +94,7 @@
                 <TextBlock Text="{Binding Text, ElementName=Root}"
                            Foreground="{Binding BadgeBrush, ElementName=Root}"
                            FontSize="{StaticResource BadgeFontSize}"
-                           FontWeight="Medium"
+                           FontWeight="Normal"
                            LetterSpacing="0.5"
                            VerticalAlignment="Center"/>
             </StackPanel>

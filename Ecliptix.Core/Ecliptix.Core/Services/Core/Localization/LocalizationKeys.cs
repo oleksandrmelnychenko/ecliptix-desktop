@@ -381,8 +381,16 @@ public static class LocalizationKeys
     public static class EcliptixProtectionProtocol
     {
         public const string TITLE = "EPP.Title";
+        public const string TEXT = "EPP.Text";
         public const string FEATURE_END_TO_END_ENCRYPTION = "EPP.Feature.EndToEndEncryption";
         public const string FEATURE_FORWARD_SECRECY = "EPP.Feature.ForwardSecrecy";
         public const string FEATURE_OPAQUE_PROTOCOL = "EPP.Feature.OpaqueProtocol";
+    }
+
+    public static class NetworkStatus
+    {
+        public const string ONLINE = "NetworkStatus.Online";
+        public const string OFFLINE = "NetworkStatus.Offline";
+        public const string SERVER_ERROR = "NetworkStatus.ServerError";
     }
 }

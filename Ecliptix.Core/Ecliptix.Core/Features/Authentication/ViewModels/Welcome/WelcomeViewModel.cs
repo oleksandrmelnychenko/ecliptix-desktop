@@ -91,24 +91,28 @@ public sealed class WelcomeViewModel : ViewModelBase, IRoutableViewModel, IReset
     private List<WelcomeSlideItemTemplate> InitializeSlides(ILocalizationService localizationService) =>
     [
         new(
-            localizationService[LocalizationKeys.Welcome.Carousel.Slide1.TITLE],
-            localizationService[LocalizationKeys.Welcome.Carousel.Slide1.DESCRIPTION],
-            LoadImage(SAFETY_IMAGE_PATH)
+            LocalizationKeys.Welcome.Carousel.Slide1.TITLE,
+            LocalizationKeys.Welcome.Carousel.Slide1.DESCRIPTION,
+            LoadImage(SAFETY_IMAGE_PATH),
+            localizationService
         ),
         new(
-            localizationService[LocalizationKeys.Welcome.Carousel.Slide2.TITLE],
-            localizationService[LocalizationKeys.Welcome.Carousel.Slide2.DESCRIPTION],
-            LoadImage(MENTAL_PROTECTION_IMAGE_PATH)
+            LocalizationKeys.Welcome.Carousel.Slide2.TITLE,
+            LocalizationKeys.Welcome.Carousel.Slide2.DESCRIPTION,
+            LoadImage(MENTAL_PROTECTION_IMAGE_PATH),
+            localizationService
         ),
         new(
-            localizationService[LocalizationKeys.Welcome.Carousel.Slide3.TITLE],
-            localizationService[LocalizationKeys.Welcome.Carousel.Slide3.DESCRIPTION],
-            LoadImage(SMART_COMMUNITIES_IMAGE_PATH)
+            LocalizationKeys.Welcome.Carousel.Slide3.TITLE,
+            LocalizationKeys.Welcome.Carousel.Slide3.DESCRIPTION,
+            LoadImage(SMART_COMMUNITIES_IMAGE_PATH),
+            localizationService
         ),
         new(
-            localizationService[LocalizationKeys.Welcome.Carousel.Slide4.TITLE],
-            localizationService[LocalizationKeys.Welcome.Carousel.Slide4.DESCRIPTION],
-            LoadImage(WELLNESS_IMAGE_PATH)
+            LocalizationKeys.Welcome.Carousel.Slide4.TITLE,
+            LocalizationKeys.Welcome.Carousel.Slide4.DESCRIPTION,
+            LoadImage(WELLNESS_IMAGE_PATH),
+            localizationService
         )
     ];
 

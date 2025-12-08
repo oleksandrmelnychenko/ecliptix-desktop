@@ -72,6 +72,11 @@ public class LanguagePickerViewModel : ReactiveObject, IActivatableViewModel, ID
 
     private async Task SelectLanguageAsync(LanguagePickerItemViewModel selectedItem)
     {
+        if (selectedItem == null || selectedItem.Model == null)
+        {
+            return;
+        }
+
         if (_localizationService.CurrentCultureName == selectedItem.Model.Code)
         {
             await _sideSheetService.HideAsync();
