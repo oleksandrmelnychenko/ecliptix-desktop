@@ -41,17 +41,15 @@ public class WelcomeSlideItemTemplate : ReactiveObject, IDisposable
 
     public string Title
     {
-        get => _title;
-        set => this.RaiseAndSetIfChanged(ref _title, value);
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
     }
-    private string _title = string.Empty;
 
     public string Description
     {
-        get => _description;
-        set => this.RaiseAndSetIfChanged(ref _description, value);
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
     }
-    private string _description = string.Empty;
 
     public Bitmap? Image { get; }
 
