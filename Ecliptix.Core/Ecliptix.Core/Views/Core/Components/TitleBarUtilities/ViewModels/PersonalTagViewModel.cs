@@ -2,7 +2,7 @@
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 
-namespace Ecliptix.Core.Views.Memberships.Components.TitleBarUtilities.ViewModels;
+namespace Ecliptix.Core.Views.Core.Components.TitleBarUtilities.ViewModels;
 
 public class PersonalTagViewModel : ReactiveObject
 {

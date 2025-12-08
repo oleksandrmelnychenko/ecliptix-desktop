@@ -3,9 +3,9 @@ using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
-using Ecliptix.Core.Views.Memberships.Components.TitleBarUtilities.ViewModels;
+using Ecliptix.Core.Views.Core.Components.TitleBarUtilities.ViewModels;
 
-namespace Ecliptix.Core.Views.Memberships.Components.TitleBarUtilities.Views;
+namespace Ecliptix.Core.Views.Core.Components.TitleBarUtilities.Views;
 
 public partial class PersonalTagView : ReactiveUserControl<PersonalTagViewModel>
 {

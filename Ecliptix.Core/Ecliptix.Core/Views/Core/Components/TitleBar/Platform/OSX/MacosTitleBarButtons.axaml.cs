@@ -1,7 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-namespace Ecliptix.Core.Views.Memberships.Components.TitleBar.Platform.OSX;
+namespace Ecliptix.Core.Views.Core.Components.TitleBar.Platform.OSX;
 
 public partial class MacosTitleBarButtons : UserControl
 {

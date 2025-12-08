@@ -3,7 +3,7 @@ using ReactiveUI;
 using Splat;
 using IMessageBus = Ecliptix.Core.Core.Messaging.IMessageBus;
 
-namespace Ecliptix.Core.Views.Memberships.Components.TitleBarUtilities.ViewModels;
+namespace Ecliptix.Core.Views.Core.Components.TitleBarUtilities.ViewModels;
 
 public record ToggleSidebarEvent;
 

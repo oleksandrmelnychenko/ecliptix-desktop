@@ -2,10 +2,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:viewModels="clr-namespace:Ecliptix.Core.Views.Memberships.Components.TitleBarUtilities.ViewModels"
+             xmlns:viewModels="clr-namespace:Ecliptix.Core.Views.Core.Components.TitleBarUtilities.ViewModels"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="viewModels:ToggleThemeViewModel"
-             x:Class="Ecliptix.Core.Views.Memberships.Components.TitleBarUtilities.Views.ToggleThemeView">
+             x:Class="Ecliptix.Core.Views.Core.Components.TitleBarUtilities.Views.ToggleThemeView">
 
    <UserControl.Resources>
         <StreamGeometry x:Key="MoonIconData">M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z</StreamGeometry>

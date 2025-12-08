@@ -63,8 +63,6 @@ public sealed class WindowPositionService : IWindowPositionService
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsNear(double val1, double val2)
-    {
-        return Math.Abs(val1 - val2) <= MainWindowConstants.Layout.SNAP_DETECTION_TOLERANCE;
-    }
+    private static bool IsNear(double val1, double val2) =>
+        Math.Abs(val1 - val2) <= MainWindowConstants.Layout.SNAP_DETECTION_TOLERANCE;
 }

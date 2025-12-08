@@ -2,10 +2,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="clr-namespace:Ecliptix.Core.Views.Memberships.Components.TitleBarUtilities.ViewModels"
+             xmlns:vm="clr-namespace:Ecliptix.Core.Views.Core.Components.TitleBarUtilities.ViewModels"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="vm:PersonalTagViewModel"
-             x:Class="Ecliptix.Core.Views.Memberships.Components.TitleBarUtilities.Views.PersonalTagView">
+             x:Class="Ecliptix.Core.Views.Core.Components.TitleBarUtilities.Views.PersonalTagView">
     <UserControl.Styles>
         <Style Selector="Button.copy-btn">
             <Setter Property="Background" Value="Transparent"/>

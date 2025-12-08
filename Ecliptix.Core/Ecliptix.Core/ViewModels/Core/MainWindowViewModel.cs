@@ -33,14 +33,6 @@ using Serilog;
 
 namespace Ecliptix.Core.ViewModels.Core;
 
-public enum TitleBarPosition
-{
-    Left,
-    Right,
-    Mirrored,
-    ReverseMirrored
-}
-
 public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 {
     private readonly IBottomSheetService _bottomSheetService;
@@ -169,11 +161,11 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
         return new Dictionary<TitleBarPosition, Func<bool, System.Collections.ObjectModel.ObservableCollection<object>>>
         {
-            [TitleBarPosition.Left] = _ => TitleBarViewModel.LeftContent,
-            [TitleBarPosition.Right] = _ => TitleBarViewModel.RightContent,
-            [TitleBarPosition.Mirrored] =
+            [TitleBarPosition.LEFT] = _ => TitleBarViewModel.LeftContent,
+            [TitleBarPosition.RIGHT] = _ => TitleBarViewModel.RightContent,
+            [TitleBarPosition.MIRRORED] =
                 _ => isMac ? TitleBarViewModel.RightContent : TitleBarViewModel.LeftContent,
-            [TitleBarPosition.ReverseMirrored] =
+            [TitleBarPosition.REVERSE_MIRRORED] =
                 _ => isMac ? TitleBarViewModel.LeftContent : TitleBarViewModel.RightContent
         };
     }
@@ -230,14 +222,14 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
                 TitleBarViewModel.DisableMaximizeButton = true;
 
                 SetMultipleTitleBarContent(
-                    TitleBarPosition.ReverseMirrored,
+                    TitleBarPosition.REVERSE_MIRRORED,
                     reverseOrder: !RuntimeInformation.IsOSPlatform(OSPlatform.OSX),
                     clearOthers: false,
                     separator,
                     languageSwitcher);
 
                 SetMultipleTitleBarContent(
-                    TitleBarPosition.Mirrored,
+                    TitleBarPosition.MIRRORED,
                     reverseOrder: !RuntimeInformation.IsOSPlatform(OSPlatform.OSX),
                     clearOthers: false,
                     eppBadge,
@@ -621,9 +613,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         _cancellationTokenSource.Cancel();
         _cancellationTokenSource.Dispose();
 
-        TitleBarViewModel.LeftContent.Clear();
-        TitleBarViewModel.RightContent.Clear();
-        TitleBarViewModel.CenterContent = null;
+        TitleBarViewModel.Dispose();
 
         lock (_trackedDisposables)
         {

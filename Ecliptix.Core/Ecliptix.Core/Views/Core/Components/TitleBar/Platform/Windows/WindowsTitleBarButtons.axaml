@@ -2,9 +2,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:titleBar="clr-namespace:Ecliptix.Core.Views.Memberships.Components.TitleBar"
+             xmlns:titleBar="clr-namespace:Ecliptix.Core.Views.Core.Components.TitleBar"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="Ecliptix.Core.Views.Memberships.Components.TitleBar.Platform.Windows.WindowsTitleBarButtons"
+             x:Class="Ecliptix.Core.Views.Core.Components.TitleBar.Platform.Windows.WindowsTitleBarButtons"
              x:DataType="titleBar:TitleBarViewModel">
 
     <StackPanel HorizontalAlignment="Right"

@@ -1,7 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-namespace Ecliptix.Core.Views.Memberships.Components.TitleBar.Platform.Windows;
+namespace Ecliptix.Core.Views.Core.Components.TitleBar.Platform.Windows;
 
 public partial class WindowsTitleBarButtons : UserControl
 {

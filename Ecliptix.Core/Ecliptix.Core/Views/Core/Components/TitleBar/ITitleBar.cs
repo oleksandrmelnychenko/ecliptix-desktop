@@ -1,6 +1,6 @@
 using Avalonia.Interactivity;
 
-namespace Ecliptix.Core.Views.Memberships.Components.TitleBar;
+namespace Ecliptix.Core.Views.Core.Components.TitleBar;
 
 public interface ITitleBar
 {

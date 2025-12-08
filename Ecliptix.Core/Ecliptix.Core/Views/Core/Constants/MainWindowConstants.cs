@@ -43,6 +43,7 @@ public static class MainWindowConstants
         public const double EASING_THRESHOLD = 0.5;
         public const double ANIMATION_PROGRESS_COMPLETE = 1.0;
         public const double CENTER_DIVISOR = 2.0;
+        public const double DRAG_THRESHOLD = 3.0;
     }
 
     public static class SnapFractions

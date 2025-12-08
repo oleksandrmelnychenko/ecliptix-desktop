@@ -3,10 +3,10 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:reactiveUi="http://reactiveui.net"
-             xmlns:titleBar="clr-namespace:Ecliptix.Core.Views.Memberships.Components.TitleBar"
-             xmlns:windows1="clr-namespace:Ecliptix.Core.Views.Memberships.Components.TitleBar.Platform.Windows"
+             xmlns:titleBar="clr-namespace:Ecliptix.Core.Views.Core.Components.TitleBar"
+             xmlns:windows1="clr-namespace:Ecliptix.Core.Views.Core.Components.TitleBar.Platform.Windows"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="Ecliptix.Core.Views.Memberships.Components.TitleBar.Platform.Windows.WindowsTitleBarLayout"
+             x:Class="Ecliptix.Core.Views.Core.Components.TitleBar.Platform.Windows.WindowsTitleBarLayout"
              Height="35"
              x:DataType="titleBar:TitleBarViewModel">
 

@@ -7,17 +7,18 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
+using Ecliptix.Core.Views.Core.Constants;
 using ReactiveUI;
 
-namespace Ecliptix.Core.Views.Memberships.Components.TitleBar;
+namespace Ecliptix.Core.Views.Core.Components.TitleBar;
 
-public partial class TitleBar : ReactiveUserControl<TitleBarViewModel>
+public partial class TitleBar : ReactiveUserControl<TitleBarViewModel>, IDisposable
 {
     private readonly ContentControl? _rootControl;
+    private readonly CompositeDisposable _disposables = new();
     private CompositeDisposable _pointerSubscriptions = new();
-
-    private const double DRAG_THRESHOLD = 3;
-
+    private IDisposable? _dataContextBinding;
+    private bool _isDisposed;
 
     public TitleBar()
     {
@@ -30,21 +31,16 @@ public partial class TitleBar : ReactiveUserControl<TitleBarViewModel>
         {
             _rootControl.PointerPressed += OnRootPointerPressed;
         }
-
-        Unloaded += (s, e) =>
-        {
-            if (_rootControl != null)
-            {
-                _rootControl.PointerPressed -= OnRootPointerPressed;
-            }
-
-            _pointerSubscriptions.Dispose();
-        };
     }
 
-   private void OnRootPointerPressed(object? sender, PointerPressedEventArgs e)
+    private void OnRootPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        Window? window = Window;
+        if (_isDisposed || _rootControl == null)
+        {
+            return;
+        }
+
+        Window? window = VisualRoot as Window;
         TitleBarViewModel? viewModel = ViewModel;
 
         if (window == null || window.WindowState == WindowState.FullScreen || viewModel == null)
@@ -69,8 +65,8 @@ public partial class TitleBar : ReactiveUserControl<TitleBarViewModel>
             IDisposable? moveSubscription = null;
 
             moveSubscription = Observable.FromEventPattern<PointerEventArgs>(
-                h => _rootControl!.PointerMoved += h,
-                h => _rootControl!.PointerMoved -= h
+                h => _rootControl.PointerMoved += h,
+                h => _rootControl.PointerMoved -= h
             )
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(args =>
@@ -83,7 +79,8 @@ public partial class TitleBar : ReactiveUserControl<TitleBarViewModel>
                 Point currentPosition = args.EventArgs.GetPosition(this);
                 Vector delta = startPosition - currentPosition;
 
-                if (Math.Abs(delta.X) > DRAG_THRESHOLD || Math.Abs(delta.Y) > DRAG_THRESHOLD)
+                if (Math.Abs(delta.X) > MainWindowConstants.Layout.DRAG_THRESHOLD ||
+                    Math.Abs(delta.Y) > MainWindowConstants.Layout.DRAG_THRESHOLD)
                 {
                     viewModel.IsDragging = true;
                     window.BeginMoveDrag(e);
@@ -103,7 +100,7 @@ public partial class TitleBar : ReactiveUserControl<TitleBarViewModel>
             {
                 if (!viewModel.IsDragging && e.ClickCount == 2 && !viewModel.DisableMaximizeButton)
                 {
-                    HandleDoubleClickMaximize();
+                    HandleDoubleClickMaximize(window);
                 }
 
                 viewModel.IsDragging = false;
@@ -116,48 +113,52 @@ public partial class TitleBar : ReactiveUserControl<TitleBarViewModel>
 
     private void InitializeLayout()
     {
-        if (_rootControl == null)
+        if (_rootControl == null || _rootControl.Content != null)
         {
             return;
         }
 
-        if (_rootControl.Content != null)
-        {
-            return;
-        }
+        UserControl layout = RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+            ? new Platform.OSX.MacosTitleBarLayout()
+            : new Platform.Windows.WindowsTitleBarLayout();
 
-        UserControl layout;
-
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        {
-            layout = new Platform.OSX.MacosTitleBarLayout();
-        }
-        else
-        {
-            layout = new Platform.Windows.WindowsTitleBarLayout();
-        }
-
-        layout.Bind(DataContextProperty, this.GetObservable(DataContextProperty));
+        _dataContextBinding = layout.Bind(DataContextProperty, this.GetObservable(DataContextProperty));
 
         _rootControl.Content = layout;
     }
 
-    private void HandleDoubleClickMaximize()
+    private static void HandleDoubleClickMaximize(Window window)
     {
-        if (Window == null)
-        {
-            return;
-        }
+        bool isCurrentlyMaximized = window.WindowState == WindowState.Maximized;
 
-        bool isCurrentlyMaximized = Window.WindowState == WindowState.Maximized;
-
-        Window.WindowState = isCurrentlyMaximized
+        window.WindowState = isCurrentlyMaximized
             ? WindowState.Normal
             : WindowState.Maximized;
     }
 
-    private Window? Window => VisualRoot as Window;
-
     private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
-}
 
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        _isDisposed = true;
+
+        if (_rootControl != null)
+        {
+            _rootControl.PointerPressed -= OnRootPointerPressed;
+        }
+
+        _dataContextBinding?.Dispose();
+        _pointerSubscriptions.Dispose();
+        _disposables.Dispose();
+
+        if (_rootControl?.Content is IDisposable disposableContent)
+        {
+            disposableContent.Dispose();
+        }
+    }
+}

@@ -7,7 +7,7 @@
         xmlns:controls="clr-namespace:Ecliptix.Core.Controls.Modals.BottomSheetModal"
         xmlns:vm="clr-namespace:Ecliptix.Core.ViewModels.Core"
         xmlns:sideSheetModal="clr-namespace:Ecliptix.Core.Controls.Modals.SideSheetModal"
-        xmlns:titleBar="clr-namespace:Ecliptix.Core.Views.Memberships.Components.TitleBar"
+        xmlns:titleBar="clr-namespace:Ecliptix.Core.Views.Core.Components.TitleBar"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
         x:Class="Ecliptix.Core.Views.Core.MainWindow"
         x:DataType="vm:MainWindowViewModel"
@@ -69,7 +69,6 @@
         <Style Selector="Window[WindowState=FullScreen] Grid#MainContentGrid">
             <Setter Property="Margin" Value="{StaticResource MarginZero}" />
         </Style>
-
     </Window.Styles>
 
     <Grid x:Name="MainContentGrid" ClipToBounds="True">

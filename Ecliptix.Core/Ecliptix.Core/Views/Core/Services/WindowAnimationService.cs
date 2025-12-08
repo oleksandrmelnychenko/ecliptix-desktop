@@ -13,10 +13,10 @@ public sealed class WindowAnimationService : IWindowAnimationService
 {
     public async Task AnimateWindowAsync(
         WindowAnimationState state,
-        Action<double, Size, PixelPoint?> onProgress,
+        Action<double, Size, PixelPoint?>? onProgress,
         CancellationToken cancellationToken = default)
     {
-        if (!state.NeedsSizeChange && !state.NeedsPositionChange)
+        if (state is { NeedsSizeChange: false, NeedsPositionChange: false })
         {
             onProgress?.Invoke(MainWindowConstants.Layout.ANIMATION_PROGRESS_COMPLETE,
                 new Size(state.TargetWidth, state.TargetHeight),
@@ -67,14 +67,16 @@ public sealed class WindowAnimationService : IWindowAnimationService
 
                     onProgress?.Invoke(progress, new Size(currentWidth, currentHeight), currentPosition);
 
-                    if (progress >= MainWindowConstants.Layout.ANIMATION_PROGRESS_COMPLETE)
+                    if (!(progress >= MainWindowConstants.Layout.ANIMATION_PROGRESS_COMPLETE))
                     {
-                        timer?.Stop();
-                        onProgress?.Invoke(MainWindowConstants.Layout.ANIMATION_PROGRESS_COMPLETE,
-                            new Size(state.TargetWidth, state.TargetHeight),
-                            state.TargetPosition);
-                        tcs.TrySetResult(true);
+                        return;
                     }
+
+                    timer?.Stop();
+                    onProgress?.Invoke(MainWindowConstants.Layout.ANIMATION_PROGRESS_COMPLETE,
+                        new Size(state.TargetWidth, state.TargetHeight),
+                        state.TargetPosition);
+                    tcs.TrySetResult(true);
                 });
 
             timer.Start();

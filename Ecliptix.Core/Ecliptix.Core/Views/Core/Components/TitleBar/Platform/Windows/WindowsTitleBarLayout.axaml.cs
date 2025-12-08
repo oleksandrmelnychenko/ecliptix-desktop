@@ -7,7 +7,7 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 
-namespace Ecliptix.Core.Views.Memberships.Components.TitleBar.Platform.Windows;
+namespace Ecliptix.Core.Views.Core.Components.TitleBar.Platform.Windows;
 
 public sealed partial class WindowsTitleBarLayout : UserControl, ITitleBar
 {
