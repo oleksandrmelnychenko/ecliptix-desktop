@@ -41,7 +41,7 @@
                 HorizontalAlignment="Center"
                 Padding="20,10"
                 Margin="0 23 0 0">
-            <Svg Path="../../../../Assets/Branding/Logos/ecliptix_logo.svg"
+            <Svg Path="avares://Ecliptix.Core/Assets/Branding/Logos/ecliptix_logo.svg"
                  Width="{StaticResource Logo.Size}"
                  Height="{StaticResource Logo.Size}"
                  HorizontalAlignment="Center"
@@ -73,53 +73,46 @@
                 <TextBlock Text="{Binding LocalizationService[Footer.AgreementPrefix]}"
                            Classes="footer"
                            VerticalAlignment="Center"
-                           Opacity="0.6"
-                           TextWrapping="NoWrap" />
+                           Foreground="#6B7280"
+                           TextWrapping="NoWrap"
+                           Margin="0,0,4,0" />
                 <Button Content="{Binding LocalizationService[Footer.TermsOfService]}"
                         Command="{Binding OpenTermsOfServiceCommand}"
                         Classes="ghost"
                         Padding="0"
-                        Opacity="0.6"
-                        VerticalAlignment="Center">
-                    <Button.Resources>
-                        <TextBlock x:Key="ContentPresenter" TextWrapping="NoWrap" />
-                    </Button.Resources>
+                        Margin="0"
+                        MinWidth="0"
+                        MinHeight="0"
+                        Foreground="#A78BFA"
+                        VerticalAlignment="Center"
+                        HorizontalContentAlignment="Left">
                 </Button>
                 <TextBlock Text="{Binding LocalizationService[Footer.AgreementConjunction]}"
                            Classes="footer"
                            VerticalAlignment="Center"
-                           Opacity="0.6"
-                           TextWrapping="NoWrap" />
+                           Foreground="#6B7280"
+                           TextWrapping="NoWrap"
+                           Margin="4,0,4,0" />
                 <Button Content="{Binding LocalizationService[Footer.PrivacyPolicy]}"
                         Command="{Binding OpenPrivacyPolicyCommand}"
                         Classes="ghost"
                         Padding="0"
-                        Opacity="0.6"
-                        VerticalAlignment="Center">
-                    <Button.Resources>
-                        <TextBlock x:Key="ContentPresenter" TextWrapping="NoWrap" />
-                    </Button.Resources>
+                        Margin="0"
+                        MinWidth="0"
+                        MinHeight="0"
+                        Foreground="#A78BFA"
+                        VerticalAlignment="Center"
+                        HorizontalContentAlignment="Left">
                 </Button>
             </StackPanel>
 
-            <!-- Copyright and version -->
-            <Grid HorizontalAlignment="Stretch">
-                <TextBlock Text="{Binding AppVersion, StringFormat='v{0}'}"
-                           Classes="version"
-                           HorizontalAlignment="Left"
-                           VerticalAlignment="Center"
-                           ToolTip.Tip="{Binding FullVersionInfo}"
-                           Margin="10,0,0,0"
-                           Opacity="0.7"
-                           FontWeight="Medium" />
-
-                <TextBlock Text="{Binding LocalizationService[Footer.Copyright]}"
-                           Classes="footer"
-                           Opacity="0.6"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"
-                           TextAlignment="Center" />
-            </Grid>
+            <!-- Copyright -->
+            <TextBlock Text="© 2025 Horizon Dynamics. All rights reserved."
+                       Classes="footer"
+                       Foreground="#6B7280"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       TextAlignment="Center" />
         </StackPanel>
     </Grid>
 </UserControl>

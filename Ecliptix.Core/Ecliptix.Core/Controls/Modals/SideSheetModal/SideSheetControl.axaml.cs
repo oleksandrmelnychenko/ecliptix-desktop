@@ -144,6 +144,7 @@ public partial class SideSheetControl : ReactiveUserControl<SideSheetViewModel>,
             existingGroup.Children.Add(new T());
             return;
         }
+
         TransformGroup group = new();
         if (existingTransform is Transform singleTransform)
         {
@@ -256,21 +257,14 @@ public partial class SideSheetControl : ReactiveUserControl<SideSheetViewModel>,
         _isAnimating = false;
     }
 
-    //private IInputElement? _previousFocusedElement;
-
     private async Task ShowSideSheetWithFocusAsync()
     {
-        // SavePreviousFocusedElement();
         UpdateSheetLayout();
         await ShowSideSheet();
         Focus();
     }
 
-    private async Task HideSideSheetWithFocusRestoreAsync()
-    {
-        await HideSideSheet();
-        // RestorePreviousFocus();
-    }
+    private async Task HideSideSheetWithFocusRestoreAsync() => await HideSideSheet();
 
     private void UpdateSheetLayout()
     {
@@ -323,6 +317,7 @@ public partial class SideSheetControl : ReactiveUserControl<SideSheetViewModel>,
 
         _rootGrid.IsVisible = true;
         _sheetBorder.IsVisible = true;
+
         if (ViewModel?.ShowScrim is true && _scrimBorder is not null)
         {
             _scrimBorder.IsVisible = true;
@@ -445,14 +440,16 @@ public partial class SideSheetControl : ReactiveUserControl<SideSheetViewModel>,
 
     private async void OnKeyDown(object? sender, KeyEventArgs e)
     {
-         if (DismissKeys.TryGetValue(e.Key, out Func<SideSheetControl, bool>? shouldDismiss) &&
-            shouldDismiss(this) && ViewModel is not null && !_isAnimating)
+        if (!DismissKeys.TryGetValue(e.Key, out Func<SideSheetControl, bool>? shouldDismiss) ||
+            !shouldDismiss(this) || ViewModel is null || _isAnimating)
         {
-            ViewModel.IsVisible = false;
-            await Task.Delay(400);
-            ViewModel.SideSheetDismissed();
-            e.Handled = true;
+            return;
         }
+
+        ViewModel.IsVisible = false;
+        await Task.Delay(400);
+        ViewModel.SideSheetDismissed();
+        e.Handled = true;
     }
 }
 

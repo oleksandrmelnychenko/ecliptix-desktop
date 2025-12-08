@@ -129,7 +129,6 @@
         <Setter Property="FontSize" Value="{StaticResource Version.FontSize}" />
         <Setter Property="Foreground" Value="{DynamicResource Version.Text}" />
         <Setter Property="Opacity" Value="0.8" />
-        <Setter Property="FontFamily" Value="Consolas, Monaco, 'Courier New', monospace" />
     </Style>
 
 
@@ -165,7 +164,6 @@
         <Setter Property="FontSize" Value="{StaticResource Version.FontSize}" />
         <Setter Property="Foreground" Value="{DynamicResource Version.Text}" />
         <Setter Property="Opacity" Value="0.8" />
-        <Setter Property="FontFamily" Value="Consolas, Monaco, 'Courier New', monospace" />
     </Style>
 
 </Styles>

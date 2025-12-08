@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Reactive.Disposables;
-using Ecliptix.Core.Features.NewContent.ViewModels;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 
-namespace Ecliptix.Core.Features.NewContent;
+namespace Ecliptix.Core.Features.NewContent.ViewModels;
 
 public class CreateWizardViewModel : ReactiveObject, IDisposable
 {
@@ -16,7 +15,7 @@ public class CreateWizardViewModel : ReactiveObject, IDisposable
 
     public CreateWizardViewModel()
     {
-        CreateSelectionViewModel selectionVm = new CreateSelectionViewModel();
+        CreateSelectionViewModel selectionVm = new();
         CurrentPage = selectionVm;
 
 
@@ -51,7 +50,7 @@ public class CreateWizardViewModel : ReactiveObject, IDisposable
             IsReverseTransition = true;
 
 
-            CreateSelectionViewModel selectionVm = new CreateSelectionViewModel();
+            CreateSelectionViewModel selectionVm = new();
             selectionVm.SelectActionCommand
                 .Subscribe(NavigateToContent)
                 .DisposeWith(_disposables);

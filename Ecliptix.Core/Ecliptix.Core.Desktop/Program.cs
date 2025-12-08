@@ -7,7 +7,6 @@ using System.Reactive.Concurrency;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.ReactiveUI;
 using DotNetEnv;

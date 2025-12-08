@@ -1,17 +1,13 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input.Platform;
 using Avalonia.Threading;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Controls.LanguageSelector;
-using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
@@ -20,6 +16,7 @@ using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Views.Memberships.Components;
+using Ecliptix.Core.Views.Memberships.Components.TitleBar;
 using Ecliptix.Core.Views.Memberships.Components.TitleBarUtilities.ViewModels;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Utilities;
@@ -137,21 +134,20 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
                 CanResize = false;
                 MinWindowWidth = 0;
                 MinWindowHeight = 0;
-
             }, DispatcherPriority.Loaded);
 
 
             await AnimateWindowResizeAsync(532, 812, TimeSpan.FromMilliseconds(450)).ConfigureAwait(false);
 
-            VerticalSeparatorViewModel separator = new VerticalSeparatorViewModel();
-            LanguageSwitcherViewModel languageSwitcher = new LanguageSwitcherViewModel(
+            VerticalSeparatorViewModel separator = new();
+            LanguageSwitcherViewModel languageSwitcher = new(
                 _sideSheetService,
                 _storageProvider,
                 _localizationService,
                 _rpcMetaDataProvider
             );
-            EppBadgeViewModel eppBadge = new EppBadgeViewModel();
-            NetworkBadgeViewModel networkBadge = new NetworkBadgeViewModel();
+            EppBadgeViewModel eppBadge = new();
+            NetworkBadgeViewModel networkBadge = new();
 
             Dispatcher.UIThread.Post(() =>
             {
@@ -163,7 +159,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
                     reverseOrder: !RuntimeInformation.IsOSPlatform(OSPlatform.OSX),
                     clearOthers: false,
                     separator,
-                    languageSwitcher 
+                    languageSwitcher
                 );
 
                 SetMultipleTitleBarContent(
@@ -184,7 +180,6 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
                 TitleBarViewModel.IsDraggingEnabled = true;
             });
         }
-
     }
 
     public void SetMultipleTitleBarContent(
@@ -312,13 +307,12 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
                 TitleBarViewModel.LeftContent.Add(new ToggleNavigationSideBarViewModel());
                 TitleBarViewModel.RightContent.Add(new ToggleThemeViewModel());
 
-                PersonalTagViewModel tagVm = new PersonalTagViewModel(
+                PersonalTagViewModel tagVm = new(
                     "Ecliptix",
                     "@oleksandr.melnychenko"
                 );
 
                 TitleBarViewModel.CenterContent = tagVm;
-
             }, DispatcherPriority.Loaded);
 
             await SetContentWithFadeAsync(content).ConfigureAwait(false);
@@ -330,9 +324,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
                 TitleBarViewModel.IsDraggingEnabled = true;
             });
         }
-
     }
-
 
 
     private async Task WaitUntilNotDragging()
@@ -342,14 +334,10 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        Log.Debug("[MAIN-WINDOW-VM] Drag in progress, waiting for it to finish...");
-
         await TitleBarViewModel.WhenAnyValue(x => x.IsDragging)
             .Where(isDragging => !isDragging)
             .Take(1)
             .ToTask();
-
-        Log.Debug("[MAIN-WINDOW-VM] Drag finished, proceeding.");
     }
 
     public async Task ShowBottomSheetAsync(
@@ -370,10 +358,11 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     public async Task HideSideSheetAsync() => await _sideSheetService.HideAsync().ConfigureAwait(false);
 
-    public IDisposable OnBottomSheetHidden(Func<BottomSheetHiddenEvent, Task> handler, SubscriptionLifetime lifetime) => _bottomSheetService.OnBottomSheetHidden(handler, lifetime);
+    public IDisposable OnBottomSheetHidden(Func<BottomSheetHiddenEvent, Task> handler, SubscriptionLifetime lifetime) =>
+        _bottomSheetService.OnBottomSheetHidden(handler, lifetime);
 
-    public IDisposable OnSideSheetHidden(Func<SideSheetHiddenEvent, Task> handler, SubscriptionLifetime lifetime) => _sideSheetService.OnSideSheetHidden(handler, lifetime);
-
+    public IDisposable OnSideSheetHidden(Func<SideSheetHiddenEvent, Task> handler, SubscriptionLifetime lifetime) =>
+        _sideSheetService.OnSideSheetHidden(handler, lifetime);
 
     public void Dispose()
     {
@@ -479,7 +468,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
         double startWidth = 0;
         double startHeight = 0;
-        PixelPoint startPosition = new PixelPoint(0, 0);
+        PixelPoint startPosition = new(0, 0);
 
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
@@ -567,14 +556,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     {
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
             await _storageProvider.GetApplicationInstanceSettingsAsync();
-        if (settingsResult.IsOk)
-        {
-            return settingsResult.Unwrap().WindowPlacement;
-        }
-
-        Log.Warning("[MAIN-WINDOW-VM] Cannot load the previous window state from secure storage: {Error}",
-            settingsResult.UnwrapErr().Message);
-        return null;
+        return settingsResult.IsOk ? settingsResult.Unwrap().WindowPlacement : null;
     }
 
     private async Task InvalidateWindowPlacementAsync()
@@ -628,16 +610,12 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     private async Task SetContentWithFadeAsync(object content)
     {
-        Log.Information("[MAIN-WINDOW-VM] SetContentWithFadeAsync called with content: {Type}", content?.GetType().Name ?? "null");
-
         if (CurrentContent != null)
         {
-            Log.Information("[MAIN-WINDOW-VM] Clearing existing content: {Type}", CurrentContent.GetType().Name);
             await Task.Delay(100).ConfigureAwait(false);
         }
 
         CurrentContent = content;
-        Log.Information("[MAIN-WINDOW-VM] CurrentContent set to: {Type}", content?.GetType().Name ?? "null");
 
         await Task.Delay(100).ConfigureAwait(false);
     }

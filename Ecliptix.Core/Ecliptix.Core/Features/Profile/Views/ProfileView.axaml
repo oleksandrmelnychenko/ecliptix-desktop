@@ -11,10 +11,7 @@
              x:Class="Ecliptix.Core.Features.Profile.Views.ProfileView">
 
   <UserControl.Resources>
-        <SolidColorBrush x:Key="NavBackground" Color="#FEFEFE" />
-        <BoxShadows x:Key="FloatingShadow">0 4 20 0 #1A000000</BoxShadows>
-        <SolidColorBrush x:Key="AccentDotColor" Color="#6C5CE7"/>
-    </UserControl.Resources>
+  </UserControl.Resources>
 
     <UserControl.Styles>
         <Style Selector="Button.nav-icon-button">

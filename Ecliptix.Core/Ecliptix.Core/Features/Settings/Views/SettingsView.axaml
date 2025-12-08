@@ -13,12 +13,7 @@
 
     <UserControl.Resources>
         <SolidColorBrush x:Key="SidebarBackground" Color="#FEFEFE" />
-        <SolidColorBrush x:Key="Primary" Color="#FF6D00"/>
-        <SolidColorBrush x:Key="OnSurface" Color="#242424"/>
-        <SolidColorBrush x:Key="SurfaceVariant" Color="#F2F6F7"/>
 
-        <BoxShadows x:Key="DefaultShadow">0 1 3 0 #20000000</BoxShadows>
-        <BoxShadows x:Key="FocusShadow">0 0 0 2 #40FF6D00</BoxShadows>
     </UserControl.Resources>
 
     <UserControl.Styles>

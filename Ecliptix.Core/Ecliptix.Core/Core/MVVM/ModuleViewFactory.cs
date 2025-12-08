@@ -9,7 +9,6 @@ using Ecliptix.Core.Features.Main;
 using Ecliptix.Core.Features.Profile.ViewModels;
 using Ecliptix.Core.Features.Settings.ViewModels;
 using Ecliptix.Utilities;
-using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
 namespace Ecliptix.Core.Core.MVVM;

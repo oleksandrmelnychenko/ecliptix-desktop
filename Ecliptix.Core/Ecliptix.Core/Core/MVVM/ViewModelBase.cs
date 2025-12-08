@@ -250,7 +250,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
             cts.Dispose();
         });
 
-        CancellationTokenSource newCts = new CancellationTokenSource();
+        CancellationTokenSource newCts = new();
         ctsOption = Option<CancellationTokenSource>.Some(newCts);
         return newCts;
     }

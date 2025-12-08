@@ -1,6 +1,5 @@
 ﻿using System.Collections.ObjectModel;
 using ReactiveUI;
-using Avalonia.Media;
 
 namespace Ecliptix.Core.Features.NewContent.ViewModels;
 

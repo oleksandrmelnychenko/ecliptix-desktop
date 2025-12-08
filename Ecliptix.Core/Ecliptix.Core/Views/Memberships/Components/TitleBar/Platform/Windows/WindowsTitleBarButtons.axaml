@@ -2,10 +2,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="clr-namespace:Ecliptix.Core.Views.Memberships.Components"
+             xmlns:titleBar="clr-namespace:Ecliptix.Core.Views.Memberships.Components.TitleBar"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="Ecliptix.Core.Views.Memberships.Components.Platform.Windows.WindowsTitleBarButtons"
-             x:DataType="vm:TitleBarViewModel">
+             x:Class="Ecliptix.Core.Views.Memberships.Components.TitleBar.Platform.Windows.WindowsTitleBarButtons"
+             x:DataType="titleBar:TitleBarViewModel">
 
     <StackPanel HorizontalAlignment="Right"
                 Orientation="Horizontal"
@@ -56,7 +56,6 @@
                 BorderThickness="0"
                 IsEnabled="{Binding DisableMinimizeButton, Converter={x:Static BoolConverters.Not}}">
             <Button.Resources>
-                <CornerRadius x:Key="ControlCornerRadius">0</CornerRadius>
             </Button.Resources>
             <Path Width="10" Height="2"
                   Stretch="Uniform"
@@ -72,7 +71,6 @@
                 BorderThickness="0"
                 IsEnabled="{Binding DisableMaximizeButton, Converter={x:Static BoolConverters.Not}}">
             <Button.Resources>
-                <CornerRadius x:Key="ControlCornerRadius">0</CornerRadius>
             </Button.Resources>
             <Path Width="10" Height="10"
                   Stretch="Uniform"
@@ -88,7 +86,6 @@
                 BorderThickness="0"
                 IsEnabled="{Binding DisableCloseButton, Converter={x:Static BoolConverters.Not}}">
             <Button.Resources>
-                <CornerRadius x:Key="ControlCornerRadius">0</CornerRadius>
             </Button.Resources>
             <Path Width="10" Height="10"
                   Stretch="Uniform"

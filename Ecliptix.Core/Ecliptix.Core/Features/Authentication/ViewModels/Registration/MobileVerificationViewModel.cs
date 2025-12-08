@@ -13,7 +13,6 @@ using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Authentication.Constants;
-using Ecliptix.Core.Services.Core.Localization;
 using Ecliptix.Core.Services.Membership;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;

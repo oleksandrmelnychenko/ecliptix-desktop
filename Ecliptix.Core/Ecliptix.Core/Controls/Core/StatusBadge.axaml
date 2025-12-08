@@ -12,8 +12,8 @@
         <Thickness x:Key="BadgePadding">8,2</Thickness>
         <Thickness x:Key="BadgeBorderThickness">1</Thickness>
         <sys:Double x:Key="BadgeIconSize">12</sys:Double>
-        <sys:Double x:Key="BadgeFontSize">12</sys:Double>
-        <sys:Double x:Key="BadgeIconSpacing">4</sys:Double>
+        <sys:Double x:Key="BadgeFontSize">7</sys:Double>
+        <sys:Double x:Key="BadgeIconSpacing">2</sys:Double>
     </UserControl.Resources>
 
     <UserControl.Styles>
@@ -29,16 +29,19 @@
         </Style>
 
         <Style Selector="local|StatusBadge.purple">
-            <Setter Property="BadgeBrush" Value="#A855F7"/>
-            <Setter Property="BadgeBackground" Value="#15A855F7"/>
+            <Setter Property="BadgeBrush" Value="#7e22ce"/>
+            <Setter Property="BadgeBackground" Value="#f3e8ff"/>
         </Style>
         <Style Selector="local|StatusBadge.purple Border#ContainerBorder">
             <Setter Property="BorderThickness" Value="0"/>
         </Style>
 
         <Style Selector="local|StatusBadge.green">
-            <Setter Property="BadgeBrush" Value="#10B981"/>
-            <Setter Property="BadgeBackground" Value="#1510B981"/>
+            <Setter Property="BadgeBrush" Value="#15803d"/>
+            <Setter Property="BadgeBackground" Value="#ecfdf5"/>
+        </Style>
+        <Style Selector="local|StatusBadge.green Border#ContainerBorder">
+            <Setter Property="BorderThickness" Value="0"/>
         </Style>
 
         <Style Selector="local|StatusBadge.red">
@@ -76,16 +79,23 @@
                         Spacing="{StaticResource BadgeIconSpacing}"
                         VerticalAlignment="Center">
 
-                <PathIcon Data="{Binding Icon, ElementName=Root}"
-                          Foreground="{Binding BadgeBrush, ElementName=Root}"
-                          Width="{StaticResource BadgeIconSize}"
-                          Height="{StaticResource BadgeIconSize}"
-                          IsVisible="{Binding Icon, ElementName=Root, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+                <Viewbox Width="{StaticResource BadgeIconSize}"
+                         Height="{StaticResource BadgeIconSize}"
+                         IsVisible="{Binding Icon, ElementName=Root, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <Canvas Width="24" Height="24">
+                        <Path Data="{Binding Icon, ElementName=Root}"
+                              Stroke="{Binding BadgeBrush, ElementName=Root}"
+                              StrokeThickness="2.5"
+                              StrokeLineCap="Round"
+                              Fill="Transparent"/>
+                    </Canvas>
+                </Viewbox>
 
                 <TextBlock Text="{Binding Text, ElementName=Root}"
                            Foreground="{Binding BadgeBrush, ElementName=Root}"
                            FontSize="{StaticResource BadgeFontSize}"
-                           FontWeight="SemiBold"
+                           FontWeight="Medium"
+                           LetterSpacing="0.5"
                            VerticalAlignment="Center"/>
             </StackPanel>
         </Border>

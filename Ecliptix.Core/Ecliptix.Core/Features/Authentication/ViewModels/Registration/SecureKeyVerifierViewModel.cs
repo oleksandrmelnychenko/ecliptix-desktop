@@ -19,7 +19,6 @@ using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Authentication;
 using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Core.Services.Common;
-using Ecliptix.Core.Services.Core.Localization;
 using Ecliptix.Core.Services.Membership;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Protocol;

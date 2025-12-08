@@ -4,26 +4,24 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Welcome"
              xmlns:carousels="clr-namespace:Ecliptix.Core.Controls.Carousels"
-             xmlns:core="clr-namespace:Ecliptix.Core.Controls.Core"
              mc:Ignorable="d"
-             d:DesignWidth="320"
+             d:DesignWidth="380"
              d:DesignHeight="480"
+             x:CompileBindings="True"
              x:Class="Ecliptix.Core.Features.Authentication.Views.Welcome.WelcomeView"
-             x:DataType="vm:WelcomeViewModel"
-             MinWidth="320"
-             Width="320">
+             x:DataType="vm:WelcomeViewModel">
 
-    <Grid RowDefinitions="Auto,*,Auto"
+    <Grid RowDefinitions="Auto,Auto,Auto"
           HorizontalAlignment="Stretch"
-          VerticalAlignment="Top"
+          VerticalAlignment="Stretch"
           Margin="{StaticResource Welcome.Container.Margin}"
           Width="{StaticResource Content.MaxWidth}">
 
         <StackPanel Grid.Row="0"
-                    Spacing="{StaticResource Spacing.M}"
+                    Spacing="{StaticResource Spacing.S}"
                     HorizontalAlignment="Center"
                     Name="HeaderSection"
-                    Margin="0,0,0,22">
+                    Margin="0,0,0,8">
 
             <Border Height="{StaticResource Logo.SmallSize}"
                     HorizontalAlignment="Center">
@@ -37,26 +35,25 @@
                                   SelectedIndex="{Binding CurrentSlideIndex, Mode=TwoWay}" />
 
         <Grid Grid.Row="2"
-              ColumnDefinitions="*,*"
-              ColumnSpacing="{StaticResource Spacing.M}"
-              HorizontalAlignment="Stretch"
-              Margin="0,32,0,16">
+              ColumnDefinitions="Auto,Auto"
+              ColumnSpacing="12"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Top"
+              Margin="0,0,0,16">
 
             <Button Grid.Column="0"
                     Content="{Binding LocalizationService[Welcome.SignInButton]}"
                     Command="{Binding NavToSignInCommand}"
                     Classes="secondary large"
                     Classes.is-busy="{Binding IsSignInBusy}"
-                    HorizontalAlignment="Stretch" />
+                    MinWidth="{StaticResource Button.MinWidth}" />
 
-            <Border Grid.Column="1"
-                    CornerRadius="{StaticResource Button.CornerRadius}">
-                <Button Content="{Binding LocalizationService[Welcome.CreateAccountButton]}"
-                        Command="{Binding NavToCreateAccountCommand}"
-                        Classes="primary large glow"
-                        Classes.is-busy="{Binding IsCreateAccountBusy}"
-                        HorizontalAlignment="Stretch" />
-            </Border>
+            <Button Grid.Column="1"
+                    Content="{Binding LocalizationService[Welcome.CreateAccountButton]}"
+                    Command="{Binding NavToCreateAccountCommand}"
+                    Classes="primary large glow"
+                    Classes.is-busy="{Binding IsCreateAccountBusy}"
+                    MinWidth="{StaticResource Button.MinWidth}" />
         </Grid>
     </Grid>
 </UserControl>

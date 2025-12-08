@@ -43,7 +43,7 @@ public class AboutProfileViewModel : ReactiveObject
     {
         try
         {
-            Uri uri = new Uri($"avares://Ecliptix.Core/Assets/DataSeed/{fileName}");
+            Uri uri = new($"avares://Ecliptix.Core/Assets/DataSeed/{fileName}");
             return new Bitmap(AssetLoader.Open(uri));
         }
         catch (Exception)

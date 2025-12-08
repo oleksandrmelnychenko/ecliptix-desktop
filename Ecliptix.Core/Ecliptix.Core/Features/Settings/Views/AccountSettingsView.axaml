@@ -11,7 +11,6 @@
              x:Class="Ecliptix.Core.Features.Settings.Views.AccountSettingsView">
 
     <UserControl.Resources>
-        <SolidColorBrush x:Key="OnSurface" Color="#242424"/>
     </UserControl.Resources>
 
     <UserControl.Styles>

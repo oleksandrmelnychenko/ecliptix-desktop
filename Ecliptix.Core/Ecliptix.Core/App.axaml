@@ -1,6 +1,5 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
              xmlns:coreControls="clr-namespace:Ecliptix.Core.Controls.Core"
              xmlns:feedConverters="clr-namespace:Ecliptix.Core.Features.Feed.Converters"
              x:Class="Ecliptix.Core.App"
@@ -8,7 +7,7 @@
 
     <Application.Resources>
         <ResourceDictionary>
-            <FontFamily x:Key="Geist">avares://Ecliptix.Core/Assets/Fonts/Geist/#Geist</FontFamily>
+            <FontFamily x:Key="SegoeUI">avares://Ecliptix.Core/Assets/Fonts/SegoeUI/#Segoe UI</FontFamily>
 
             <!-- Feed Converters -->
             <feedConverters:BoolToColorConverter x:Key="BoolToColorConverter" />
@@ -47,7 +46,7 @@
         <StyleInclude Source="/Styles/Main/MainStyles.axaml" />
 
         <Style Selector="TextElement">
-            <Setter Property="FontFamily" Value="{StaticResource Geist}" />
+            <Setter Property="FontFamily" Value="{StaticResource SegoeUI}" />
         </Style>
 
         <Style Selector=":is(UserControl)">

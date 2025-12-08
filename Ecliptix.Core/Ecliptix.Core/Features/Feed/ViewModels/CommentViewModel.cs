@@ -1,15 +1,8 @@
-using System;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Reactive;
-using System.Threading.Tasks;
-using Avalonia.Animation;
-using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Ecliptix.Core.Core.Messaging.Messages;
 using Ecliptix.Core.Features.Feed.Models;
-using Ecliptix.Core.Features.Feed.Services.Abstractions;
-using Ecliptix.Utilities;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 

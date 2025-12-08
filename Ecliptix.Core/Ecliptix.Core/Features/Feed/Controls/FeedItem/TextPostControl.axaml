@@ -5,8 +5,6 @@
              xmlns:vm="clr-namespace:Ecliptix.Core.Features.Feed.ViewModels"
              xmlns:header="clr-namespace:Ecliptix.Core.Features.Feed.Controls.PostHeader"
              xmlns:interactions="clr-namespace:Ecliptix.Core.Features.Feed.Controls.PostInteractions"
-             xmlns:comments="clr-namespace:Ecliptix.Core.Features.Feed.Controls.Comments"
-             xmlns:converters="clr-namespace:Ecliptix.Core.Features.Feed.Converters"
              mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="400"
              x:Class="Ecliptix.Core.Features.Feed.Controls.FeedItem.TextPostControl"
              x:DataType="vm:TextPostViewModel">

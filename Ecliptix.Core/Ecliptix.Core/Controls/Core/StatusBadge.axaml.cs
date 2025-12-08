@@ -2,17 +2,12 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
-using Avalonia.Animation;
-using Avalonia.Animation.Easings;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
-using Avalonia.Layout;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
-using Avalonia.Styling;
 using Avalonia.Threading;
-using Avalonia.VisualTree;
 
 namespace Ecliptix.Core.Controls.Core;
 
@@ -81,8 +76,8 @@ public partial class StatusBadge : UserControl
             return;
         }
 
-        Rect targetRect = new Rect(targetPos.Value, _containerBorder.Bounds.Size);
-        Rect windowBounds = new Rect(0, 0, topLevel.Bounds.Width, topLevel.Bounds.Height);
+        Rect targetRect = new(targetPos.Value, _containerBorder.Bounds.Size);
+        Rect windowBounds = new(0, 0, topLevel.Bounds.Width, topLevel.Bounds.Height);
 
         double padding = 10.0;
         double spacing = 4.0;

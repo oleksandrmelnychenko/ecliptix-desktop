@@ -1,6 +1,3 @@
-using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core.Views.Memberships.Components.TitleBarUtilities.ViewModels;
 

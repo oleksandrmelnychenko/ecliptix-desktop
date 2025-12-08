@@ -240,6 +240,33 @@ public static class LocalizationKeys
     {
         public const string SIGN_IN_BUTTON = "Welcome.SignInButton";
         public const string CREATE_ACCOUNT_BUTTON = "Welcome.CreateAccountButton";
+
+        public static class Carousel
+        {
+            public static class Slide1
+            {
+                public const string TITLE = "Welcome.Carousel.Slide1.Title";
+                public const string DESCRIPTION = "Welcome.Carousel.Slide1.Description";
+            }
+
+            public static class Slide2
+            {
+                public const string TITLE = "Welcome.Carousel.Slide2.Title";
+                public const string DESCRIPTION = "Welcome.Carousel.Slide2.Description";
+            }
+
+            public static class Slide3
+            {
+                public const string TITLE = "Welcome.Carousel.Slide3.Title";
+                public const string DESCRIPTION = "Welcome.Carousel.Slide3.Description";
+            }
+
+            public static class Slide4
+            {
+                public const string TITLE = "Welcome.Carousel.Slide4.Title";
+                public const string DESCRIPTION = "Welcome.Carousel.Slide4.Description";
+            }
+        }
     }
 
     public static class Footer

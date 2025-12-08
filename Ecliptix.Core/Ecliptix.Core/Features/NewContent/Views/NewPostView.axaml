@@ -2,12 +2,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:newContent="clr-namespace:Ecliptix.Core.Features.NewContent"
+             xmlns:viewModels="clr-namespace:Ecliptix.Core.Features.NewContent.ViewModels"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:DataType="newContent:NewPostViewModel"
+             x:DataType="viewModels:NewPostViewModel"
              Width="510"
              Height="600"
-             x:Class="Ecliptix.Core.Features.NewContent.NewPostView">
+             x:Class="Ecliptix.Core.Features.NewContent.Views.NewPostView">
    <UserControl.Styles>
         <Style Selector="TextBox.input-box">
             <Setter Property="Background" Value="#F5F7F9"/>

@@ -2,7 +2,7 @@ using System.Collections.ObjectModel;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 
-namespace Ecliptix.Core.Views.Memberships.Components;
+namespace Ecliptix.Core.Views.Memberships.Components.TitleBar;
 
 public partial class TitleBarViewModel : ReactiveObject
 {

@@ -7,8 +7,8 @@ namespace Ecliptix.Core.Features.Feed.Converters;
 
 public sealed class LikeColorConverter : IValueConverter
 {
-    private static readonly SolidColorBrush LikedColor = new SolidColorBrush(Color.Parse("#FF6D00"));
-    private static readonly SolidColorBrush NotLikedColor = new SolidColorBrush(Color.Parse("#6B7280"));
+    private static readonly SolidColorBrush LikedColor = new(Color.Parse("#FF6D00"));
+    private static readonly SolidColorBrush NotLikedColor = new(Color.Parse("#6B7280"));
 
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {

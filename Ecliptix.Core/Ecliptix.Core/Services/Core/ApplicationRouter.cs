@@ -23,7 +23,6 @@ using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Google.Protobuf;
 using Microsoft.Extensions.DependencyInjection;
-using Serilog;
 
 namespace Ecliptix.Core.Services.Core;
 
@@ -37,64 +36,38 @@ public sealed class ApplicationRouter(
     private const int FADE_DURATION_MS = 500;
     private const int WINDOW_SHOW_DELAY_MS = 50;
     private const int FRAME_DELAY_MS = 16;
+    private const int WINDOW_CLOSE_CHECK_DELAY_MS = 100;
+
+    private static readonly string AuthModuleName = ModuleIdentifier.AUTHENTICATION.ToName();
+    private static readonly string MainModuleName = ModuleIdentifier.MAIN.ToName();
 
     public async Task NavigateToAuthenticationAsync()
     {
-        Option<IModule> authModuleOption = await moduleManager.LoadModuleAsync("Authentication").ConfigureAwait(false);
+        IModule authModule = await LoadModuleOrThrowAsync(
+            ModuleIdentifier.AUTHENTICATION,
+            ApplicationErrorMessages.ApplicationRouter.FAILED_TO_LOAD_AUTH_MODULE).ConfigureAwait(false);
 
-        if (!authModuleOption.IsSome)
-        {
-            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FAILED_TO_LOAD_AUTH_MODULE);
-        }
-
-        IModule authModule = authModuleOption.Value!;
-
-        if (authModule.ServiceScope?.ServiceProvider == null)
-        {
-            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FAILED_TO_LOAD_AUTH_MODULE);
-        }
-
-        AuthenticationViewModel? membershipViewModel =
-            authModule.ServiceScope.ServiceProvider.GetService<AuthenticationViewModel>();
-
-        if (membershipViewModel == null)
-        {
-            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter
-                .FAILED_TO_CREATE_MEMBERSHIP_VIEW_MODEL);
-        }
+        AuthenticationViewModel membershipViewModel = GetRequiredServiceOrThrow<AuthenticationViewModel>(
+            authModule.ServiceScope!.ServiceProvider,
+            ApplicationErrorMessages.ApplicationRouter.FAILED_TO_CREATE_MEMBERSHIP_VIEW_MODEL);
 
         await mainWindowViewModel.SetAuthenticationContentAsync(membershipViewModel).ConfigureAwait(false);
-        await moduleManager.UnloadModuleAsync("Main").ConfigureAwait(false);
+        await moduleManager.UnloadModuleAsync(MainModuleName).ConfigureAwait(false);
         await EnsureAnonymousProtocolAsync().ConfigureAwait(false);
     }
 
     public async Task NavigateToMainAsync()
     {
-        Option<IModule> mainModuleOption = await moduleManager.LoadModuleAsync("Main").ConfigureAwait(false);
+        IModule mainModule = await LoadModuleOrThrowAsync(
+            ModuleIdentifier.MAIN,
+            ApplicationErrorMessages.ApplicationRouter.FAILED_TO_LOAD_MAIN_MODULE).ConfigureAwait(false);
 
-        if (!mainModuleOption.IsSome)
-        {
-            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FAILED_TO_LOAD_MAIN_MODULE);
-        }
-
-        IModule mainModule = mainModuleOption.Value!;
-
-        if (mainModule.ServiceScope?.ServiceProvider == null)
-        {
-            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FAILED_TO_LOAD_MAIN_MODULE);
-        }
-
-        MasterViewModel? mainViewModel =
-            mainModule.ServiceScope.ServiceProvider.GetService<MasterViewModel>();
-
-        if (mainViewModel == null)
-        {
-            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter
-                .FAILED_TO_CREATE_MAIN_VIEW_MODEL);
-        }
+        MasterViewModel mainViewModel = GetRequiredServiceOrThrow<MasterViewModel>(
+            mainModule.ServiceScope!.ServiceProvider,
+            ApplicationErrorMessages.ApplicationRouter.FAILED_TO_CREATE_MAIN_VIEW_MODEL);
 
         await mainWindowViewModel.SetMainContentAsync(mainViewModel).ConfigureAwait(false);
-        await moduleManager.UnloadModuleAsync("Authentication").ConfigureAwait(false);
+        await moduleManager.UnloadModuleAsync(AuthModuleName).ConfigureAwait(false);
     }
 
     public async Task TransitionFromSplashAsync(Window splashWindow, bool isAuthenticated)
@@ -106,48 +79,25 @@ public sealed class ApplicationRouter(
 
         if (isAuthenticated)
         {
-            Option<IModule> mainModuleOption = await moduleManager.LoadModuleAsync("Main").ConfigureAwait(false);
+            IModule mainModule = await LoadModuleOrThrowAsync(
+                ModuleIdentifier.MAIN,
+                ApplicationErrorMessages.ApplicationRouter.FAILED_TO_LOAD_MAIN_MODULE_FROM_SPLASH).ConfigureAwait(false);
 
-            if (!mainModuleOption.IsSome || mainModuleOption.Value!.ServiceScope?.ServiceProvider == null)
-            {
-                throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter
-                    .FAILED_TO_LOAD_MAIN_MODULE_FROM_SPLASH);
-            }
-
-            IModule mainModule = mainModuleOption.Value!;
-
-            MasterViewModel? mainViewModel =
-                mainModule.ServiceScope.ServiceProvider.GetService<MasterViewModel>();
-
-            if (mainViewModel == null)
-            {
-                throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter
-                    .FAILED_TO_CREATE_MAIN_VIEW_MODEL);
-            }
+            MasterViewModel mainViewModel = GetRequiredServiceOrThrow<MasterViewModel>(
+                mainModule.ServiceScope!.ServiceProvider,
+                ApplicationErrorMessages.ApplicationRouter.FAILED_TO_CREATE_MAIN_VIEW_MODEL);
 
             await mainWindowViewModel.SetMainContentAsync(mainViewModel).ConfigureAwait(false);
         }
         else
         {
-            Option<IModule> authModuleOption =
-                await moduleManager.LoadModuleAsync("Authentication").ConfigureAwait(false);
+            IModule authModule = await LoadModuleOrThrowAsync(
+                ModuleIdentifier.AUTHENTICATION,
+                ApplicationErrorMessages.ApplicationRouter.FAILED_TO_LOAD_AUTH_MODULE_FROM_SPLASH).ConfigureAwait(false);
 
-            if (!authModuleOption.IsSome || authModuleOption.Value!.ServiceScope?.ServiceProvider == null)
-            {
-                throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter
-                    .FAILED_TO_LOAD_AUTH_MODULE_FROM_SPLASH);
-            }
-
-            IModule authModule = authModuleOption.Value!;
-
-            AuthenticationViewModel? membershipViewModel =
-                authModule.ServiceScope.ServiceProvider.GetService<AuthenticationViewModel>();
-
-            if (membershipViewModel == null)
-            {
-                throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter
-                    .FAILED_TO_CREATE_MEMBERSHIP_VIEW_MODEL);
-            }
+            AuthenticationViewModel membershipViewModel = GetRequiredServiceOrThrow<AuthenticationViewModel>(
+                authModule.ServiceScope!.ServiceProvider,
+                ApplicationErrorMessages.ApplicationRouter.FAILED_TO_CREATE_MEMBERSHIP_VIEW_MODEL);
 
             await mainWindowViewModel.SetAuthenticationContentAsync(membershipViewModel).ConfigureAwait(false);
         }
@@ -202,7 +152,7 @@ public sealed class ApplicationRouter(
             }
         });
 
-        await Task.Delay(100).ConfigureAwait(false);
+        await Task.Delay(WINDOW_CLOSE_CHECK_DELAY_MS).ConfigureAwait(false);
         bool isStillVisible = await Dispatcher.UIThread.InvokeAsync(() => fromWindow.IsVisible);
 
         if (isStillVisible)
@@ -278,5 +228,28 @@ public sealed class ApplicationRouter(
 
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
             }, allowDuplicates: false, token: CancellationToken.None).ConfigureAwait(false);
+    }
+
+    private async Task<IModule> LoadModuleOrThrowAsync(ModuleIdentifier id, string failureMessage)
+    {
+        Option<IModule> moduleOption = await moduleManager.LoadModuleAsync(id.ToName()).ConfigureAwait(false);
+
+        if (!moduleOption.IsSome || moduleOption.Value!.ServiceScope?.ServiceProvider == null)
+        {
+            throw new InvalidOperationException(failureMessage);
+        }
+
+        return moduleOption.Value!;
+    }
+
+    private static T GetRequiredServiceOrThrow<T>(IServiceProvider sp, string failureMessage) where T : class
+    {
+        T? service = sp.GetService<T>();
+        if (service == null)
+        {
+            throw new InvalidOperationException(failureMessage);
+        }
+
+        return service;
     }
 }

@@ -4,7 +4,6 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Ecliptix.Core.ViewModels.Navigation"
              xmlns:models="clr-namespace:Ecliptix.Core.Models.Navigation"
-             xmlns:newContent="clr-namespace:Ecliptix.Core.Features.NewContent"
              mc:Ignorable="d"
              d:DesignWidth="280"
              d:DesignHeight="800"

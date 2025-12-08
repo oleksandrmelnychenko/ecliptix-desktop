@@ -37,7 +37,7 @@ public sealed class CommentService : ICommentService
             int skip = (page - 1) * pageSize;
             List<Comment> pageComments = comments.Skip(skip).Take(pageSize).ToList();
 
-            CommentsPage commentsPage = new CommentsPage
+            CommentsPage commentsPage = new()
             {
                 Comments = pageComments,
                 CurrentPage = page,
@@ -63,7 +63,7 @@ public sealed class CommentService : ICommentService
 
             await Task.Delay(300, cancellationToken);
 
-            Comment newComment = new Comment
+            Comment newComment = new()
             {
                 CommentId = Guid.NewGuid().ToString(),
                 PostId = postId,
@@ -165,7 +165,7 @@ public sealed class CommentService : ICommentService
 
     private List<Comment> GenerateMockComments(string postId, int count)
     {
-        List<Comment> comments = new List<Comment>();
+        List<Comment> comments = new();
 
         for (int i = 0; i < count; i++)
         {
