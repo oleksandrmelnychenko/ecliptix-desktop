@@ -2,7 +2,7 @@ using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Globalization;
-using Ecliptix.Core.Controls.LanguageSelector;
+using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Settings.Constants;
 using Ecliptix.Utilities;
 

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
@@ -16,19 +15,19 @@ using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Controls.Core;
 
-public class LanguageSwitcherViewModel : ReactiveObject, IActivatableViewModel, IDisposable
+public class LanguageMenuButtonViewModel : ReactiveObject, IActivatableViewModel, IDisposable
 {
-    private readonly LanguageSelectionViewModel _cachedLanguageSelectionVm;
+    private readonly LanguagePickerViewModel _cachedLanguagePickerVm;
     private readonly ILocalizationService _localizationService;
     private bool _isDisposed;
 
     public ViewModelActivator Activator { get; } = new();
 
-    public ReactiveCommand<Unit, Unit> OpenLanguageSelectionCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenLanguagePickerCommand { get; }
 
     [Reactive] public LanguageItem? CurrentLanguage { get; set; }
 
-    public LanguageSwitcherViewModel(
+    public LanguageMenuButtonViewModel(
         ISideSheetService sideSheetService,
         IApplicationSecureStorageProvider storageProvider,
         ILocalizationService localizationService,
@@ -37,17 +36,17 @@ public class LanguageSwitcherViewModel : ReactiveObject, IActivatableViewModel, 
     {
         _localizationService = localizationService;
 
-        _cachedLanguageSelectionVm = new LanguageSelectionViewModel(
+        _cachedLanguagePickerVm = new LanguagePickerViewModel(
             sideSheetService,
             localizationService,
             storageProvider,
             rpcMetaDataProvider);
 
-        OpenLanguageSelectionCommand = ReactiveCommand.CreateFromTask(async () =>
+        OpenLanguagePickerCommand = ReactiveCommand.CreateFromTask(async () =>
         {
-            LanguageSelectionView view = new()
+            LanguagePickerView view = new()
             {
-                DataContext = _cachedLanguageSelectionVm
+                DataContext = _cachedLanguagePickerVm
             };
 
             await sideSheetService.ShowAsync(
@@ -92,7 +91,7 @@ public class LanguageSwitcherViewModel : ReactiveObject, IActivatableViewModel, 
 
         _isDisposed = true;
 
-        OpenLanguageSelectionCommand?.Dispose();
-        (_cachedLanguageSelectionVm as IDisposable)?.Dispose();
+        OpenLanguagePickerCommand?.Dispose();
+        _cachedLanguagePickerVm?.Dispose();
     }
 }

@@ -3,9 +3,9 @@ using Avalonia.ReactiveUI;
 
 namespace Ecliptix.Core.Controls.Modals;
 
-public partial class LanguageSelectionView : ReactiveUserControl<LanguageSelectionViewModel>
+public partial class LanguagePickerView : ReactiveUserControl<LanguagePickerViewModel>
 {
-    public LanguageSelectionView()
+    public LanguagePickerView()
     {
         InitializeComponent();
     }

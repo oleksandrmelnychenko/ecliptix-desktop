@@ -11,7 +11,6 @@ using Avalonia;
 using Avalonia.ReactiveUI;
 using DotNetEnv;
 using Ecliptix.Core.Controls.Core;
-using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Controls.Modals.BottomSheetModal;
 using Ecliptix.Core.Controls.Modals.SideSheetModal;
@@ -112,13 +111,13 @@ public static class Program
             IServiceProvider serviceProvider = services.BuildServiceProvider();
             ReactiveUI.IViewLocator reactiveViewLocator = serviceProvider.GetRequiredService<ReactiveUI.IViewLocator>();
             Splat.Locator.CurrentMutable.Register(() => reactiveViewLocator, typeof(ReactiveUI.IViewLocator));
-            Splat.Locator.CurrentMutable.Register(() => new LanguageSelectorView(), typeof(ReactiveUI.IViewFor<LanguageSelectorViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new LanguageCycleButtonView(), typeof(ReactiveUI.IViewFor<LanguageCycleButtonViewModel>));
             Splat.Locator.CurrentMutable.Register(() => new ToggleNavigationSideBarView(), typeof(ReactiveUI.IViewFor<ToggleNavigationSideBarViewModel>));
             Splat.Locator.CurrentMutable.Register(() => new ToggleThemeView(), typeof(ReactiveUI.IViewFor<ToggleThemeViewModel>));
             Splat.Locator.CurrentMutable.Register(() => new PersonalTagView(), typeof(ReactiveUI.IViewFor<PersonalTagViewModel>));
             Splat.Locator.CurrentMutable.Register(() => new EppBadgeView(), typeof(ReactiveUI.IViewFor<EppBadgeViewModel>));
             Splat.Locator.CurrentMutable.Register(() => new NetworkBadgeView(), typeof(ReactiveUI.IViewFor<NetworkBadgeViewModel>));
-            Splat.Locator.CurrentMutable.Register(() => new LanguageSwitcherView(), typeof(ReactiveUI.IViewFor<LanguageSwitcherViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new LanguageMenuButtonView(), typeof(ReactiveUI.IViewFor<LanguageMenuButtonViewModel>));
             Splat.Locator.CurrentMutable.Register(() => new VerticalSeparatorView(), typeof(ReactiveUI.IViewFor<VerticalSeparatorViewModel>));
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
         }
@@ -527,14 +526,14 @@ public static class Program
         services.AddTransient<Ecliptix.Core.Features.Settings.ViewModels.SettingsViewModel>();
         services.AddTransient<Ecliptix.Core.Features.Profile.ViewModels.ProfileViewModel>();
 
-        services.AddSingleton<LanguageSelectionViewModel>();
-        services.AddTransient<LanguageSelectorViewModel>();
+        services.AddSingleton<LanguagePickerViewModel>();
+        services.AddTransient<LanguageCycleButtonViewModel>();
         services.AddSingleton<BottomSheetViewModel>();
         services.AddSingleton<SideSheetViewModel>();
         services.AddSingleton<ConnectivityNotificationViewModel>();
         services.AddSingleton<Ecliptix.Core.ViewModels.Core.MainWindowViewModel>();
         services.AddTransient<Ecliptix.Core.Controls.Core.VerticalSeparatorViewModel>();
-        services.AddTransient<Ecliptix.Core.Controls.Core.LanguageSwitcherViewModel>();
+        services.AddTransient<Ecliptix.Core.Controls.Core.LanguageMenuButtonViewModel>();
         services.AddTransient<Ecliptix.Core.Controls.Core.EppBadgeViewModel>();
         services.AddTransient<Ecliptix.Core.Controls.Core.NetworkBadgeViewModel>();
         services.AddTransient<ToggleNavigationSideBarViewModel>();

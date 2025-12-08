@@ -15,9 +15,9 @@ using ReactiveUI;
 
 using Unit = System.Reactive.Unit;
 
-namespace Ecliptix.Core.Controls.LanguageSelector;
+namespace Ecliptix.Core.Controls.Core;
 
-public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableViewModel, IDisposable
+public sealed class LanguageCycleButtonViewModel : ReactiveObject, IActivatableViewModel, IDisposable
 {
     private readonly ILocalizationService _localizationService;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
@@ -41,7 +41,7 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
 
     public ReactiveCommand<Unit, Unit> ToggleLanguageCommand { get; }
 
-    public LanguageSelectorViewModel(ILocalizationService localizationService,
+    public LanguageCycleButtonViewModel(ILocalizationService localizationService,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IRpcMetaDataProvider rpcMetaDataProvider)
     {

@@ -4,9 +4,9 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Ecliptix.Core.Controls.Modals"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="Ecliptix.Core.Controls.Modals.LanguageSelectionView"
+             x:Class="Ecliptix.Core.Controls.Modals.LanguagePickerView"
              Width="340"
-             x:DataType="vm:LanguageSelectionViewModel">
+             x:DataType="vm:LanguagePickerViewModel">
 
   <Grid RowDefinitions="Auto, *" Margin="16">
         <Grid ColumnDefinitions="*, Auto" Margin="0,0,0,20">
@@ -43,7 +43,7 @@
                  </ListBox.ItemsPanel>
 
               <ListBox.Styles>
-                  <Style Selector="ListBoxItem" x:DataType="vm:SelectableLanguageViewModel">
+                  <Style Selector="ListBoxItem" x:DataType="vm:LanguagePickerItemViewModel">
                       <Setter Property="Classes.SidebarItem" Value="True"/>
 
                       <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
@@ -58,7 +58,7 @@
               </Interaction.Behaviors>
 
               <ListBox.ItemTemplate>
-                  <DataTemplate x:DataType="vm:SelectableLanguageViewModel">
+                  <DataTemplate x:DataType="vm:LanguagePickerItemViewModel">
                       <Grid ColumnDefinitions="Auto, *, Auto">
 
                           <Svg Grid.Column="0"

@@ -3,9 +3,9 @@ using Avalonia.ReactiveUI;
 
 namespace Ecliptix.Core.Controls.Core;
 
-public partial class LanguageSwitcherView : ReactiveUserControl<LanguageSwitcherViewModel>
+public partial class LanguageMenuButtonView : ReactiveUserControl<LanguageMenuButtonViewModel>
 {
-    public LanguageSwitcherView()
+    public LanguageMenuButtonView()
     {
         InitializeComponent();
     }

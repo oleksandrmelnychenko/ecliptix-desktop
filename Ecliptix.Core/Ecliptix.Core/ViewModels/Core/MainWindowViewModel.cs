@@ -10,7 +10,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using Ecliptix.Core.Controls.Core;
-using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
@@ -70,7 +69,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     [Reactive] public string WindowTitle { get; set; }
 
-    public LanguageSelectorViewModel LanguageSelector { get; }
+    public LanguageCycleButtonViewModel LanguageSelector { get; }
 
     public TitleBarViewModel TitleBarViewModel { get; }
     public ConnectivityNotificationViewModel ConnectivityNotification { get; }
@@ -112,7 +111,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
         TitleBarViewModel = new TitleBarViewModel();
 
-        LanguageSelector = new LanguageSelectorViewModel(
+        LanguageSelector = new LanguageCycleButtonViewModel(
             localizationService,
             storageProvider,
             rpcMetaDataProvider);
@@ -208,7 +207,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
             }
 
             VerticalSeparatorViewModel separator = Track(_viewModelFactory.Create<VerticalSeparatorViewModel>());
-            LanguageSwitcherViewModel languageSwitcher = Track(_viewModelFactory.Create<LanguageSwitcherViewModel>(
+            LanguageMenuButtonViewModel languageMenuButton = Track(_viewModelFactory.Create<LanguageMenuButtonViewModel>(
                 _sideSheetService,
                 _storageProvider,
                 _localizationService,
@@ -226,7 +225,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
                     reverseOrder: !RuntimeInformation.IsOSPlatform(OSPlatform.OSX),
                     clearOthers: false,
                     separator,
-                    languageSwitcher);
+                    languageMenuButton);
 
                 SetMultipleTitleBarContent(
                     TitleBarPosition.MIRRORED,

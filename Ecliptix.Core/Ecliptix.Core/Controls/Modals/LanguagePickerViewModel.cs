@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
-using Ecliptix.Core.Controls.LanguageSelector;
+using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
@@ -17,21 +17,15 @@ using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Controls.Modals;
 
-public class SelectableLanguageViewModel : ReactiveObject
+public class LanguagePickerItemViewModel(LanguageItem model, bool isSelected) : ReactiveObject
 {
-    public LanguageItem Model { get; }
+    public LanguageItem Model { get; } = model;
 
     [Reactive]
-    public bool IsSelected { get; set; }
-
-    public SelectableLanguageViewModel(LanguageItem model, bool isSelected)
-    {
-        Model = model;
-        IsSelected = isSelected;
-    }
+    public bool IsSelected { get; set; } = isSelected;
 }
 
-public class LanguageSelectionViewModel : ReactiveObject, IActivatableViewModel, IDisposable
+public class LanguagePickerViewModel : ReactiveObject, IActivatableViewModel, IDisposable
 {
     private readonly ISideSheetService _sideSheetService;
     private readonly ILocalizationService _localizationService;
@@ -41,13 +35,13 @@ public class LanguageSelectionViewModel : ReactiveObject, IActivatableViewModel,
 
     public ViewModelActivator Activator { get; } = new();
 
-    public ObservableCollection<SelectableLanguageViewModel> Languages { get; }
+    public ObservableCollection<LanguagePickerItemViewModel> Languages { get; }
 
     public ReactiveCommand<Unit, Unit> CloseCommand { get; }
 
-    public ReactiveCommand<SelectableLanguageViewModel, Unit> SelectLanguageCommand { get; }
+    public ReactiveCommand<LanguagePickerItemViewModel, Unit> SelectLanguageCommand { get; }
 
-    public LanguageSelectionViewModel(
+    public LanguagePickerViewModel(
         ISideSheetService sideSheetService,
         ILocalizationService localizationService,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
@@ -60,29 +54,24 @@ public class LanguageSelectionViewModel : ReactiveObject, IActivatableViewModel,
 
         string currentCulture = _localizationService.CurrentCultureName;
 
-        IEnumerable<SelectableLanguageViewModel> selectableLanguages = AppCultureSettings.Default.SupportedLanguages
-            .Select(lang => new SelectableLanguageViewModel(lang, lang.Code == currentCulture));
+        IEnumerable<LanguagePickerItemViewModel> selectableLanguages = AppCultureSettings.Default.SupportedLanguages
+            .Select(lang => new LanguagePickerItemViewModel(lang, lang.Code == currentCulture));
 
-        Languages = new ObservableCollection<SelectableLanguageViewModel>(selectableLanguages);
+        Languages = new ObservableCollection<LanguagePickerItemViewModel>(selectableLanguages);
 
         CloseCommand = ReactiveCommand.CreateFromTask(async () =>
         {
             await _sideSheetService.HideAsync();
         });
 
-        SelectLanguageCommand = ReactiveCommand.CreateFromTask<SelectableLanguageViewModel>(async (selectedItem) =>
+        SelectLanguageCommand = ReactiveCommand.CreateFromTask<LanguagePickerItemViewModel>(async (selectedItem) =>
         {
             await SelectLanguageAsync(selectedItem);
         });
     }
 
-    private async Task SelectLanguageAsync(SelectableLanguageViewModel selectedItem)
+    private async Task SelectLanguageAsync(LanguagePickerItemViewModel selectedItem)
     {
-        if (selectedItem is null)
-        {
-            return;
-        }
-
         if (_localizationService.CurrentCultureName == selectedItem.Model.Code)
         {
             await _sideSheetService.HideAsync();
@@ -126,10 +115,9 @@ public class LanguageSelectionViewModel : ReactiveObject, IActivatableViewModel,
                     cultureCode, result.UnwrapErr().Message);
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Serilog.Log.Error(ex, "[LANGUAGE-SELECTION] Exception persisting culture setting. CULTURE: {Culture}",
-                cultureCode);
+            // ignored
         }
     }
 
@@ -142,7 +130,7 @@ public class LanguageSelectionViewModel : ReactiveObject, IActivatableViewModel,
 
         _isDisposed = true;
 
-        CloseCommand?.Dispose();
-        SelectLanguageCommand?.Dispose();
+        CloseCommand.Dispose();
+        SelectLanguageCommand.Dispose();
     }
 }

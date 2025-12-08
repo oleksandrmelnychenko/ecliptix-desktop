@@ -2,13 +2,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:languageSelector="clr-namespace:Ecliptix.Core.Controls.LanguageSelector"
+             xmlns:core="clr-namespace:Ecliptix.Core.Controls.Core"
              xmlns:converters="clr-namespace:Ecliptix.Core.Shared.Converters"
              mc:Ignorable="d"
              d:DesignWidth="120"
              d:DesignHeight="36"
-             x:Class="Ecliptix.Core.Controls.LanguageSelector.LanguageSelectorView"
-             x:DataType="languageSelector:LanguageSelectorViewModel">
+             x:Class="Ecliptix.Core.Controls.Core.LanguageCycleButtonView"
+             x:DataType="core:LanguageCycleButtonViewModel">
 
     <UserControl.Resources>
         <x:Double x:Key="ControlHeight">32</x:Double>

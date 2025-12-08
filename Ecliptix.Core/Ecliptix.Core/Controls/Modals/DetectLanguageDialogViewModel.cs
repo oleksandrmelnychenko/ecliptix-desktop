@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Reactive.Disposables;
 using System.Threading.Tasks;
 
-using Ecliptix.Core.Controls.LanguageSelector;
+using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
