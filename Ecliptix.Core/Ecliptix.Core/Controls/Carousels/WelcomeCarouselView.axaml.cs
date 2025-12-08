@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections;
-using System.ComponentModel;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Avalonia;
@@ -15,20 +14,19 @@ using ReactiveUI;
 
 namespace Ecliptix.Core.Controls.Carousels;
 
-public class WelcomeSlideItemTemplate : INotifyPropertyChanged, IDisposable
+public class WelcomeSlideItemTemplate : ReactiveObject, IDisposable
 {
     private readonly CompositeDisposable _disposables = new();
-    private string _title = string.Empty;
-    private string _description = string.Empty;
-
-    public event PropertyChangedEventHandler? PropertyChanged;
 
     public WelcomeSlideItemTemplate(string titleKey, string descriptionKey, Bitmap? image,
         ILocalizationService localizationService)
     {
         Image = image;
 
-        localizationService.WhenAnyValue(x => x.CurrentCultureName)
+        Observable.FromEvent(
+                handler => localizationService.LanguageChanged += handler,
+                handler => localizationService.LanguageChanged -= handler
+            )
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(_ =>
             {
@@ -44,28 +42,16 @@ public class WelcomeSlideItemTemplate : INotifyPropertyChanged, IDisposable
     public string Title
     {
         get => _title;
-        set
-        {
-            if (_title != value)
-            {
-                _title = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Title)));
-            }
-        }
+        set => this.RaiseAndSetIfChanged(ref _title, value);
     }
+    private string _title = string.Empty;
 
     public string Description
     {
         get => _description;
-        set
-        {
-            if (_description != value)
-            {
-                _description = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Description)));
-            }
-        }
+        set => this.RaiseAndSetIfChanged(ref _description, value);
     }
+    private string _description = string.Empty;
 
     public Bitmap? Image { get; }
 

@@ -107,7 +107,7 @@
             </StackPanel>
 
             <!-- Copyright -->
-            <TextBlock Text="© 2025 Horizon Dynamics. All rights reserved."
+            <TextBlock Text="{Binding LocalizationService[Footer.Copyright]}"
                        Classes="footer"
                        Foreground="#6B7280"
                        HorizontalAlignment="Center"
