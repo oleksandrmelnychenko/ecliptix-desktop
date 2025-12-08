@@ -23,9 +23,8 @@ using Ecliptix.Core.Views.Core.Constants;
 using Ecliptix.Core.Views.Core.Factories;
 using Ecliptix.Core.Views.Core.Models;
 using Ecliptix.Core.Views.Core.Services;
-using Ecliptix.Core.Views.Memberships.Components;
-using Ecliptix.Core.Views.Memberships.Components.TitleBar;
-using Ecliptix.Core.Views.Memberships.Components.TitleBarUtilities.ViewModels;
+using Ecliptix.Core.Views.Core.Components.TitleBar;
+using Ecliptix.Core.Views.Core.Components.TitleBarUtilities.ViewModels;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Utilities;
 using ReactiveUI;
@@ -56,7 +55,10 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     private readonly List<IDisposable> _trackedDisposables = new();
     private readonly CancellationTokenSource _cancellationTokenSource = new();
-    private readonly Dictionary<TitleBarPosition, Func<bool, System.Collections.ObjectModel.ObservableCollection<object>>> _titleBarCollectionCache;
+
+    private readonly
+        Dictionary<TitleBarPosition, Func<bool, System.Collections.ObjectModel.ObservableCollection<object>>>
+        _titleBarCollectionCache;
 
     private volatile bool _isDisposed;
     private volatile bool _isMainContentActive;
@@ -97,15 +99,15 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         MainWindowConfiguration configuration,
         ConnectivityNotificationViewModel connectivityNotification)
     {
-        _sideSheetService = sideSheetService ?? throw new ArgumentNullException(nameof(sideSheetService));
-        _bottomSheetService = bottomSheetService ?? throw new ArgumentNullException(nameof(bottomSheetService));
-        _storageProvider = storageProvider ?? throw new ArgumentNullException(nameof(storageProvider));
-        _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
-        _rpcMetaDataProvider = rpcMetaDataProvider ?? throw new ArgumentNullException(nameof(rpcMetaDataProvider));
-        _animationService = animationService ?? throw new ArgumentNullException(nameof(animationService));
-        _positionService = positionService ?? throw new ArgumentNullException(nameof(positionService));
-        _viewModelFactory = viewModelFactory ?? throw new ArgumentNullException(nameof(viewModelFactory));
-        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+        _sideSheetService = sideSheetService;
+        _bottomSheetService = bottomSheetService;
+        _storageProvider = storageProvider;
+        _localizationService = localizationService;
+        _rpcMetaDataProvider = rpcMetaDataProvider;
+        _animationService = animationService;
+        _positionService = positionService;
+        _viewModelFactory = viewModelFactory;
+        _configuration = configuration;
 
         MinWindowWidth = MainWindowConstants.Dimensions.MIN_WINDOW_WIDTH;
         MinWindowHeight = MainWindowConstants.Dimensions.MIN_WINDOW_HEIGHT;
@@ -124,12 +126,12 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
             rpcMetaDataProvider);
         Track(LanguageSelector);
 
-        ConnectivityNotification = connectivityNotification ?? throw new ArgumentNullException(nameof(connectivityNotification));
+        ConnectivityNotification = connectivityNotification;
         Track(ConnectivityNotification);
 
         _titleBarCollectionCache = InitializeTitleBarCollectionCache();
 
-        SetupHandlersAsync(_cancellationTokenSource.Token).ContinueWith(
+        SetupHandlersAsync().ContinueWith(
             task =>
             {
                 if (task is { IsFaulted: true, Exception: not null })
@@ -142,23 +144,26 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     private T Track<T>(T obj) where T : class
     {
-        if (obj == null)
+        switch (obj)
         {
-            throw new ArgumentNullException(nameof(obj));
-        }
-
-        if (obj is IDisposable disposable)
-        {
-            lock (_trackedDisposables)
+            case null:
+                throw new ArgumentNullException(nameof(obj));
+            case IDisposable disposable:
             {
-                _trackedDisposables.Add(disposable);
+                lock (_trackedDisposables)
+                {
+                    _trackedDisposables.Add(disposable);
+                }
+
+                break;
             }
         }
 
         return obj;
     }
 
-    private Dictionary<TitleBarPosition, Func<bool, System.Collections.ObjectModel.ObservableCollection<object>>> InitializeTitleBarCollectionCache()
+    private Dictionary<TitleBarPosition, Func<bool, System.Collections.ObjectModel.ObservableCollection<object>>>
+        InitializeTitleBarCollectionCache()
     {
         bool isMac = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
 
@@ -166,8 +171,10 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         {
             [TitleBarPosition.Left] = _ => TitleBarViewModel.LeftContent,
             [TitleBarPosition.Right] = _ => TitleBarViewModel.RightContent,
-            [TitleBarPosition.Mirrored] = _ => isMac ? TitleBarViewModel.RightContent : TitleBarViewModel.LeftContent,
-            [TitleBarPosition.ReverseMirrored] = _ => isMac ? TitleBarViewModel.LeftContent : TitleBarViewModel.RightContent
+            [TitleBarPosition.Mirrored] =
+                _ => isMac ? TitleBarViewModel.RightContent : TitleBarViewModel.LeftContent,
+            [TitleBarPosition.ReverseMirrored] =
+                _ => isMac ? TitleBarViewModel.LeftContent : TitleBarViewModel.RightContent
         };
     }
 
@@ -285,21 +292,24 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
                 TitleBarViewModel.DisableMaximizeButton = false;
                 ClearTitleBarContent();
 
-                ToggleNavigationSideBarViewModel toggleNav = Track(_viewModelFactory.Create<ToggleNavigationSideBarViewModel>());
+                ToggleNavigationSideBarViewModel toggleNav =
+                    Track(_viewModelFactory.Create<ToggleNavigationSideBarViewModel>());
                 ToggleThemeViewModel toggleTheme = Track(_viewModelFactory.Create<ToggleThemeViewModel>());
 
                 TitleBarViewModel.LeftContent.Add(toggleNav);
                 TitleBarViewModel.RightContent.Add(toggleTheme);
 
-                if (!string.IsNullOrEmpty(_configuration.DefaultUserName) &&
-                    !string.IsNullOrEmpty(_configuration.DefaultUserTag))
+                if (string.IsNullOrEmpty(_configuration.DefaultUserName) ||
+                    string.IsNullOrEmpty(_configuration.DefaultUserTag))
                 {
-                    PersonalTagViewModel tagVm = Track(_viewModelFactory.Create<PersonalTagViewModel>(
-                        _configuration.DefaultUserName,
-                        _configuration.DefaultUserTag));
-
-                    TitleBarViewModel.CenterContent = tagVm;
+                    return;
                 }
+
+                PersonalTagViewModel tagVm = Track(_viewModelFactory.Create<PersonalTagViewModel>(
+                    _configuration.DefaultUserName,
+                    _configuration.DefaultUserTag));
+
+                TitleBarViewModel.CenterContent = tagVm;
             }, DispatcherPriority.Loaded);
 
             await SetContentWithFadeAsync(content, linkedCts.Token).ConfigureAwait(false);
@@ -313,7 +323,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         }
     }
 
-    public void SetMultipleTitleBarContent(
+    private void SetMultipleTitleBarContent(
         TitleBarPosition position,
         bool reverseOrder,
         bool clearOthers,
@@ -326,12 +336,13 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
             ClearTitleBarContent();
         }
 
-        if (items == null || items.Length == 0)
+        if (items.Length == 0)
         {
             return;
         }
 
-        if (!_titleBarCollectionCache.TryGetValue(position, out Func<bool, System.Collections.ObjectModel.ObservableCollection<object>>? getCollection))
+        if (!_titleBarCollectionCache.TryGetValue(position,
+                out Func<bool, System.Collections.ObjectModel.ObservableCollection<object>>? getCollection))
         {
             return;
         }
@@ -396,7 +407,6 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
         if (!_positionService.ValidateDimensions(targetWidth, targetHeight))
         {
-            Log.Warning("[MAIN-WINDOW-VM] Invalid target dimensions: {Width}x{Height}", targetWidth, targetHeight);
             return;
         }
 
@@ -421,14 +431,14 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
             DateTime.UtcNow,
             duration);
 
-        if (!state.NeedsSizeChange && !state.NeedsPositionChange)
+        if (state is { NeedsSizeChange: false, NeedsPositionChange: false })
         {
             return;
         }
 
         await _animationService.AnimateWindowAsync(
             state,
-            (progress, size, position) =>
+            (_, size, position) =>
             {
                 WindowWidth = size.Width;
                 WindowHeight = size.Height;
@@ -459,7 +469,8 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
                 currentPos.Y + MainWindowConstants.Layout.WINDOW_REPOSITION_OFFSET);
 
             OnWindowRepositionRequested?.Invoke(nudgedPosition);
-            await Task.Delay(MainWindowConstants.TimeSpans.WindowSnapCheckDelay, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(MainWindowConstants.TimeSpans.WindowSnapCheckDelay, cancellationToken)
+                .ConfigureAwait(false);
         }
     }
 
@@ -468,7 +479,8 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         if (WindowState is WindowState.Maximized or WindowState.FullScreen)
         {
             WindowState = WindowState.Normal;
-            await Task.Delay(MainWindowConstants.TimeSpans.FullScreenRestoreDelay, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(MainWindowConstants.TimeSpans.FullScreenRestoreDelay, cancellationToken)
+                .ConfigureAwait(false);
         }
     }
 
@@ -488,22 +500,20 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         BottomSheetComponentType type,
         UserControl view,
         bool showScrim = true,
-        bool isDismissable = false,
-        CancellationToken cancellationToken = default) =>
+        bool isDismissable = false) =>
         await _bottomSheetService.ShowAsync(type, view, showScrim, isDismissable).ConfigureAwait(false);
 
     public async Task ShowSideSheetAsync(
         SideSheetComponentType type,
         UserControl view,
         bool showScrim = true,
-        bool isDismissable = false,
-        CancellationToken cancellationToken = default) =>
+        bool isDismissable = false) =>
         await _sideSheetService.ShowAsync(type, view, showScrim, isDismissable).ConfigureAwait(false);
 
-    public async Task HideBottomSheetAsync(CancellationToken cancellationToken = default) =>
+    public async Task HideBottomSheetAsync() =>
         await _bottomSheetService.HideAsync().ConfigureAwait(false);
 
-    public async Task HideSideSheetAsync(CancellationToken cancellationToken = default) =>
+    public async Task HideSideSheetAsync() =>
         await _sideSheetService.HideAsync().ConfigureAwait(false);
 
     public IDisposable OnBottomSheetHidden(Func<BottomSheetHiddenEvent, Task> handler, SubscriptionLifetime lifetime) =>
@@ -512,7 +522,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     public IDisposable OnSideSheetHidden(Func<SideSheetHiddenEvent, Task> handler, SubscriptionLifetime lifetime) =>
         _sideSheetService.OnSideSheetHidden(handler, lifetime);
 
-    public async Task<WindowPlacement?> LoadInitialPlacementAsync(CancellationToken cancellationToken = default)
+    public async Task<WindowPlacement?> LoadInitialPlacementAsync()
     {
         ThrowIfDisposed();
 
@@ -531,7 +541,8 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
         try
         {
-            WindowPlacement placement = (await LoadInitialPlacementAsync(cancellationToken).ConfigureAwait(false)) ?? new WindowPlacement();
+            WindowPlacement placement =
+                await LoadInitialPlacementAsync().ConfigureAwait(false) ?? new WindowPlacement();
 
             placement.IsValidSave = false;
 
@@ -562,7 +573,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        WindowPlacement placement = (await LoadInitialPlacementAsync(cancellationToken).ConfigureAwait(false)) ?? new WindowPlacement();
+        WindowPlacement placement = (await LoadInitialPlacementAsync().ConfigureAwait(false))!;
 
         if (state == WindowState.Normal)
         {
@@ -575,14 +586,15 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         placement.WindowState = (int)(state == WindowState.Minimized ? WindowState.Normal : state);
         placement.IsValidSave = true;
 
-        Result<Unit, InternalServiceApiFailure> result = await _storageProvider.SetWindowPlacementAsync(placement).ConfigureAwait(false);
+        Result<Unit, InternalServiceApiFailure> result =
+            await _storageProvider.SetWindowPlacementAsync(placement).ConfigureAwait(false);
         if (result.IsErr)
         {
             Log.Warning("[MAIN-WINDOW-VM] Cannot save window state: {Error}", result.UnwrapErr().Message);
         }
     }
 
-    private static Task SetupHandlersAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    private static Task SetupHandlersAsync() => Task.CompletedTask;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ThrowIfDisposed()
