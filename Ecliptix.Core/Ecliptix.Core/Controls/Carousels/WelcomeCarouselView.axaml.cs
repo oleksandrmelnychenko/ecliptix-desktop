@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Avalonia;
 using Avalonia.Controls;
@@ -10,14 +11,16 @@ using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Ecliptix.Core.Services.Abstractions.Core;
 using ReactiveUI;
+using ReactiveUI.Fody.Helpers;
 
 namespace Ecliptix.Core.Controls.Carousels;
 
-public class WelcomeSlideItemTemplate : ReactiveObject
+public class WelcomeSlideItemTemplate : ReactiveObject, IDisposable
 {
     private readonly ILocalizationService _localizationService;
     private readonly string _titleKey;
     private readonly string _descriptionKey;
+    private readonly CompositeDisposable _disposables = new();
 
     public WelcomeSlideItemTemplate(string titleKey, string descriptionKey, Bitmap? image, ILocalizationService localizationService)
     {
@@ -27,17 +30,23 @@ public class WelcomeSlideItemTemplate : ReactiveObject
         _localizationService = localizationService;
 
         _localizationService.WhenAnyValue(x => x.CurrentCultureName)
+            .Select(_ => _localizationService[_titleKey])
             .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(_ =>
-            {
-                this.RaisePropertyChanged(nameof(Title));
-                this.RaisePropertyChanged(nameof(Description));
-            });
+            .ToPropertyEx(this, x => x.Title)
+            .DisposeWith(_disposables);
+
+        _localizationService.WhenAnyValue(x => x.CurrentCultureName)
+            .Select(_ => _localizationService[_descriptionKey])
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .ToPropertyEx(this, x => x.Description)
+            .DisposeWith(_disposables);
     }
 
-    public string Title => _localizationService[_titleKey];
-    public string Description => _localizationService[_descriptionKey];
+    [ObservableAsProperty] public string Title { get; }
+    [ObservableAsProperty] public string Description { get; }
     public Bitmap? Image { get; }
+
+    public void Dispose() => _disposables.Dispose();
 }
 
 public partial class WelcomeCarouselView : UserControl
