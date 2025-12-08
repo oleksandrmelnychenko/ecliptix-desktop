@@ -108,7 +108,13 @@
                                               ContentTemplate="{TemplateBinding ContentTemplate}"
                                               HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                               VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                              TextBlock.Foreground="{TemplateBinding Foreground}" />
+                                              TextBlock.Foreground="{TemplateBinding Foreground}">
+                                <ContentPresenter.Styles>
+                                    <Style Selector="TextBlock">
+                                        <Setter Property="FontFamily" Value="{StaticResource SegoeUI}"/>
+                                    </Style>
+                                </ContentPresenter.Styles>
+                            </ContentPresenter>
 
 
                             <Grid Name="PART_LoadingOverlay"
@@ -139,6 +145,7 @@
         <Setter Property="Background" Value="{DynamicResource Secondary}" />
         <Setter Property="Foreground" Value="{DynamicResource OnSecondary}" />
         <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="FontFamily" Value="{StaticResource SegoeUI}" />
     </Style>
     <Style Selector="Button.primary:pointerover">
         <Setter Property="Background" Value="{DynamicResource Button.Primary.Hover}" />
@@ -152,6 +159,7 @@
         <Setter Property="Background" Value="{DynamicResource Surface}" />
         <Setter Property="Foreground" Value="{DynamicResource OnSurface}" />
         <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="FontFamily" Value="{StaticResource SegoeUI}" />
     </Style>
     <Style Selector="Button.secondary:pointerover">
         <Setter Property="Background" Value="{DynamicResource Button.Secondary.Hover}" />

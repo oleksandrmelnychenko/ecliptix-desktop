@@ -29,7 +29,16 @@
         </Style>
 
         <Style Selector="Border.ServerIssue">
-            <Setter Property="Background" Value="#FECACA"/>
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                        <GradientStop Color="#fef2f2" Offset="0"/>
+                        <GradientStop Color="#fff1f2" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="BorderBrush" Value="#99fecaca"/>
+            <Setter Property="BorderThickness" Value="1"/>
         </Style>
 
         <Style Selector="Border.Restored">
@@ -61,7 +70,7 @@
     </UserControl.Styles>
 
     <Border x:Name="MainBorder"
-            CornerRadius="8"
+            CornerRadius="12"
             BoxShadow="0 4 24 4 #15000000"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch">
@@ -69,7 +78,7 @@
         <Border x:Name="ContentBorder"
                 Background="White"
                 Margin="4,0,0,0"
-                CornerRadius="4,8,8,4"
+                CornerRadius="8,12,12,8"
                 ClipToBounds="True">
 
             <Grid>
@@ -86,26 +95,57 @@
                            Grid.Column="0"
                            VerticalAlignment="Center"
                            Source="{Binding StatusIconSource}"
-                           Stretch="Uniform" />
+                           Stretch="Uniform">
+                        <Image.Styles>
+                            <Style Selector="Image">
+                                <Setter Property="Opacity" Value="1"/>
+                            </Style>
+                            <Style Selector="Border.ServerIssue Image">
+                                <Setter Property="Opacity" Value="0.9"/>
+                            </Style>
+                        </Image.Styles>
+                    </Image>
 
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                        <TextBlock Text="{Binding StatusText}"
+                        <TextBlock x:Name="StatusTextBlock"
+                                   Text="{Binding StatusText}"
+                                   FontFamily="{StaticResource SegoeUI}"
                                    Foreground="#111827"
                                    FontWeight="SemiBold"
                                    FontSize="14"
-                                   TextWrapping="NoWrap" />
+                                   TextWrapping="NoWrap">
+                            <TextBlock.Styles>
+                                <Style Selector="TextBlock">
+                                    <Setter Property="Foreground" Value="#111827"/>
+                                </Style>
+                                <Style Selector="Border.ServerIssue TextBlock">
+                                    <Setter Property="Foreground" Value="#b91c1c"/>
+                                </Style>
+                            </TextBlock.Styles>
+                        </TextBlock>
 
-                        <TextBlock Text="{Binding StatusDescription}"
+                        <TextBlock x:Name="StatusDescriptionBlock"
+                                   Text="{Binding StatusDescription}"
+                                   FontFamily="{StaticResource SegoeUI}"
                                    Foreground="#6B7280"
                                    FontSize="12"
-                                   TextWrapping="NoWrap" />
+                                   TextWrapping="NoWrap">
+                            <TextBlock.Styles>
+                                <Style Selector="TextBlock">
+                                    <Setter Property="Foreground" Value="#6B7280"/>
+                                </Style>
+                                <Style Selector="Border.ServerIssue TextBlock">
+                                    <Setter Property="Foreground" Value="#dc2626"/>
+                                </Style>
+                            </TextBlock.Styles>
+                        </TextBlock>
                     </StackPanel>
 
                     <Button x:Name="RetryButton"
                             Grid.Column="2"
                             Margin="8,0,0,0"
                             Padding="12,6"
-                            CornerRadius="6"
+                            CornerRadius="8"
                             Background="Transparent"
                             BorderBrush="#E5E7EB"
                             BorderThickness="1"
@@ -120,6 +160,7 @@
                         </Button.Styles>
 
                         <TextBlock Text="{Binding RetryButtonText}"
+                                   FontFamily="{StaticResource SegoeUI}"
                                    Foreground="#374151"
                                    FontWeight="Medium"
                                    FontSize="12"/>

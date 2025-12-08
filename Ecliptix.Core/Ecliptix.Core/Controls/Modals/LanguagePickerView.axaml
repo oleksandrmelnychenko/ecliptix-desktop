@@ -12,9 +12,12 @@
         <Grid ColumnDefinitions="*, Auto" Margin="0,0,0,20">
             <StackPanel Grid.Column="0" Spacing="2">
                 <TextBlock Text="App language"
+                           FontFamily="{StaticResource SegoeUI}"
                            FontSize="16" FontWeight="Bold"
-                           Foreground="{DynamicResource OnSurface}"/>
+                           Foreground="{DynamicResource OnSurface}"
+                           Margin="0,0,0,6"/>
                 <TextBlock Text="Choose your preferred language"
+                           FontFamily="{StaticResource SegoeUI}"
                            FontSize="12" FontWeight="Normal"
                            Foreground="{DynamicResource TextSecondary}"/>
             </StackPanel>
@@ -69,6 +72,7 @@
 
                           <StackPanel Grid.Column="1" VerticalAlignment="Center">
                               <TextBlock Text="{Binding Model.DisplayName}"
+                                         FontFamily="{StaticResource SegoeUI}"
                                          FontSize="14"
                                          Foreground="{DynamicResource OnSurface}"/>
                               </StackPanel>
