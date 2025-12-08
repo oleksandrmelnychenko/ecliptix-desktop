@@ -19,30 +19,25 @@ public class WelcomeSlideItemTemplate : ReactiveObject, IDisposable
 {
     private readonly CompositeDisposable _disposables = new();
 
-#pragma warning disable CS8618 // ObservableAsProperty initialized by ToPropertyEx
     public WelcomeSlideItemTemplate(string titleKey, string descriptionKey, Bitmap? image,
         ILocalizationService localizationService)
-#pragma warning restore CS8618
     {
         Image = image;
+        Title = localizationService[titleKey];
+        Description = localizationService[descriptionKey];
 
         localizationService.WhenAnyValue(x => x.CurrentCultureName)
-            .Select(_ => localizationService[titleKey])
-            .StartWith(localizationService[titleKey])
             .ObserveOn(RxApp.MainThreadScheduler)
-            .ToPropertyEx(this, x => x.Title)
-            .DisposeWith(_disposables);
-
-        localizationService.WhenAnyValue(x => x.CurrentCultureName)
-            .Select(_ => localizationService[descriptionKey])
-            .StartWith(localizationService[descriptionKey])
-            .ObserveOn(RxApp.MainThreadScheduler)
-            .ToPropertyEx(this, x => x.Description)
+            .Subscribe(_ =>
+            {
+                Title = localizationService[titleKey];
+                Description = localizationService[descriptionKey];
+            })
             .DisposeWith(_disposables);
     }
 
-    [ObservableAsProperty] public string Title { get; }
-    [ObservableAsProperty] public string Description { get; }
+    [Reactive] public string Title { get; set; }
+    [Reactive] public string Description { get; set; }
     public Bitmap? Image { get; }
 
     public void Dispose() => _disposables.Dispose();
