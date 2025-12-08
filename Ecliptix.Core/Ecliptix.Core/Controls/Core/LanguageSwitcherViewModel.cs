@@ -16,10 +16,11 @@ using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Controls.Core;
 
-public class LanguageSwitcherViewModel : ReactiveObject, IActivatableViewModel
+public class LanguageSwitcherViewModel : ReactiveObject, IActivatableViewModel, IDisposable
 {
     private readonly LanguageSelectionViewModel _cachedLanguageSelectionVm;
     private readonly ILocalizationService _localizationService;
+    private bool _isDisposed;
 
     public ViewModelActivator Activator { get; } = new();
 
@@ -80,5 +81,18 @@ public class LanguageSwitcherViewModel : ReactiveObject, IActivatableViewModel
         {
             CurrentLanguage = langOption.Value;
         }
+    }
+
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        _isDisposed = true;
+
+        OpenLanguageSelectionCommand?.Dispose();
+        (_cachedLanguageSelectionVm as IDisposable)?.Dispose();
     }
 }

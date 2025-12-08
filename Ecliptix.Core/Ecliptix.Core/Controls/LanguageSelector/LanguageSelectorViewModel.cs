@@ -149,9 +149,8 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
             return;
         }
 
-        ToggleLanguageCommand.Dispose();
-        _disposables.Dispose();
-
         _disposed = true;
+
+        _disposables.Dispose();
     }
 }
