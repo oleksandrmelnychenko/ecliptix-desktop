@@ -11,10 +11,10 @@
              x:DataType="core:LanguageCycleButtonViewModel">
 
     <UserControl.Resources>
-        <x:Double x:Key="ControlHeight">32</x:Double>
-        <x:Double x:Key="ControlWidth">62</x:Double>
+        <x:Double x:Key="ControlHeight">20</x:Double>
+        <x:Double x:Key="ControlWidth">28</x:Double>
         <x:Double x:Key="FontSize">11</x:Double>
-        <CornerRadius x:Key="ControlCornerRadius">8</CornerRadius>
+        <CornerRadius x:Key="ControlCornerRadius">6</CornerRadius>
     </UserControl.Resources>
 
     <UserControl.Styles>
@@ -218,20 +218,14 @@
 
         <ComboBox.ItemTemplate>
             <DataTemplate>
-                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                    <Svg
-                        Path="{Binding FlagImagePath}"
-                         VerticalAlignment="Center"
-                         Width="18"
-                         Height="12"
-                         ClipToBounds="True"
-                         HorizontalAlignment="Center"
-                    />
-
-                    <TextBlock Text="{Binding DisplayName}"
-                               FontWeight="Light"
-                               VerticalAlignment="Center" />
-                </StackPanel>
+                <Svg
+                    Path="{Binding FlagImagePath}"
+                     VerticalAlignment="Center"
+                     Width="20"
+                     Height="14"
+                     ClipToBounds="True"
+                     HorizontalAlignment="Center"
+                />
             </DataTemplate>
         </ComboBox.ItemTemplate>
     </ComboBox>
