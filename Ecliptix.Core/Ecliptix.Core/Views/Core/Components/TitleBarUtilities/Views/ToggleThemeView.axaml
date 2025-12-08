@@ -1,0 +1,89 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:viewModels="clr-namespace:Ecliptix.Core.Views.Core.Components.TitleBarUtilities.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:DataType="viewModels:ToggleThemeViewModel"
+             x:Class="Ecliptix.Core.Views.Core.Components.TitleBarUtilities.Views.ToggleThemeView">
+
+   <UserControl.Resources>
+        <StreamGeometry x:Key="MoonIconData">M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z</StreamGeometry>
+        <StreamGeometry x:Key="SunIconData">M12 16A4 4 0 1 1 12 8A4 4 0 0 1 12 16 M12 2v2 M12 20v2 M4.93 4.93l1.41 1.41 M17.66 17.66l1.41 1.41 M2 12h2 M20 12h2 M6.34 17.66l-1.41 1.41 M19.07 4.93l-1.41 1.41</StreamGeometry>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="Button.icon-btn">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="Button.icon-btn:pointerover">
+            <Setter Property="Background" Value="#1A000000" />
+        </Style>
+
+        <Style Selector="Button.icon-btn:pressed">
+            <Setter Property="RenderTransform" Value="scale(0.95)" />
+        </Style>
+
+        <Style Selector="Path.theme-icon">
+            <Setter Property="Stroke" Value="#5C5C5C" />
+            <Setter Property="StrokeThickness" Value="2" />
+            <Setter Property="StrokeLineCap" Value="Round" />
+            <Setter Property="StrokeJoin" Value="Round" />
+            <Setter Property="Fill" Value="Transparent" />
+            <Setter Property="RenderTransformOrigin" Value="50%,50%" />
+
+            <Setter Property="Margin" Value="1" />
+
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.3" Easing="CubicEaseOut" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3" Easing="BackEaseOut" />
+                    <BrushTransition Property="Stroke" Duration="0:0:0.15" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Button.icon-btn:pointerover Path.theme-icon">
+            <Setter Property="Stroke" Value="#242424" />
+        </Style>
+
+        <Style Selector="Path.theme-icon.active">
+            <Setter Property="Opacity" Value="1" />
+            <Setter Property="RenderTransform" Value="scale(1) rotate(0deg)" />
+        </Style>
+
+        <Style Selector="Path.theme-icon.inactive">
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="RenderTransform" Value="scale(0.5) rotate(90deg)" />
+        </Style>
+    </UserControl.Styles>
+
+    <Button Classes="icon-btn"
+            Width="28" Height="28"
+            Command="{Binding ToggleCommand}">
+
+        <Viewbox Width="16" Height="16" ClipToBounds="False">
+            <Panel>
+                <Path Data="{StaticResource SunIconData}"
+                      Classes="theme-icon"
+                      Classes.active="{Binding !IsDarkMode}"
+                      Classes.inactive="{Binding IsDarkMode}"
+                      Stretch="Uniform"/>
+
+                <Path Data="{StaticResource MoonIconData}"
+                      Classes="theme-icon"
+                      Classes.active="{Binding IsDarkMode}"
+                      Classes.inactive="{Binding !IsDarkMode}"
+                      Stretch="Uniform"/>
+            </Panel>
+        </Viewbox>
+    </Button>
+</UserControl>
+

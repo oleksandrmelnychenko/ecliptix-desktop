@@ -16,7 +16,7 @@ using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.Membership;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.Core.Localization;
-using Ecliptix.Core.Views.Memberships.Components.TitleBarUtilities.ViewModels;
+using Ecliptix.Core.Views.Core.Components.TitleBarUtilities.ViewModels;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Membership;

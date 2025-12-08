@@ -1,0 +1,12 @@
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:titleBar="clr-namespace:Ecliptix.Core.Views.Core.Components.TitleBar"
+    x:Class="Ecliptix.Core.Views.Core.Components.TitleBar.TitleBar"
+    Height="35"
+    x:DataType="titleBar:TitleBarViewModel">
+
+
+    <ContentControl x:Name="PART_Root"/>
+
+</UserControl>

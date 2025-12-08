@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -10,6 +11,7 @@ using Avalonia.Platform;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core.Services.Core;
 using Ecliptix.Core.ViewModels.Core;
+using Ecliptix.Core.Views.Core.Constants;
 using Ecliptix.Protobuf.Device;
 using ReactiveUI;
 using Serilog;
@@ -17,20 +19,18 @@ using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Views.Core;
 
-public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
+public partial class MainWindow : ReactiveWindow<MainWindowViewModel>, IDisposable
 {
-    private readonly Border? _languageSelectorContainer;
-    private bool _isSaveInProgress;
+    private readonly CompositeDisposable _disposables = new();
+    private volatile bool _isSaveInProgress;
+    private bool _isDisposed;
 
     public MainWindow()
     {
         AvaloniaXamlLoader.Load(this);
         IconService.SetIconForWindow(this);
 
-        _languageSelectorContainer = this.FindControl<Border>("LanguageSelectorContainer");
-
         SetupLazyViewModelDependentLogic();
-        SetupLanguageSelectorVisibility();
 
         Closing += OnWindowClosing;
 
@@ -44,19 +44,13 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         this.WhenActivated(disposables =>
         {
             this.WhenAnyValue(x => x.DataContext)
-                .Where(dc => dc != null)
-                .Select(dc => dc!)
                 .OfType<MainWindowViewModel>()
                 .Take(1)
                 .ObserveOn(RxApp.MainThreadScheduler)
                 .Subscribe(viewModel =>
                 {
-
                     viewModel.GetPrimaryScreenWorkingArea = GetScreenWorkingAreaForWindow;
-                    viewModel.OnWindowRepositionRequested += position =>
-                    {
-                        Position = position;
-                    };
+                    viewModel.OnWindowRepositionRequested += OnWindowRepositionRequested;
 
                     viewModel.SyncViewModelWithActualWindowSize = () =>
                     {
@@ -76,18 +70,23 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
                     LoadWindowPlacementAsync(viewModel).ContinueWith(t =>
                     {
-                        if (t.IsFaulted)
+                        if (t.IsFaulted && t.Exception != null)
                         {
                             Log.Error(t.Exception, "[MAIN-WINDOW] Cannot load window placement.");
                         }
-                    });
+                    }, TaskScheduler.Default);
                 })
                 .DisposeWith(disposables);
 
             SetupDynamicPlacementSaving(disposables);
+
+            disposables.DisposeWith(_disposables);
         });
+    }
 
-
+    private void OnWindowRepositionRequested(PixelPoint position)
+    {
+        Position = position;
     }
 
     private void SetupDynamicPlacementSaving(CompositeDisposable disposables)
@@ -98,7 +97,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             {
                 if (state == WindowState.Normal)
                 {
-                    return Observable.Return(true).Delay(TimeSpan.FromMilliseconds(100));
+                    return Observable.Return(true).Delay(MainWindowConstants.TimeSpans.StateChangeDebounce);
                 }
 
                 return Observable.Return(false);
@@ -116,11 +115,11 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         );
 
         movesAndSizes
-            .WithLatestFrom(canSaveGate, (moveEvent, canSave) => canSave)
+            .WithLatestFrom(canSaveGate, (_, canSave) => canSave)
             .Where(canSave => canSave)
-            .Throttle(TimeSpan.FromMilliseconds(2000))
+            .Throttle(MainWindowConstants.TimeSpans.PlacementSaveThrottle)
             .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(async void (_) =>
+            .Subscribe(async _ =>
             {
                 try
                 {
@@ -132,7 +131,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                     await ViewModel.SavePlacementAsync(
                         WindowState,
                         Position,
-                        ClientSize);
+                        ClientSize).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -158,19 +157,22 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                 return primaryScreen.WorkingArea.ToRect(1.0);
             }
 
-            Log.Warning("[MAIN-WINDOW] No screen information available, using default bounds");
-            return new Rect(0, 0, 1920, 1080);
+            return new Rect(0, 0,
+                MainWindowConstants.Dimensions.FALLBACK_SCREEN_WIDTH,
+                MainWindowConstants.Dimensions.FALLBACK_SCREEN_HEIGHT);
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "[MAIN-WINDOW] Error getting screen working area");
-            return new Rect(0, 0, 1920, 1080);
+            Log.Warning(ex, "[MAIN-WINDOW] Error getting screen working area, using fallback.");
+            return new Rect(0, 0,
+                MainWindowConstants.Dimensions.FALLBACK_SCREEN_WIDTH,
+                MainWindowConstants.Dimensions.FALLBACK_SCREEN_HEIGHT);
         }
     }
 
     private async Task LoadWindowPlacementAsync(MainWindowViewModel viewModel)
     {
-        WindowPlacement? placement = await viewModel.LoadInitialPlacementAsync();
+        WindowPlacement? placement = await viewModel.LoadInitialPlacementAsync().ConfigureAwait(false);
         if (placement == null || !placement.IsValidSave)
         {
             return;
@@ -184,10 +186,6 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         {
             Position = savedPosition;
         }
-        else
-        {
-            Log.Warning("[MAIN-WINDOW] The saved position of the window is out of bounds of the window, centering.");
-        }
 
         Size clientSize = new(placement.ClientWidth, placement.ClientHeight);
         ClientSize = clientSize;
@@ -199,28 +197,6 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         viewModel.WindowState = windowState;
     }
 
-
-    private void SetupLanguageSelectorVisibility()
-    {
-        this.WhenActivated(disposables =>
-        {
-            this.WhenAnyValue(x => x.DataContext)
-                .Where(dc => dc != null)
-                .Select(dc => dc!)
-                .OfType<MainWindowViewModel>()
-                .SelectMany(vm => vm.WhenAnyValue(x => x.CanResize))
-                .ObserveOn(RxApp.MainThreadScheduler)
-                .Subscribe(canResize =>
-                {
-                    if (_languageSelectorContainer != null)
-                    {
-                        _languageSelectorContainer.IsVisible = !canResize;
-                    }
-                })
-                .DisposeWith(disposables);
-        });
-    }
-
     private async void OnWindowClosing(object? sender, WindowClosingEventArgs e)
     {
         if (_isSaveInProgress)
@@ -228,29 +204,53 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             return;
         }
 
-        if (ViewModel == null)
+        _isSaveInProgress = true;
+
+        if (ViewModel == null || _isDisposed)
         {
             return;
         }
 
         e.Cancel = true;
 
-        _isSaveInProgress = true;
-
         try
         {
             await ViewModel.SavePlacementAsync(
                 WindowState,
                 Position,
-                ClientSize);
+                ClientSize).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "[MAIN-WINDOW] Cannot save state during closing operation.");
+            Log.Error(ex, "[MAIN-WINDOW] Error saving placement on close.");
         }
         finally
         {
-            Close();
+            if (!_isDisposed)
+            {
+                Close();
+            }
         }
+    }
+
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        _isDisposed = true;
+
+        Closing -= OnWindowClosing;
+
+        if (ViewModel != null)
+        {
+            ViewModel.OnWindowRepositionRequested -= OnWindowRepositionRequested;
+        }
+
+        _disposables.Dispose();
+
+        ViewModel?.Dispose();
     }
 }

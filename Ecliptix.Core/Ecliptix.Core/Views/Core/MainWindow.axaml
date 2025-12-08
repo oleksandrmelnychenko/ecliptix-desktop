@@ -7,7 +7,7 @@
         xmlns:controls="clr-namespace:Ecliptix.Core.Controls.Modals.BottomSheetModal"
         xmlns:vm="clr-namespace:Ecliptix.Core.ViewModels.Core"
         xmlns:sideSheetModal="clr-namespace:Ecliptix.Core.Controls.Modals.SideSheetModal"
-        xmlns:titleBar="clr-namespace:Ecliptix.Core.Views.Memberships.Components.TitleBar"
+        xmlns:titleBar="clr-namespace:Ecliptix.Core.Views.Core.Components.TitleBar"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
         x:Class="Ecliptix.Core.Views.Core.MainWindow"
         x:DataType="vm:MainWindowViewModel"
@@ -69,7 +69,6 @@
         <Style Selector="Window[WindowState=FullScreen] Grid#MainContentGrid">
             <Setter Property="Margin" Value="{StaticResource MarginZero}" />
         </Style>
-
     </Window.Styles>
 
     <Grid x:Name="MainContentGrid" ClipToBounds="True">
@@ -81,28 +80,30 @@
         <Border
             ClipToBounds="True"
             ZIndex="1000"
-            x:Name="BottomSheetContainer">
+            x:Name="BottomSheetContainer"
+            x:FieldModifier="public">
             <controls:BottomSheetControl
                 x:Name="BottomSheetControl"
                 ZIndex="1000"
                 VerticalAlignment="Stretch"
                 HorizontalAlignment="Stretch"
-                DismissableScrimColor="DarkGray"
-                UnDismissableScrimColor="Black"
+                DismissableScrimColor="{DynamicResource Modal.Scrim.Dismissable}"
+                UnDismissableScrimColor="{DynamicResource Modal.Scrim.Solid}"
                 IsDismissableOnScrimClick="True" />
         </Border>
 
         <Border
             ClipToBounds="True"
             ZIndex="1001"
-            x:Name="SideSheetContainer">
+            x:Name="SideSheetContainer"
+            x:FieldModifier="public">
             <sideSheetModal:SideSheetControl
                 x:Name="SideSheetControl"
                 ZIndex="1000"
                 VerticalAlignment="Stretch"
                 HorizontalAlignment="Stretch"
-                DismissableScrimColor="DarkGray"
-                UnDismissableScrimColor="Black"
+                DismissableScrimColor="{DynamicResource Modal.Scrim.Dismissable}"
+                UnDismissableScrimColor="{DynamicResource Modal.Scrim.Solid}"
                 IsDismissableOnScrimClick="True" />
         </Border>
 
@@ -111,9 +112,9 @@
             HorizontalAlignment="Center"
             VerticalAlignment="Top"
             Margin="0,50,0,0"
-            FontSize="12"
-            Width="320"
-            Height="70"
+            FontSize="{StaticResource Notification.FontSize}"
+            Width="{StaticResource Notification.Width}"
+            Height="{StaticResource Notification.Height}"
             ZIndex="1001"
             DataContext="{Binding ConnectivityNotification}" />
 
