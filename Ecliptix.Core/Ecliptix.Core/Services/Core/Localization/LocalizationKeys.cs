@@ -377,4 +377,12 @@ public static class LocalizationKeys
         public const string BUTTON_CONFIRM = "LanguageDetection.Button.Confirm";
         public const string BUTTON_DECLINE = "LanguageDetection.Button.Decline";
     }
+
+    public static class EcliptixProtectionProtocol
+    {
+        public const string TITLE = "EPP.Title";
+        public const string FEATURE_END_TO_END_ENCRYPTION = "EPP.Feature.EndToEndEncryption";
+        public const string FEATURE_FORWARD_SECRECY = "EPP.Feature.ForwardSecrecy";
+        public const string FEATURE_OPAQUE_PROTOCOL = "EPP.Feature.OpaqueProtocol";
+    }
 }

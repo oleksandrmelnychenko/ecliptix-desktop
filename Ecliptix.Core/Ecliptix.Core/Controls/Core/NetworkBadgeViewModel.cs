@@ -97,7 +97,7 @@ public class NetworkBadgeViewModel : ReactiveObject, IDisposable
             .ToPropertyEx(this, x => x.Text)
             .DisposeWith(_disposables);
 
-        badgeState.Select(GetHoverTextForState)
+        badgeState.Select(_ => string.Empty)
             .ObserveOn(RxApp.MainThreadScheduler)
             .ToPropertyEx(this, x => x.HoverText)
             .DisposeWith(_disposables);

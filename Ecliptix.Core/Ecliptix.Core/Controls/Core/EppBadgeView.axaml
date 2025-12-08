@@ -9,7 +9,10 @@
 
     <core:StatusBadge Classes="purple"
                       Text="{Binding Text}"
-                      HoverText="{Binding HoverText}"
+                      TooltipTitle="{Binding TooltipTitle}"
+                      TooltipFeature1="{Binding TooltipFeature1}"
+                      TooltipFeature2="{Binding TooltipFeature2}"
+                      TooltipFeature3="{Binding TooltipFeature3}"
                       Icon="{Binding Icon}"
                       BorderThickness="0"
                       Margin="0,0,8,0"/>
