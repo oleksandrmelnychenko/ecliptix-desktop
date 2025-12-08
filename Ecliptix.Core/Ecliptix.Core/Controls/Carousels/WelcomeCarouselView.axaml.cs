@@ -28,26 +28,24 @@ public class WelcomeSlideItemTemplate : INotifyPropertyChanged, IDisposable
         ILocalizationService localizationService)
     {
         Image = image;
-        _title = localizationService[titleKey];
-        _description = localizationService[descriptionKey];
-
-        Log.Information("[WelcomeSlide] Created slide - TitleKey: {TitleKey}, Title: {Title}, DescriptionKey: {DescriptionKey}, Description: {Description}",
-            titleKey, _title, descriptionKey, _description);
 
         localizationService.WhenAnyValue(x => x.CurrentCultureName)
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(cultureName =>
             {
-                string newTitle = localizationService[titleKey];
-                string newDescription = localizationService[descriptionKey];
+                Title = localizationService[titleKey];
+                Description = localizationService[descriptionKey];
 
-                Log.Information("[WelcomeSlide] Culture changed to {Culture} - TitleKey: {TitleKey}, NewTitle: {NewTitle}, DescriptionKey: {DescriptionKey}, NewDescription: {NewDescription}",
-                    cultureName, titleKey, newTitle, descriptionKey, newDescription);
-
-                Title = newTitle;
-                Description = newDescription;
+                Log.Information("[WelcomeSlide] Culture: {Culture}, Title: {Title}, Description: {Description}",
+                    cultureName, Title, Description);
             })
             .DisposeWith(_disposables);
+
+        Title = localizationService[titleKey];
+        Description = localizationService[descriptionKey];
+
+        Log.Information("[WelcomeSlide] Initial creation - Title: {Title}, Description: {Description}",
+            Title, Description);
     }
 
     public string Title
