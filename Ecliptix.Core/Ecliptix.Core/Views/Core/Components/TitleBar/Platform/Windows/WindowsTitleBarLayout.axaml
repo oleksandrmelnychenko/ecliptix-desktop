@@ -7,7 +7,7 @@
              xmlns:windows1="clr-namespace:Ecliptix.Core.Views.Core.Components.TitleBar.Platform.Windows"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ecliptix.Core.Views.Core.Components.TitleBar.Platform.Windows.WindowsTitleBarLayout"
-             Height="35"
+             VerticalAlignment="Stretch"
              x:DataType="titleBar:TitleBarViewModel">
 
 
@@ -34,7 +34,7 @@
                 </ItemsControl.ItemsPanel>
             </ItemsControl>
 
-            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Stretch">
 
                 <ItemsControl ItemsSource="{Binding RightContent}"
                               ItemTemplate="{StaticResource ContentItemTemplate}">
