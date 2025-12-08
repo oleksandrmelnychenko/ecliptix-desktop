@@ -19,7 +19,9 @@ public class WelcomeSlideItemTemplate : ReactiveObject, IDisposable
 {
     private readonly CompositeDisposable _disposables = new();
 
+#pragma warning disable CS8618 // ObservableAsProperty initialized by ToPropertyEx
     public WelcomeSlideItemTemplate(string titleKey, string descriptionKey, Bitmap? image, ILocalizationService localizationService)
+#pragma warning restore CS8618
     {
         Image = image;
 
