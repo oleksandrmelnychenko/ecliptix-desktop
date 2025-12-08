@@ -91,7 +91,7 @@
 		</ScrollViewer>
 
 		<!--Add post input-->
-		<chatInput:ChatInputView Margin="80,0" />
+		<feedItem:FeedInputControl Margin="230,0,230,20" />
 
 		<!--Edit post overlay-->
 		<feedItem:EditPostControl IsVisible="{Binding DataContext.IsEdit, ElementName=ThisControl}" DataContext="{Binding SelectedPost}" />

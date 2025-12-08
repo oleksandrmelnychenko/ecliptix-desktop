@@ -1,41 +1,59 @@
 <UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="clr-namespace:Ecliptix.Core.Features.Feed.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="60"
-             x:Class="Ecliptix.Core.Features.Feed.Controls.Comments.CommentInputControl"
-             x:DataType="vm:CommentSectionViewModel">
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+			 xmlns:vm="clr-namespace:Ecliptix.Core.Features.Feed.ViewModels"
+			 mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="60"
+			 x:Class="Ecliptix.Core.Features.Feed.Controls.Comments.CommentInputControl"
+			 x:DataType="vm:CommentSectionViewModel">
 
-    <Border Padding="16"
-            BorderBrush="#E5E7EB"
-            BorderThickness="0,1,0,0">
-        <Grid ColumnDefinitions="*,Auto">
+	<UserControl.Styles>
+		<Style Selector="Border#InputBorder">
+			<Setter Property="BoxShadow" Value="0 6 18 0 #15000000" />
+		</Style>
 
-            <!-- Input -->
-            <TextBox Grid.Column="0"
-                     Text="{Binding CommentText}"
-                     Watermark="Add a comment..."
-                     BorderThickness="0"
-                     Background="Transparent"
-                     Padding="0"
-                     FontSize="14" />
+		<Style Selector="Border#InputBorder:focus-within">
+			<Setter Property="BorderBrush" Value="#6A5ACD" />
+			<Setter Property="BoxShadow" Value="0 6 18 0 #336A5ACD" />
+		</Style>
+	</UserControl.Styles>
 
-            <!-- Post Button -->
-            <Button Grid.Column="1"
-                    Content="Post"
-                    Command="{Binding PostCommentCommand}"
-                    IsEnabled="{Binding CommentText, Converter={StaticResource NotNullOrEmptyConverter}}"
-                    Background="#3B82F6"
-                    Foreground="#FFFFFF"
-                    BorderThickness="0"
-                    CornerRadius="4"
-                    Padding="16,6"
-                    FontSize="14"
-                    FontWeight="SemiBold"
-                    Margin="8,0,0,0" />
+	<Border x:Name="InputBorder"
+		    Background="#FFF"
+			CornerRadius="28"
+			BorderThickness="1"			
+			Height="64">
 
-        </Grid>
-    </Border>
+		<Grid ColumnDefinitions="Auto,*,Auto"
+			  ColumnSpacing="10"
+			  Margin="10">
 
+			<!--Reply to-->
+			<TextBlock IsVisible="{Binding HasReplyComment}"
+					   Margin="10,0,0,0"
+					   FontSize="16"
+					   VerticalAlignment="Center"
+					   Text="{Binding ReplyComment?.Author?.Username, StringFormat='@{0}'}"/>
+
+			<!-- Input -->
+			<TextBox Grid.Column="1"
+					 Text="{Binding CommentText}"
+					 VerticalAlignment="Center"
+					 BorderThickness="0"
+					 Watermark="Add a comment..."
+					 FontSize="16" />
+
+			<!-- Post Button -->
+			<Button Grid.Column="2"
+					Command="{Binding PostCommentCommand}"
+					IsEnabled="{Binding CommentText, Converter={StaticResource NotNullOrEmptyConverter}}"
+					Width="38"
+					Height="38"
+					CornerRadius="20"
+					Background="#6A5ACD"
+					Margin="0">
+				<PathIcon Data="M2,3L2,10L17,12L2,14L2,21L23,12L2,3Z" Width="18" Height="18" Foreground="White" Margin="2,0,0,0" />
+			</Button>
+		</Grid>
+	</Border>
 </UserControl>

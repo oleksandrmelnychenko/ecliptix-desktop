@@ -55,25 +55,51 @@
 
 		<!-- Entry -->
 		<Grid RowDefinitions="Auto,Auto"
+			  RowSpacing="10"
 			  VerticalAlignment="Bottom"
-			  HorizontalAlignment="Center"
-			  Margin="0,0,0,20">
+			  HorizontalAlignment="Stretch"
+			  Margin="120,0,120,20">
 
-			<Grid Grid.Row="0" IsVisible="{Binding Comments.HasReplyComment}">
-				<TextBlock Text="{Binding Comments.ReplyComment.Author.Username, StringFormat='Replying to @{0}'}"/>
-			</Grid>
+			<Border Grid.Row="0"
+					Height="38"
+					CornerRadius="10"
+					BorderThickness="1"
+					BorderBrush="#6A5ACD"
+					IsVisible="{Binding Comments.HasReplyComment}"
+					Background="#FFF"					
+					BoxShadow="0 2 8 0 #15000000">
 
-			<Border Grid.Row="1"
-					Background="#F9FAFB"
-					CornerRadius="12"
-					Padding="4">
-				<TextBox Background="Transparent"
-						 BorderThickness="0"
-						 VerticalAlignment="Center"
-						 Watermark="Add a comment..."
-						 FontSize="14"
-						 Margin="0" />
+				<Grid ColumnDefinitions="Auto,Auto,*,Auto">
+
+					<TextBlock Text="Replying to"
+							   Margin="15,0,0,0"
+							   FontSize="12"
+							   Foreground="#6A7383"
+							   VerticalAlignment="Center"/>
+
+					<TextBlock Grid.Column="1"
+							   Text="{Binding Comments.ReplyComment.Author.Username, StringFormat=' @{0}'}"
+							   FontSize="12"
+							   FontWeight="600"
+							   Foreground="#6a5acd"
+							   VerticalAlignment="Center"/>
+
+					<Button Grid.Column="2"
+							Margin="0,0,15,0"
+							CornerRadius="2"
+							Width="12"
+							Height="12"
+							Padding="0"
+							Background="LightGray"
+							HorizontalAlignment="Right"
+							BorderThickness="0"
+							VerticalAlignment="Center"
+							Command="{Binding Comments.ClearReplyCommand}">
+					</Button>
+				</Grid>
 			</Border>
+
+			<commentItem:CommentInputControl Grid.Row="1" DataContext="{Binding Comments}" />
 		</Grid>
 	</Grid>
 </UserControl>

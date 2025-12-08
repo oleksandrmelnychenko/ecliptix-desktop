@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -36,6 +37,7 @@ public sealed class CommentSectionViewModel : ViewModelBase
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> LoadCommentsCommand { get; }
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> PostCommentCommand { get; }
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> LoadMoreCommentsCommand { get; }
+    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> ClearReplyCommand { get; }
 
     public CommentSectionViewModel(
         string postId,
@@ -52,12 +54,21 @@ public sealed class CommentSectionViewModel : ViewModelBase
         LoadCommentsCommand = ReactiveCommand.CreateFromTask(LoadCommentsAsync);
         PostCommentCommand = ReactiveCommand.CreateFromTask(PostCommentAsync);
         LoadMoreCommentsCommand = ReactiveCommand.CreateFromTask(LoadMoreCommentsAsync);
+        ClearReplyCommand = ReactiveCommand.Create(ClearReply);
 
         WeakReferenceMessenger.Default.Register<ReplyCommentMessage>(this, (r, m) =>
         {
+            CommentText = string.Empty;
             ReplyComment = m.Value;
             HasReplyComment = m.Value != null;
         });
+    }
+
+    public void ClearReply()
+    {
+        ReplyComment = null;
+        HasReplyComment = false;
+        CommentText = string.Empty;
     }
 
     private async Task LoadCommentsAsync()
