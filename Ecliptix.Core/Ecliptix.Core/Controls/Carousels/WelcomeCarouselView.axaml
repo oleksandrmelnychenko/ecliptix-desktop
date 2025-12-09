@@ -91,7 +91,7 @@
                                        FontFamily="{StaticResource SegoeUI}"
                                        TextAlignment="Center"
                                        Foreground="#111111"
-                                       Margin="0,0,0,16"/>
+                                       Margin="0,0,0,8"/>
 
                             <TextBlock Grid.Row="1"
                                        Text="{Binding Description}"
@@ -100,7 +100,7 @@
                                        TextAlignment="Center"
                                        Foreground="#666666"
                                        TextWrapping="Wrap"
-                                       Margin="0,0,0,24"/>
+                                       Margin="0,0,0,41"/>
                         </Grid>
                     </DataTemplate>
                 </Carousel.ItemTemplate>
