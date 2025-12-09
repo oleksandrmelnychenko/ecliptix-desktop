@@ -52,7 +52,7 @@ public class LanguageMenuButtonViewModel : ReactiveObject, IActivatableViewModel
             await sideSheetService.ShowAsync(
                 SideSheetComponentType.SETTINGS_PANEL,
                 view,
-                showScrim: true,
+                showScrim: false,
                 isDismissable: true
             );
         });

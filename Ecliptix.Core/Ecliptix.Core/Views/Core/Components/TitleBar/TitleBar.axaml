@@ -5,8 +5,5 @@
     x:Class="Ecliptix.Core.Views.Core.Components.TitleBar.TitleBar"
     Height="35"
     x:DataType="titleBar:TitleBarViewModel">
-
-
     <ContentControl x:Name="PART_Root" />
-
 </UserControl>
