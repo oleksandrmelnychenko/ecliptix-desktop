@@ -11,7 +11,7 @@
   <Grid RowDefinitions="Auto, *" Margin="16">
         <Grid ColumnDefinitions="*, Auto" Margin="0,0,0,20">
             <StackPanel Grid.Column="0" Spacing="2">
-                <TextBlock Text="App language"
+                <TextBlock Text="Supported languages"
                            FontFamily="{StaticResource SegoeUI}"
                            FontSize="16" FontWeight="Bold"
                            Foreground="{DynamicResource OnSurface}"
@@ -70,11 +70,16 @@
                                Margin="0,0,16,0"
                                VerticalAlignment="Center"/>
 
-                          <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                          <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
                               <TextBlock Text="{Binding Model.DisplayName}"
                                          FontFamily="{StaticResource SegoeUI}"
                                          FontSize="14"
+                                         FontWeight="Medium"
                                          Foreground="{DynamicResource OnSurface}"/>
+                              <TextBlock Text="{Binding Model.NativeName}"
+                                         FontFamily="{StaticResource SegoeUI}"
+                                         FontSize="12"
+                                         Foreground="{DynamicResource TextSecondary}"/>
                               </StackPanel>
 
                           <PathIcon Grid.Column="2"

@@ -17,12 +17,10 @@
                                                FalseOpacity="0" />
     </UserControl.Resources>
 
-    <!-- Module-Specific Content Only -->
     <Grid RowDefinitions="Auto,*,Auto"
           RowSpacing="2"
           ClipToBounds="True">
 
-        <!-- Back Button (Module Navigation) -->
         <Button HorizontalAlignment="Left"
                 VerticalAlignment="Top"
                 Command="{Binding NavigateBack}"
@@ -36,7 +34,6 @@
                    Height="18" />
         </Button>
 
-        <!-- Logo Section -->
         <Border Grid.Row="0"
                 HorizontalAlignment="Center"
                 Padding="20,10"

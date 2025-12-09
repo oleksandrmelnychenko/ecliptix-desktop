@@ -10,9 +10,6 @@ public partial class LanguageMenuButtonView : ReactiveUserControl<LanguageMenuBu
         InitializeComponent();
     }
 
-    private void InitializeComponent()
-    {
-        AvaloniaXamlLoader.Load(this);
-    }
+    private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
 }
 
