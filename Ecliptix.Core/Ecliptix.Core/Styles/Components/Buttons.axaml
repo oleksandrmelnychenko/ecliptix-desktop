@@ -77,7 +77,7 @@
                             Opacity="0"
                             IsHitTestVisible="False">
                         <Border.Effect>
-                            <BlurEffect Radius="20"/>
+                            <BlurEffect Radius="30"/>
                         </Border.Effect>
                         <Border.Transitions>
                             <Transitions>
@@ -94,12 +94,6 @@
                             CornerRadius="{TemplateBinding CornerRadius}"
                             Padding="{TemplateBinding Padding}"
                             ClipToBounds="False">
-
-                        <Border.Transitions>
-                            <Transitions>
-                                <BrushTransition Property="Background" Duration="0:0:0.2"/>
-                            </Transitions>
-                        </Border.Transitions>
 
                         <Grid ClipToBounds="False">
 
@@ -142,13 +136,31 @@
     </Style>
 
     <Style Selector="Button.primary">
-        <Setter Property="Background" Value="{DynamicResource Secondary}" />
+        <!-- <Setter Property="Background" Value="{DynamicResource Secondary}" /> -->
+        <Setter Property="Background">
+            <Setter.Value>
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                    <GradientStop Offset="0" Color="#0a0a0a" />
+                    <GradientStop Offset="1" Color="#0a0a0a" />
+                </LinearGradientBrush>
+            </Setter.Value>
+        </Setter>
         <Setter Property="Foreground" Value="{DynamicResource OnSecondary}" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="FontFamily" Value="{StaticResource SegoeUI}" />
     </Style>
+
     <Style Selector="Button.primary:pointerover">
-        <Setter Property="Background" Value="{DynamicResource Button.Primary.Hover}" />
+        <!-- <Setter Property="Background" Value="{DynamicResource Button.Primary.Hover}" /> -->
+        <Setter Property="Background">
+            <Setter.Value>
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                    <GradientStop Offset="0" Color="#000000" />
+                    <GradientStop Offset="1" Color="#101828" />
+                </LinearGradientBrush>
+            </Setter.Value>
+        </Setter>
+
     </Style>
     <Style Selector="Button.primary:pressed">
         <Setter Property="Background" Value="{DynamicResource Button.Primary.Pressed}" />
@@ -209,18 +221,14 @@
 
 
     <Style Selector="Button.glow /template/ Border#PART_Glow">
-        <Setter Property="Opacity" Value="0.6"/>
+        <Setter Property="Opacity" Value="0.5"/>
     </Style>
 
-
-    <Style Selector="Button.glow:pointerover">
-        <Setter Property="Background" Value="#000000" />
-    </Style>
     <Style Selector="Button.glow:pointerover /template/ Border#PART_Glow">
-        <Setter Property="Opacity" Value="0.9"/>
+        <Setter Property="Opacity" Value="0.7"/>
     </Style>
     <Style Selector="Button.glow:disabled /template/ Border#PART_Glow">
-        <Setter Property="Opacity" Value="0.6"/> <!-- Visible even when disabled -->
+        <Setter Property="Opacity" Value="0.4"/>
     </Style>
 
 
