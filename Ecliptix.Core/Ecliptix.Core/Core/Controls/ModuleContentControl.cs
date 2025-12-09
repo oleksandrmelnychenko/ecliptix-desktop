@@ -101,6 +101,10 @@ public sealed class ModuleContentControl : ContentControl
                     StaticViewMapper.CreateView(
                         typeof(Features.Authentication.ViewModels.Registration.
                             SecureKeyVerifierViewModel)),
+                Features.Authentication.ViewModels.Registration.CompleteProfileViewModel =>
+                    StaticViewMapper.CreateView(
+                        typeof(Features.Authentication.ViewModels.Registration.
+                            CompleteProfileViewModel)),
                 Features.Authentication.ViewModels.Registration.PassPhaseViewModel =>
                     StaticViewMapper.CreateView(
                         typeof(Features.Authentication.ViewModels.Registration.PassPhaseViewModel)),
