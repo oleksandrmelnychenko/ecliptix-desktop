@@ -25,7 +25,6 @@ public sealed class WelcomeViewModel : ViewModelBase, IRoutableViewModel, IReset
     private const string CREATE_ACCOUNT_KEY = "CreateAccount";
     private const string SIGN_IN_KEY = "SignIn";
 
-    private const string SAFETY_IMAGE_PATH = "avares://Ecliptix.Core/Assets/DataSeed/safety.png";
     private const string MENTAL_PROTECTION_IMAGE_PATH = "avares://Ecliptix.Core/Assets/DataSeed/mentalprotection.png";
     private const string SMART_COMMUNITIES_IMAGE_PATH = "avares://Ecliptix.Core/Assets/DataSeed/smartcommunities.png";
     private const string WELLNESS_IMAGE_PATH = "avares://Ecliptix.Core/Assets/DataSeed/wellness.png";
@@ -93,8 +92,9 @@ public sealed class WelcomeViewModel : ViewModelBase, IRoutableViewModel, IReset
         new(
             LocalizationKeys.Welcome.Carousel.Slide1.TITLE,
             LocalizationKeys.Welcome.Carousel.Slide1.DESCRIPTION,
-            LoadImage(SAFETY_IMAGE_PATH),
-            localizationService
+            null,
+            localizationService,
+            SlideType.Custom
         ),
         new(
             LocalizationKeys.Welcome.Carousel.Slide2.TITLE,
