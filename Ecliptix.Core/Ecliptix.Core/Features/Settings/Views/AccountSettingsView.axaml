@@ -3,7 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:Ecliptix.Core.Features.Settings.ViewModels"
-             xmlns:core="clr-namespace:Ecliptix.Core.Controls.Core"
+             xmlns:hintedTextControls="clr-namespace:Ecliptix.Core.Controls.Core.HintedTextControls"
              mc:Ignorable="d"
              d:DesignWidth="800"
              d:DesignHeight="600"
@@ -105,7 +105,7 @@
                 <Grid ColumnDefinitions="Auto, *">
                     <TextBlock Grid.Column="0" Text="Display Name" Classes="setting-label"/>
 
-                    <core:HintedTextBox Grid.Column="1"
+                    <hintedTextControls:HintedTextBox Grid.Column="1"
                                         Text="{Binding DisplayName}"
                                         Watermark="Enter display name"
                                         Hint="Visible to other users"
@@ -130,7 +130,7 @@
             <Border Classes="setting-row">
                 <Grid ColumnDefinitions="Auto, *">
                     <TextBlock Grid.Column="0" Text="Profile Name" Classes="setting-label"/>
-                    <core:HintedTextBox Grid.Column="1"
+                    <hintedTextControls:HintedTextBox Grid.Column="1"
                                         Text="{Binding ProfileName}"
                                         Hint="Unique profile identifier"
 

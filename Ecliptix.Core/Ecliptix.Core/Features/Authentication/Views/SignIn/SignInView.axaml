@@ -40,7 +40,7 @@
             </StackPanel>
 
             <!-- Mobile Number Input -->
-            <coreControls:HintedTextBox
+            <hintedTextControls:HintedTextBox
                 Grid.Row="1"
                 x:Name="MobileTextBox"
                 Watermark="{Binding LocalizationService[Authentication.SignIn.MobilePlaceholder]}"

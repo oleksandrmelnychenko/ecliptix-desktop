@@ -8,6 +8,7 @@ using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core.Controls.Core;
+using Ecliptix.Core.Controls.Core.HintedTextControls;
 using Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 using ReactiveUI;
 
