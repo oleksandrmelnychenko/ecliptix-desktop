@@ -72,7 +72,55 @@
                       RowDefinitions="*,Auto">
 
                     <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Button Grid.Column="0"
+                                IsVisible="{Binding ShowCountryButton, ElementName=Control}"
+                                Command="{Binding CountryCodeCommand, ElementName=Control}"
+                                Focusable="False"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Padding="8,0,4,0"
+                                Margin="0"
+                                VerticalAlignment="Stretch"
+                                VerticalContentAlignment="Center"
+                                Cursor="Hand">
+                            <Button.Styles>
+                                <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                    <Setter Property="Background" Value="Transparent" />
+                                </Style>
+                            </Button.Styles>
+
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="{Binding CountryCode, ElementName=Control}"
+                                           Foreground="{Binding TextForeground, ElementName=Control}"
+                                           FontWeight="Medium"
+                                           FontSize="{Binding FontSize, ElementName=Control}"
+                                           VerticalAlignment="Center"/>
+
+                                <Path Data="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"
+                                      Fill="{Binding TextForeground, ElementName=Control}"
+                                      Width="10"
+                                      Height="6"
+                                      Stretch="Uniform"
+                                      VerticalAlignment="Center"
+                                      Opacity="0.6"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Border Grid.Column="1"
+                                IsVisible="{Binding ShowCountryButton, ElementName=Control}"
+                                Width="1"
+                                Margin="4,8,4,8"
+                                Background="{Binding TextForeground, ElementName=Control}"
+                                Opacity="0.2" />
+
                         <TextBox x:Name="MainTextBox"
+                                 Grid.Column="2"
                                  Watermark="{Binding Watermark, ElementName=Control}"
                                  Text="{Binding Text, ElementName=Control, Mode=TwoWay}"
                                  Foreground="{Binding TextForeground, ElementName=Control}"

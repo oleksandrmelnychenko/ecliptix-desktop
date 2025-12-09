@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data;
@@ -27,6 +28,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private bool _isDisposed;
     private bool _isControlInitialized;
+    private bool _showCountryButton;
 
     #endregion
 
@@ -71,7 +73,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     public static readonly StyledProperty<IBrush> MainBorderBrushProperty =
         AvaloniaProperty.Register<HintedPasswordBox, IBrush>(
-            nameof(MainBorderBrush), new SolidColorBrush(Color.Parse("#4DFF6D00")));
+            nameof(MainBorderBrush), new SolidColorBrush(Color.Parse(HintedTextBoxConstants.FOCUS_COLOR_HEX)));
 
     public static readonly StyledProperty<int> MaxLengthProperty =
         AvaloniaProperty.Register<HintedPasswordBox, int>(nameof(MaxLength), int.MaxValue);
@@ -90,12 +92,49 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     public new static readonly StyledProperty<FontWeight> FontWeightProperty =
         AvaloniaProperty.Register<HintedPasswordBox, FontWeight>(nameof(FontWeight), FontWeight.Normal);
 
+    public static readonly StyledProperty<bool> IsPhoneNumberModeProperty =
+        AvaloniaProperty.Register<HintedTextBox, bool>(nameof(IsPhoneNumberMode), false);
+
+    public static readonly StyledProperty<string> CountryCodeProperty =
+        AvaloniaProperty.Register<HintedTextBox, string>(nameof(CountryCode), "US +1");
+
+    public static readonly StyledProperty<ICommand?> CountryCodeCommandProperty =
+        AvaloniaProperty.Register<HintedTextBox, ICommand?>(nameof(CountryCodeCommand));
+
+    public static readonly DirectProperty<HintedTextBox, bool> ShowCountryButtonProperty =
+        AvaloniaProperty.RegisterDirect<HintedTextBox, bool>(
+            nameof(ShowCountryButton),
+            o => o.ShowCountryButton);
+
+    public bool ShowCountryButton
+    {
+        get => _showCountryButton;
+        private set => SetAndRaise(ShowCountryButtonProperty, ref _showCountryButton, value);
+    }
     #endregion
 
     public HintedTextBox()
     {
         InitializeComponent();
         AttachedToVisualTree += OnAttachedToVisualTree;
+    }
+
+    public bool IsPhoneNumberMode
+    {
+        get => GetValue(IsPhoneNumberModeProperty);
+        set => SetValue(IsPhoneNumberModeProperty, value);
+    }
+
+    public string CountryCode
+    {
+        get => GetValue(CountryCodeProperty);
+        set => SetValue(CountryCodeProperty, value);
+    }
+
+    public ICommand? CountryCodeCommand
+    {
+        get => GetValue(CountryCodeCommandProperty);
+        set => SetValue(CountryCodeCommandProperty, value);
     }
 
     public string Text
@@ -292,6 +331,35 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                     ? HintedTextBoxConstants.DEFAULT_ELLIPSE_OPACITY_VISIBLE
                     : HintedTextBoxConstants.DEFAULT_ELLIPSE_OPACITY_HIDDEN;
             }, "HasError subscription"))
+            .DisposeWith(_disposables);
+
+        this.WhenAnyValue(
+                x => x.IsPhoneNumberMode,
+                x => x.Text)
+            .Select(tuple =>
+            {
+                (bool isPhoneMode, string text) = tuple;
+
+                if (!isPhoneMode)
+                {
+                    return false;
+                }
+
+                if (string.IsNullOrEmpty(text))
+                {
+                    return true;
+                }
+
+                if (text.StartsWith("+"))
+                {
+                    return false;
+                }
+
+                return true;
+            })
+            .DistinctUntilChanged()
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(isVisible => ShowCountryButton = isVisible)
             .DisposeWith(_disposables);
     }
 

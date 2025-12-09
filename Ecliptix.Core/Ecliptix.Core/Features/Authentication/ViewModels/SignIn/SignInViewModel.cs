@@ -4,8 +4,9 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
-
+using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
@@ -22,7 +23,7 @@ using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 
 using Serilog;
-
+using Splat;
 using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
@@ -34,6 +35,7 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
     private readonly CompositeDisposable _disposables = new();
     private readonly Subject<string> _signInErrorSubject = new();
     private readonly AuthenticationViewModel _hostWindowModel;
+    private readonly ISideSheetService? _sideSheetService;
 
     private CancellationTokenSource? _signInCancellationTokenSource;
     private bool _hasMobileNumberBeenTouched;
@@ -50,6 +52,7 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
         HostScreen = hostScreen;
         _authService = authService;
         _hostWindowModel = (AuthenticationViewModel)hostScreen;
+        _sideSheetService = Locator.Current.GetService<ISideSheetService>();
 
         IObservable<bool> isFormLogicallyValid = SetupValidation();
         SetupCommands(isFormLogicallyValid);
@@ -81,6 +84,8 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
     public ReactiveCommand<SystemU, Result<Unit, AuthenticationFailure>>? SignInCommand { get; private set; }
 
     public ReactiveCommand<SystemU, SystemU>? AccountRecoveryCommand { get; private set; }
+
+    public ReactiveCommand<SystemU, SystemU> OpenCountryPickerCommand { get; private set; }
 
     public IObservable<string> ExecutionError => _signInErrorSubject.AsObservable();
 
@@ -285,6 +290,16 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
         AccountRecoveryCommand = ReactiveCommand.Create(() =>
         {
             ((AuthenticationViewModel)HostScreen).StartSecureKeyRecoveryFlow();
+        });
+
+        OpenCountryPickerCommand = ReactiveCommand.CreateFromTask(async () =>
+        {
+            await _sideSheetService.ShowAsync(
+                SideSheetComponentType.COUNTRY_CODE,
+                new CountryCodeView(),
+                showScrim: false,
+                isDismissable: true
+            );
         });
     }
 
