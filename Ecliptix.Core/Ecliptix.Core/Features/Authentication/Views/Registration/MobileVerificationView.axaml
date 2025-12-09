@@ -46,6 +46,9 @@
         <hintedTextControls:HintedTextBox
             Grid.Row="1"
             x:Name="MobileTextBox"
+            IsPhoneNumberMode="True"
+            CountryCode="US +1"
+            CountryCodeCommand="{Binding OpenCountryPickerCommand}"
             Watermark="{Binding Watermark}"
             Hint="{Binding Hint}"
             TextForeground="{DynamicResource OnSurface}"
