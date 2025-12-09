@@ -3,8 +3,9 @@
 
     <Styles.Resources>
         <LinearGradientBrush x:Key="ButtonGlowGradient" StartPoint="0%,50%" EndPoint="100%,50%">
-            <GradientStop Offset="0" Color="#FF8C00"/>
-            <GradientStop Offset="1" Color="#FF00FF"/>
+            <GradientStop Offset="0" Color="#f97316"/>
+            <GradientStop Offset="0.5" Color="#ec4899"/>
+            <GradientStop Offset="1" Color="#a855f7"/>
         </LinearGradientBrush>
     </Styles.Resources>
 
@@ -28,9 +29,9 @@
 
         <Setter Property="Transitions">
             <Transitions>
-                <DoubleTransition Property="Opacity" Duration="{StaticResource Duration.Medium}" />
-                <TransformOperationsTransition Property="RenderTransform" Duration="{StaticResource Duration.Medium}" />
-                <BrushTransition Property="Background" Duration="{StaticResource Duration.Medium}" Easing="CubicEaseOut" />
+                <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" />
+                <BrushTransition Property="Background" Duration="0:0:0.2" Easing="CubicEaseOut" />
             </Transitions>
         </Setter>
         <Setter Property="RenderTransform" Value="scale(1)"/>
@@ -73,15 +74,15 @@
                     <Border Name="PART_Glow"
                             Background="{DynamicResource ButtonGlowGradient}"
                             CornerRadius="{TemplateBinding CornerRadius}"
-                            Margin="0"
+                            Margin="-2"
                             Opacity="0"
                             IsHitTestVisible="False">
                         <Border.Effect>
-                            <BlurEffect Radius="30"/>
+                            <BlurEffect Radius="4"/>
                         </Border.Effect>
                         <Border.Transitions>
                             <Transitions>
-                                <DoubleTransition Property="Opacity" Duration="0:0:0.25" Easing="CubicEaseOut"/>
+                                <DoubleTransition Property="Opacity" Duration="0:0:0.2" Easing="CubicEaseOut"/>
                             </Transitions>
                         </Border.Transitions>
                     </Border>
@@ -136,48 +137,61 @@
     </Style>
 
     <Style Selector="Button.primary">
-        <!-- <Setter Property="Background" Value="{DynamicResource Secondary}" /> -->
         <Setter Property="Background">
             <Setter.Value>
-                <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
-                    <GradientStop Offset="0" Color="#0a0a0a" />
-                    <GradientStop Offset="1" Color="#0a0a0a" />
+                <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
+                    <GradientStop Offset="0" Color="#111827" />
+                    <GradientStop Offset="1" Color="#1f2937" />
                 </LinearGradientBrush>
             </Setter.Value>
         </Setter>
-        <Setter Property="Foreground" Value="{DynamicResource OnSecondary}" />
+        <Setter Property="Foreground" Value="#ffffff" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="FontFamily" Value="{StaticResource SegoeUI}" />
+        <Setter Property="Padding" Value="24,0"/>
+    </Style>
+
+    <Style Selector="Button.primary /template/ Border#PART_Border">
+        <Setter Property="BoxShadow" Value="0 6 28 0 #4D000000"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.2"/>
+            </Transitions>
+        </Setter>
     </Style>
 
     <Style Selector="Button.primary:pointerover">
-        <!-- <Setter Property="Background" Value="{DynamicResource Button.Primary.Hover}" /> -->
         <Setter Property="Background">
             <Setter.Value>
-                <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
                     <GradientStop Offset="0" Color="#000000" />
-                    <GradientStop Offset="1" Color="#101828" />
+                    <GradientStop Offset="1" Color="#111827" />
                 </LinearGradientBrush>
             </Setter.Value>
         </Setter>
+    </Style>
 
+    <Style Selector="Button.primary:pointerover /template/ Border#PART_Border">
+        <Setter Property="BoxShadow" Value="0 8 32 0 #66000000"/>
     </Style>
     <Style Selector="Button.primary:pressed">
-        <Setter Property="Background" Value="{DynamicResource Button.Primary.Pressed}" />
+        <Setter Property="RenderTransform" Value="scale(0.98)"/>
     </Style>
 
 
     <Style Selector="Button.secondary">
-        <Setter Property="Background" Value="{DynamicResource Surface}" />
-        <Setter Property="Foreground" Value="{DynamicResource OnSurface}" />
+        <Setter Property="Background" Value="#f3f4f6" />
+        <Setter Property="Foreground" Value="#111827" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="FontFamily" Value="{StaticResource SegoeUI}" />
+        <Setter Property="Padding" Value="24,0"/>
     </Style>
     <Style Selector="Button.secondary:pointerover">
-        <Setter Property="Background" Value="{DynamicResource Button.Secondary.Hover}" />
+        <Setter Property="Background" Value="#e5e7eb" />
     </Style>
     <Style Selector="Button.secondary:pressed">
-        <Setter Property="Background" Value="{DynamicResource Button.Secondary.Pressed}" />
+        <Setter Property="Background" Value="#d1d5db" />
+        <Setter Property="RenderTransform" Value="scale(0.98)"/>
     </Style>
 
 
@@ -221,14 +235,14 @@
 
 
     <Style Selector="Button.glow /template/ Border#PART_Glow">
-        <Setter Property="Opacity" Value="0.5"/>
+        <Setter Property="Opacity" Value="0.6"/>
     </Style>
 
     <Style Selector="Button.glow:pointerover /template/ Border#PART_Glow">
-        <Setter Property="Opacity" Value="0.7"/>
+        <Setter Property="Opacity" Value="0.8"/>
     </Style>
     <Style Selector="Button.glow:disabled /template/ Border#PART_Glow">
-        <Setter Property="Opacity" Value="0.4"/>
+        <Setter Property="Opacity" Value="0.3"/>
     </Style>
 
 
