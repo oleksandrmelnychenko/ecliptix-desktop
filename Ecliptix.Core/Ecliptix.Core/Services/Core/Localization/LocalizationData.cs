@@ -228,7 +228,9 @@ public static class LocalizationData
         [LocalizationKeys.EcliptixProtectionProtocol.FEATURE_OPAQUE_PROTOCOL] = "Passwords and PIN never leave device",
         [LocalizationKeys.NetworkStatus.ONLINE] = "Online",
         [LocalizationKeys.NetworkStatus.OFFLINE] = "Offline",
-        [LocalizationKeys.NetworkStatus.SERVER_ERROR] = "Server Error"
+        [LocalizationKeys.NetworkStatus.SERVER_ERROR] = "Server Error",
+        [LocalizationKeys.LanguagePicker.TITLE] = "Supported languages",
+        [LocalizationKeys.LanguagePicker.SUBTITLE] = "Choose your preferred language"
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<string, string> UkrainianStrings = new Dictionary<string, string>
@@ -456,7 +458,9 @@ public static class LocalizationData
         [LocalizationKeys.EcliptixProtectionProtocol.FEATURE_OPAQUE_PROTOCOL] = "Паролі та PIN ніколи не залишають пристрій",
         [LocalizationKeys.NetworkStatus.ONLINE] = "Онлайн",
         [LocalizationKeys.NetworkStatus.OFFLINE] = "Офлайн",
-        [LocalizationKeys.NetworkStatus.SERVER_ERROR] = "Помилка сервера"
+        [LocalizationKeys.NetworkStatus.SERVER_ERROR] = "Помилка сервера",
+        [LocalizationKeys.LanguagePicker.TITLE] = "Підтримувані мови",
+        [LocalizationKeys.LanguagePicker.SUBTITLE] = "Виберіть бажану мову"
     }.ToFrozenDictionary();
 
     public static readonly FrozenDictionary<string, FrozenDictionary<string, string>> AllLanguages =

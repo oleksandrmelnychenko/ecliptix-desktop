@@ -393,4 +393,10 @@ public static class LocalizationKeys
         public const string OFFLINE = "NetworkStatus.Offline";
         public const string SERVER_ERROR = "NetworkStatus.ServerError";
     }
+
+    public static class LanguagePicker
+    {
+        public const string TITLE = "LanguagePicker.Title";
+        public const string SUBTITLE = "LanguagePicker.Subtitle";
+    }
 }

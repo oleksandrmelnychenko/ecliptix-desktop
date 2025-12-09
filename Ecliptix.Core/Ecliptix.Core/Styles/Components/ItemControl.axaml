@@ -36,7 +36,7 @@
     <Styles.Resources>
         <SolidColorBrush x:Key="SidebarItemSelectedBackground" Color="#FFFFFF" />
         <SolidColorBrush x:Key="SidebarItemHoverBackground" Color="#F7F9FA" />
-        <SolidColorBrush x:Key="SidebarItemActiveIndicator" Color="#5856D6"/>
+        <SolidColorBrush x:Key="SidebarItemActiveIndicator" Color="#9333ea"/>
 
         <BoxShadows x:Key="SidebarItemDefaultShadow">0 2 8 0 #00000000, 0 1 2 0 #00000000</BoxShadows>
         <BoxShadows x:Key="SidebarItemActiveShadow">0 2 8 0 #15000000, 0 1 2 0 #08000000</BoxShadows>

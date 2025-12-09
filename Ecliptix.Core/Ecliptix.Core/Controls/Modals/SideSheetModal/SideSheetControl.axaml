@@ -10,10 +10,10 @@
     <UserControl.Styles>
         <Style Selector="Border.sheet">
             <Setter Property="Background" Value="White" />
-            <Setter Property="CornerRadius" Value="16" /> <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BorderBrush" Value="LightGray" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="BorderThickness" Value="0" />
             <Setter Property="ZIndex" Value="1" />
-            <Setter Property="BoxShadow" Value="0 4 10 0 #40000000" />
+            <Setter Property="BoxShadow" Value="-8 0 32 0 #1F000000" />
         </Style>
 
         <Style Selector="Border.scrim">
@@ -32,7 +32,7 @@
                 Classes="sheet"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Center"
-                Margin="0,0,10,0"
+                Margin="0,0,12,0"
                 MaxWidth="450"
                 IsHitTestVisible="True">
 

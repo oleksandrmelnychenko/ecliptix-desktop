@@ -35,6 +35,8 @@ public class LanguagePickerViewModel : ReactiveObject, IActivatableViewModel, ID
 
     public ViewModelActivator Activator { get; } = new();
 
+    public ILocalizationService LocalizationService => _localizationService;
+
     public ObservableCollection<LanguagePickerItemViewModel> Languages { get; }
 
     public ReactiveCommand<Unit, Unit> CloseCommand { get; }
