@@ -10,6 +10,7 @@ using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Services.Core.Localization;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Serilog;
@@ -20,6 +21,8 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
 {
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly CompositeDisposable _disposables = new();
+
+    private const int CURRENT_STEP = 4;
 
     private bool _isDisposed;
 
@@ -41,6 +44,11 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
 
         SetupCommands(isFormValid);
     }
+
+    public string StepBadgeText => string.Format(
+        LocalizationService[LocalizationKeys.Verification.Info.STEP_OF],
+        CURRENT_STEP,
+        TOTAL_STEPS);
 
     public string? UrlPathSegment { get; } = "/complete-profile";
     public IScreen HostScreen { get; }
@@ -82,7 +90,6 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
 
     private IObservable<bool> SetupValidation()
     {
-        // Profile Name Validation
         this.WhenAnyValue(x => x.ProfileName)
             .Skip(1)
             .Throttle(TimeSpan.FromMilliseconds(300))
@@ -90,12 +97,11 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
             .Subscribe(name =>
             {
                 bool isValid = !string.IsNullOrWhiteSpace(name) && name.Length >= 3;
-                ProfileNameError = isValid ? string.Empty : LocalizationService["Authentication.Error.InvalidName"];
+                ProfileNameError = isValid ? string.Empty : LocalizationService[LocalizationKeys.ValidationErrors.Profile.INVALID_NAME];
                 HasProfileNameError = !isValid;
             })
             .DisposeWith(_disposables);
 
-        // Display Name Validation
         this.WhenAnyValue(x => x.DisplayName)
             .Skip(1)
             .Throttle(TimeSpan.FromMilliseconds(300))
@@ -103,12 +109,11 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
             .Subscribe(name =>
             {
                 bool isValid = !string.IsNullOrWhiteSpace(name) && name.StartsWith("@");
-                DisplayNameError = isValid ? string.Empty : LocalizationService["Authentication.Error.InvalidDisplayName"];
+                DisplayNameError = isValid ? string.Empty : LocalizationService[LocalizationKeys.ValidationErrors.Profile.INVALID_DISPLAY_NAME];
                 HasDisplayNameError = !isValid;
             })
             .DisposeWith(_disposables);
 
-        // Date of Birth Validation (Age 13-17)
         this.WhenAnyValue(x => x.DateOfBirth)
             .Skip(1)
             .ObserveOn(RxApp.MainThreadScheduler)
@@ -121,7 +126,6 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
                     return;
                 }
 
-                // Конвертуємо DateTimeOffset в DateTime для обчислення віку
                 DateTime birthDate = dateOffset.Value.DateTime.Date;
                 DateTime today = DateTime.Today;
 
@@ -131,12 +135,11 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
                     age--;
                 }
 
-                // Перевірка віку (13-17 років)
                 bool isValid = age >= 13 && age <= 17;
 
                 DateOfBirthError = isValid
                     ? string.Empty
-                    : LocalizationService["Authentication.Error.InvalidAge"];
+                    : LocalizationService[LocalizationKeys.ValidationErrors.Profile.INVALID_AGE];
                 HasDateOfBirthError = !isValid;
             })
             .DisposeWith(_disposables);
@@ -178,11 +181,9 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
     {
         try
         {
-            // Тут ваша логіка завершення профілю
-            // Якщо потрібно передати DateTime, конвертуйте:
             DateTime? birthDate = DateOfBirth?.DateTime;
 
-            await Task.Delay(1000); // Заглушка
+            await Task.Delay(1000);
 
             Log.Information("Profile completed: {ProfileName}, {DisplayName}, Age: {Age}",
                 ProfileName, DisplayName, CalculateAge(DateOfBirth));

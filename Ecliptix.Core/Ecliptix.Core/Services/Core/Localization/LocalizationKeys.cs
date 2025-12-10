@@ -54,6 +54,23 @@ public static class LocalizationKeys
                 public const string BUTTON = "Authentication.SignUp.SecureKeyConfirmation.Button";
             }
 
+            public static class CompleteProfile
+            {
+                public const string TITLE = "Authentication.SignUp.CompleteProfile.Title";
+                public const string DESCRIPTION = "Authentication.SignUp.CompleteProfile.Description";
+
+                public const string PROFILE_NAME_WATERMARK = "Authentication.SignUp.CompleteProfile.ProfileName.Watermark";
+                public const string PROFILE_NAME_HINT = "Authentication.SignUp.CompleteProfile.ProfileName.Hint";
+
+                public const string DISPLAY_NAME_WATERMARK = "Authentication.SignUp.CompleteProfile.DisplayName.Watermark";
+                public const string DISPLAY_NAME_HINT = "Authentication.SignUp.CompleteProfile.DisplayName.Hint";
+
+                public const string DATE_OF_BIRTH_WATERMARK = "Authentication.SignUp.CompleteProfile.DateOfBirth.Watermark";
+                public const string DATE_OF_BIRTH_HINT = "Authentication.SignUp.CompleteProfile.DateOfBirth.Hint";
+
+                public const string BUTTON_COMPLETE = "Authentication.SignUp.CompleteProfile.Button.Complete";
+            }
+
             public static class PassPhase
             {
                 public const string TITLE = "Authentication.SignUp.PassPhase.Title";
@@ -209,6 +226,13 @@ public static class LocalizationKeys
             public const string GOOD = "ValidationErrors.SecureKeyStrength.Good";
             public const string STRONG = "ValidationErrors.SecureKeyStrength.Strong";
             public const string VERY_STRONG = "ValidationErrors.SecureKeyStrength.VeryStrong";
+        }
+
+        public static class Profile
+        {
+            public const string INVALID_NAME = "ValidationErrors.Profile.InvalidName";
+            public const string INVALID_DISPLAY_NAME = "ValidationErrors.Profile.InvalidDisplayName";
+            public const string INVALID_AGE = "ValidationErrors.Profile.InvalidAge";
         }
     }
 

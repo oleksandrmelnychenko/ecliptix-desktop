@@ -26,7 +26,7 @@
                            Foreground="{DynamicResource OnSurface}"
                            LineHeight="{StaticResource LineHeight.Loose}" />
 
-                <core:StepBadgeView Text="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.Step]}"
+                <core:StepBadgeView Text="{Binding StepBadgeText}"
                                             VerticalAlignment="Center"/>
             </StackPanel>
 
