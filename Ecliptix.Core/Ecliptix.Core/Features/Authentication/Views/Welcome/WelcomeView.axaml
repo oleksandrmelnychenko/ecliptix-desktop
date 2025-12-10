@@ -32,7 +32,8 @@
 
         <carousels:WelcomeCarouselView Grid.Row="1"
                                   ItemsSource="{Binding Slides}"
-                                  SelectedIndex="{Binding CurrentSlideIndex, Mode=TwoWay}" />
+                                  SelectedIndex="{Binding CurrentSlideIndex, Mode=TwoWay}"
+                                  HtmlUrl="avares://Ecliptix.Core/Assets/WelcomeContent.html" />
 
         <Grid Grid.Row="2"
               ColumnDefinitions="Auto,Auto"
