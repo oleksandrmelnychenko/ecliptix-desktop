@@ -63,8 +63,8 @@
 			<Border Grid.Row="0"
 					Height="38"
 					CornerRadius="10"
-					BorderThickness="1"
-					BorderBrush="#6A5ACD"
+					BorderThickness="1"					
+					BorderBrush="#E5E7EB"
 					IsVisible="{Binding Comments.HasReplyComment}"
 					Background="#FFF"					
 					BoxShadow="0 2 8 0 #15000000">
