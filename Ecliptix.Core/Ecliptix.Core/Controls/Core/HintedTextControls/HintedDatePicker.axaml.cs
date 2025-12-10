@@ -27,6 +27,10 @@ public partial class HintedDatePicker : UserControl
     private bool _isControlInitialized;
     private bool _isUpdatingInternally;
 
+    // Внутрішні поля для DirectProperties
+    private bool _showVisualIcon;
+    private bool _showLeftSeparator;
+
     #endregion
 
     #region Styled Properties
@@ -83,11 +87,23 @@ public partial class HintedDatePicker : UserControl
     public new static readonly StyledProperty<double> FontSizeProperty =
         AvaloniaProperty.Register<HintedDatePicker, double>(nameof(FontSize), HintedTextBoxConstants.DEFAULT_FONT_SIZE);
 
-    // Внутрішня властивість для CalendarDatePicker (DateTime?)
     public static readonly StyledProperty<DateTime?> InternalDateProperty =
         AvaloniaProperty.Register<HintedDatePicker, DateTime?>(
             nameof(InternalDate),
             defaultBindingMode: BindingMode.TwoWay);
+
+    // НОВІ ВЛАСТИВОСТІ
+    public static readonly StyledProperty<Drawing?> VisualIconProperty =
+        AvaloniaProperty.Register<HintedDatePicker, Drawing?>(nameof(VisualIcon));
+
+    public static readonly StyledProperty<double> VisualIconStrokeThicknessProperty =
+        AvaloniaProperty.Register<HintedDatePicker, double>(nameof(VisualIconStrokeThickness), defaultValue: 2);
+
+    public static readonly DirectProperty<HintedDatePicker, bool> ShowVisualIconProperty =
+        AvaloniaProperty.RegisterDirect<HintedDatePicker, bool>(nameof(ShowVisualIcon), o => o.ShowVisualIcon);
+
+    public static readonly DirectProperty<HintedDatePicker, bool> ShowLeftSeparatorProperty =
+        AvaloniaProperty.RegisterDirect<HintedDatePicker, bool>(nameof(ShowLeftSeparator), o => o.ShowLeftSeparator);
 
     #endregion
 
@@ -105,7 +121,7 @@ public partial class HintedDatePicker : UserControl
         set => SetValue(SelectedDateProperty, value);
     }
 
-    private DateTime? InternalDate
+    public DateTime? InternalDate
     {
         get => GetValue(InternalDateProperty);
         set => SetValue(InternalDateProperty, value);
@@ -189,6 +205,30 @@ public partial class HintedDatePicker : UserControl
         set => SetValue(FontSizeProperty, value);
     }
 
+    public Drawing? VisualIcon
+    {
+        get => GetValue(VisualIconProperty);
+        set => SetValue(VisualIconProperty, value);
+    }
+
+    public double VisualIconStrokeThickness
+    {
+        get => GetValue(VisualIconStrokeThicknessProperty);
+        set => SetValue(VisualIconStrokeThicknessProperty, value);
+    }
+
+    public bool ShowVisualIcon
+    {
+        get => _showVisualIcon;
+        private set => SetAndRaise(ShowVisualIconProperty, ref _showVisualIcon, value);
+    }
+
+    public bool ShowLeftSeparator
+    {
+        get => _showLeftSeparator;
+        private set => SetAndRaise(ShowLeftSeparatorProperty, ref _showLeftSeparator, value);
+    }
+
     #endregion
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
@@ -248,7 +288,7 @@ public partial class HintedDatePicker : UserControl
 
     private void SetupReactiveBindings()
     {
-        // Логіка накопичення тексту помилки
+        // Логіка помилки
         this.WhenAnyValue(x => x.ErrorText)
             .DistinctUntilChanged()
             .Scan(string.Empty, (previous, current) =>
@@ -262,7 +302,6 @@ public partial class HintedDatePicker : UserControl
             }, "ErrorText subscription"))
             .DisposeWith(_disposables);
 
-        // Логіка видимості/прозорості елементів помилки
         this.WhenAnyValue(x => x.HasError)
             .DistinctUntilChanged()
             .Subscribe(hasError => SafeExecute(() =>
@@ -272,11 +311,22 @@ public partial class HintedDatePicker : UserControl
                     : HintedTextBoxConstants.DEFAULT_ELLIPSE_OPACITY_HIDDEN;
             }, "HasError subscription"))
             .DisposeWith(_disposables);
+
+        // --- НОВА ЛОГІКА ІКОНКИ ---
+        this.WhenAnyValue(x => x.VisualIcon)
+            .Select(icon => icon != null)
+            .DistinctUntilChanged()
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(hasIcon =>
+            {
+                ShowVisualIcon = hasIcon;
+                ShowLeftSeparator = hasIcon;
+            })
+            .DisposeWith(_disposables);
     }
 
     private void SetupDateConversion()
     {
-        // Конвертація DateTimeOffset? -> DateTime? для CalendarDatePicker
         this.WhenAnyValue(x => x.SelectedDate)
             .Subscribe(dateOffset =>
             {
@@ -290,14 +340,10 @@ public partial class HintedDatePicker : UserControl
                 {
                     InternalDate = dateOffset?.DateTime;
                 }
-                finally
-                {
-                    _isUpdatingInternally = false;
-                }
+                finally { _isUpdatingInternally = false; }
             })
             .DisposeWith(_disposables);
 
-        // Конвертація DateTime? -> DateTimeOffset? назад
         this.WhenAnyValue(x => x.InternalDate)
             .Subscribe(dateTime =>
             {
@@ -313,10 +359,7 @@ public partial class HintedDatePicker : UserControl
                         ? new DateTimeOffset(dateTime.Value, TimeSpan.Zero)
                         : null;
                 }
-                finally
-                {
-                    _isUpdatingInternally = false;
-                }
+                finally { _isUpdatingInternally = false; }
             })
             .DisposeWith(_disposables);
     }

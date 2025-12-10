@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:core="clr-namespace:Ecliptix.Core.Controls.Core.HintedTextControls"
+             xmlns:converters="clr-namespace:Ecliptix.Core.Shared.Converters"
              mc:Ignorable="d"
              d:DesignWidth="320"
              d:DesignHeight="78"
@@ -11,6 +12,9 @@
              x:Class="Ecliptix.Core.Controls.Core.HintedTextControls.HintedTextBox"
              x:Name="Control"
              Focusable="False">
+    <UserControl.Resources>
+        <converters:DrawingColorConverter x:Key="DrawingColorConverter" />
+    </UserControl.Resources>
 
     <UserControl.Styles>
         <StyleInclude Source="/Controls/Core/HintedTextControls/Shared/HintedControlStyles.axaml" />
@@ -33,17 +37,15 @@
         </Style>
     </UserControl.Styles>
 
-    <Grid
-        Classes="hinted-field"
-        ClipToBounds="False"
-        Classes.error="{Binding HasError, ElementName=Control}">
+    <Grid Classes="hinted-field"
+          ClipToBounds="False"
+          Classes.error="{Binding HasError, ElementName=Control}">
 
         <Border x:Name="ShadowBorder"
                 Margin="{StaticResource MainBorderMargin}"
                 CornerRadius="{Binding CornerRadius, ElementName=Control}"
                 MinHeight="{StaticResource MinControlHeight}"
-                Background="Transparent">
-        </Border>
+                Background="Transparent"/>
 
         <Border x:Name="FocusBorder"
                 BorderThickness="{StaticResource FocusBorderThickness}"
@@ -71,8 +73,7 @@
             </Border.Transitions>
 
             <Panel Margin="{StaticResource InnerPanelMargin}">
-                <Grid VerticalAlignment="Stretch"
-                      RowDefinitions="*,Auto">
+                <Grid VerticalAlignment="Stretch" RowDefinitions="*,Auto">
 
                     <Grid Grid.Row="0">
                         <Grid.ColumnDefinitions>
@@ -115,10 +116,35 @@
                             </StackPanel>
                         </Button>
 
+                        <Image Grid.Column="0"
+                               IsVisible="{Binding ShowVisualIcon, ElementName=Control}"
+                               Width="13"
+                               Height="13"
+                               Margin="8,0,8,0"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Center"
+                               Opacity="0.5">
+                            <Image.Source>
+                                <DrawingImage>
+                                    <DrawingImage.Drawing>
+                                        <MultiBinding Converter="{StaticResource DrawingColorConverter}">
+
+                                            <Binding Path="VisualIcon" ElementName="Control" />
+
+                                            <Binding Path="TextForeground" ElementName="Control" />
+
+                                            <Binding Path="VisualIconStrokeThickness" ElementName="Control" />
+
+                                        </MultiBinding>
+                                    </DrawingImage.Drawing>
+                                </DrawingImage>
+                            </Image.Source>
+                        </Image>
+
                         <Border Grid.Column="1"
-                                IsVisible="{Binding ShowCountryButton, ElementName=Control}"
+                                IsVisible="{Binding ShowLeftSeparator, ElementName=Control}"
                                 Width="1"
-                                Margin="4,8,4,8"
+                                Margin="0,8,12,8"
                                 Background="{Binding TextForeground, ElementName=Control}"
                                 Opacity="0.2" />
 

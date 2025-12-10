@@ -3,12 +3,18 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:core="clr-namespace:Ecliptix.Core.Controls.Core.HintedTextControls"
+             xmlns:converters="clr-namespace:Ecliptix.Core.Shared.Converters"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ecliptix.Core.Controls.Core.HintedTextControls.HintedDatePicker"
              x:Name="Control"
+             Focusable="False"
              x:DataType="core:HintedDatePicker"
              >
-   <UserControl.Styles>
+  <UserControl.Resources>
+        <converters:DrawingColorConverter x:Key="DrawingColorConverter" />
+    </UserControl.Resources>
+
+    <UserControl.Styles>
         <StyleInclude Source="/Controls/Core/HintedTextControls/Shared/HintedControlStyles.axaml" />
 
         <Style Selector="Border#FocusBorder">
@@ -18,9 +24,7 @@
         <Style Selector="Path.hint-icon">
             <Setter Property="Fill" Value="{Binding HintForeground, ElementName=Control}" />
         </Style>
-
     </UserControl.Styles>
-
 
     <Grid x:Name="MainGrid"
           Classes="hinted-field"
@@ -62,7 +66,39 @@
                 <Grid VerticalAlignment="Stretch" RowDefinitions="*,Auto">
 
                     <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" /> <ColumnDefinition Width="Auto" /> <ColumnDefinition Width="*" />    </Grid.ColumnDefinitions>
+
+                        <Image Grid.Column="0"
+                               IsVisible="{Binding ShowVisualIcon, ElementName=Control}"
+                               Width="13"
+                               Height="13"
+                               Margin="8,0,8,0"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Center"
+                               Opacity="0.5">
+                            <Image.Source>
+                                <DrawingImage>
+                                    <DrawingImage.Drawing>
+                                        <MultiBinding Converter="{StaticResource DrawingColorConverter}">
+                                            <Binding Path="VisualIcon" ElementName="Control" />
+                                            <Binding Path="TextForeground" ElementName="Control" />
+                                            <Binding Path="VisualIconStrokeThickness" ElementName="Control" />
+                                        </MultiBinding>
+                                    </DrawingImage.Drawing>
+                                </DrawingImage>
+                            </Image.Source>
+                        </Image>
+
+                        <Border Grid.Column="1"
+                                IsVisible="{Binding ShowLeftSeparator, ElementName=Control}"
+                                Width="1"
+                                Margin="0,8,12,8"
+                                Background="{Binding TextForeground, ElementName=Control}"
+                                Opacity="0.2" />
+
                         <CalendarDatePicker x:Name="MainDatePicker"
+                                            Grid.Column="2"
                                             SelectedDate="{Binding InternalDate, ElementName=Control, Mode=TwoWay}"
                                             Watermark="{Binding Watermark, ElementName=Control}"
                                             SelectedDateFormat="Custom"
@@ -103,3 +139,4 @@
         </Border>
     </Grid>
 </UserControl>
+

@@ -26,69 +26,78 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private bool _isDisposed;
     private bool _isControlInitialized;
+
+    // Внутрішні поля для DirectProperties (ReadOnly для XAML)
     private bool _showCountryButton;
+    private bool _showLeftSeparator;
+    private bool _showVisualIcon;
 
     #endregion
 
     #region Styled Properties
 
     public static readonly StyledProperty<string> WatermarkProperty =
-        AvaloniaProperty.Register<HintedPasswordBox, string>(nameof(Watermark), string.Empty);
+        AvaloniaProperty.Register<HintedTextBox, string>(nameof(Watermark), string.Empty);
 
     public static readonly StyledProperty<string> TextProperty =
         AvaloniaProperty.Register<HintedTextBox, string>(nameof(Text), string.Empty,
             defaultBindingMode: BindingMode.TwoWay);
 
     public static readonly StyledProperty<string> HintProperty =
-        AvaloniaProperty.Register<HintedPasswordBox, string>(nameof(Hint), string.Empty);
+        AvaloniaProperty.Register<HintedTextBox, string>(nameof(Hint), string.Empty);
 
+    // Іконки статусу (зліва внизу біля підказки)
     public static readonly StyledProperty<DrawingImage?> IconRegularSourceProperty =
-        AvaloniaProperty.Register<HintedPasswordBox, DrawingImage?>(nameof(IconRegularSource));
+        AvaloniaProperty.Register<HintedTextBox, DrawingImage?>(nameof(IconRegularSource));
 
     public static readonly StyledProperty<DrawingImage?> IconErrorSourceProperty =
-        AvaloniaProperty.Register<HintedPasswordBox, DrawingImage?>(nameof(IconErrorSource));
+        AvaloniaProperty.Register<HintedTextBox, DrawingImage?>(nameof(IconErrorSource));
+
+    // НОВА ВЛАСТИВІСТЬ: Візуальна іконка всередині поля (зліва від тексту)
+    public static readonly StyledProperty<Drawing?> VisualIconProperty =
+        AvaloniaProperty.Register<HintedTextBox, Drawing?>(nameof(VisualIcon));
 
     public static readonly StyledProperty<IBrush> FocusBorderBrushProperty =
-        AvaloniaProperty.Register<HintedPasswordBox, IBrush>(
+        AvaloniaProperty.Register<HintedTextBox, IBrush>(
             nameof(FocusBorderBrush), new SolidColorBrush(Color.Parse(HintedTextBoxConstants.FOCUS_COLOR_HEX)));
 
     public static readonly StyledProperty<IBrush> TextForegroundProperty =
-        AvaloniaProperty.Register<HintedPasswordBox, IBrush>(
+        AvaloniaProperty.Register<HintedTextBox, IBrush>(
             nameof(TextForeground), new SolidColorBrush(Colors.Black));
 
     public static readonly StyledProperty<IBrush> HintForegroundProperty =
-        AvaloniaProperty.Register<HintedPasswordBox, IBrush>(
+        AvaloniaProperty.Register<HintedTextBox, IBrush>(
             nameof(HintForeground), new SolidColorBrush(Color.Parse(HintedTextBoxConstants.FOCUS_COLOR_HEX)));
 
     public static readonly StyledProperty<string> ErrorTextProperty =
-        AvaloniaProperty.Register<HintedPasswordBox, string>(nameof(ErrorText), string.Empty);
+        AvaloniaProperty.Register<HintedTextBox, string>(nameof(ErrorText), string.Empty);
 
     public static readonly StyledProperty<double> EllipseOpacityProperty =
-        AvaloniaProperty.Register<HintedPasswordBox, double>(nameof(EllipseOpacity));
+        AvaloniaProperty.Register<HintedTextBox, double>(nameof(EllipseOpacity));
 
     public static readonly StyledProperty<bool> HasErrorProperty =
-        AvaloniaProperty.Register<HintedPasswordBox, bool>(nameof(HasError));
+        AvaloniaProperty.Register<HintedTextBox, bool>(nameof(HasError));
 
     public static readonly StyledProperty<IBrush> MainBorderBrushProperty =
-        AvaloniaProperty.Register<HintedPasswordBox, IBrush>(
+        AvaloniaProperty.Register<HintedTextBox, IBrush>(
             nameof(MainBorderBrush), new SolidColorBrush(Color.Parse(HintedTextBoxConstants.FOCUS_COLOR_HEX)));
 
     public static readonly StyledProperty<int> MaxLengthProperty =
-        AvaloniaProperty.Register<HintedPasswordBox, int>(nameof(MaxLength), int.MaxValue);
+        AvaloniaProperty.Register<HintedTextBox, int>(nameof(MaxLength), int.MaxValue);
 
     public new static readonly StyledProperty<IBrush> BackgroundProperty =
-        AvaloniaProperty.Register<HintedPasswordBox, IBrush>(
+        AvaloniaProperty.Register<HintedTextBox, IBrush>(
             nameof(Background), new SolidColorBrush(Colors.White));
 
     public new static readonly StyledProperty<double> FontSizeProperty =
-        AvaloniaProperty.Register<HintedPasswordBox, double>(nameof(FontSize), HintedTextBoxConstants.DEFAULT_FONT_SIZE);
+        AvaloniaProperty.Register<HintedTextBox, double>(nameof(FontSize), HintedTextBoxConstants.DEFAULT_FONT_SIZE);
 
     public static readonly StyledProperty<double> WatermarkFontSizeProperty =
-        AvaloniaProperty.Register<HintedPasswordBox, double>(nameof(WatermarkFontSize),
+        AvaloniaProperty.Register<HintedTextBox, double>(nameof(WatermarkFontSize),
             HintedTextBoxConstants.DEFAULT_WATERMARK_FONT_SIZE);
 
     public new static readonly StyledProperty<FontWeight> FontWeightProperty =
-        AvaloniaProperty.Register<HintedPasswordBox, FontWeight>(nameof(FontWeight), FontWeight.Normal);
+        AvaloniaProperty.Register<HintedTextBox, FontWeight>(nameof(FontWeight), FontWeight.Normal);
 
     public static readonly StyledProperty<bool> IsPhoneNumberModeProperty =
         AvaloniaProperty.Register<HintedTextBox, bool>(nameof(IsPhoneNumberMode), false);
@@ -104,11 +113,27 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             nameof(ShowCountryButton),
             o => o.ShowCountryButton);
 
-    public bool ShowCountryButton
+    public static readonly DirectProperty<HintedTextBox, bool> ShowLeftSeparatorProperty =
+        AvaloniaProperty.RegisterDirect<HintedTextBox, bool>(
+            nameof(ShowLeftSeparator),
+            o => o.ShowLeftSeparator);
+
+    public static readonly DirectProperty<HintedTextBox, bool> ShowVisualIconProperty =
+        AvaloniaProperty.RegisterDirect<HintedTextBox, bool>(
+            nameof(ShowVisualIcon),
+            o => o.ShowVisualIcon);
+
+    public static readonly StyledProperty<double> VisualIconStrokeThicknessProperty =
+        AvaloniaProperty.Register<HintedTextBox, double>(
+            nameof(VisualIconStrokeThickness),
+            defaultValue: 2);
+
+    public double VisualIconStrokeThickness
     {
-        get => _showCountryButton;
-        private set => SetAndRaise(ShowCountryButtonProperty, ref _showCountryButton, value);
+        get => GetValue(VisualIconStrokeThicknessProperty);
+        set => SetValue(VisualIconStrokeThicknessProperty, value);
     }
+
     #endregion
 
     public HintedTextBox()
@@ -116,6 +141,8 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         InitializeComponent();
         AttachedToVisualTree += OnAttachedToVisualTree;
     }
+
+    #region Accessors
 
     public bool IsPhoneNumberMode
     {
@@ -133,6 +160,30 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     {
         get => GetValue(CountryCodeCommandProperty);
         set => SetValue(CountryCodeCommandProperty, value);
+    }
+
+    public Drawing? VisualIcon
+    {
+        get => GetValue(VisualIconProperty);
+        set => SetValue(VisualIconProperty, value);
+    }
+
+    public bool ShowCountryButton
+    {
+        get => _showCountryButton;
+        private set => SetAndRaise(ShowCountryButtonProperty, ref _showCountryButton, value);
+    }
+
+    public bool ShowLeftSeparator
+    {
+        get => _showLeftSeparator;
+        private set => SetAndRaise(ShowLeftSeparatorProperty, ref _showLeftSeparator, value);
+    }
+
+    public bool ShowVisualIcon
+    {
+        get => _showVisualIcon;
+        private set => SetAndRaise(ShowVisualIconProperty, ref _showVisualIcon, value);
     }
 
     public string Text
@@ -237,6 +288,8 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         set => SetValue(FontWeightProperty, value);
     }
 
+    #endregion
+
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         Dispose();
@@ -253,8 +306,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         try
         {
             _isDisposed = true;
-
-
             AttachedToVisualTree -= OnAttachedToVisualTree;
 
             try
@@ -294,12 +345,12 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
 
         SetupReactiveBindings();
-
         _isControlInitialized = true;
     }
 
     private void SetupReactiveBindings()
     {
+        // 1. Error Text Logic
         this.WhenAnyValue(x => x.ErrorText)
             .DistinctUntilChanged()
             .Scan(string.Empty, (previous, current) =>
@@ -313,6 +364,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             }, "ErrorText subscription"))
             .DisposeWith(_disposables);
 
+        // 2. Error Visuals Logic
         this.WhenAnyValue(x => x.HasError)
             .DistinctUntilChanged()
             .Subscribe(hasError => SafeExecute(() =>
@@ -323,13 +375,13 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             }, "HasError subscription"))
             .DisposeWith(_disposables);
 
-        this.WhenAnyValue(
+        // 3. Phone Button Logic
+        IObservable<bool> showPhoneButtonObs = this.WhenAnyValue(
                 x => x.IsPhoneNumberMode,
                 x => x.Text)
             .Select(tuple =>
             {
                 (bool isPhoneMode, string text) = tuple;
-
                 if (!isPhoneMode)
                 {
                     return false;
@@ -340,16 +392,41 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                     return true;
                 }
 
-                if (text.StartsWith("+"))
-                {
-                    return false;
-                }
+                return !text.StartsWith("+");
+            });
 
-                return true;
-            })
+        // 4. Visual Icon Logic
+        // Іконку показуємо тільки якщо це НЕ телефон І іконка не null
+        IObservable<bool> showVisualIconObs = Observable.CombineLatest(
+            showPhoneButtonObs,
+            this.WhenAnyValue(x => x.VisualIcon),
+            (isPhoneBtnVisible, icon) => !isPhoneBtnVisible && icon != null
+        );
+
+        // Підписки на оновлення властивостей
+
+        showPhoneButtonObs
             .DistinctUntilChanged()
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(isVisible => ShowCountryButton = isVisible)
+            .DisposeWith(_disposables);
+
+        showVisualIconObs
+            .DistinctUntilChanged()
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(isVisible => ShowVisualIcon = isVisible)
+            .DisposeWith(_disposables);
+
+        // 5. Separator Logic
+        // Розділювач показуємо, якщо активний будь-який з лівих елементів
+        Observable.CombineLatest(
+                showPhoneButtonObs,
+                showVisualIconObs,
+                (showPhone, showIcon) => showPhone || showIcon
+            )
+            .DistinctUntilChanged()
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(isVisible => ShowLeftSeparator = isVisible)
             .DisposeWith(_disposables);
     }
 
@@ -363,7 +440,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         Initialize();
     }
 
-
     private void SafeExecute(Action action, string context)
     {
         if (_isDisposed)
@@ -371,14 +447,8 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             return;
         }
 
-        try
-        {
-            action();
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"ERROR in {context}: {ex.Message}");
-        }
+        try { action(); }
+        catch (Exception ex) { Debug.WriteLine($"ERROR in {context}: {ex.Message}"); }
     }
 
     private void FindControls()
@@ -390,5 +460,4 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     }
 
     private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
-
 }
