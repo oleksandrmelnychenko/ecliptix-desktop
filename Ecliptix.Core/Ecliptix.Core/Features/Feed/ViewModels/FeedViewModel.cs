@@ -33,11 +33,13 @@ public sealed partial class FeedViewModel : Core.MVVM.ViewModelBase
     [Reactive] public bool IsRefreshing { get; set; }
     [Reactive] public bool HasMorePosts { get; set; }
     [Reactive] public bool IsEdit { get; set; }
+    [Reactive] public string PostMessage { get; set; }
     [Reactive] public string ErrorMessage { get; set; }
     [Reactive] public FeedItemViewModel? SelectedPost { get; set; }
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> LoadInitialPostsCommand { get; }
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> LoadMorePostsCommand { get; }
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> RefreshFeedCommand { get; }
+    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> PostCommand { get; }
 
     public FeedViewModel(
         NetworkProvider networkProvider,
@@ -52,12 +54,14 @@ public sealed partial class FeedViewModel : Core.MVVM.ViewModelBase
         _commentService = commentService;
 
         Posts = new ObservableCollection<FeedItemViewModel>();
+        PostMessage = string.Empty;
         ErrorMessage = string.Empty;
         HasMorePosts = true;
 
         LoadInitialPostsCommand = ReactiveCommand.CreateFromTask(LoadInitialPostsAsync);
         LoadMorePostsCommand = ReactiveCommand.CreateFromTask(LoadMorePostsAsync);
         RefreshFeedCommand = ReactiveCommand.CreateFromTask(RefreshFeedAsync);
+        PostCommand = ReactiveCommand.CreateFromTask(PostAsync);
 
         LoadInitialPostsCommand.Execute().Subscribe().DisposeWith(_disposables);
 
@@ -70,9 +74,18 @@ public sealed partial class FeedViewModel : Core.MVVM.ViewModelBase
         {
             IsEdit = false;
             SelectedPost?.Interactions.IsEdit = IsEdit;
+            foreach (FeedItemViewModel item in Posts)
+            {
+                item.Comments.ClearReply();
+            }
         });
 
         MenuItems = SetTempItems();
+    }
+
+    private async Task PostAsync()
+    {
+        await Task.Delay(100); // Simulate network delay
     }
 
     private void ShouldShowEditPost(string postId)

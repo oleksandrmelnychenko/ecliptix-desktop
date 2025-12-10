@@ -23,6 +23,8 @@
             <feedConverters:LikeColorConverter x:Key="LikeColorConverter" />
             <feedConverters:LikeIconConverter x:Key="LikeIconConverter" />
             <feedConverters:SaveColorConverter x:Key="SaveColorConverter" />
+            <feedConverters:BooleanNotConverter x:Key="BooleanNotConverter" />
+            
 
 
             <ResourceDictionary.MergedDictionaries>
