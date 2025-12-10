@@ -25,7 +25,7 @@ public sealed partial class FeedViewModel : Core.MVVM.ViewModelBase
     private readonly CompositeDisposable _disposables = new();
     private bool _isDisposed;
     private int _currentPage = 1;
-    private const int PageSize = 10;
+    private const int PAGE_SIZE = 10;
 
     [Reactive] public ObservableCollection<ProfileMenuItem> MenuItems { get; set; }
     [Reactive] public ObservableCollection<FeedItemViewModel> Posts { get; set; }
@@ -116,7 +116,7 @@ public sealed partial class FeedViewModel : Core.MVVM.ViewModelBase
 
         try
         {
-            Result<FeedPage, string> result = await _feedService.LoadFeedAsync(_currentPage, PageSize);
+            Result<FeedPage, string> result = await _feedService.LoadFeedAsync(_currentPage, PAGE_SIZE);
 
             if (result.IsOk && result.Unwrap() != null)
             {
@@ -148,7 +148,7 @@ public sealed partial class FeedViewModel : Core.MVVM.ViewModelBase
 
         try
         {
-            Result<FeedPage, string> result = await _feedService.LoadFeedAsync(_currentPage, PageSize);
+            Result<FeedPage, string> result = await _feedService.LoadFeedAsync(_currentPage, PAGE_SIZE);
 
             if (result.IsOk && result.Unwrap() != null)
             {
@@ -180,7 +180,7 @@ public sealed partial class FeedViewModel : Core.MVVM.ViewModelBase
 
         try
         {
-            Result<FeedPage, string> result = await _feedService.RefreshFeedAsync(PageSize);
+            Result<FeedPage, string> result = await _feedService.RefreshFeedAsync(PAGE_SIZE);
 
             if (result.IsOk && result.Unwrap() != null)
             {
