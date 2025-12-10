@@ -36,6 +36,7 @@
     <Application.Styles>
         <SimpleTheme />
 
+
         <StyleInclude Source="/Styles/Components/ScrollBar.axaml"></StyleInclude>
         <StyleInclude Source="/Styles/Core/Dimensions.axaml" />
         <StyleInclude Source="/Styles/Core/Colors.axaml" />

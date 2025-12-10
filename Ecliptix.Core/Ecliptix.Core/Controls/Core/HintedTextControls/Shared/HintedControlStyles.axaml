@@ -143,134 +143,120 @@
     </Style>
 
 
-    <Style Selector="auth|HintedTextBox:focus-within Border#FocusBorder,
-                     auth|HintedPasswordBox:focus-within Border#FocusBorder">
+    <Style Selector="Grid.hinted-field:focus-within Border#FocusBorder">
         <Setter Property="Opacity" Value="1"/>
     </Style>
 
-    <Style Selector="auth|HintedTextBox:focus-within Border#ShadowBorder,
-                     auth|HintedPasswordBox:focus-within Border#ShadowBorder">
+    <Style Selector="Grid.hinted-field:focus-within Border#ShadowBorder">
         <Setter Property="BoxShadow" Value="{StaticResource ShadowFocus}"/>
     </Style>
 
-    <Style Selector="auth|HintedTextBox:focus-within Border#MainBorder,
-                     auth|HintedPasswordBox:focus-within Border#MainBorder">
+    <Style Selector="Grid.hinted-field:focus-within Border#MainBorder">
         <Setter Property="BorderBrush" Value="Transparent"/>
     </Style>
 
-
-    <Style Selector="auth|HintedTextBox.error Border#FocusBorder,
-                     auth|HintedPasswordBox.error Border#FocusBorder">
+    <Style Selector="Grid.hinted-field.error Border#FocusBorder">
         <Setter Property="Opacity" Value="1"/>
         <Setter Property="BorderBrush" Value="{StaticResource BrushError}"/>
     </Style>
-    <Style Selector="auth|HintedTextBox.error Border#MainBorder,
-                     auth|HintedPasswordBox.error Border#MainBorder">
+    <Style Selector="Grid.hinted-field.error Border#MainBorder">
         <Setter Property="BorderBrush" Value="{StaticResource BrushError}"/>
     </Style>
-    <Style Selector="auth|HintedTextBox.error Border#ShadowBorder,
-                     auth|HintedPasswordBox.error Border#ShadowBorder">
+    <Style Selector="Grid.hinted-field.error Border#ShadowBorder">
         <Setter Property="BoxShadow" Value="{StaticResource ShadowError}"/>
     </Style>
 
-    <Style Selector="auth|HintedTextBox.error:focus-within Border#FocusBorder,
-                     auth|HintedPasswordBox.error:focus-within Border#FocusBorder">
+    <Style Selector="Grid.hinted-field.error:focus-within Border#FocusBorder">
         <Setter Property="BorderBrush" Value="{StaticResource BrushError}"/>
     </Style>
-    <Style Selector="auth|HintedTextBox.error:focus-within Border#ShadowBorder,
-                     auth|HintedPasswordBox.error:focus-within Border#ShadowBorder">
+    <Style Selector="Grid.hinted-field.error:focus-within Border#ShadowBorder">
         <Setter Property="BoxShadow" Value="{StaticResource ShadowError}"/>
     </Style>
 
-
-    <Style Selector="auth|HintedTextBox.secure-mode Border#MainBorder,
-                     auth|HintedPasswordBox.secure-mode Border#MainBorder">
+    <Style Selector="Grid.hinted-field.secure-mode Border#MainBorder">
         <Setter Property="BorderBrush" Value="Transparent"/>
     </Style>
-    <Style Selector="auth|HintedTextBox.secure-mode Border#FocusBorder,
-                     auth|HintedPasswordBox.secure-mode Border#FocusBorder">
+    <Style Selector="Grid.hinted-field.secure-mode Border#FocusBorder">
         <Setter Property="Opacity" Value="1"/>
     </Style>
 
-
-    <Style Selector="auth|HintedTextBox.strength-invalid Border#FocusBorder, auth|HintedPasswordBox.strength-invalid Border#FocusBorder">
+    <Style Selector="Grid.hinted-field.strength-invalid Border#FocusBorder">
         <Setter Property="BorderBrush" Value="{StaticResource BrushStrInvalid}"/>
     </Style>
-    <Style Selector="auth|HintedTextBox.strength-invalid Border#ShadowBorder, auth|HintedPasswordBox.strength-invalid Border#ShadowBorder">
+    <Style Selector="Grid.hinted-field.strength-invalid Border#ShadowBorder">
         <Setter Property="BoxShadow" Value="{StaticResource ShadowStrInvalid}"/>
     </Style>
-    <Style Selector="auth|HintedTextBox.strength-invalid Path.strength-icon, auth|HintedPasswordBox.strength-invalid Path.strength-icon">
+    <Style Selector="Grid.hinted-field.strength-invalid Path.strength-icon">
         <Setter Property="Fill" Value="{StaticResource BrushStrInvalid}"/>
     </Style>
-    <Style Selector="auth|HintedTextBox.strength-invalid TextBlock.strength-text, auth|HintedPasswordBox.strength-invalid TextBlock.strength-text">
+    <Style Selector="Grid.hinted-field.strength-invalid TextBlock.strength-text">
         <Setter Property="Foreground" Value="{StaticResource BrushStrInvalid}"/>
     </Style>
 
-    <Style Selector="auth|HintedTextBox.strength-very-weak Border#FocusBorder, auth|HintedPasswordBox.strength-very-weak Border#FocusBorder">
+    <Style Selector="Grid.hinted-field.strength-very-weak Border#FocusBorder">
         <Setter Property="BorderBrush" Value="{StaticResource BrushStrVeryWeak}"/>
     </Style>
-    <Style Selector="auth|HintedTextBox.strength-very-weak Border#ShadowBorder, auth|HintedPasswordBox.strength-very-weak Border#ShadowBorder">
+    <Style Selector="Grid.hinted-field.strength-very-weak Border#ShadowBorder">
         <Setter Property="BoxShadow" Value="{StaticResource ShadowStrVeryWeak}"/>
     </Style>
-    <Style Selector="auth|HintedTextBox.strength-very-weak Path.strength-icon, auth|HintedPasswordBox.strength-very-weak Path.strength-icon">
+    <Style Selector="Grid.hinted-field.strength-very-weak Path.strength-icon">
         <Setter Property="Fill" Value="{StaticResource BrushStrVeryWeak}"/>
     </Style>
-    <Style Selector="auth|HintedTextBox.strength-very-weak TextBlock.strength-text, auth|HintedPasswordBox.strength-very-weak TextBlock.strength-text">
+    <Style Selector="Grid.hinted-field.strength-very-weak TextBlock.strength-text">
         <Setter Property="Foreground" Value="{StaticResource BrushStrVeryWeak}"/>
     </Style>
 
-    <Style Selector="auth|HintedTextBox.strength-weak Border#FocusBorder, auth|HintedPasswordBox.strength-weak Border#FocusBorder">
+    <Style Selector="Grid.hinted-field.strength-weak Border#FocusBorder">
         <Setter Property="BorderBrush" Value="{StaticResource BrushStrWeak}"/>
     </Style>
-    <Style Selector="auth|HintedTextBox.strength-weak Border#ShadowBorder, auth|HintedPasswordBox.strength-weak Border#ShadowBorder">
+    <Style Selector="Grid.hinted-field.strength-weak Border#ShadowBorder">
         <Setter Property="BoxShadow" Value="{StaticResource ShadowStrWeak}"/>
     </Style>
-    <Style Selector="auth|HintedTextBox.strength-weak Path.strength-icon, auth|HintedPasswordBox.strength-weak Path.strength-icon">
+    <Style Selector="Grid.hinted-field.strength-weak Path.strength-icon">
         <Setter Property="Fill" Value="{StaticResource BrushStrWeak}"/>
     </Style>
-    <Style Selector="auth|HintedTextBox.strength-weak TextBlock.strength-text, auth|HintedPasswordBox.strength-weak TextBlock.strength-text">
+    <Style Selector="Grid.hinted-field.strength-weak TextBlock.strength-text">
         <Setter Property="Foreground" Value="{StaticResource BrushStrWeak}"/>
     </Style>
 
-    <Style Selector="auth|HintedTextBox.strength-good Border#FocusBorder, auth|HintedPasswordBox.strength-good Border#FocusBorder">
+    <Style Selector="Grid.hinted-field.strength-good Border#FocusBorder">
         <Setter Property="BorderBrush" Value="{StaticResource BrushStrGood}"/>
     </Style>
-    <Style Selector="auth|HintedTextBox.strength-good Border#ShadowBorder, auth|HintedPasswordBox.strength-good Border#ShadowBorder">
+    <Style Selector="Grid.hinted-field.strength-good Border#ShadowBorder">
         <Setter Property="BoxShadow" Value="{StaticResource ShadowStrGood}"/>
     </Style>
-    <Style Selector="auth|HintedTextBox.strength-good Path.strength-icon, auth|HintedPasswordBox.strength-good Path.strength-icon">
+    <Style Selector="Grid.hinted-field.strength-good Path.strength-icon">
         <Setter Property="Fill" Value="{StaticResource BrushStrGood}"/>
     </Style>
-    <Style Selector="auth|HintedTextBox.strength-good TextBlock.strength-text, auth|HintedPasswordBox.strength-good TextBlock.strength-text">
+    <Style Selector="Grid.hinted-field.strength-good TextBlock.strength-text">
         <Setter Property="Foreground" Value="{StaticResource BrushStrGood}"/>
     </Style>
 
-    <Style Selector="auth|HintedTextBox.strength-strong Border#FocusBorder, auth|HintedPasswordBox.strength-strong Border#FocusBorder">
+    <Style Selector="Grid.hinted-field.strength-strong Border#FocusBorder">
         <Setter Property="BorderBrush" Value="{StaticResource BrushStrStrong}"/>
     </Style>
-    <Style Selector="auth|HintedTextBox.strength-strong Border#ShadowBorder, auth|HintedPasswordBox.strength-strong Border#ShadowBorder">
+    <Style Selector="Grid.hinted-field.strength-strong Border#ShadowBorder">
         <Setter Property="BoxShadow" Value="{StaticResource ShadowStrStrong}"/>
     </Style>
-    <Style Selector="auth|HintedTextBox.strength-strong Path.strength-icon, auth|HintedPasswordBox.strength-strong Path.strength-icon">
+    <Style Selector="Grid.hinted-field.strength-strong Path.strength-icon">
         <Setter Property="Fill" Value="{StaticResource BrushStrStrong}"/>
     </Style>
-    <Style Selector="auth|HintedTextBox.strength-strong TextBlock.strength-text, auth|HintedPasswordBox.strength-strong TextBlock.strength-text">
+    <Style Selector="Grid.hinted-field.strength-strong TextBlock.strength-text">
         <Setter Property="Foreground" Value="{StaticResource BrushStrStrong}"/>
     </Style>
 
-    <Style Selector="auth|HintedTextBox.strength-very-strong Border#FocusBorder, auth|HintedPasswordBox.strength-very-strong Border#FocusBorder">
+    <Style Selector="Grid.hinted-field.strength-very-strong Border#FocusBorder">
         <Setter Property="BorderBrush" Value="{StaticResource BrushStrVeryStrong}"/>
     </Style>
-    <Style Selector="auth|HintedTextBox.strength-very-strong Border#ShadowBorder, auth|HintedPasswordBox.strength-very-strong Border#ShadowBorder">
+    <Style Selector="Grid.hinted-field.strength-very-strong Border#ShadowBorder">
         <Setter Property="BoxShadow" Value="{StaticResource ShadowStrVeryStrong}"/>
     </Style>
-    <Style Selector="auth|HintedTextBox.strength-very-strong Path.strength-icon, auth|HintedPasswordBox.strength-very-strong Path.strength-icon">
+    <Style Selector="Grid.hinted-field.strength-very-strong Path.strength-icon">
         <Setter Property="Fill" Value="{StaticResource BrushStrVeryStrong}"/>
     </Style>
-    <Style Selector="auth|HintedTextBox.strength-very-strong TextBlock.strength-text, auth|HintedPasswordBox.strength-very-strong TextBlock.strength-text">
+    <Style Selector="Grid.hinted-field.strength-very-strong TextBlock.strength-text">
         <Setter Property="Foreground" Value="{StaticResource BrushStrVeryStrong}"/>
     </Style>
-
 
     <Style Selector="TextBox#MainTextBox">
         <Setter Property="FocusAdorner" Value="{x:Null}" />

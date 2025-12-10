@@ -17,8 +17,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 {
     #region Constants & Fields
 
-    private const string CLASS_ERROR = "error";
-
     private readonly CompositeDisposable _disposables = new();
 
     private TextBox? _mainTextBox;
@@ -296,20 +294,12 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
 
         SetupReactiveBindings();
-        UpdateVisualClasses();
 
         _isControlInitialized = true;
     }
 
     private void SetupReactiveBindings()
     {
-        this.WhenAnyValue(
-                x => x.HasError)
-            .DistinctUntilChanged()
-            .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(_ => UpdateVisualClasses())
-            .DisposeWith(_disposables);
-
         this.WhenAnyValue(x => x.ErrorText)
             .DistinctUntilChanged()
             .Scan(string.Empty, (previous, current) =>
@@ -361,28 +351,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(isVisible => ShowCountryButton = isVisible)
             .DisposeWith(_disposables);
-    }
-
-    private void UpdateVisualClasses()
-    {
-        if (_isDisposed)
-        {
-            return;
-        }
-
-        ToggleClass(CLASS_ERROR, HasError);
-    }
-
-    private void ToggleClass(string className, bool isEnabled)
-    {
-        if (isEnabled && !Classes.Contains(className))
-        {
-            Classes.Add(className);
-        }
-        else if (!isEnabled && Classes.Contains(className))
-        {
-            Classes.Remove(className);
-        }
     }
 
     private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)

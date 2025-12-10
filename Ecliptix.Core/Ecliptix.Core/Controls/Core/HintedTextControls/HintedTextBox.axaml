@@ -33,7 +33,10 @@
         </Style>
     </UserControl.Styles>
 
-    <Grid ClipToBounds="False">
+    <Grid
+        Classes="hinted-field"
+        ClipToBounds="False"
+        Classes.error="{Binding HasError, ElementName=Control}">
 
         <Border x:Name="ShadowBorder"
                 Margin="{StaticResource MainBorderMargin}"
