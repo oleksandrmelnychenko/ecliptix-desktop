@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:coreControls="clr-namespace:Ecliptix.Core.Controls.Core"
              xmlns:signUp="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Registration"
+             xmlns:hintedTextControls="clr-namespace:Ecliptix.Core.Controls.Core.HintedTextControls"
              mc:Ignorable="d"
              d:DesignWidth="{StaticResource Content.MaxWidth}"
              d:DesignHeight="400"
@@ -42,9 +43,12 @@
                        Opacity="0.8" />
         </StackPanel>
 
-        <coreControls:HintedTextBox
+        <hintedTextControls:HintedTextBox
             Grid.Row="1"
             x:Name="MobileTextBox"
+            IsPhoneNumberMode="True"
+            CountryCode="US +1"
+            CountryCodeCommand="{Binding OpenCountryPickerCommand}"
             Watermark="{Binding Watermark}"
             Hint="{Binding Hint}"
             TextForeground="{DynamicResource OnSurface}"

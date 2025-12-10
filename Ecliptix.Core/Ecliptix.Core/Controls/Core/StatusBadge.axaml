@@ -8,12 +8,12 @@
              x:Name="Root"
              x:Class="Ecliptix.Core.Controls.Core.StatusBadge">
     <UserControl.Resources>
-        <sys:TimeSpan x:Key="FlyoutAnimDuration">0:0:0.150</sys:TimeSpan>
-        <Thickness x:Key="BadgePadding">8,2</Thickness>
+        <sys:TimeSpan x:Key="FlyoutAnimDuration">0:0:0.200</sys:TimeSpan>
+        <Thickness x:Key="BadgePadding">10,4</Thickness>
         <Thickness x:Key="BadgeBorderThickness">1</Thickness>
-        <sys:Double x:Key="BadgeIconSize">12</sys:Double>
-        <sys:Double x:Key="BadgeFontSize">7</sys:Double>
-        <sys:Double x:Key="BadgeIconSpacing">2</sys:Double>
+        <sys:Double x:Key="BadgeIconSize">14</sys:Double>
+        <sys:Double x:Key="BadgeFontSize">10</sys:Double>
+        <sys:Double x:Key="BadgeIconSpacing">4</sys:Double>
     </UserControl.Resources>
 
     <UserControl.Styles>
@@ -22,7 +22,7 @@
         </Style>
 
         <Style Selector="local|StatusBadge">
-            <Setter Property="Height" Value="22"/>
+            <Setter Property="Height" Value="28"/>
             <Setter Property="BadgeBrush" Value="#6B7280"/>
             <Setter Property="BadgeBackground" Value="#F3F4F6"/>
             <Setter Property="HorizontalAlignment" Value="Left"/>
@@ -51,18 +51,18 @@
 
         <Style Selector="Border.popupContent">
             <Setter Property="Opacity" Value="0"/>
-            <Setter Property="RenderTransform" Value="translateY(5px)"/>
+            <Setter Property="RenderTransform" Value="scale(0.9)"/>
             <Setter Property="Transitions">
                 <Transitions>
-                    <DoubleTransition Property="Opacity" Duration="{StaticResource FlyoutAnimDuration}" Easing="CircularEaseOut"/>
-                    <TransformOperationsTransition Property="RenderTransform" Duration="{StaticResource FlyoutAnimDuration}" Easing="CircularEaseOut"/>
+                    <DoubleTransition Property="Opacity" Duration="{StaticResource FlyoutAnimDuration}" Easing="CubicEaseOut"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="{StaticResource FlyoutAnimDuration}" Easing="BackEaseOut"/>
                 </Transitions>
             </Setter>
         </Style>
 
         <Style Selector="Border.popupContent.visible">
             <Setter Property="Opacity" Value="1"/>
-            <Setter Property="RenderTransform" Value="translateY(0px)"/>
+            <Setter Property="RenderTransform" Value="scale(1)"/>
         </Style>
     </UserControl.Styles>
 
@@ -94,7 +94,7 @@
                 <TextBlock Text="{Binding Text, ElementName=Root}"
                            Foreground="{Binding BadgeBrush, ElementName=Root}"
                            FontSize="{StaticResource BadgeFontSize}"
-                           FontWeight="Medium"
+                           FontWeight="Normal"
                            LetterSpacing="0.5"
                            VerticalAlignment="Center"/>
             </StackPanel>
@@ -105,22 +105,58 @@
                Placement="Bottom"
                VerticalOffset="4"
                IsHitTestVisible="False"
-               WindowManagerAddShadowHint="True">
+               WindowManagerAddShadowHint="False">
 
             <Border x:Name="PopupContentBorder"
                     Classes="popupContent"
-                    Background="White"
-                    BorderBrush="{Binding BadgeBrush, ElementName=Root}"
+                    Background="#faf5ff"
+                    BorderBrush="#e9d5ff"
                     BorderThickness="1"
-                    CornerRadius="6"
-                    Padding="12,8"
-                    MaxWidth="300">
+                    CornerRadius="8"
+                    Padding="12"
+                    MaxWidth="300"
+                    BoxShadow="0 4 12 0 #15000000, 0 2 6 0 #10000000">
 
-                <TextBlock Text="{Binding HoverText, ElementName=Root}"
-                           Foreground="{Binding BadgeBrush, ElementName=Root}"
-                           FontSize="12"
-                           FontWeight="Medium"
-                           TextWrapping="Wrap"/>
+                <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*">
+                    <Viewbox Grid.Row="0" Grid.Column="0" Width="16" Height="16" Margin="0,2,0,0" VerticalAlignment="Top">
+                        <Canvas Width="16" Height="16">
+                            <Ellipse Canvas.Left="1" Canvas.Top="1" Width="14" Height="14"
+                                     Stroke="#9333ea" StrokeThickness="1.2" Fill="Transparent"/>
+                            <Path Data="M8 4V8M8 11H8.01"
+                                  Stroke="#9333ea" StrokeThickness="1.5" StrokeLineCap="Round"/>
+                        </Canvas>
+                    </Viewbox>
+
+                    <StackPanel Grid.Row="0" Grid.Column="1" Spacing="4" Margin="8,0,0,0">
+                        <TextBlock Text="{Binding TooltipTitle, ElementName=Root}"
+                                   FontFamily="{StaticResource SegoeUI}"
+                                   FontSize="12"
+                                   FontWeight="Medium"
+                                   Foreground="#7e22ce"
+                                   LineHeight="19.2"/>
+
+                        <StackPanel Spacing="2" Margin="4,0,0,0">
+                            <TextBlock Text="{Binding TooltipFeature1, ElementName=Root, StringFormat='• {0}'}"
+                                       FontFamily="{StaticResource SegoeUI}"
+                                       FontSize="12"
+                                       Foreground="#7e22ce"
+                                       LineHeight="19.2"
+                                       TextWrapping="Wrap"/>
+                            <TextBlock Text="{Binding TooltipFeature2, ElementName=Root, StringFormat='• {0}'}"
+                                       FontFamily="{StaticResource SegoeUI}"
+                                       FontSize="12"
+                                       Foreground="#7e22ce"
+                                       LineHeight="19.2"
+                                       TextWrapping="Wrap"/>
+                            <TextBlock Text="{Binding TooltipFeature3, ElementName=Root, StringFormat='• {0}'}"
+                                       FontFamily="{StaticResource SegoeUI}"
+                                       FontSize="12"
+                                       Foreground="#7e22ce"
+                                       LineHeight="19.2"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
             </Border>
         </Popup>
     </Grid>

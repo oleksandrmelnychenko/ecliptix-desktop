@@ -9,7 +9,8 @@ public enum SideSheetComponentType
     FILTERS,
     DETAILS,
     DETECTED_LOCALIZATION,
-    HIDDEN
+    HIDDEN,
+    COUNTRY_CODE
 }
 
 public sealed record SideSheetCommandEvent

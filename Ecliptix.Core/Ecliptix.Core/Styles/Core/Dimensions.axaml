@@ -50,6 +50,12 @@
             <x:Double x:Key="Tagline.FontSize">18</x:Double>
             <x:Double x:Key="Footer.FontSize">11</x:Double>
 
+            <!-- Notification Dimensions -->
+            <x:Double x:Key="Notification.Width">320</x:Double>
+            <x:Double x:Key="Notification.Height">70</x:Double>
+            <x:Double x:Key="Notification.FontSize">12</x:Double>
+            <x:Double x:Key="Notification.TopMargin">50</x:Double>
+
             <!-- Welcome Screen Specific -->
             <x:Double x:Key="Circle.Size">350</x:Double>
             <x:Double x:Key="Circle.InnerSize">440</x:Double>

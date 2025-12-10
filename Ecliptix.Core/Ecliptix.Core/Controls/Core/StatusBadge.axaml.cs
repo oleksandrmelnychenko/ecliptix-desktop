@@ -28,8 +28,24 @@ public partial class StatusBadge : UserControl
     public static readonly StyledProperty<string?> HoverTextProperty =
         AvaloniaProperty.Register<StatusBadge, string?>(nameof(HoverText));
 
+    public static readonly StyledProperty<string?> TooltipTitleProperty =
+        AvaloniaProperty.Register<StatusBadge, string?>(nameof(TooltipTitle));
+
+    public static readonly StyledProperty<string?> TooltipFeature1Property =
+        AvaloniaProperty.Register<StatusBadge, string?>(nameof(TooltipFeature1));
+
+    public static readonly StyledProperty<string?> TooltipFeature2Property =
+        AvaloniaProperty.Register<StatusBadge, string?>(nameof(TooltipFeature2));
+
+    public static readonly StyledProperty<string?> TooltipFeature3Property =
+        AvaloniaProperty.Register<StatusBadge, string?>(nameof(TooltipFeature3));
+
     public string Text { get => GetValue(TextProperty); set => SetValue(TextProperty, value); }
     public string? HoverText { get => GetValue(HoverTextProperty); set => SetValue(HoverTextProperty, value); }
+    public string? TooltipTitle { get => GetValue(TooltipTitleProperty); set => SetValue(TooltipTitleProperty, value); }
+    public string? TooltipFeature1 { get => GetValue(TooltipFeature1Property); set => SetValue(TooltipFeature1Property, value); }
+    public string? TooltipFeature2 { get => GetValue(TooltipFeature2Property); set => SetValue(TooltipFeature2Property, value); }
+    public string? TooltipFeature3 { get => GetValue(TooltipFeature3Property); set => SetValue(TooltipFeature3Property, value); }
     public Geometry Icon { get => GetValue(IconProperty); set => SetValue(IconProperty, value); }
     public IBrush BadgeBrush { get => GetValue(BadgeBrushProperty); set => SetValue(BadgeBrushProperty, value); }
     public IBrush BadgeBackground { get => GetValue(BadgeBackgroundProperty); set => SetValue(BadgeBackgroundProperty, value); }
@@ -39,7 +55,7 @@ public partial class StatusBadge : UserControl
     private Border? _containerBorder;
 
     private CancellationTokenSource? _closeCts;
-    private readonly TimeSpan _animDuration = TimeSpan.FromMilliseconds(150);
+    private readonly TimeSpan _animDuration = TimeSpan.FromMilliseconds(200);
 
     public StatusBadge()
     {
@@ -97,10 +113,12 @@ public partial class StatusBadge : UserControl
              finalHorizontalOffset = padding - targetRect.X;
         }
 
+        bool isInTopArea = targetRect.Y < (windowBounds.Height * 0.3);
+
         double finalVerticalOffset = spacing;
         double projectedBottomEdge = targetRect.Bottom + spacing + popupSize.Height;
 
-        if (projectedBottomEdge > windowBounds.Height - padding)
+        if (!isInTopArea && projectedBottomEdge > windowBounds.Height - padding)
         {
 
             finalVerticalOffset = -targetRect.Height - popupSize.Height - spacing;
@@ -117,7 +135,9 @@ public partial class StatusBadge : UserControl
         _closeCts?.Cancel();
         _closeCts = null;
 
-        if (_infoPopup != null && !string.IsNullOrEmpty(HoverText))
+        bool hasTooltip = !string.IsNullOrEmpty(HoverText) || !string.IsNullOrEmpty(TooltipTitle);
+
+        if (_infoPopup != null && hasTooltip)
         {
             AdjustPopupPosition();
 

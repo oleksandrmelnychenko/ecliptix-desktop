@@ -2,7 +2,7 @@ using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Globalization;
-using Ecliptix.Core.Controls.LanguageSelector;
+using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Settings.Constants;
 using Ecliptix.Utilities;
 
@@ -23,10 +23,12 @@ public sealed class AppCultureSettings
         List<LanguageItem> supportedLanguages = new(AppCultureSettingsConstants.INITIAL_CAPACITY)
         {
             new LanguageItem(AppCultureSettingsConstants.DEFAULT_CULTURE_CODE,
-                AppCultureSettingsConstants.UNITED_STATES_COUNTRY_CODE,
+                "English",
+                "English",
                 AppCultureSettingsConstants.UNITED_STATES_FLAG_PATH),
             new LanguageItem(AppCultureSettingsConstants.UKRAINIAN_CULTURE_CODE,
-                AppCultureSettingsConstants.UKRAINE_COUNTRY_CODE,
+                "Ukrainian",
+                "Українська",
                 AppCultureSettingsConstants.UKRAINE_FLAG_PATH)
         };
 

@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Ecliptix.Core.Controls.Carousels"
+             xmlns:illustrations="clr-namespace:Ecliptix.Core.Controls.Illustrations"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ecliptix.Core.Controls.Carousels.WelcomeCarouselView"
              x:Name="Root"
@@ -41,14 +42,20 @@
             </Carousel.PageTransition>
 
             <Carousel.ItemTemplate>
-                <DataTemplate x:DataType="vm:WelcomeSlideItemTemplate">
+                <DataTemplate x:CompileBindings="False">
                     <Grid Margin="24,0,24,0">
                         <Image Source="{Binding Image}"
                                Stretch="Uniform"
                                MaxHeight="220"
                                Margin="0,0,0,0"
                                HorizontalAlignment="Center"
-                               VerticalAlignment="Center"/>
+                               VerticalAlignment="Center"
+                               IsVisible="{Binding SlideType, Converter={x:Static vm:SlideTypeToVisibilityConverter.ForImage}}"/>
+
+                        <illustrations:OrbitalIllustrationView
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            IsVisible="{Binding SlideType, Converter={x:Static vm:SlideTypeToVisibilityConverter.ForCustom}}"/>
                     </Grid>
                 </DataTemplate>
             </Carousel.ItemTemplate>
@@ -82,25 +89,25 @@
                     <PageSlide Duration="0.4" Orientation="Horizontal" SlideInEasing="CubicEaseOut" SlideOutEasing="CubicEaseOut"/>
                 </Carousel.PageTransition>
                 <Carousel.ItemTemplate>
-                    <DataTemplate x:DataType="vm:WelcomeSlideItemTemplate">
+                    <DataTemplate x:CompileBindings="False">
                         <Grid RowDefinitions="Auto,Auto" Margin="24,0,24,0">
                             <TextBlock Grid.Row="0"
                                        Text="{Binding Title}"
                                        FontSize="16"
                                        FontWeight="Normal"
-                                       FontFamily="Segoe UI"
+                                       FontFamily="{StaticResource SegoeUI}"
                                        TextAlignment="Center"
                                        Foreground="#111111"
-                                       Margin="0,0,0,16"/>
+                                       Margin="0,0,0,8"/>
 
                             <TextBlock Grid.Row="1"
                                        Text="{Binding Description}"
                                        FontSize="13"
-                                       FontFamily="Segoe UI"
+                                       FontFamily="{StaticResource SegoeUI}"
                                        TextAlignment="Center"
                                        Foreground="#666666"
                                        TextWrapping="Wrap"
-                                       Margin="0,0,0,24"/>
+                                       Margin="0,0,0,41"/>
                         </Grid>
                     </DataTemplate>
                 </Carousel.ItemTemplate>

@@ -1,7 +1,7 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:coreControls="clr-namespace:Ecliptix.Core.Controls.Core"
              xmlns:feedConverters="clr-namespace:Ecliptix.Core.Features.Feed.Converters"
+             xmlns:hintedTextControls="clr-namespace:Ecliptix.Core.Controls.Core.HintedTextControls"
              x:Class="Ecliptix.Core.App"
              RequestedThemeVariant="Light">
 
@@ -63,12 +63,22 @@
             <Setter Property="IsTabStop" Value="False" />
         </Style>
 
-        <Style Selector=":is(coreControls|HintedTextBox)">
+        <Style Selector=":is(hintedTextControls|HintedTextBox)">
+            <Setter Property="IsTabStop" Value="True" />
+        </Style>
+        <Style Selector=":is(hintedTextControls|HintedPasswordBox)">
             <Setter Property="IsTabStop" Value="True" />
         </Style>
 
-        <Style Selector="coreControls|HintedTextBox TextBox">
+        <Style Selector="hintedTextControls|HintedTextBox TextBox">
             <Setter Property="IsTabStop" Value="True" />
+        </Style>
+        <Style Selector="hintedTextControls|HintedPasswordBox TextBox">
+            <Setter Property="IsTabStop" Value="True" />
+        </Style>
+
+        <Style Selector="TextBox:focus">
+            <Setter Property="FocusAdorner" Value="{x:Null}" />
         </Style>
 
     </Application.Styles>

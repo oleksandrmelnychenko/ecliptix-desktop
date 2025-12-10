@@ -16,9 +16,9 @@
                     <Color x:Key="OnPrimary">#FFFFFF</Color>
 
                     <!-- Secondary Colors -->
-                    <Color x:Key="Secondary">#2f2f2f</Color>
+                    <Color x:Key="Secondary">#0a0a0a</Color>
                     <Color x:Key="SecondaryVariant">#1f1f1f</Color>
-                    <Color x:Key="OnSecondary">#e3e3e3</Color>
+                    <Color x:Key="OnSecondary">#ffffff</Color>
 
                     <!-- Surface Colors -->
                     <Color x:Key="Surface">#f8f8f8</Color>
@@ -39,7 +39,7 @@
                     <Color x:Key="OnWarning">#000000</Color>
 
                     <!-- Button State Colors -->
-                    <Color x:Key="Button.Primary.Hover">#262626</Color>
+                    <Color x:Key="Button.Primary.Hover">#000000</Color>
                     <Color x:Key="Button.Primary.Pressed">#1f1f1f</Color>
                     <Color x:Key="Button.Secondary.Hover">#F5F5F5</Color>
                     <Color x:Key="Button.Secondary.Pressed">#EEEEEE</Color>
@@ -82,6 +82,10 @@
                     <Color x:Key="Circle.Border">White</Color>
                     <Color x:Key="Window.Background">#FFFFFF</Color>
                     <Color x:Key="Window.Border">#4DFF6D00</Color>
+
+                    <!-- Modal Scrim Colors -->
+                    <Color x:Key="Modal.Scrim.Dismissable">#70808080</Color>
+                    <Color x:Key="Modal.Scrim.Solid">#CC000000</Color>
 
                     <!-- Control-specific Colors -->
                     <Color x:Key="ScrollBar.ThumbColor">#E0E0E0</Color>
@@ -180,6 +184,10 @@
                     <Color x:Key="Circle.Border">#e3e3e3</Color>
                     <Color x:Key="Window.Background">#2d2d2d</Color>
                     <Color x:Key="Window.Border">#4DFF6D00</Color>
+
+                    <!-- Modal Scrim Colors -->
+                    <Color x:Key="Modal.Scrim.Dismissable">#70808080</Color>
+                    <Color x:Key="Modal.Scrim.Solid">#CC000000</Color>
 
                     <!-- Control-specific Colors -->
                     <Color x:Key="ScrollBar.ThumbColor">#4A4A4A</Color>

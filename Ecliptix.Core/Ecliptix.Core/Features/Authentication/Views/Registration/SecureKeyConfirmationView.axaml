@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:coreControls="clr-namespace:Ecliptix.Core.Controls.Core"
              xmlns:signUp="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Registration"
+             xmlns:hintedTextControls="clr-namespace:Ecliptix.Core.Controls.Core.HintedTextControls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="signUp:SecureKeyVerifierViewModel"
              x:Class="Ecliptix.Core.Features.Authentication.Views.Registration.SecureKeyConfirmationView"
@@ -31,7 +32,7 @@
                        Foreground="{DynamicResource OnSurface}"
                        Opacity="0.8" />
         </StackPanel>
-        <coreControls:HintedTextBox
+        <hintedTextControls:HintedPasswordBox
             Grid.Row="1"
             x:Name="SecureKeyTextBox"
             IsSecureKeyMode="True"
@@ -52,7 +53,7 @@
             Background="{DynamicResource Surface}"
             MaxLength="28"/>
 
-        <coreControls:HintedTextBox
+        <hintedTextControls:HintedPasswordBox
             Grid.Row="2"
             x:Name="VerifySecureKeyTextBox"
             IsSecureKeyMode="True"

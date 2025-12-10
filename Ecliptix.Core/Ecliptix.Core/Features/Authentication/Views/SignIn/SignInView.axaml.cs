@@ -8,6 +8,7 @@ using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core.Controls.Core;
+using Ecliptix.Core.Controls.Core.HintedTextControls;
 using Ecliptix.Core.Controls.EventArgs;
 using Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
 using ReactiveUI;
@@ -48,7 +49,7 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
             return;
         }
 
-        if (this.FindControl<HintedTextBox>(SECURE_KEY_TEXT_BOX_CONTROL_NAME) is { } secureKeyBox)
+        if (this.FindControl<HintedPasswordBox>(SECURE_KEY_TEXT_BOX_CONTROL_NAME) is { } secureKeyBox)
         {
             secureKeyBox.SecureKeyCharactersAdded += OnSecureKeyCharactersAdded;
             secureKeyBox.SecureKeyCharactersRemoved += OnSecureKeyCharactersRemoved;
@@ -65,7 +66,7 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
             return;
         }
 
-        if (this.FindControl<HintedTextBox>(SECURE_KEY_TEXT_BOX_CONTROL_NAME) is { } secureKeyBox)
+        if (this.FindControl<HintedPasswordBox>(SECURE_KEY_TEXT_BOX_CONTROL_NAME) is { } secureKeyBox)
         {
             secureKeyBox.SecureKeyCharactersAdded -= OnSecureKeyCharactersAdded;
             secureKeyBox.SecureKeyCharactersRemoved -= OnSecureKeyCharactersRemoved;
@@ -113,7 +114,7 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
 
     private void OnCharacterRejected(object? sender, CharacterRejectedEventArgs e)
     {
-        if (DataContext is not SignInViewModel vm || sender is not HintedTextBox tb)
+        if (DataContext is not SignInViewModel vm || sender is not HintedPasswordBox tb)
         {
             return;
         }
@@ -125,7 +126,7 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
 
     private void OnSecureKeyCharactersAdded(object? sender, SecureKeyCharactersAddedEventArgs e)
     {
-        if (DataContext is not SignInViewModel vm || sender is not HintedTextBox tb)
+        if (DataContext is not SignInViewModel vm || sender is not HintedPasswordBox tb)
         {
             return;
         }
@@ -136,7 +137,7 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
 
     private void OnSecureKeyCharactersRemoved(object? sender, SecureKeyCharactersRemovedEventArgs e)
     {
-        if (DataContext is not SignInViewModel vm || sender is not HintedTextBox tb)
+        if (DataContext is not SignInViewModel vm || sender is not HintedPasswordBox tb)
         {
             return;
         }

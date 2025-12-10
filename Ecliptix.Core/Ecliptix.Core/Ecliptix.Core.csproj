@@ -99,6 +99,10 @@
       <DependentUpon>ToggleNavigationSideBar.axaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Controls\Core\HintedTextControls\HintedTextBox.axaml.cs">
+      <DependentUpon>HintedTextBox.axaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <UpToDateCheckInput Remove="Styles\BaseColors.axaml" />

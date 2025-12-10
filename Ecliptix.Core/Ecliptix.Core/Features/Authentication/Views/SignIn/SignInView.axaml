@@ -4,6 +4,7 @@
                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                  xmlns:coreControls="clr-namespace:Ecliptix.Core.Controls.Core"
                  xmlns:signIn="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.SignIn"
+                 xmlns:hintedTextControls="clr-namespace:Ecliptix.Core.Controls.Core.HintedTextControls"
                  mc:Ignorable="d"
                  d:DesignWidth="320"
                  d:DesignHeight="400"
@@ -39,9 +40,12 @@
             </StackPanel>
 
             <!-- Mobile Number Input -->
-            <coreControls:HintedTextBox
+            <hintedTextControls:HintedTextBox
                 Grid.Row="1"
                 x:Name="MobileTextBox"
+                IsPhoneNumberMode="True"
+                CountryCode="US +1"
+                CountryCodeCommand="{Binding OpenCountryPickerCommand}"
                 Watermark="{Binding LocalizationService[Authentication.SignIn.MobilePlaceholder]}"
                 Hint="{Binding LocalizationService[Authentication.SignIn.MobileHint]}"
                 TextForeground="{DynamicResource OnSurface}"
@@ -57,10 +61,11 @@
                 Background="{DynamicResource Surface}"
                 FontWeight="Light"
                 HorizontalAlignment="Stretch"
-                IsEnabled="{Binding !IsBusy}"/>
+                IsEnabled="{Binding !IsBusy}"
+                FocusBorderBrush="{DynamicResource Primary}"/>
 
             <!-- SecureKey Input -->
-            <coreControls:HintedTextBox
+            <hintedTextControls:HintedPasswordBox
                 Grid.Row="2"
                 x:Name="SecureKeyTextBox"
                 IsSecureKeyMode="True"
@@ -81,7 +86,8 @@
                 MaxLength="28"
                 IconRegularSource="{StaticResource LampIconDrawingRegular}"
                 IconErrorSource="{StaticResource LampIconDrawingError}"
-                IsEnabled="{Binding !IsBusy}"/>
+                IsEnabled="{Binding !IsBusy}"
+                FocusBorderBrush="{DynamicResource Primary}"/>
 
             <!-- Action Buttons -->
             <Grid Grid.Row="3"

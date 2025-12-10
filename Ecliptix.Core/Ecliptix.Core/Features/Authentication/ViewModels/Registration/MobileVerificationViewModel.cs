@@ -4,7 +4,9 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
+using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Features.Authentication.Common;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
@@ -21,6 +23,7 @@ using Google.Protobuf;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Serilog;
+using Splat;
 using Keys = Ecliptix.Core.Services.Authentication.Constants.AuthenticationConstants.MobileVerificationKeys;
 using Unit = System.Reactive.Unit;
 
@@ -34,6 +37,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
     private readonly AuthenticationFlowContext _flowContext;
     private readonly IConnectivityService _connectivityService;
     private readonly CompositeDisposable _disposables = new();
+    private readonly ISideSheetService? _sideSheetService;
 
     private CancellationTokenSource? _cancellationTokenSource;
     private bool _hasMobileNumberBeenTouched;
@@ -61,6 +65,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         _flowContext = flowContext;
         HostScreen = hostScreen;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
+        _sideSheetService = Locator.Current.GetService<ISideSheetService>();
 
         IObservable<bool> isFormLogicallyValid = SetupValidation();
         SetupCommands(isFormLogicallyValid);
@@ -90,6 +95,8 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
     public string ButtonText => Localize(Keys.REGISTRATION_BUTTON, Keys.RECOVERY_BUTTON);
 
     public ReactiveCommand<Unit, Unit>? VerifyMobileNumberCommand { get; private set; }
+
+    public ReactiveCommand<Unit, Unit>? OpenCountryPickerCommand { get; private set; }
 
     [Reactive] public string MobileNumber { get; set; } = string.Empty;
     [Reactive] public string? MobileNumberError { get; private set; }
@@ -189,6 +196,16 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         VerifyMobileNumberCommand.IsExecuting
             .ToPropertyEx(this, x => x.IsBusy)
             .DisposeWith(_disposables);
+
+        OpenCountryPickerCommand = ReactiveCommand.CreateFromTask(async () =>
+        {
+            await _sideSheetService.ShowAsync(
+                SideSheetComponentType.COUNTRY_CODE,
+                new CountryCodeView(),
+                showScrim: false,
+                isDismissable: true
+            );
+        });
 
         _disposables.Add(VerifyMobileNumberCommand);
     }

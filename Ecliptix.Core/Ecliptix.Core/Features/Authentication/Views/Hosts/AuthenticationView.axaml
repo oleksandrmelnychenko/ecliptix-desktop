@@ -17,12 +17,10 @@
                                                FalseOpacity="0" />
     </UserControl.Resources>
 
-    <!-- Module-Specific Content Only -->
     <Grid RowDefinitions="Auto,*,Auto"
           RowSpacing="2"
           ClipToBounds="True">
 
-        <!-- Back Button (Module Navigation) -->
         <Button HorizontalAlignment="Left"
                 VerticalAlignment="Top"
                 Command="{Binding NavigateBack}"
@@ -36,7 +34,6 @@
                    Height="18" />
         </Button>
 
-        <!-- Logo Section -->
         <Border Grid.Row="0"
                 HorizontalAlignment="Center"
                 Padding="20,10"
@@ -92,7 +89,7 @@
                            VerticalAlignment="Center"
                            Foreground="#6B7280"
                            TextWrapping="NoWrap"
-                           Margin="4,0,4,0" />
+                           Margin="1,0,2,0" />
                 <Button Content="{Binding LocalizationService[Footer.PrivacyPolicy]}"
                         Command="{Binding OpenPrivacyPolicyCommand}"
                         Classes="ghost"
@@ -107,7 +104,7 @@
             </StackPanel>
 
             <!-- Copyright -->
-            <TextBlock Text="© 2025 Horizon Dynamics. All rights reserved."
+            <TextBlock Text="{Binding LocalizationService[Footer.Copyright]}"
                        Classes="footer"
                        Foreground="#6B7280"
                        HorizontalAlignment="Center"

@@ -94,7 +94,7 @@
 		<feedItem:FeedInputControl Margin="230,0,230,20" />
 
 		<!--Edit post overlay-->
-		<feedItem:EditPostControl IsVisible="{Binding DataContext.IsEdit, ElementName=ThisControl}" DataContext="{Binding SelectedPost}" />
+		<feedItem:EditPostControl IsVisible="{Binding ((vm:FeedViewModel)DataContext).IsEdit, ElementName=ThisControl}" DataContext="{Binding SelectedPost}" />
 
 		<!-- Empty State -->
 		<Border IsVisible="{Binding !Posts.Count}"

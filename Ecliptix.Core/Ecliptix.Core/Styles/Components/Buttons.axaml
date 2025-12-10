@@ -7,16 +7,6 @@
             <GradientStop Offset="0.5" Color="#ec4899"/>
             <GradientStop Offset="1" Color="#a855f7"/>
         </LinearGradientBrush>
-
-        <LinearGradientBrush x:Key="PrimaryButtonGradient" StartPoint="0%,0%" EndPoint="0%,100%">
-            <GradientStop Offset="0" Color="#111827"/>
-            <GradientStop Offset="1" Color="#1f2937"/>
-        </LinearGradientBrush>
-
-        <LinearGradientBrush x:Key="PrimaryButtonHoverGradient" StartPoint="0%,0%" EndPoint="0%,100%">
-            <GradientStop Offset="0" Color="#000000"/>
-            <GradientStop Offset="1" Color="#111827"/>
-        </LinearGradientBrush>
     </Styles.Resources>
 
 
@@ -24,7 +14,6 @@
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="FontFamily" Value="{StaticResource SegoeUI}" />
     </Style>
 
     <Style Selector="Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
@@ -36,9 +25,9 @@
 
         <Setter Property="Transitions">
             <Transitions>
-                <DoubleTransition Property="Opacity" Duration="{StaticResource Duration.Medium}" />
-                <TransformOperationsTransition Property="RenderTransform" Duration="{StaticResource Duration.Medium}" />
-                <BrushTransition Property="Background" Duration="{StaticResource Duration.Medium}" Easing="CubicEaseOut" />
+                <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" />
+                <BrushTransition Property="Background" Duration="0:0:0.2" Easing="CubicEaseOut" />
             </Transitions>
         </Setter>
         <Setter Property="RenderTransform" Value="scale(1)"/>
@@ -59,17 +48,17 @@
     </Style>
 
     <Style Selector="Button:pointerover">
-        <Setter Property="RenderTransform" Value="scale(1.02)" />
+        <Setter Property="RenderTransform" Value="scale(1.00)" />
     </Style>
 
     <Style Selector="Button:pressed">
-        <Setter Property="RenderTransform" Value="scale(0.98)" />
+        <Setter Property="RenderTransform" Value="scale(1.00)" />
         <Setter Property="Opacity" Value="0.9"/>
     </Style>
 
     <Style Selector="Button:disabled">
         <Setter Property="Opacity" Value="0.5" />
-        <Setter Property="RenderTransform" Value="scale(0.98)" />
+        <Setter Property="RenderTransform" Value="scale(1.00)" />
     </Style>
 
     <Style Selector="Button.primary, Button.secondary">
@@ -81,15 +70,15 @@
                     <Border Name="PART_Glow"
                             Background="{DynamicResource ButtonGlowGradient}"
                             CornerRadius="{TemplateBinding CornerRadius}"
-                            Margin="0"
+                            Margin="-2"
                             Opacity="0"
                             IsHitTestVisible="False">
                         <Border.Effect>
-                            <BlurEffect Radius="8"/>
+                            <BlurEffect Radius="4"/>
                         </Border.Effect>
                         <Border.Transitions>
                             <Transitions>
-                                <DoubleTransition Property="Opacity" Duration="0:0:0.25" Easing="CubicEaseOut"/>
+                                <DoubleTransition Property="Opacity" Duration="0:0:0.2" Easing="CubicEaseOut"/>
                             </Transitions>
                         </Border.Transitions>
                     </Border>
@@ -103,12 +92,6 @@
                             Padding="{TemplateBinding Padding}"
                             ClipToBounds="False">
 
-                        <Border.Transitions>
-                            <Transitions>
-                                <BrushTransition Property="Background" Duration="0:0:0.2"/>
-                            </Transitions>
-                        </Border.Transitions>
-
                         <Grid ClipToBounds="False">
 
                             <ContentPresenter Name="PART_ContentPresenter"
@@ -116,7 +99,13 @@
                                               ContentTemplate="{TemplateBinding ContentTemplate}"
                                               HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                               VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                              TextBlock.Foreground="{TemplateBinding Foreground}" />
+                                              TextBlock.Foreground="{TemplateBinding Foreground}">
+                                <ContentPresenter.Styles>
+                                    <Style Selector="TextBlock">
+                                        <Setter Property="FontFamily" Value="{StaticResource SegoeUI}"/>
+                                    </Style>
+                                </ContentPresenter.Styles>
+                            </ContentPresenter>
 
 
                             <Grid Name="PART_LoadingOverlay"
@@ -144,42 +133,45 @@
     </Style>
 
     <Style Selector="Button.primary">
-        <Setter Property="Background" Value="{StaticResource PrimaryButtonGradient}" />
+        <Setter Property="Background">
+            <Setter.Value>
+                <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
+                    <GradientStop Offset="0" Color="#111827" />
+                    <GradientStop Offset="1" Color="#1f2937" />
+                </LinearGradientBrush>
+            </Setter.Value>
+        </Setter>
         <Setter Property="Foreground" Value="#ffffff" />
         <Setter Property="BorderThickness" Value="0" />
-    </Style>
-    <Style Selector="Button.primary:pointerover">
-        <Setter Property="Background" Value="{StaticResource PrimaryButtonHoverGradient}" />
-    </Style>
-    <Style Selector="Button.primary:pressed">
-        <Setter Property="Background" Value="{StaticResource PrimaryButtonHoverGradient}" />
+        <Setter Property="FontFamily" Value="{StaticResource SegoeUI}" />
+        <Setter Property="Padding" Value="24,0"/>
     </Style>
 
-    <!-- Primary button with glow: configure glow effect opacity -->
-    <Style Selector="Button.primary.glow /template/ Border#PART_Glow">
-        <Setter Property="Opacity" Value="0.6"/>
-    </Style>
-    <Style Selector="Button.primary.glow:pointerover /template/ Border#PART_Glow">
-        <Setter Property="Opacity" Value="0.8"/>
-    </Style>
-
-    <!-- Primary button with glow: add shadows matching web design -->
-    <Style Selector="Button.primary.glow /template/ Border#PART_Border">
-        <Setter Property="BoxShadow" Value="0 20 25 -5 #26000000, 0 10 15 -3 #26000000"/>
+    <Style Selector="Button.primary /template/ Border#PART_Border">
+        <Setter Property="BoxShadow" Value="0 6 28 0 #4D000000"/>
         <Setter Property="Transitions">
             <Transitions>
-                <BrushTransition Property="Background" Duration="0:0:0.2"/>
-                <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.3" Easing="CubicEaseOut"/>
+                <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.2"/>
             </Transitions>
         </Setter>
     </Style>
-    <Style Selector="Button.primary.glow:pointerover /template/ Border#PART_Border">
-        <Setter Property="BoxShadow" Value="0 25 50 -12 #40000000"/>
+
+    <Style Selector="Button.primary:pointerover">
+        <Setter Property="Background">
+            <Setter.Value>
+                <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
+                    <GradientStop Offset="0" Color="#000000" />
+                    <GradientStop Offset="1" Color="#111827" />
+                </LinearGradientBrush>
+            </Setter.Value>
+        </Setter>
     </Style>
 
-    <!-- Remove scale transform for glow buttons to match web behavior -->
-    <Style Selector="Button.primary.glow:pointerover">
-        <Setter Property="RenderTransform" Value="scale(1)"/>
+    <Style Selector="Button.primary:pointerover /template/ Border#PART_Border">
+        <Setter Property="BoxShadow" Value="0 8 32 0 #66000000"/>
+    </Style>
+    <Style Selector="Button.primary:pressed">
+        <Setter Property="RenderTransform" Value="scale(0.98)"/>
     </Style>
 
 
@@ -187,12 +179,15 @@
         <Setter Property="Background" Value="#f3f4f6" />
         <Setter Property="Foreground" Value="#111827" />
         <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="FontFamily" Value="{StaticResource SegoeUI}" />
+        <Setter Property="Padding" Value="24,0"/>
     </Style>
     <Style Selector="Button.secondary:pointerover">
         <Setter Property="Background" Value="#e5e7eb" />
     </Style>
     <Style Selector="Button.secondary:pressed">
-        <Setter Property="Background" Value="#e5e7eb" />
+        <Setter Property="Background" Value="#d1d5db" />
+        <Setter Property="RenderTransform" Value="scale(0.98)"/>
     </Style>
 
 
@@ -239,12 +234,11 @@
         <Setter Property="Opacity" Value="0.6"/>
     </Style>
 
-
     <Style Selector="Button.glow:pointerover /template/ Border#PART_Glow">
         <Setter Property="Opacity" Value="0.8"/>
     </Style>
     <Style Selector="Button.glow:disabled /template/ Border#PART_Glow">
-        <Setter Property="Opacity" Value="0.6"/> <!-- Visible even when disabled -->
+        <Setter Property="Opacity" Value="0.3"/>
     </Style>
 
 
