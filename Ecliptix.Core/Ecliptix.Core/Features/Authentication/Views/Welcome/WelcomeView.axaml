@@ -11,7 +11,7 @@
              x:Class="Ecliptix.Core.Features.Authentication.Views.Welcome.WelcomeView"
              x:DataType="vm:WelcomeViewModel">
 
-    <Grid RowDefinitions="Auto,Auto,Auto"
+    <Grid RowDefinitions="Auto,Auto,Auto, Auto"
           HorizontalAlignment="Stretch"
           VerticalAlignment="Stretch"
           Margin="{StaticResource Welcome.Container.Margin}"
@@ -55,5 +55,9 @@
                     Classes.is-busy="{Binding IsCreateAccountBusy}"
                     MinWidth="{StaticResource Button.MinWidth}" />
         </Grid>
+
+        <CalendarDatePicker Grid.Row="3">
+
+        </CalendarDatePicker>
     </Grid>
 </UserControl>

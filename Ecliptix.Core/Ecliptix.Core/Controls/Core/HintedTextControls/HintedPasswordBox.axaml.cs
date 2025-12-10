@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Frozen; // Необхідно для FrozenDictionary (потрібен .NET 8+)
+using System.Collections.Frozen;
 using System.Diagnostics;
 using System.Globalization;
 using System.Reactive.Disposables;
@@ -24,9 +24,6 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
 {
     #region Constants & Fields
 
-    private const string CLASS_ERROR = "error";
-    private const string CLASS_SECURE_MODE = "secure-mode";
-
     private const string CLASS_STRENGTH_INVALID = "strength-invalid";
     private const string CLASS_STRENGTH_VERY_WEAK = "strength-very-weak";
     private const string CLASS_STRENGTH_WEAK = "strength-weak";
@@ -34,7 +31,6 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
     private const string CLASS_STRENGTH_STRONG = "strength-strong";
     private const string CLASS_STRENGTH_VERY_STRONG = "strength-very-strong";
 
-    // Мапінг рівня сили пароля до CSS-класу
     private static readonly FrozenDictionary<SecureKeyStrength, string> StrengthClassMap =
         new Dictionary<SecureKeyStrength, string>
         {
@@ -56,6 +52,7 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
     private Border? _focusBorder;
     private Border? _mainBorder;
     private Border? _shadowBorder;
+    private Grid? _mainGrid;
 
     private bool _isUpdatingFromCode;
     private bool _isDisposed;
@@ -101,7 +98,6 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
         AvaloniaProperty.Register<HintedPasswordBox, IBrush>(nameof(SecureKeyStrengthIconBrush),
             new SolidColorBrush(Colors.Gray));
 
-    // Це властивість тепер використовується тільки для стандартного стану, error/strength стани керуються стилями
     public static readonly StyledProperty<IBrush> FocusBorderBrushProperty =
         AvaloniaProperty.Register<HintedPasswordBox, IBrush>(
             nameof(FocusBorderBrush), new SolidColorBrush(Color.Parse(HintedTextBoxConstants.FOCUS_COLOR_HEX)));
@@ -481,15 +477,13 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
 
         _mainTextBox.TextChanged += OnTextChanged;
 
-        // Відключаємо стандартну поведінку буфера обміну для PasswordBox
         DisableClipboardOperations();
 
         _disposables.Add(Disposable.Create(UnsubscribeTextBoxEvents));
 
         SetupReactiveBindings();
-        UpdateVisualClasses(); // Initial state update
+        UpdateVisualClasses();
 
-        // Initialize state for password tracking
         _lastProcessedText = string.Empty;
         _mainTextBox.PasswordChar = HintedTextBoxConstants.NO_SECURE_KEY_CHAR;
         UpdateRemainingCharacters();
@@ -499,17 +493,14 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
 
     private void SetupReactiveBindings()
     {
-        // 1. Visual State Logic (CSS Classes)
         this.WhenAnyValue(
-                x => x.HasError,
                 x => x.SecureKeyStrength,
                 x => x.IsSecureKeyStrengthMode)
             .DistinctUntilChanged()
-            .ObserveOn(RxApp.MainThreadScheduler) // Безпечно оновлюємо UI
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(_ => UpdateVisualClasses())
             .DisposeWith(_disposables);
 
-        // 2. Error Text Accumulator
         this.WhenAnyValue(x => x.ErrorText)
             .DistinctUntilChanged()
             .Scan(string.Empty, (previous, current) =>
@@ -523,7 +514,6 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
             }, "ErrorText subscription"))
             .DisposeWith(_disposables);
 
-        // 3. Ellipse Visibility
         this.WhenAnyValue(x => x.HasError)
             .DistinctUntilChanged()
             .Subscribe(hasError => SafeExecute(() =>
@@ -542,26 +532,18 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
             return;
         }
 
-        // 1. Error Class
-        ToggleClass(CLASS_ERROR, HasError);
 
-        // 2. Secure Mode Class (Controls visibility of Hint vs Strength panel)
-        ToggleClass(CLASS_SECURE_MODE, IsSecureKeyStrengthMode);
-
-        // 3. Strength Classes
-        // Спочатку видаляємо попередній клас сили
         if (!string.IsNullOrEmpty(_currentStrengthClass))
         {
-            Classes.Remove(_currentStrengthClass);
+            _mainGrid.Classes.Remove(_currentStrengthClass);
             _currentStrengthClass = null;
         }
 
-        // Якщо режим сили ввімкнено, додаємо новий клас
         if (IsSecureKeyStrengthMode)
         {
             if (StrengthClassMap.TryGetValue(SecureKeyStrength, out string? newClass))
             {
-                Classes.Add(newClass);
+                _mainGrid.Classes.Add(newClass);
                 _currentStrengthClass = newClass;
             }
         }
@@ -578,8 +560,6 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
             Classes.Remove(className);
         }
     }
-
-    // --- Input & Logic Handling ---
 
     private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
     {
@@ -1255,6 +1235,7 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
 
     private void FindControls()
     {
+        _mainGrid = this.FindControl<Grid>("MainGrid");
         _mainTextBox = this.FindControl<TextBox>(HintedTextBoxConstants.MAIN_TEXT_BOX_NAME);
         _focusBorder = this.FindControl<Border>(HintedTextBoxConstants.FOCUS_BORDER_NAME);
         _mainBorder = this.FindControl<Border>(HintedTextBoxConstants.MAIN_BORDER_NAME);

@@ -57,8 +57,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
                     ctx.HostViewModel, ctx.StorageProvider, ctx.RegistrationService, ctx.AuthenticationService,
                     ctx.RecoveryService, ctx.FlowContext),
             [MembershipViewType.COMPLETE_PROFILE_VIEW] = ctx =>
-                new CompleteProfileViewModel(ctx.NetworkProvider, ctx.LocalizationService, ctx.HostViewModel, ctx.ConnectivityService),
-
+                new CompleteProfileViewModel(ctx.ConnectivityService, ctx.NetworkProvider, ctx.LocalizationService, ctx.HostViewModel, ctx.StorageProvider),
             [MembershipViewType.PIN_SET_VIEW] = ctx =>
                 new PassPhaseViewModel(ctx.LocalizationService, ctx.HostViewModel, ctx.NetworkProvider),
         }.ToFrozenDictionary();
