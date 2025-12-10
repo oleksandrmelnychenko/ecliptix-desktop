@@ -11,8 +11,8 @@ namespace Ecliptix.Core.Features.Feed.ViewModels;
 public sealed class CommentViewModel : ReactiveObject
 {
     private const int MAX_COMMENT_LENGHT = 200;
-    private const string SHOW_LESS = "Show Less";
-    private const string SHOW_MORE = "Show More";
+    private const string SHOW_LESS = "See less";
+    private const string SHOW_MORE = "See more";
 
     public Comment Comment { get; }
 
