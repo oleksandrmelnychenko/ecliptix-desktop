@@ -4,8 +4,6 @@ using System.Collections.Generic;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using Avalonia.Media.Imaging;
-using Avalonia.Platform;
 using Ecliptix.Core.Controls.Carousels;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.MVVM;
@@ -24,10 +22,6 @@ public sealed class WelcomeViewModel : ViewModelBase, IRoutableViewModel, IReset
     private const string ROUTE_WELCOME = "/welcome";
     private const string CREATE_ACCOUNT_KEY = "CreateAccount";
     private const string SIGN_IN_KEY = "SignIn";
-
-    private const string MENTAL_PROTECTION_IMAGE_PATH = "avares://Ecliptix.Core/Assets/DataSeed/mentalprotection.png";
-    private const string SMART_COMMUNITIES_IMAGE_PATH = "avares://Ecliptix.Core/Assets/DataSeed/smartcommunities.png";
-    private const string WELLNESS_IMAGE_PATH = "avares://Ecliptix.Core/Assets/DataSeed/wellness.png";
 
     private static readonly FrozenDictionary<string, MembershipViewType> NavigationCache =
         new Dictionary<string, MembershipViewType>
@@ -101,42 +95,24 @@ public sealed class WelcomeViewModel : ViewModelBase, IRoutableViewModel, IReset
         new(
             LocalizationKeys.Welcome.Carousel.Slide1.TITLE,
             LocalizationKeys.Welcome.Carousel.Slide1.DESCRIPTION,
-            null,
-            localizationService,
-            SlideType.Custom
+            localizationService
         ),
         new(
             LocalizationKeys.Welcome.Carousel.Slide2.TITLE,
             LocalizationKeys.Welcome.Carousel.Slide2.DESCRIPTION,
-            LoadImage(MENTAL_PROTECTION_IMAGE_PATH),
             localizationService
         ),
         new(
             LocalizationKeys.Welcome.Carousel.Slide3.TITLE,
             LocalizationKeys.Welcome.Carousel.Slide3.DESCRIPTION,
-            LoadImage(SMART_COMMUNITIES_IMAGE_PATH),
             localizationService
         ),
         new(
             LocalizationKeys.Welcome.Carousel.Slide4.TITLE,
             LocalizationKeys.Welcome.Carousel.Slide4.DESCRIPTION,
-            LoadImage(WELLNESS_IMAGE_PATH),
             localizationService
         )
     ];
-
-    private Bitmap? LoadImage(string path)
-    {
-        try
-        {
-            Uri uri = new(path);
-            return new Bitmap(AssetLoader.Open(uri));
-        }
-        catch (Exception)
-        {
-            return null;
-        }
-    }
 
     public string UrlPathSegment => ROUTE_WELCOME;
 

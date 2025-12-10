@@ -2,6 +2,8 @@
 			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+			 xmlns:i="using:Avalonia.Xaml.Interactivity"
+			 xmlns:ia="using:Avalonia.Xaml.Interactions"
 			 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
 			 xmlns:vm="clr-namespace:Ecliptix.Core.Features.Feed.ViewModels"
 			 xmlns:commentItem="clr-namespace:Ecliptix.Core.Features.Feed.Controls.Comments"
@@ -39,30 +41,22 @@
 		</Border>
 
 		<!--Comment-->
-		<WrapPanel Grid.Column="1"
-				   Orientation="Horizontal">
-			<TextBlock Text="{Binding Comment.Author.DisplayName}"
-					   Margin="0,0,5,0"
-					   FontWeight="600"
-					   Foreground="#0f172b"
-					   LineHeight="22"
-					   FontSize="15"/>
-			<TextBlock Text="{Binding Comment.Author.Username, StringFormat='@{0}'}"
-					   Margin="0,0,5,0"
-					   FontSize="14"
-					   LineHeight="22"
-					   Foreground="#62748e" />
+		<StackPanel Grid.Column="1">
 
-			<TextBlock Text="{Binding DisplayCommentText}"
+			<TextBlock FontSize="15"
+					   FontWeight="500"
 					   Foreground="#314158"
 					   TextWrapping="Wrap"
-					   LineHeight="22"
-					   FontSize="15"/>
+					   LineHeight="22">
+				<Run Text="{Binding Comment.Author.DisplayName, Mode=OneTime}" FontWeight="600" Foreground="#0f172b" />
+				<Run Text="{Binding Comment.Author.Username, Mode=OneTime, StringFormat='@{0}'}" Foreground="#6A7383" FontWeight="500" FontSize="14"/>
+				<Run Text="{Binding DisplayCommentText, Mode=TwoWay}" Foreground="#314158"/>
+			</TextBlock>
 
 			<Button Content="{Binding ExpandedText}"
 					Command="{Binding ToggleTextCommand}"
 					IsVisible="{Binding RequiresExpansion}"
-					Background="Transparent"
+					Background="#00000001"
 					Foreground="#6A7383"
 					BorderThickness="0"
 					HorizontalAlignment="Left"
@@ -70,8 +64,14 @@
 					Padding="0,1,0,0"
 					MinHeight="22"
 					FontWeight="600"
-					FontSize="15"/>
-		</WrapPanel>
+					FontSize="15">
+				<Button.Styles>
+					<Style Selector="Button:pointerover /template/ ContentPresenter">
+						<Setter Property="TextBlock.Foreground" Value="#6a5acd"/>
+					</Style>
+				</Button.Styles>
+			</Button>
+		</StackPanel>
 
 		<!--Like panel-->
 		<Grid Grid.Column="2"

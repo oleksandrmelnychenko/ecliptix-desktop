@@ -1,0 +1,22 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Ecliptix.Core.Controls.Illustrations.HtmlIllustrationView"
+             Width="280" Height="280">
+
+    <Border Name="ContentBorder"
+            Background="#F5F5F5"
+            CornerRadius="8"
+            Width="280"
+            Height="280">
+        <TextBlock Name="StatusText"
+                   Text="Loading HTML..."
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   FontSize="12"
+                   Foreground="#666666"
+                   TextWrapping="Wrap"
+                   TextAlignment="Center"
+                   Margin="16"/>
+    </Border>
+
+</UserControl>
