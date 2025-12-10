@@ -34,7 +34,8 @@
 
         <!-- Static Illustration - Does not slide -->
         <Grid Grid.Row="0" Margin="24,0,24,0">
-            <illustrations:OrbitalIllustrationView
+            <illustrations:HtmlIllustrationView
+                x:Name="HtmlIllustration"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"/>
         </Grid>

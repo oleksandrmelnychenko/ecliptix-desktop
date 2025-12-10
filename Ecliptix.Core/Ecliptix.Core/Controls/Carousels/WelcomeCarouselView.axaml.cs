@@ -8,6 +8,7 @@ using Avalonia.Controls.Presenters;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
+using Ecliptix.Core.Controls.Illustrations;
 using Ecliptix.Core.Services.Abstractions.Core;
 using ReactiveUI;
 
@@ -54,15 +55,20 @@ public class WelcomeSlideItemTemplate : ReactiveObject, IDisposable
 public partial class WelcomeCarouselView : UserControl
 {
     private const string INDICATORS_CONTROL_NAME = "IndicatorsControl";
+    private const string HTML_ILLUSTRATION_NAME = "HtmlIllustration";
     private const string ACTIVE_CLASS = "active";
 
     private ItemsControl? _indicators;
+    private HtmlIllustrationView? _htmlIllustration;
 
     public static readonly StyledProperty<IEnumerable?> ItemsSourceProperty =
         AvaloniaProperty.Register<WelcomeCarouselView, IEnumerable?>(nameof(ItemsSource));
 
     public static readonly StyledProperty<int> SelectedIndexProperty =
         AvaloniaProperty.Register<WelcomeCarouselView, int>(nameof(SelectedIndex));
+
+    public static readonly StyledProperty<string?> HtmlUrlProperty =
+        AvaloniaProperty.Register<WelcomeCarouselView, string?>(nameof(HtmlUrl));
 
     public IEnumerable? ItemsSource
     {
@@ -76,12 +82,20 @@ public partial class WelcomeCarouselView : UserControl
         set => SetValue(SelectedIndexProperty, value);
     }
 
+    public string? HtmlUrl
+    {
+        get => GetValue(HtmlUrlProperty);
+        set => SetValue(HtmlUrlProperty, value);
+    }
+
     static WelcomeCarouselView()
     {
         ItemsSourceProperty.Changed.AddClassHandler<WelcomeCarouselView>((x, e) =>
             x.OnItemsSourceChanged(e.NewValue as IEnumerable));
         SelectedIndexProperty.Changed.AddClassHandler<WelcomeCarouselView>((x, e) =>
             x.OnSelectedIndexChanged(e.NewValue is int i ? i : 0));
+        HtmlUrlProperty.Changed.AddClassHandler<WelcomeCarouselView>((x, e) =>
+            x.OnHtmlUrlChanged(e.NewValue as string));
     }
 
     public WelcomeCarouselView()
@@ -93,6 +107,7 @@ public partial class WelcomeCarouselView : UserControl
     {
         AvaloniaXamlLoader.Load(this);
         _indicators = this.FindControl<ItemsControl>(INDICATORS_CONTROL_NAME);
+        _htmlIllustration = this.FindControl<HtmlIllustrationView>(HTML_ILLUSTRATION_NAME);
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
@@ -155,6 +170,14 @@ public partial class WelcomeCarouselView : UserControl
         if (index >= 0)
         {
             SelectedIndex = index;
+        }
+    }
+
+    private void OnHtmlUrlChanged(string? htmlUrl)
+    {
+        if (_htmlIllustration != null && !string.IsNullOrEmpty(htmlUrl))
+        {
+            _htmlIllustration.Url = htmlUrl;
         }
     }
 }
