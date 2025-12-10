@@ -1,52 +1,24 @@
 ﻿using System;
 using System.Collections;
-using System.Globalization;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
-using Avalonia.Data.Converters;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
-using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Ecliptix.Core.Services.Abstractions.Core;
 using ReactiveUI;
 
 namespace Ecliptix.Core.Controls.Carousels;
 
-public enum SlideType
-{
-    Image,
-    Custom
-}
-
-public class SlideTypeToVisibilityConverter : IValueConverter
-{
-    public static readonly SlideTypeToVisibilityConverter ForImage = new(SlideType.Image);
-    public static readonly SlideTypeToVisibilityConverter ForCustom = new(SlideType.Custom);
-
-    private readonly SlideType _targetType;
-
-    private SlideTypeToVisibilityConverter(SlideType targetType) => _targetType = targetType;
-
-    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
-        value is SlideType slideType && slideType == _targetType;
-
-    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
-        throw new NotSupportedException();
-}
-
 public class WelcomeSlideItemTemplate : ReactiveObject, IDisposable
 {
     private readonly CompositeDisposable _disposables = new();
 
-    public WelcomeSlideItemTemplate(string titleKey, string descriptionKey, Bitmap? image,
-        ILocalizationService localizationService, SlideType slideType = SlideType.Image)
+    public WelcomeSlideItemTemplate(string titleKey, string descriptionKey, ILocalizationService localizationService)
     {
-        Image = image;
-        SlideType = slideType;
 
         Observable.FromEvent(
                 handler => localizationService.LanguageChanged += handler,
@@ -75,10 +47,6 @@ public class WelcomeSlideItemTemplate : ReactiveObject, IDisposable
         get;
         set => this.RaiseAndSetIfChanged(ref field, value);
     }
-
-    public Bitmap? Image { get; }
-
-    public SlideType SlideType { get; }
 
     public void Dispose() => _disposables.Dispose();
 }
