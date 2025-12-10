@@ -2,8 +2,104 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:core="clr-namespace:Ecliptix.Core.Controls.Core.HintedTextControls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="Ecliptix.Core.Controls.Core.HintedTextControls.HintedDatePicker">
-    Welcome to Avalonia!
-</UserControl>
+             x:Class="Ecliptix.Core.Controls.Core.HintedTextControls.HintedDatePicker"
+             x:Name="Control"
+             x:DataType="core:HintedDatePicker"
+             >
+   <UserControl.Styles>
+        <StyleInclude Source="/Controls/Core/HintedTextControls/Shared/HintedControlStyles.axaml" />
 
+        <Style Selector="Border#FocusBorder">
+            <Setter Property="BorderBrush" Value="{Binding FocusBorderBrush, ElementName=Control}"/>
+        </Style>
+
+        <Style Selector="Path.hint-icon">
+            <Setter Property="Fill" Value="{Binding HintForeground, ElementName=Control}" />
+        </Style>
+
+    </UserControl.Styles>
+
+
+    <Grid x:Name="MainGrid"
+          Classes="hinted-field"
+          Classes.error="{Binding HasError, ElementName=Control}"
+          ClipToBounds="False">
+
+        <Border x:Name="ShadowBorder"
+                Margin="{StaticResource MainBorderMargin}"
+                CornerRadius="{Binding CornerRadius, ElementName=Control}"
+                MinHeight="{StaticResource MinControlHeight}"
+                Background="Transparent"/>
+
+        <Border x:Name="FocusBorder"
+                BorderThickness="{StaticResource FocusBorderThickness}"
+                Background="Transparent"
+                CornerRadius="{Binding CornerRadius, ElementName=Control}">
+             <Border.Transitions>
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.1" />
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+                </Transitions>
+            </Border.Transitions>
+        </Border>
+
+        <Border x:Name="MainBorder"
+                Margin="{StaticResource MainBorderMargin}"
+                BorderThickness="{StaticResource MainBorderThickness}"
+                BorderBrush="{Binding MainBorderBrush, ElementName=Control}"
+                CornerRadius="{Binding CornerRadius, ElementName=Control}"
+                MinHeight="{StaticResource MinControlHeight}"
+                Background="{Binding Background, ElementName=Control}">
+            <Border.Transitions>
+                <Transitions>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+                </Transitions>
+            </Border.Transitions>
+
+            <Panel Margin="{StaticResource InnerPanelMargin}">
+                <Grid VerticalAlignment="Stretch" RowDefinitions="*,Auto">
+
+                    <Grid Grid.Row="0">
+                        <CalendarDatePicker x:Name="MainDatePicker"
+                                            SelectedDate="{Binding InternalDate, ElementName=Control, Mode=TwoWay}"
+                                            Watermark="{Binding Watermark, ElementName=Control}"
+                                            SelectedDateFormat="Custom"
+                                            CustomDateFormatString="{Binding DateFormat, ElementName=Control}"
+                                            HorizontalAlignment="Stretch"
+                                            VerticalAlignment="Center"
+                                            HorizontalContentAlignment="Stretch"
+                                            FontSize="{Binding FontSize, ElementName=Control}"
+                                            Foreground="{Binding TextForeground, ElementName=Control}"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Padding="0"/>
+                    </Grid>
+
+                    <StackPanel x:Name="HintStackPanel"
+                                Grid.Row="1"
+                                Classes="hint-section"
+                                IsVisible="{Binding !HasError, ElementName=Control}"
+                                Orientation="Horizontal">
+                        <Path Classes="hint-icon" Margin="0,0,4,0" />
+                        <TextBlock Text="{Binding Hint, ElementName=Control}"
+                                   Foreground="{Binding HintForeground, ElementName=Control}"
+                                   Classes="hint-text" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="1"
+                                x:Name="ErrorStackPanel"
+                                Classes="error-section"
+                                IsVisible="{Binding HasError, ElementName=Control}"
+                                Opacity="{Binding EllipseOpacity, ElementName=Control}"
+                                Orientation="Horizontal">
+                        <Path Classes="error-icon" Margin="0,0,4,0" />
+                        <TextBlock Text="{Binding ErrorText, ElementName=Control}"
+                                   Classes="error-text" />
+                    </StackPanel>
+                </Grid>
+            </Panel>
+        </Border>
+    </Grid>
+</UserControl>

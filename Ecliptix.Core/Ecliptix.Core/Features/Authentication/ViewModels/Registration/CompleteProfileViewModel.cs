@@ -47,13 +47,16 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
 
     [Reactive] public string ProfileName { get; set; } = string.Empty;
     [Reactive] public string DisplayName { get; set; } = string.Empty;
-    [Reactive] public string DateOfBirth { get; set; } = string.Empty;
+    [Reactive] public DateTimeOffset? DateOfBirth { get; set; }
 
     [Reactive] public string ProfileNameError { get; private set; } = string.Empty;
     [Reactive] public bool HasProfileNameError { get; private set; }
 
     [Reactive] public string DisplayNameError { get; private set; } = string.Empty;
     [Reactive] public bool HasDisplayNameError { get; private set; }
+
+    [Reactive] public string DateOfBirthError { get; private set; } = string.Empty;
+    [Reactive] public bool HasDateOfBirthError { get; private set; }
 
     [ObservableAsProperty] public bool IsBusy { get; }
 
@@ -63,16 +66,23 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
     {
         ProfileName = string.Empty;
         DisplayName = string.Empty;
-        DateOfBirth = string.Empty;
+        DateOfBirth = null;
+
         ProfileNameError = string.Empty;
         HasProfileNameError = false;
+
         DisplayNameError = string.Empty;
         HasDisplayNameError = false;
+
+        DateOfBirthError = string.Empty;
+        HasDateOfBirthError = false;
+
         _executionErrorSubject.OnNext(string.Empty);
     }
 
     private IObservable<bool> SetupValidation()
     {
+        // Profile Name Validation
         this.WhenAnyValue(x => x.ProfileName)
             .Skip(1)
             .Throttle(TimeSpan.FromMilliseconds(300))
@@ -85,6 +95,7 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
             })
             .DisposeWith(_disposables);
 
+        // Display Name Validation
         this.WhenAnyValue(x => x.DisplayName)
             .Skip(1)
             .Throttle(TimeSpan.FromMilliseconds(300))
@@ -97,13 +108,51 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
             })
             .DisposeWith(_disposables);
 
+        // Date of Birth Validation (Age 13-17)
+        this.WhenAnyValue(x => x.DateOfBirth)
+            .Skip(1)
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(dateOffset =>
+            {
+                if (!dateOffset.HasValue)
+                {
+                    HasDateOfBirthError = false;
+                    DateOfBirthError = string.Empty;
+                    return;
+                }
+
+                // Конвертуємо DateTimeOffset в DateTime для обчислення віку
+                DateTime birthDate = dateOffset.Value.DateTime.Date;
+                DateTime today = DateTime.Today;
+
+                int age = today.Year - birthDate.Year;
+                if (birthDate > today.AddYears(-age))
+                {
+                    age--;
+                }
+
+                // Перевірка віку (13-17 років)
+                bool isValid = age >= 13 && age <= 17;
+
+                DateOfBirthError = isValid
+                    ? string.Empty
+                    : LocalizationService["Authentication.Error.InvalidAge"];
+                HasDateOfBirthError = !isValid;
+            })
+            .DisposeWith(_disposables);
+
         return this.WhenAnyValue(
             x => x.HasProfileNameError,
             x => x.HasDisplayNameError,
+            x => x.HasDateOfBirthError,
             x => x.ProfileName,
             x => x.DisplayName,
-            (nameErr, dispErr, name, disp) =>
-                !nameErr && !dispErr && !string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(disp)
+            x => x.DateOfBirth,
+            (nameErr, dispErr, dateErr, name, disp, date) =>
+                !nameErr && !dispErr && !dateErr &&
+                !string.IsNullOrEmpty(name) &&
+                !string.IsNullOrEmpty(disp) &&
+                date.HasValue
         );
     }
 
@@ -129,13 +178,38 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
     {
         try
         {
-            await Task.Delay(1000);
+            // Тут ваша логіка завершення профілю
+            // Якщо потрібно передати DateTime, конвертуйте:
+            DateTime? birthDate = DateOfBirth?.DateTime;
+
+            await Task.Delay(1000); // Заглушка
+
+            Log.Information("Profile completed: {ProfileName}, {DisplayName}, Age: {Age}",
+                ProfileName, DisplayName, CalculateAge(DateOfBirth));
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Error completing profile");
             _executionErrorSubject.OnNext(LocalizationService["Common.Error.Unexpected"]);
         }
+    }
+
+    private int? CalculateAge(DateTimeOffset? dateOfBirth)
+    {
+        if (!dateOfBirth.HasValue)
+        {
+            return null;
+        }
+
+        DateTime birthDate = dateOfBirth.Value.DateTime.Date;
+        DateTime today = DateTime.Today;
+        int age = today.Year - birthDate.Year;
+        if (birthDate > today.AddYears(-age))
+        {
+            age--;
+        }
+
+        return age;
     }
 
     public new void Dispose() => Dispose(true);

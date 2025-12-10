@@ -11,7 +11,7 @@
              x:Class="Ecliptix.Core.Features.Authentication.Views.Welcome.WelcomeView"
              x:DataType="vm:WelcomeViewModel">
 
-    <Grid RowDefinitions="Auto,Auto,Auto, Auto"
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto"
           HorizontalAlignment="Stretch"
           VerticalAlignment="Stretch"
           Margin="{StaticResource Welcome.Container.Margin}"
@@ -56,8 +56,12 @@
                     MinWidth="{StaticResource Button.MinWidth}" />
         </Grid>
 
-        <CalendarDatePicker Grid.Row="3">
+        <Button Grid.Row="3"
+                Background="Black"
+                Height="20"
+                Foreground="white"
+                Content="navigate to complete"
 
-        </CalendarDatePicker>
+                Command="{Binding NavToCompleteAccountCommand}"></Button>
     </Grid>
 </UserControl>

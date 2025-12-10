@@ -33,7 +33,8 @@ public sealed class WelcomeViewModel : ViewModelBase, IRoutableViewModel, IReset
         new Dictionary<string, MembershipViewType>
         {
             [CREATE_ACCOUNT_KEY] = MembershipViewType.MOBILE_VERIFICATION_VIEW,
-            [SIGN_IN_KEY] = MembershipViewType.SIGN_IN_VIEW
+            [SIGN_IN_KEY] = MembershipViewType.SIGN_IN_VIEW,
+            ["CompleteAccount"] = MembershipViewType.COMPLETE_PROFILE_VIEW
         }.ToFrozenDictionary();
 
     private readonly CompositeDisposable _disposables = new();
@@ -69,6 +70,14 @@ public sealed class WelcomeViewModel : ViewModelBase, IRoutableViewModel, IReset
             AuthenticationViewModel hostWindow = (AuthenticationViewModel)HostScreen;
             ((AuthenticationViewModel)HostScreen).CurrentFlowContext = AuthenticationFlowContext.REGISTRATION;
             MembershipViewType viewType = NavigationCache[CREATE_ACCOUNT_KEY];
+            return hostWindow.Navigate.Execute(viewType);
+        });
+
+        NavToCompleteAccountCommand = ReactiveCommand.CreateFromObservable(() =>
+        {
+            AuthenticationViewModel hostWindow = (AuthenticationViewModel)HostScreen;
+            ((AuthenticationViewModel)HostScreen).CurrentFlowContext = AuthenticationFlowContext.REGISTRATION;
+            MembershipViewType viewType = NavigationCache["CompleteAccount"];
             return hostWindow.Navigate.Execute(viewType);
         });
 
@@ -134,6 +143,8 @@ public sealed class WelcomeViewModel : ViewModelBase, IRoutableViewModel, IReset
     public IScreen HostScreen { get; }
 
     public ReactiveCommand<Unit, IRoutableViewModel> NavToCreateAccountCommand { get; }
+
+    public ReactiveCommand<Unit, IRoutableViewModel> NavToCompleteAccountCommand { get; }
 
     public ReactiveCommand<Unit, IRoutableViewModel> NavToSignInCommand { get; }
 

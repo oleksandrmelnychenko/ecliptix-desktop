@@ -77,21 +77,19 @@
             FontWeight="Light"
             HorizontalAlignment="Stretch" />
 
-        <hintedTextControls:HintedTextBox
+        <hintedTextControls:HintedDatePicker
             Grid.Row="3"
             Watermark="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.DateOfBirth.Watermark]}"
             Hint="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.DateOfBirth.Hint]}"
-            TextForeground="{DynamicResource OnSurface}"
-            HintForeground="{DynamicResource Primary}"
+            SelectedDate="{Binding DateOfBirth, Mode=TwoWay}"
+            ErrorText="{Binding DateOfBirthError, Mode=OneWay}"
+            HasError="{Binding HasDateOfBirthError, Mode=OneWay}"
+            Background="{DynamicResource Surface}"
             FocusBorderBrush="{DynamicResource Primary}"
             MainBorderBrush="Transparent"
-            Text="{Binding DateOfBirth, Mode=TwoWay}"
             Height="{StaticResource Input.Height}"
             CornerRadius="{StaticResource Radius.L}"
             FontSize="{StaticResource Input.FontSize}"
-            WatermarkFontSize="{StaticResource Input.WatermarkFontSize}"
-            Background="{DynamicResource Surface}"
-            FontWeight="Light"
             HorizontalAlignment="Stretch" />
 
         <Button Grid.Row="4"
@@ -110,6 +108,5 @@
             Margin="0,0,0,0"/>
 
     </Grid>
-
 </UserControl>
 
