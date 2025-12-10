@@ -67,7 +67,6 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
     private int _intendedCaretPosition;
     private string? _currentStrengthClass;
 
-    // Внутрішні поля для DirectProperties
     private bool _showVisualIcon;
     private bool _showLeftSeparator;
 
@@ -94,7 +93,6 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
     public static readonly StyledProperty<DrawingImage?> IconErrorSourceProperty =
         AvaloniaProperty.Register<HintedPasswordBox, DrawingImage?>(nameof(IconErrorSource));
 
-    // НОВА ВЛАСТИВІСТЬ: Візуальна іконка
     public static readonly StyledProperty<Drawing?> VisualIconProperty =
         AvaloniaProperty.Register<HintedPasswordBox, Drawing?>(nameof(VisualIcon));
 
@@ -116,7 +114,7 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
 
     public static readonly StyledProperty<IBrush> HintForegroundProperty =
         AvaloniaProperty.Register<HintedPasswordBox, IBrush>(
-            nameof(HintForeground), new SolidColorBrush(Color.Parse("#4DFF6D00")));
+            nameof(HintForeground), new SolidColorBrush(Color.Parse(HintedTextBoxConstants.FOCUS_COLOR_HEX)));
 
     public static readonly StyledProperty<string> ErrorTextProperty =
         AvaloniaProperty.Register<HintedPasswordBox, string>(nameof(ErrorText), string.Empty);
@@ -129,7 +127,7 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
 
     public static readonly StyledProperty<IBrush> MainBorderBrushProperty =
         AvaloniaProperty.Register<HintedPasswordBox, IBrush>(
-            nameof(MainBorderBrush), new SolidColorBrush(Color.Parse("#4DFF6D00")));
+            nameof(MainBorderBrush), new SolidColorBrush(Color.Parse(HintedTextBoxConstants.FOCUS_COLOR_HEX)));
 
     public static readonly StyledProperty<int> MaxLengthProperty =
         AvaloniaProperty.Register<HintedPasswordBox, int>(nameof(MaxLength), int.MaxValue);
@@ -173,7 +171,6 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
         AvaloniaProperty.Register<HintedPasswordBox, int>(nameof(WarningDisplayDurationMs),
             HintedTextBoxConstants.DEFAULT_WARNING_DISPLAY_DURATION_MS);
 
-    // НОВІ ВЛАСТИВОСТІ
     public static readonly StyledProperty<double> VisualIconStrokeThicknessProperty =
         AvaloniaProperty.Register<HintedPasswordBox, double>(
             nameof(VisualIconStrokeThickness),
@@ -572,7 +569,6 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
             }, "HasError subscription"))
             .DisposeWith(_disposables);
 
-        // --- НОВА ЛОГІКА ІКОНКИ ---
         this.WhenAnyValue(x => x.VisualIcon)
             .Select(icon => icon != null)
             .DistinctUntilChanged()

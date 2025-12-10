@@ -21,9 +21,6 @@
             <Setter Property="BorderBrush" Value="{Binding FocusBorderBrush, ElementName=Control}"/>
         </Style>
 
-        <Style Selector="Path.hint-icon">
-            <Setter Property="Fill" Value="{Binding HintForeground, ElementName=Control}" />
-        </Style>
     </UserControl.Styles>
 
     <Grid x:Name="MainGrid"

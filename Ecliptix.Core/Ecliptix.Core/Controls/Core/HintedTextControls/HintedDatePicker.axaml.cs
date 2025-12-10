@@ -27,7 +27,6 @@ public partial class HintedDatePicker : UserControl
     private bool _isControlInitialized;
     private bool _isUpdatingInternally;
 
-    // Внутрішні поля для DirectProperties
     private bool _showVisualIcon;
     private bool _showLeftSeparator;
 
@@ -92,7 +91,6 @@ public partial class HintedDatePicker : UserControl
             nameof(InternalDate),
             defaultBindingMode: BindingMode.TwoWay);
 
-    // НОВІ ВЛАСТИВОСТІ
     public static readonly StyledProperty<Drawing?> VisualIconProperty =
         AvaloniaProperty.Register<HintedDatePicker, Drawing?>(nameof(VisualIcon));
 
@@ -288,7 +286,6 @@ public partial class HintedDatePicker : UserControl
 
     private void SetupReactiveBindings()
     {
-        // Логіка помилки
         this.WhenAnyValue(x => x.ErrorText)
             .DistinctUntilChanged()
             .Scan(string.Empty, (previous, current) =>
@@ -312,7 +309,6 @@ public partial class HintedDatePicker : UserControl
             }, "HasError subscription"))
             .DisposeWith(_disposables);
 
-        // --- НОВА ЛОГІКА ІКОНКИ ---
         this.WhenAnyValue(x => x.VisualIcon)
             .Select(icon => icon != null)
             .DistinctUntilChanged()

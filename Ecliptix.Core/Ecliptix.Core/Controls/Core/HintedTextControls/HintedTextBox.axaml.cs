@@ -27,7 +27,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private bool _isDisposed;
     private bool _isControlInitialized;
 
-    // Внутрішні поля для DirectProperties (ReadOnly для XAML)
     private bool _showCountryButton;
     private bool _showLeftSeparator;
     private bool _showVisualIcon;
@@ -46,14 +45,12 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     public static readonly StyledProperty<string> HintProperty =
         AvaloniaProperty.Register<HintedTextBox, string>(nameof(Hint), string.Empty);
 
-    // Іконки статусу (зліва внизу біля підказки)
     public static readonly StyledProperty<DrawingImage?> IconRegularSourceProperty =
         AvaloniaProperty.Register<HintedTextBox, DrawingImage?>(nameof(IconRegularSource));
 
     public static readonly StyledProperty<DrawingImage?> IconErrorSourceProperty =
         AvaloniaProperty.Register<HintedTextBox, DrawingImage?>(nameof(IconErrorSource));
 
-    // НОВА ВЛАСТИВІСТЬ: Візуальна іконка всередині поля (зліва від тексту)
     public static readonly StyledProperty<Drawing?> VisualIconProperty =
         AvaloniaProperty.Register<HintedTextBox, Drawing?>(nameof(VisualIcon));
 
@@ -350,7 +347,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private void SetupReactiveBindings()
     {
-        // 1. Error Text Logic
         this.WhenAnyValue(x => x.ErrorText)
             .DistinctUntilChanged()
             .Scan(string.Empty, (previous, current) =>
@@ -364,7 +360,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             }, "ErrorText subscription"))
             .DisposeWith(_disposables);
 
-        // 2. Error Visuals Logic
         this.WhenAnyValue(x => x.HasError)
             .DistinctUntilChanged()
             .Subscribe(hasError => SafeExecute(() =>
@@ -375,7 +370,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             }, "HasError subscription"))
             .DisposeWith(_disposables);
 
-        // 3. Phone Button Logic
         IObservable<bool> showPhoneButtonObs = this.WhenAnyValue(
                 x => x.IsPhoneNumberMode,
                 x => x.Text)
@@ -395,15 +389,11 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 return !text.StartsWith("+");
             });
 
-        // 4. Visual Icon Logic
-        // Іконку показуємо тільки якщо це НЕ телефон І іконка не null
         IObservable<bool> showVisualIconObs = Observable.CombineLatest(
             showPhoneButtonObs,
             this.WhenAnyValue(x => x.VisualIcon),
             (isPhoneBtnVisible, icon) => !isPhoneBtnVisible && icon != null
         );
-
-        // Підписки на оновлення властивостей
 
         showPhoneButtonObs
             .DistinctUntilChanged()
@@ -417,8 +407,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             .Subscribe(isVisible => ShowVisualIcon = isVisible)
             .DisposeWith(_disposables);
 
-        // 5. Separator Logic
-        // Розділювач показуємо, якщо активний будь-який з лівих елементів
         Observable.CombineLatest(
                 showPhoneButtonObs,
                 showVisualIconObs,

@@ -99,7 +99,7 @@
             CornerRadius="{StaticResource Radius.L}"
             FontSize="{StaticResource Input.FontSize}"
             HorizontalAlignment="Stretch"
-            VisualIcon="{DynamicResource __square_pen}"/>
+            VisualIcon="{DynamicResource __calendar}"/>
 
         <Button Grid.Row="4"
                 Content="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.Button.Complete]}"
