@@ -24,9 +24,11 @@
             <feedConverters:LikeIconConverter x:Key="LikeIconConverter" />
             <feedConverters:SaveColorConverter x:Key="SaveColorConverter" />
 
+
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="Assets/Icons/UI/LampIcon.axaml"></ResourceInclude>
                 <ResourceInclude Source="/Features/Feed/Resources/IconGeometries.axaml"/>
+                <ResourceInclude Source="/Styles/Components/CalendarDatePicker.axaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
