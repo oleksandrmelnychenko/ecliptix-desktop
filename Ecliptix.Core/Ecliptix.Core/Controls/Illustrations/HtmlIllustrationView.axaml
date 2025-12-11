@@ -3,15 +3,20 @@
              x:Class="Ecliptix.Core.Controls.Illustrations.HtmlIllustrationView"
              Width="280" Height="280">
 
-    <Border Background="#F5F5F5"
+    <Border Name="ContentBorder"
+            Background="#F5F5F5"
             CornerRadius="8"
             Width="280"
             Height="280">
-        <TextBlock Text="HTML Illustration"
+        <TextBlock Name="StatusText"
+                   Text="Loading HTML..."
                    HorizontalAlignment="Center"
                    VerticalAlignment="Center"
-                   FontSize="16"
-                   Foreground="#666666"/>
+                   FontSize="12"
+                   Foreground="#666666"
+                   TextWrapping="Wrap"
+                   TextAlignment="Center"
+                   Margin="16"/>
     </Border>
 
 </UserControl>

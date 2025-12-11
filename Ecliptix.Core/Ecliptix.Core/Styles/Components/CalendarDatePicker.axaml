@@ -2,6 +2,12 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="using:System">
 
+    <!-- Define color resources if not already defined -->
+    <Color x:Key="Primary">#8B5CF6</Color>
+    <Color x:Key="Surface">#FFFFFF</Color>
+    <Color x:Key="OnSurface">#1F2937</Color>
+    <Color x:Key="OnPrimary">#FFFFFF</Color>
+
     <ControlTheme x:Key="{x:Type CalendarDatePicker}" TargetType="CalendarDatePicker">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
@@ -9,14 +15,12 @@
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
-
         <Setter Property="Watermark" Value="dd.MM.yyyy" />
         <Setter Property="UseFloatingWatermark" Value="False" />
 
         <Setter Property="Template">
             <ControlTemplate>
                 <Grid ColumnDefinitions="*,Auto">
-
                     <TextBox Name="PART_TextBox"
                              Grid.Column="0"
                              Background="Transparent"
@@ -54,17 +58,22 @@
                            PlacementTarget="{TemplateBinding}"
                            IsLightDismissEnabled="True">
                         <Border Background="{DynamicResource Surface}"
-                                BorderBrush="{DynamicResource Primary}"
                                 BorderThickness="1"
                                 CornerRadius="12"
-                                Padding="8">
+                                Padding="8"
+                                MinWidth="280"
+                                MinHeight="320">
+                            <Border.BorderBrush>
+                                <SolidColorBrush Color="{DynamicResource Primary}"/>
+                            </Border.BorderBrush>
+
                             <Calendar Name="PART_Calendar"
                                       DisplayDate="{TemplateBinding DisplayDate}"
                                       DisplayDateEnd="{TemplateBinding DisplayDateEnd}"
                                       DisplayDateStart="{TemplateBinding DisplayDateStart}"
                                       FirstDayOfWeek="{TemplateBinding FirstDayOfWeek}"
                                       IsTodayHighlighted="{TemplateBinding IsTodayHighlighted}"
-                                      SelectedDate="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=SelectedDate, Mode=TwoWay}" />
+                                      Foreground="{DynamicResource OnSurface}"/>
                         </Border>
                     </Popup>
                 </Grid>
@@ -75,6 +84,8 @@
     <ControlTheme x:Key="{x:Type Calendar}" TargetType="Calendar">
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Foreground" Value="{DynamicResource OnSurface}"/>
+
         <Setter Property="Template">
             <ControlTemplate>
                 <StackPanel Name="PART_Root" HorizontalAlignment="Center" ClipToBounds="True">
@@ -83,13 +94,18 @@
                                   BorderBrush="{TemplateBinding BorderBrush}"
                                   BorderThickness="{TemplateBinding BorderThickness}"
                                   CornerRadius="{TemplateBinding CornerRadius}"
-                                  HeaderBackground="Transparent"/>
+                                  HeaderBackground="Transparent"
+                                  Foreground="{TemplateBinding Foreground}"/>
                 </StackPanel>
             </ControlTemplate>
         </Setter>
     </ControlTheme>
 
     <ControlTheme x:Key="{x:Type CalendarItem}" TargetType="CalendarItem">
+        <Setter Property="Foreground" Value="{DynamicResource OnSurface}"/>
+        <Setter Property="MinWidth" Value="280"/>
+        <Setter Property="MinHeight" Value="280"/>
+
         <Setter Property="Template">
             <ControlTemplate>
                 <Border Background="{TemplateBinding Background}"
@@ -102,6 +118,7 @@
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
 
+                        <!-- Header -->
                         <Grid Grid.Row="0" Margin="4,4,4,12">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -110,13 +127,23 @@
 
                             <Button Name="PART_HeaderButton"
                                     Grid.Column="0"
-                                    Foreground="{DynamicResource OnSurface}"
                                     Background="Transparent"
                                     BorderThickness="0"
                                     FontSize="15"
                                     HorizontalAlignment="Left"
                                     VerticalAlignment="Center"
-                                    FontWeight="Bold" />
+                                    FontWeight="Bold"
+                                    Foreground="{TemplateBinding Foreground}"
+                                    Cursor="Hand">
+                                <Button.Template>
+                                    <ControlTemplate>
+                                        <ContentPresenter Content="{TemplateBinding Content}"
+                                                        Foreground="{TemplateBinding Foreground}"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"/>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
 
                             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                                 <Button Name="PART_PreviousButton"
@@ -124,10 +151,10 @@
                                         Background="Transparent"
                                         BorderThickness="0"
                                         Cursor="Hand">
-                                    <Path Fill="{DynamicResource OnSurface}"
-                                          Data="M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z"
+                                    <Path Data="M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z"
                                           Stretch="Uniform"
-                                          Width="12" Height="12"/>
+                                          Width="12" Height="12"
+                                          Fill="{TemplateBinding Foreground}"/>
                                 </Button>
 
                                 <Button Name="PART_NextButton"
@@ -135,29 +162,48 @@
                                         Background="Transparent"
                                         BorderThickness="0"
                                         Cursor="Hand">
-                                    <Path Fill="{DynamicResource OnSurface}"
-                                          Data="M7.41,8.59L12,13.17L16.59,8.59L18,10L12,16L6,10L7.41,8.59Z"
+                                    <Path Data="M7.41,8.59L12,13.17L16.59,8.59L18,10L12,16L6,10L7.41,8.59Z"
                                           Stretch="Uniform"
-                                          Width="12" Height="12"/>
+                                          Width="12" Height="12"
+                                          Fill="{TemplateBinding Foreground}"/>
                                 </Button>
                             </StackPanel>
                         </Grid>
 
+                        <!-- Month View (days) -->
                         <Grid Name="PART_MonthView" Grid.Row="1" IsVisible="False" Margin="4">
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                         </Grid>
 
+                        <!-- Year View (months) -->
                         <Grid Name="PART_YearView" Grid.Row="1" IsVisible="False" Margin="4">
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                         </Grid>
                     </Grid>
@@ -178,14 +224,15 @@
         </Setter>
     </ControlTheme>
 
+    <!-- CalendarDayButton (дні місяця) -->
     <ControlTheme x:Key="{x:Type CalendarDayButton}" TargetType="CalendarDayButton">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="{DynamicResource OnSurface}" />
-
+        <Setter Property="Foreground" Value="{DynamicResource OnSurface}"/>
         <Setter Property="FontSize" Value="14" />
+        <Setter Property="MinWidth" Value="32" />
+        <Setter Property="MinHeight" Value="32" />
         <Setter Property="Width" Value="32" />
         <Setter Property="Height" Value="32" />
-
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="CornerRadius" Value="6" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
@@ -195,47 +242,115 @@
 
         <Setter Property="Template">
             <ControlTemplate>
-                <Panel>
-                    <Border Name="RootBorder"
-                            Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="{TemplateBinding CornerRadius}">
-                        <ContentPresenter Name="ContentPresenter"
-                                          Content="{TemplateBinding Content}"
-                                          ContentTemplate="{TemplateBinding ContentTemplate}"
-                                          HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                          VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
-                                          Foreground="{TemplateBinding Foreground}" />
-                    </Border>
-                </Panel>
+                <Border Name="RootBorder"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <ContentPresenter Name="ContentPresenter"
+                                      Content="{TemplateBinding Content}"
+                                      HorizontalContentAlignment="Center"
+                                      VerticalContentAlignment="Center"
+                                      Foreground="{TemplateBinding Foreground}" />
+                </Border>
             </ControlTemplate>
         </Setter>
 
+        <!-- Hover - Light primary background with primary text -->
         <Style Selector="^:pointerover /template/ Border#RootBorder">
-            <Setter Property="Background" Value="{DynamicResource Primary}" />
+            <Setter Property="Background" Value="#F3F0FF"/>
         </Style>
         <Style Selector="^:pointerover /template/ ContentPresenter">
-            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Foreground" Value="#8B5CF6"/>
         </Style>
 
+        <!-- Selected - Solid primary background with white text -->
         <Style Selector="^:selected /template/ Border#RootBorder">
-            <Setter Property="Background" Value="{DynamicResource Primary}" />
+            <Setter Property="Background" Value="#8B5CF6"/>
         </Style>
         <Style Selector="^:selected /template/ ContentPresenter">
-            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Foreground" Value="White"/>
         </Style>
 
+        <!-- Today - Border outline in primary color -->
         <Style Selector="^:today /template/ Border#RootBorder">
-            <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
-            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderThickness" Value="1.5" />
+            <Setter Property="BorderBrush" Value="#8B5CF6"/>
         </Style>
 
-        <Style Selector="^:blackout /template/ ContentPresenter">
-             <Setter Property="Opacity" Value="0.3" />
-        </Style>
+        <!-- Inactive (дні з інших місяців) -->
         <Style Selector="^:inactive /template/ ContentPresenter">
-             <Setter Property="Opacity" Value="0.3" />
+            <Setter Property="Opacity" Value="0.3" />
+        </Style>
+
+        <!-- Inactive days should not show hover effect -->
+        <Style Selector="^:inactive:pointerover /template/ Border#RootBorder">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="^:inactive:pointerover /template/ ContentPresenter">
+            <Setter Property="Foreground" Value="{DynamicResource OnSurface}"/>
+        </Style>
+    </ControlTheme>
+
+    <!-- CalendarButton (місяці та роки) -->
+    <ControlTheme x:Key="{x:Type CalendarButton}" TargetType="CalendarButton">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource OnSurface}"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="VerticalAlignment" Value="Stretch" />
+        <Setter Property="MinWidth" Value="60" />
+        <Setter Property="MinHeight" Value="60" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Margin" Value="4" />
+        <Setter Property="Padding" Value="8" />
+
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="RootBorder"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <ContentPresenter Name="ContentPresenter"
+                                      Content="{TemplateBinding Content}"
+                                      HorizontalContentAlignment="Center"
+                                      VerticalContentAlignment="Center"
+                                      Foreground="{TemplateBinding Foreground}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+
+        <!-- Hover - Light primary background with primary text -->
+        <Style Selector="^:pointerover /template/ Border#RootBorder">
+            <Setter Property="Background" Value="#F3F0FF"/>
+        </Style>
+        <Style Selector="^:pointerover /template/ ContentPresenter">
+            <Setter Property="Foreground" Value="#8B5CF6"/>
+        </Style>
+
+        <!-- Selected - Solid primary background with white text -->
+        <Style Selector="^:selected /template/ Border#RootBorder">
+            <Setter Property="Background" Value="#8B5CF6"/>
+        </Style>
+        <Style Selector="^:selected /template/ ContentPresenter">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <!-- Inactive -->
+        <Style Selector="^:inactive /template/ ContentPresenter">
+            <Setter Property="Opacity" Value="0.3" />
+        </Style>
+
+        <!-- Inactive items should not show hover effect -->
+        <Style Selector="^:inactive:pointerover /template/ Border#RootBorder">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="^:inactive:pointerover /template/ ContentPresenter">
+            <Setter Property="Foreground" Value="{DynamicResource OnSurface}"/>
         </Style>
     </ControlTheme>
 

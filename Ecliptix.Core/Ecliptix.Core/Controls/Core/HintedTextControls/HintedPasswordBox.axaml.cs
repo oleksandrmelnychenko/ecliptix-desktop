@@ -67,6 +67,9 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
     private int _intendedCaretPosition;
     private string? _currentStrengthClass;
 
+    private bool _showVisualIcon;
+    private bool _showLeftSeparator;
+
     #endregion
 
     #region Styled Properties
@@ -90,6 +93,9 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
     public static readonly StyledProperty<DrawingImage?> IconErrorSourceProperty =
         AvaloniaProperty.Register<HintedPasswordBox, DrawingImage?>(nameof(IconErrorSource));
 
+    public static readonly StyledProperty<Drawing?> VisualIconProperty =
+        AvaloniaProperty.Register<HintedPasswordBox, Drawing?>(nameof(VisualIcon));
+
     public static readonly StyledProperty<IBrush> SecureKeyStrengthTextBrushProperty =
         AvaloniaProperty.Register<HintedPasswordBox, IBrush>(nameof(SecureKeyStrengthTextBrush),
             new SolidColorBrush(Colors.Gray));
@@ -108,7 +114,7 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
 
     public static readonly StyledProperty<IBrush> HintForegroundProperty =
         AvaloniaProperty.Register<HintedPasswordBox, IBrush>(
-            nameof(HintForeground), new SolidColorBrush(Color.Parse("#4DFF6D00")));
+            nameof(HintForeground), new SolidColorBrush(Color.Parse(HintedTextBoxConstants.FOCUS_COLOR_HEX)));
 
     public static readonly StyledProperty<string> ErrorTextProperty =
         AvaloniaProperty.Register<HintedPasswordBox, string>(nameof(ErrorText), string.Empty);
@@ -121,7 +127,7 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
 
     public static readonly StyledProperty<IBrush> MainBorderBrushProperty =
         AvaloniaProperty.Register<HintedPasswordBox, IBrush>(
-            nameof(MainBorderBrush), new SolidColorBrush(Color.Parse("#4DFF6D00")));
+            nameof(MainBorderBrush), new SolidColorBrush(Color.Parse(HintedTextBoxConstants.FOCUS_COLOR_HEX)));
 
     public static readonly StyledProperty<int> MaxLengthProperty =
         AvaloniaProperty.Register<HintedPasswordBox, int>(nameof(MaxLength), int.MaxValue);
@@ -165,6 +171,21 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
         AvaloniaProperty.Register<HintedPasswordBox, int>(nameof(WarningDisplayDurationMs),
             HintedTextBoxConstants.DEFAULT_WARNING_DISPLAY_DURATION_MS);
 
+    public static readonly StyledProperty<double> VisualIconStrokeThicknessProperty =
+        AvaloniaProperty.Register<HintedPasswordBox, double>(
+            nameof(VisualIconStrokeThickness),
+            defaultValue: 2);
+
+    public static readonly DirectProperty<HintedPasswordBox, bool> ShowVisualIconProperty =
+        AvaloniaProperty.RegisterDirect<HintedPasswordBox, bool>(
+            nameof(ShowVisualIcon),
+            o => o.ShowVisualIcon);
+
+    public static readonly DirectProperty<HintedPasswordBox, bool> ShowLeftSeparatorProperty =
+        AvaloniaProperty.RegisterDirect<HintedPasswordBox, bool>(
+            nameof(ShowLeftSeparator),
+            o => o.ShowLeftSeparator);
+
     #endregion
 
     #region Routed Events
@@ -201,6 +222,30 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
     {
         get => GetValue(IconErrorSourceProperty);
         set => SetValue(IconErrorSourceProperty, value);
+    }
+
+    public Drawing? VisualIcon
+    {
+        get => GetValue(VisualIconProperty);
+        set => SetValue(VisualIconProperty, value);
+    }
+
+    public double VisualIconStrokeThickness
+    {
+        get => GetValue(VisualIconStrokeThicknessProperty);
+        set => SetValue(VisualIconStrokeThicknessProperty, value);
+    }
+
+    public bool ShowVisualIcon
+    {
+        get => _showVisualIcon;
+        private set => SetAndRaise(ShowVisualIconProperty, ref _showVisualIcon, value);
+    }
+
+    public bool ShowLeftSeparator
+    {
+        get => _showLeftSeparator;
+        private set => SetAndRaise(ShowLeftSeparatorProperty, ref _showLeftSeparator, value);
     }
 
     public IBrush SecureKeyStrengthTextBrush
@@ -522,6 +567,17 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
                     ? HintedTextBoxConstants.DEFAULT_ELLIPSE_OPACITY_VISIBLE
                     : HintedTextBoxConstants.DEFAULT_ELLIPSE_OPACITY_HIDDEN;
             }, "HasError subscription"))
+            .DisposeWith(_disposables);
+
+        this.WhenAnyValue(x => x.VisualIcon)
+            .Select(icon => icon != null)
+            .DistinctUntilChanged()
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(hasIcon =>
+            {
+                ShowVisualIcon = hasIcon;
+                ShowLeftSeparator = hasIcon;
+            })
             .DisposeWith(_disposables);
     }
 

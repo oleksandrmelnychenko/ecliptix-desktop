@@ -230,7 +230,19 @@ public static class LocalizationData
         [LocalizationKeys.NetworkStatus.OFFLINE] = "Offline",
         [LocalizationKeys.NetworkStatus.SERVER_ERROR] = "Server Error",
         [LocalizationKeys.LanguagePicker.TITLE] = "Supported languages",
-        [LocalizationKeys.LanguagePicker.SUBTITLE] = "Choose your preferred language"
+        [LocalizationKeys.LanguagePicker.SUBTITLE] = "Choose your preferred language",
+        [LocalizationKeys.Authentication.SignUp.CompleteProfile.TITLE] = "Complete Your Profile",
+        [LocalizationKeys.Authentication.SignUp.CompleteProfile.DESCRIPTION] = "Help your friends find and recognize you. You can always update this later.",
+        [LocalizationKeys.Authentication.SignUp.CompleteProfile.PROFILE_NAME_WATERMARK] = "Profile name (e.g., Alex Smith)",
+        [LocalizationKeys.Authentication.SignUp.CompleteProfile.PROFILE_NAME_HINT] = "Your real name for verification",
+        [LocalizationKeys.Authentication.SignUp.CompleteProfile.DISPLAY_NAME_WATERMARK] = "Display name (e.g., @alexsmith)",
+        [LocalizationKeys.Authentication.SignUp.CompleteProfile.DISPLAY_NAME_HINT] = "How others will see you",
+        [LocalizationKeys.Authentication.SignUp.CompleteProfile.DATE_OF_BIRTH_WATERMARK] = "mm/dd/yyyy",
+        [LocalizationKeys.Authentication.SignUp.CompleteProfile.DATE_OF_BIRTH_HINT] = "Must be 13-17 years old",
+        [LocalizationKeys.Authentication.SignUp.CompleteProfile.BUTTON_COMPLETE] = "Complete Setup",
+        [LocalizationKeys.ValidationErrors.Profile.INVALID_NAME] = "Name must be at least 3 characters",
+        [LocalizationKeys.ValidationErrors.Profile.INVALID_DISPLAY_NAME] = "Display name must start with @",
+        [LocalizationKeys.ValidationErrors.Profile.INVALID_AGE] = "You must be between 13 and 17 years old",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<string, string> UkrainianStrings = new Dictionary<string, string>
@@ -460,7 +472,19 @@ public static class LocalizationData
         [LocalizationKeys.NetworkStatus.OFFLINE] = "Офлайн",
         [LocalizationKeys.NetworkStatus.SERVER_ERROR] = "Помилка сервера",
         [LocalizationKeys.LanguagePicker.TITLE] = "Підтримувані мови",
-        [LocalizationKeys.LanguagePicker.SUBTITLE] = "Виберіть бажану мову"
+        [LocalizationKeys.LanguagePicker.SUBTITLE] = "Виберіть бажану мову",
+        [LocalizationKeys.Authentication.SignUp.CompleteProfile.TITLE] = "Заповніть профіль",
+        [LocalizationKeys.Authentication.SignUp.CompleteProfile.DESCRIPTION] = "Допоможіть друзям знайти та впізнати вас. Ви зможете змінити це пізніше.",
+        [LocalizationKeys.Authentication.SignUp.CompleteProfile.PROFILE_NAME_WATERMARK] = "Ім'я профілю (напр., Олексій Коваль)",
+        [LocalizationKeys.Authentication.SignUp.CompleteProfile.PROFILE_NAME_HINT] = "Ваше справжнє ім'я для верифікації",
+        [LocalizationKeys.Authentication.SignUp.CompleteProfile.DISPLAY_NAME_WATERMARK] = "Відображуване ім'я (напр., @alexsmith)",
+        [LocalizationKeys.Authentication.SignUp.CompleteProfile.DISPLAY_NAME_HINT] = "Як вас бачитимуть інші",
+        [LocalizationKeys.Authentication.SignUp.CompleteProfile.DATE_OF_BIRTH_WATERMARK] = "дд.мм.рррр",
+        [LocalizationKeys.Authentication.SignUp.CompleteProfile.DATE_OF_BIRTH_HINT] = "Вам має бути 13-17 років",
+        [LocalizationKeys.Authentication.SignUp.CompleteProfile.BUTTON_COMPLETE] = "Завершити налаштування",
+        [LocalizationKeys.ValidationErrors.Profile.INVALID_NAME] = "Ім'я має містити щонайменше 3 символи",
+        [LocalizationKeys.ValidationErrors.Profile.INVALID_DISPLAY_NAME] = "Ім'я має починатися з @",
+        [LocalizationKeys.ValidationErrors.Profile.INVALID_AGE] = "Вам має бути від 13 до 17 років",
     }.ToFrozenDictionary();
 
     public static readonly FrozenDictionary<string, FrozenDictionary<string, string>> AllLanguages =

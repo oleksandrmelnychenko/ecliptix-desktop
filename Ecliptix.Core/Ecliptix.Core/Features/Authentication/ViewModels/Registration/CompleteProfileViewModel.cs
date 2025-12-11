@@ -10,6 +10,7 @@ using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Services.Core.Localization;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Serilog;
@@ -20,6 +21,8 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
 {
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly CompositeDisposable _disposables = new();
+
+    private const int CURRENT_STEP = 4;
 
     private bool _isDisposed;
 
@@ -42,18 +45,26 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
         SetupCommands(isFormValid);
     }
 
+    public string StepBadgeText => string.Format(
+        LocalizationService[LocalizationKeys.Verification.Info.STEP_OF],
+        CURRENT_STEP,
+        TOTAL_STEPS);
+
     public string? UrlPathSegment { get; } = "/complete-profile";
     public IScreen HostScreen { get; }
 
     [Reactive] public string ProfileName { get; set; } = string.Empty;
     [Reactive] public string DisplayName { get; set; } = string.Empty;
-    [Reactive] public string DateOfBirth { get; set; } = string.Empty;
+    [Reactive] public DateTimeOffset? DateOfBirth { get; set; }
 
     [Reactive] public string ProfileNameError { get; private set; } = string.Empty;
     [Reactive] public bool HasProfileNameError { get; private set; }
 
     [Reactive] public string DisplayNameError { get; private set; } = string.Empty;
     [Reactive] public bool HasDisplayNameError { get; private set; }
+
+    [Reactive] public string DateOfBirthError { get; private set; } = string.Empty;
+    [Reactive] public bool HasDateOfBirthError { get; private set; }
 
     [ObservableAsProperty] public bool IsBusy { get; }
 
@@ -63,11 +74,17 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
     {
         ProfileName = string.Empty;
         DisplayName = string.Empty;
-        DateOfBirth = string.Empty;
+        DateOfBirth = null;
+
         ProfileNameError = string.Empty;
         HasProfileNameError = false;
+
         DisplayNameError = string.Empty;
         HasDisplayNameError = false;
+
+        DateOfBirthError = string.Empty;
+        HasDateOfBirthError = false;
+
         _executionErrorSubject.OnNext(string.Empty);
     }
 
@@ -80,7 +97,7 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
             .Subscribe(name =>
             {
                 bool isValid = !string.IsNullOrWhiteSpace(name) && name.Length >= 3;
-                ProfileNameError = isValid ? string.Empty : LocalizationService["Authentication.Error.InvalidName"];
+                ProfileNameError = isValid ? string.Empty : LocalizationService[LocalizationKeys.ValidationErrors.Profile.INVALID_NAME];
                 HasProfileNameError = !isValid;
             })
             .DisposeWith(_disposables);
@@ -92,18 +109,53 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
             .Subscribe(name =>
             {
                 bool isValid = !string.IsNullOrWhiteSpace(name) && name.StartsWith("@");
-                DisplayNameError = isValid ? string.Empty : LocalizationService["Authentication.Error.InvalidDisplayName"];
+                DisplayNameError = isValid ? string.Empty : LocalizationService[LocalizationKeys.ValidationErrors.Profile.INVALID_DISPLAY_NAME];
                 HasDisplayNameError = !isValid;
+            })
+            .DisposeWith(_disposables);
+
+        this.WhenAnyValue(x => x.DateOfBirth)
+            .Skip(1)
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(dateOffset =>
+            {
+                if (!dateOffset.HasValue)
+                {
+                    HasDateOfBirthError = false;
+                    DateOfBirthError = string.Empty;
+                    return;
+                }
+
+                DateTime birthDate = dateOffset.Value.DateTime.Date;
+                DateTime today = DateTime.Today;
+
+                int age = today.Year - birthDate.Year;
+                if (birthDate > today.AddYears(-age))
+                {
+                    age--;
+                }
+
+                bool isValid = age >= 13 && age <= 17;
+
+                DateOfBirthError = isValid
+                    ? string.Empty
+                    : LocalizationService[LocalizationKeys.ValidationErrors.Profile.INVALID_AGE];
+                HasDateOfBirthError = !isValid;
             })
             .DisposeWith(_disposables);
 
         return this.WhenAnyValue(
             x => x.HasProfileNameError,
             x => x.HasDisplayNameError,
+            x => x.HasDateOfBirthError,
             x => x.ProfileName,
             x => x.DisplayName,
-            (nameErr, dispErr, name, disp) =>
-                !nameErr && !dispErr && !string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(disp)
+            x => x.DateOfBirth,
+            (nameErr, dispErr, dateErr, name, disp, date) =>
+                !nameErr && !dispErr && !dateErr &&
+                !string.IsNullOrEmpty(name) &&
+                !string.IsNullOrEmpty(disp) &&
+                date.HasValue
         );
     }
 
@@ -129,13 +181,36 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
     {
         try
         {
+            DateTime? birthDate = DateOfBirth?.DateTime;
+
             await Task.Delay(1000);
+
+            Log.Information("Profile completed: {ProfileName}, {DisplayName}, Age: {Age}",
+                ProfileName, DisplayName, CalculateAge(DateOfBirth));
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Error completing profile");
             _executionErrorSubject.OnNext(LocalizationService["Common.Error.Unexpected"]);
         }
+    }
+
+    private int? CalculateAge(DateTimeOffset? dateOfBirth)
+    {
+        if (!dateOfBirth.HasValue)
+        {
+            return null;
+        }
+
+        DateTime birthDate = dateOfBirth.Value.DateTime.Date;
+        DateTime today = DateTime.Today;
+        int age = today.Year - birthDate.Year;
+        if (birthDate > today.AddYears(-age))
+        {
+            age--;
+        }
+
+        return age;
     }
 
     public new void Dispose() => Dispose(true);

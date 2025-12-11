@@ -11,6 +11,10 @@
              MinWidth="{StaticResource Content.MaxWidth}"
              Width="{StaticResource Content.MaxWidth}">
 
+    <UserControl.Styles>
+        <StyleInclude Source="avares://Ecliptix.Core/Controls/Core/HintedTextControls/Shared/CompleteProfileIcons.axaml"></StyleInclude>
+    </UserControl.Styles>
+
     <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="{StaticResource Spacing.Authentication}">
         <StackPanel Grid.Row="0" Spacing="{StaticResource Spacing.S}" MaxWidth="{StaticResource Header.MaxWidth}" HorizontalAlignment="Left">
 
@@ -51,7 +55,8 @@
             TextForeground="{DynamicResource OnSurface}"
             HintForeground="{DynamicResource Primary}"
             Background="{DynamicResource Surface}"
-            MaxLength="28"/>
+            MaxLength="28"
+            VisualIcon="{DynamicResource __lock}"/>
 
         <hintedTextControls:HintedPasswordBox
             Grid.Row="2"
@@ -69,7 +74,9 @@
             TextForeground="{DynamicResource OnSurface}"
             HintForeground="{DynamicResource Primary}"
             Background="{DynamicResource Surface}"
-            MaxLength="28"/>
+            MaxLength="28"
+            VisualIcon="{DynamicResource __lock_keyhole}"/>
+
         <Button
             Grid.Row="3"
             HorizontalAlignment="Stretch"

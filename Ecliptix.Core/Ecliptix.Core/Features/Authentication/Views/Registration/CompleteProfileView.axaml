@@ -8,6 +8,12 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ecliptix.Core.Features.Authentication.Views.Registration.CompleteProfileView"
              x:DataType="registration:CompleteProfileViewModel">
+
+    <UserControl.Styles>
+        <StyleInclude Source="avares://Ecliptix.Core/Controls/Core/HintedTextControls/Shared/CompleteProfileIcons.axaml"></StyleInclude>
+
+    </UserControl.Styles>
+
     <Grid VerticalAlignment="Top"
           RowSpacing="{StaticResource Spacing.Authentication}"
           RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto"
@@ -26,7 +32,7 @@
                            Foreground="{DynamicResource OnSurface}"
                            LineHeight="{StaticResource LineHeight.Loose}" />
 
-                <core:StepBadgeView Text="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.Step]}"
+                <core:StepBadgeView Text="{Binding StepBadgeText}"
                                             VerticalAlignment="Center"/>
             </StackPanel>
 
@@ -56,7 +62,8 @@
             WatermarkFontSize="{StaticResource Input.WatermarkFontSize}"
             Background="{DynamicResource Surface}"
             FontWeight="Light"
-            HorizontalAlignment="Stretch" />
+            HorizontalAlignment="Stretch"
+            VisualIcon="{DynamicResource __user_round}"/>
 
         <hintedTextControls:HintedTextBox
             Grid.Row="2"
@@ -75,24 +82,24 @@
             WatermarkFontSize="{StaticResource Input.WatermarkFontSize}"
             Background="{DynamicResource Surface}"
             FontWeight="Light"
-            HorizontalAlignment="Stretch" />
+            HorizontalAlignment="Stretch"
+            VisualIcon="{DynamicResource __square_pen}"/>
 
-        <hintedTextControls:HintedTextBox
+        <hintedTextControls:HintedDatePicker
             Grid.Row="3"
             Watermark="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.DateOfBirth.Watermark]}"
             Hint="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.DateOfBirth.Hint]}"
-            TextForeground="{DynamicResource OnSurface}"
-            HintForeground="{DynamicResource Primary}"
+            SelectedDate="{Binding DateOfBirth, Mode=TwoWay}"
+            ErrorText="{Binding DateOfBirthError, Mode=OneWay}"
+            HasError="{Binding HasDateOfBirthError, Mode=OneWay}"
+            Background="{DynamicResource Surface}"
             FocusBorderBrush="{DynamicResource Primary}"
             MainBorderBrush="Transparent"
-            Text="{Binding DateOfBirth, Mode=TwoWay}"
             Height="{StaticResource Input.Height}"
             CornerRadius="{StaticResource Radius.L}"
             FontSize="{StaticResource Input.FontSize}"
-            WatermarkFontSize="{StaticResource Input.WatermarkFontSize}"
-            Background="{DynamicResource Surface}"
-            FontWeight="Light"
-            HorizontalAlignment="Stretch" />
+            HorizontalAlignment="Stretch"
+            VisualIcon="{DynamicResource __calendar}"/>
 
         <Button Grid.Row="4"
                 Content="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.Button.Complete]}"
@@ -110,6 +117,5 @@
             Margin="0,0,0,0"/>
 
     </Grid>
-
 </UserControl>
 
