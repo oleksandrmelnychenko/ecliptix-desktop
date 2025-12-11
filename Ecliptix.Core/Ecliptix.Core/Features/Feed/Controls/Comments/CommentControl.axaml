@@ -89,8 +89,8 @@
 					BorderThickness="0"
 					Padding="1">
 				<StackPanel Spacing="2" HorizontalAlignment="Center">
-					<Path Width="16"
-						  Height="16"
+					<Path Width="14"
+						  Height="14"
 						  Stroke="{Binding Comment.IsLikedByCurrentUser, Converter={StaticResource LikeColorConverter}}"
 						  StrokeThickness="2"
 						  Fill="{Binding Comment.IsLikedByCurrentUser, Converter={StaticResource SaveColorConverter}}"
@@ -111,14 +111,14 @@
 					CornerRadius="5"
 					Width="22"
 					Height="22"
-					Padding="0"
-					Background="LightGray"
+					Padding="1"
+					Background="#00000001"
 					HorizontalAlignment="Left"
 					BorderThickness="0"
 					VerticalAlignment="Top">
 				<Path Width="35"
 					  Height="4"
-					  Fill="#6a5acd"
+					  Fill="#9DA5B2"
 					  Data="{StaticResource MenuIconGeometry}">
 					<Path.RenderTransform>
 						<TransformGroup>
@@ -126,6 +126,11 @@
 						</TransformGroup>
 					</Path.RenderTransform>
 				</Path>
+				<Button.Styles>
+					<Style Selector="Button:pointerover /template/ ContentPresenter">
+						<Setter Property="TextBlock.Background" Value="#F3F4F6"/>
+					</Style>
+				</Button.Styles>
 			</Button>
 		</Grid>
 
