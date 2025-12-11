@@ -36,21 +36,32 @@
 				Width="32"
 				Height="32"
 				Padding="0"
-				Background="LightGray"
 				HorizontalAlignment="Left"
 				BorderThickness="0"
 				VerticalAlignment="Top"
 				Command="{Binding BackCommand}">
-			<Path Width="35"
-				  Height="4"
-				  Fill="#6a5acd"
-				  Data="{StaticResource MenuIconGeometry}">
-				<Path.RenderTransform>
-					<TransformGroup>
-						<RotateTransform Angle="90" CenterX="2" CenterY="8"/>
-					</TransformGroup>
-				</Path.RenderTransform>
-			</Path>
+			<Path Data="M20 12H10 M10 12L14 8 M10 12L14 16"
+				  Margin="0,0,6,2"				  
+				  StrokeThickness="2"
+				  StrokeLineCap="Round"
+				  Width="20"
+				  Height="20"
+				  HorizontalAlignment="Center"
+				  VerticalAlignment="Center"/>
+			<Button.Styles>
+				<Style Selector="Button">
+					<Setter Property="Background" Value="White"/>
+				</Style>
+				<Style Selector="Button:pointerover">
+					<Setter Property="Background" Value="#F3F4F6"/>
+				</Style>
+				<Style Selector="Button Path">
+					<Setter Property="Stroke" Value="#4B5666"/>
+				</Style>
+				<Style Selector="Button:pointerover Path">
+					<Setter Property="Stroke" Value="#6A5ACD"/>
+				</Style>
+			</Button.Styles>
 		</Button>
 
 		<!-- Entry -->
@@ -63,10 +74,10 @@
 			<Border Grid.Row="0"
 					Height="38"
 					CornerRadius="10"
-					BorderThickness="1"					
+					BorderThickness="1"
 					BorderBrush="#E5E7EB"
 					IsVisible="{Binding Comments.HasReplyComment}"
-					Background="#FFF"					
+					Background="#FFF"
 					BoxShadow="0 2 8 0 #15000000">
 
 				<Grid ColumnDefinitions="Auto,Auto,*,Auto">
