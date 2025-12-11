@@ -57,6 +57,7 @@
 
         <!-- gRPC Core for AOT -->
         <PackageReference Include="Grpc.Core.Api" Version="2.71.0" />
+        <PackageReference Include="WebView.Avalonia.Desktop" Version="11.0.0.1" />
     </ItemGroup>
 
     <ItemGroup>
