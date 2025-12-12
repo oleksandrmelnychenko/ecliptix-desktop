@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Sodium;
 
@@ -335,12 +336,33 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
                 if (VirtualLock(handle, (UIntPtr)Length))
                 {
                     _isLocked = true;
+                    return;
                 }
-                else
+
+                int errorCode = Marshal.GetLastWin32Error();
+
+                if (errorCode == 1453)
                 {
-                    Serilog.Log.Warning("[SODIUM-MEMORY] Failed to lock memory with VirtualLock. Address: {Address}, Size: {Size}",
-                        handle, Length);
+                    IntPtr hProcess = GetCurrentProcess();
+                    if (GetProcessWorkingSetSize(hProcess, out UIntPtr min, out UIntPtr max))
+                    {
+                        UIntPtr overhead = (UIntPtr)(Length + 4096 * 10);
+
+                        if (SetProcessWorkingSetSize(hProcess, min + overhead, max + overhead))
+                        {
+                            if (VirtualLock(handle, (UIntPtr)Length))
+                            {
+                                _isLocked = true;
+                                return;
+                            }
+                            errorCode = Marshal.GetLastWin32Error();
+                        }
+                    }
                 }
+
+                Serilog.Log.Warning(
+                    "[SODIUM-MEMORY] Failed to lock memory with VirtualLock on Windows. Error Code: {ErrorCode}, Address: {Address}, Size: {Size}",
+                    errorCode, handle, Length);
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
                      RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
@@ -351,8 +373,10 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
                 }
                 else
                 {
-                    Serilog.Log.Warning("[SODIUM-MEMORY] Failed to lock memory with mlock. Address: {Address}, Size: {Size}",
-                        handle, Length);
+                    int errno = Marshal.GetLastWin32Error();
+                    Serilog.Log.Warning(
+                        "[SODIUM-MEMORY] Failed to lock memory with mlock. Errno: {Errno}, Address: {Address}, Size: {Size}",
+                        errno, handle, Length);
                 }
             }
         }
@@ -460,11 +484,25 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         }
     }
 
+    [SupportedOSPlatform("windows")]
     [DllImport(ProtocolSystemConstants.Libraries.KERNEL_32, SetLastError = true)]
     private static extern bool VirtualLock(IntPtr lpAddress, UIntPtr dwSize);
 
+    [SupportedOSPlatform("windows")]
     [DllImport(ProtocolSystemConstants.Libraries.KERNEL_32, SetLastError = true)]
     private static extern bool VirtualUnlock(IntPtr lpAddress, UIntPtr dwSize);
+
+    [SupportedOSPlatform("windows")]
+    [DllImport(ProtocolSystemConstants.Libraries.KERNEL_32, SetLastError = true)]
+    private static extern bool SetProcessWorkingSetSize(IntPtr hProcess, UIntPtr dwMinimumWorkingSetSize, UIntPtr dwMaximumWorkingSetSize);
+
+    [SupportedOSPlatform("windows")]
+    [DllImport(ProtocolSystemConstants.Libraries.KERNEL_32, SetLastError = true)]
+    private static extern bool GetProcessWorkingSetSize(IntPtr hProcess, out UIntPtr lpMinimumWorkingSetSize, out UIntPtr lpMaximumWorkingSetSize);
+
+    [SupportedOSPlatform("windows")]
+    [DllImport(ProtocolSystemConstants.Libraries.KERNEL_32, SetLastError = true)]
+    private static extern IntPtr GetCurrentProcess();
 
     [DllImport(ProtocolSystemConstants.Libraries.LIB_C, SetLastError = true)]
     private static extern int mlock(IntPtr addr, UIntPtr len);
