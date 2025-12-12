@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Welcome"
              xmlns:carousels="clr-namespace:Ecliptix.Core.Controls.Carousels"
+             xmlns:illustrations="clr-namespace:Ecliptix.Core.Controls.Illustrations"
              mc:Ignorable="d"
              d:DesignWidth="380"
              d:DesignHeight="480"
@@ -11,7 +12,7 @@
              x:Class="Ecliptix.Core.Features.Authentication.Views.Welcome.WelcomeView"
              x:DataType="vm:WelcomeViewModel">
 
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto"
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto, Auto"
           HorizontalAlignment="Stretch"
           VerticalAlignment="Stretch"
           Margin="{StaticResource Welcome.Container.Margin}"
@@ -29,6 +30,7 @@
                        Stretch="Uniform" />
             </Border>
         </StackPanel>
+
 
         <carousels:WelcomeCarouselView Grid.Row="1"
                                   ItemsSource="{Binding Slides}"
@@ -57,12 +59,24 @@
                     MinWidth="{StaticResource Button.MinWidth}" />
         </Grid>
 
-        <Button Grid.Row="3"
-                Background="Black"
-                Height="20"
-                Foreground="white"
-                Content="navigate to complete"
+        <StackPanel Grid.Row="3" Orientation="Horizontal" IsVisible="True">
+            <Button Background="Black"
+                    Height="20"
+                    Foreground="white"
+                    Content="Complete"
+                    Command="{Binding NavToCompleteAccountCommand}">
+            </Button>
 
-                Command="{Binding NavToCompleteAccountCommand}"></Button>
+            <Button Background="Black"
+                    Height="20"
+                    Foreground="white"
+                    Content="SecureKey"
+                    Command="{Binding NavToSecureKeySetCommand}">
+            </Button>
+
+        </StackPanel>
+
+
+
     </Grid>
 </UserControl>
