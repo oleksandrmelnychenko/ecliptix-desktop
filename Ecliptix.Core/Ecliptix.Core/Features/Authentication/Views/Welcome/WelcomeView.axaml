@@ -59,7 +59,7 @@
                     MinWidth="{StaticResource Button.MinWidth}" />
         </Grid>
 
-        <StackPanel Grid.Row="3" Orientation="Horizontal" IsVisible="False">
+        <StackPanel Grid.Row="3" Orientation="Horizontal" IsVisible="True">
             <Button Background="Black"
                     Height="20"
                     Foreground="white"
