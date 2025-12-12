@@ -11,8 +11,8 @@ namespace Ecliptix.Core.Features.Feed.ViewModels;
 public sealed class CommentViewModel : ReactiveObject
 {
     private const int MAX_COMMENT_LENGHT = 200;
-    private const string SHOW_LESS = "See less";
-    private const string SHOW_MORE = "See more";
+    private const string SEE_LESS = "See less";
+    private const string SEE_MORE = "See more";
 
     public Comment Comment { get; }
 
@@ -47,7 +47,7 @@ public sealed class CommentViewModel : ReactiveObject
         HideRepliesCommand = ReactiveCommand.Create(HideReplies);
         ReplyCommand = ReactiveCommand.Create(Reply);
 
-        ExpandedText = IsTextExpanded ? SHOW_LESS : SHOW_MORE;
+        ExpandedText = IsTextExpanded ? SEE_LESS : SEE_MORE;
     }
 
     private void Reply()
@@ -75,7 +75,7 @@ public sealed class CommentViewModel : ReactiveObject
     private void ToggleText()
     {
         IsTextExpanded = !IsTextExpanded;
-        ExpandedText = IsTextExpanded ? SHOW_LESS : SHOW_MORE;
+        ExpandedText = IsTextExpanded ? SEE_LESS : SEE_MORE;
         this.RaisePropertyChanged(nameof(DisplayCommentText));
     }
 }
