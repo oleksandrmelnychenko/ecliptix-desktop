@@ -41,7 +41,7 @@
 				VerticalAlignment="Top"
 				Command="{Binding BackCommand}">
 			<Path Data="M20 12H10 M10 12L14 8 M10 12L14 16"
-				  Margin="0,0,6,2"				  
+				  Margin="0,0,6,2"
 				  StrokeThickness="2"
 				  StrokeLineCap="Round"
 				  Width="20"
@@ -97,15 +97,35 @@
 
 					<Button Grid.Column="2"
 							Margin="0,0,15,0"
-							CornerRadius="2"
-							Width="12"
-							Height="12"
+							CornerRadius="10"
+							Width="20"
+							Height="20"
 							Padding="0"
-							Background="LightGray"
 							HorizontalAlignment="Right"
 							BorderThickness="0"
 							VerticalAlignment="Center"
 							Command="{Binding Comments.ClearReplyCommand}">
+						<Path Data="M4 4 L12 12 M12 4 L4 12"
+							  Margin="0,0,8,8"
+							  Stroke="#6A7282"
+							  StrokeThickness="1"
+							  StrokeLineCap="Round"
+							  Width="6"
+							  Height="6"
+							  HorizontalAlignment="Center"
+							  VerticalAlignment="Center">
+							<Path.RenderTransform>
+								<ScaleTransform ScaleX="0.85" ScaleY="0.85" />
+							</Path.RenderTransform>
+						</Path>
+						<Button.Styles>
+							<Style Selector="Button">
+								<Setter Property="Background" Value="White"/>
+							</Style>
+							<Style Selector="Button:pointerover">
+								<Setter Property="Background" Value="#F3F4F6"/>
+							</Style>
+					</Button.Styles>
 					</Button>
 				</Grid>
 			</Border>

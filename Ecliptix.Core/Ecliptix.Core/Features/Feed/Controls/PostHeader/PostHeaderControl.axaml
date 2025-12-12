@@ -46,7 +46,7 @@
 				<StackPanel Orientation="Horizontal" Spacing="6">
 					<TextBlock Text="{Binding Post.Author.DisplayName}"
 							   FontSize="16"
-							   FontWeight="Medium"							  
+							   FontWeight="Medium"
 							   Foreground="#0f172b" />
 					<Ellipse Width="16"
 							 Height="16"
@@ -66,22 +66,35 @@
 			<!-- Menu Button -->
 			<Button Grid.Column="2"
 					CornerRadius="20"
-					Width="36"
-					Height="36"
-					Padding="0"
-					Background="Transparent"
+					Width="34"
+					Height="34"
+					Padding="1"
 					BorderThickness="0"
 					VerticalAlignment="Center">
 				<Path Width="35"
 					  Height="4"
-					  Fill="#6a5acd"					  
 					  Data="{StaticResource MenuIconGeometry}">
 					<Path.RenderTransform>
 						<TransformGroup>
 							<RotateTransform Angle="90" CenterX="2" CenterY="8"/>
-					</TransformGroup>
+						</TransformGroup>
 					</Path.RenderTransform>
 				</Path>
+
+				<Button.Styles>
+					<Style Selector="Button">
+						<Setter Property="Background" Value="White"/>
+					</Style>
+					<Style Selector="Button:pointerover">
+						<Setter Property="Background" Value="#F3F4F6"/>
+					</Style>
+					<Style Selector="Button Path">
+						<Setter Property="Fill" Value="#4A5565"/>
+					</Style>
+					<Style Selector="Button:pointerover Path">
+						<Setter Property="Fill" Value="#6A5ACD"/>
+					</Style>
+				</Button.Styles>
 			</Button>
 		</Grid>
 	</Border>
