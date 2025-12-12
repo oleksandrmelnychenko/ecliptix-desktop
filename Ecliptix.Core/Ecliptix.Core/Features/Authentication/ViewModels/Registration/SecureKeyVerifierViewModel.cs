@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
@@ -31,6 +32,8 @@ using Keys = Ecliptix.Core.Services.Authentication.Constants.AuthenticationConst
 using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
+
+public record RequirementItem(string Text, bool IsMet);
 
 public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
 {
@@ -111,6 +114,8 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
     [Reactive] public bool HasServerError { get; private set; }
     [ObservableAsProperty] public bool CanSubmit { get; }
 
+    [ObservableAsProperty] public IReadOnlyList<RequirementItem> ValidationTips { get; private set; }
+    [ObservableAsProperty] public bool IsSecureKeySuccess { get; private set; }
     [ObservableAsProperty] public SecureKeyStrength CurrentSecureKeyStrength { get; private set; }
     [ObservableAsProperty] public string? SecureKeyStrengthMessage { get; private set; }
     [ObservableAsProperty] public bool HasSecureKeyBeenTouched { get; private set; }
@@ -154,6 +159,7 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
 
     private void SetupSubscriptions()
     {
+       // TODO commmented for a test purposes
         this.WhenActivated(disposables =>
         {
             Observable.FromAsync(LoadMembershipAsync)
@@ -322,18 +328,30 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
 
     private IObservable<bool> SetupSecureKeyValidation(IObservable<SystemU> validationTrigger)
     {
-        IObservable<(string? ERROR, string Recommendations, SecureKeyStrength Strength)> secureKeyValidation =
-            validationTrigger
-                .Select(_ => ValidateSecureKeyWithStrength())
-                .Replay(1)
-                .RefCount();
+        IObservable<(string? ERROR, IReadOnlyList<RequirementItem> Checklist, SecureKeyStrength Strength, bool IsSuccess)> validationResult = validationTrigger
+            .StartWith(SystemU.Default)
+            .Select(_ => ValidateSecureKeyWithStrength())
+            .Replay(1)
+            .RefCount();
 
-        secureKeyValidation.Select(v => v.Strength).ToPropertyEx(this, x => x.CurrentSecureKeyStrength);
-        secureKeyValidation.Select(v =>
-                _hasSecureKeyBeenTouched
-                    ? FormatSecureKeyStrengthMessage(v.Strength, v.ERROR, v.Recommendations)
-                    : string.Empty)
-            .ToPropertyEx(this, x => x.SecureKeyStrengthMessage);
+        validationResult.Select(v => v.Checklist).ToPropertyEx(this, x => x.ValidationTips);
+        validationResult.Select(v => v.IsSuccess).ToPropertyEx(this, x => x.IsSecureKeySuccess);
+        validationResult.Select(v => v.Strength).ToPropertyEx(this, x => x.CurrentSecureKeyStrength);
+
+        validationResult.Select(v =>
+        {
+            if (!string.IsNullOrEmpty(v.ERROR))
+            {
+                return v.ERROR;
+            }
+
+            if (_hasSecureKeyBeenTouched)
+            {
+                return FormatSecureKeyStrengthMessage(v.Strength, null, null);
+            }
+
+            return string.Empty;
+        }).ToPropertyEx(this, x => x.SecureKeyStrengthMessage);
 
         this.WhenAnyValue(x => x.CurrentSecureKeyLength)
             .Select(_ => _hasSecureKeyBeenTouched)
@@ -341,11 +359,12 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
 
         this.WhenAnyValue(x => x.SecureKeyStrengthMessage)
             .Subscribe(message => SecureKeyError = message);
+
         this.WhenAnyValue(x => x.SecureKeyError)
             .Select(e => !string.IsNullOrEmpty(e))
             .Subscribe(flag => HasSecureKeyError = flag);
 
-        return secureKeyValidation.Select(v => string.IsNullOrEmpty(v.ERROR));
+        return validationResult.Select(v => v.IsSuccess);
     }
 
     private IObservable<bool> SetupVerifyKeyValidation(IObservable<SystemU> validationTrigger)
@@ -381,23 +400,36 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
         return secureKeysMatch;
     }
 
-    private (string? ERROR, string Recommendations, SecureKeyStrength Strength) ValidateSecureKeyWithStrength()
+    private (string? ERROR, IReadOnlyList<RequirementItem> Checklist, SecureKeyStrength Strength, bool IsSuccess) ValidateSecureKeyWithStrength()
     {
         string? error = null;
-        string recommendations = string.Empty;
+        List<RequirementItem> checklist = new();
         SecureKeyStrength strength = SecureKeyStrength.INVALID;
+        bool isSuccess = false;
 
         _secureKeyBuffer.WithSecureBytes(bytes =>
         {
             string secureKey = Encoding.UTF8.GetString(bytes);
-            (error, List<string> recs) = SecureKeyValidator.Validate(secureKey, LocalizationService);
+
+            List<(string Description, bool IsMet)> rawStatuses = SecureKeyValidator.GetChecklistStatus(secureKey, LocalizationService);
+            checklist = rawStatuses.Select(x => new RequirementItem(x.Description, x.IsMet)).ToList();
+
             strength = SecureKeyValidator.EstimateSecureKeyStrength(secureKey, LocalizationService);
-            if (recs.Count > 0)
+
+            List<string> qualityTips = SecureKeyValidator.GetQualityRecommendations(secureKey, LocalizationService);
+
+            if (qualityTips.Count > 0)
             {
-                recommendations = recs[0];
+                error = qualityTips.First();
+            }
+
+            if (checklist.All(x => x.IsMet) && qualityTips.Count == 0)
+            {
+                isSuccess = true;
             }
         });
-        return (error, recommendations, strength);
+
+        return (error, checklist, strength, isSuccess);
     }
 
     private bool DoSecureKeysMatch()
@@ -432,7 +464,7 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
         }
     }
 
-    private string FormatSecureKeyStrengthMessage(SecureKeyStrength strength, string? error, string recommendations)
+    private string FormatSecureKeyStrengthMessage(SecureKeyStrength strength, string? error, string? recommendations)
     {
         string strengthText = strength switch
         {
@@ -445,7 +477,7 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
             _ => LocalizationService[AuthenticationConstants.SECURE_KEY_STRENGTH_INVALID_KEY]
         };
 
-        string message = !string.IsNullOrEmpty(error) ? error : recommendations;
+        string message = !string.IsNullOrEmpty(error) ? error : (recommendations ?? string.Empty);
         return string.IsNullOrEmpty(message) ? strengthText : $"{strengthText}: {message}";
     }
 

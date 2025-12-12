@@ -59,10 +59,11 @@
                    <Grid Background="Transparent">
                        <Track Minimum="{TemplateBinding Minimum}"
                               Maximum="{TemplateBinding Maximum}"
-                              Value="{TemplateBinding Value}"
+                              Value="{TemplateBinding Value, Mode=TwoWay}"
                               ViewportSize="{TemplateBinding ViewportSize}"
                               Orientation="Vertical"
-                              IsDirectionReversed="True">
+                              IsDirectionReversed="True"
+                              DeferThumbDrag="{TemplateBinding ScrollViewer.IsDeferredScrollingEnabled}">
                            <Track.DecreaseButton>
                                <RepeatButton Name="PART_PageUpButton" Classes="transparent-track" Focusable="False" />
                            </Track.DecreaseButton>
@@ -84,10 +85,11 @@
                    <Grid Background="Transparent">
                        <Track Minimum="{TemplateBinding Minimum}"
                               Maximum="{TemplateBinding Maximum}"
-                              Value="{TemplateBinding Value}"
+                              Value="{TemplateBinding Value, Mode=TwoWay}"
                               ViewportSize="{TemplateBinding ViewportSize}"
                               Orientation="Horizontal"
-                              IsDirectionReversed="False">
+                              IsDirectionReversed="False"
+                              DeferThumbDrag="{TemplateBinding ScrollViewer.IsDeferredScrollingEnabled}">
                            <Track.DecreaseButton>
                                <RepeatButton Name="PART_PageUpButton" Classes="transparent-track" Focusable="False" />
                            </Track.DecreaseButton>
@@ -103,45 +105,53 @@
            </Setter>
        </Style>
 
+    <Style Selector="ScrollBar /template/ Thumb#thumb">
+        <Setter Property="Background" Value="#B0B0B0" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.15" />
+                <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+            </Transitions>
+        </Setter>
+    </Style>
 
-       <Style Selector="ScrollBar Thumb">
-           <Setter Property="Background" Value="#B0B0B0" />
-           <Setter Property="Template">
-               <ControlTemplate>
-                   <Border Background="{TemplateBinding Background}"
-                           CornerRadius="4" />
-               </ControlTemplate>
-           </Setter>
-           <Setter Property="Transitions">
-               <Transitions>
-                   <BrushTransition Property="Background" Duration="0:0:0.15" />
-                   <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
-               </Transitions>
-           </Setter>
-       </Style>
+    <Style Selector="ScrollBar:vertical /template/ Thumb#thumb">
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Panel Background="Transparent">
+                    <Border Background="{TemplateBinding Background}"
+                            CornerRadius="4"
+                            Width="5"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Stretch"/>
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+    </Style>
 
+    <Style Selector="ScrollBar:horizontal /template/ Thumb#thumb">
+        <Setter Property="VerticalAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Panel Background="Transparent">
+                    <Border Background="{TemplateBinding Background}"
+                            CornerRadius="4"
+                            Height="5"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Stretch"/>
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+    </Style>
 
-       <Style Selector="ScrollBar:vertical Thumb">
-           <Setter Property="Width" Value="5" />
-           <Setter Property="HorizontalAlignment" Value="Center" />
-           <Setter Property="Margin" Value="0" />
-       </Style>
+    <Style Selector="ScrollBar /template/ Thumb#thumb:pointerover">
+        <Setter Property="Background" Value="#8C8C8C" />
+    </Style>
 
-
-       <Style Selector="ScrollBar:horizontal Thumb">
-           <Setter Property="Height" Value="5" />
-           <Setter Property="VerticalAlignment" Value="Center" />
-           <Setter Property="Margin" Value="0" />
-       </Style>
-
-
-       <Style Selector="ScrollBar:pointerover Thumb">
-           <Setter Property="Background" Value="#8C8C8C" />
-       </Style>
-
-       <Style Selector="ScrollBar:pressed Thumb">
-           <Setter Property="Background" Value="#606060" />
-       </Style>
+    <Style Selector="ScrollBar /template/ Thumb#thumb:pressed">
+        <Setter Property="Background" Value="#606060" />
+    </Style>
 
        <Style Selector="RepeatButton.transparent-track">
            <Setter Property="Background" Value="Transparent" />
@@ -153,4 +163,3 @@
            </Setter>
        </Style>
 </Styles>
-

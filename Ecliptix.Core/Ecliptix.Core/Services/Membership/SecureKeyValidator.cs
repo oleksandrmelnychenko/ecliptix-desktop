@@ -30,42 +30,42 @@ public static partial class SecureKeyValidator
     [GeneratedRegex(@"[\p{L}-[A-Za-z]]", RegexOptions.Compiled)]
     private static partial Regex HasNonEnglishLetterRegexPattern();
 
+    private static List<(Func<string, bool> IsInvalid, string ErrorMessageKey, object[]? Args)> GetHardRules() =>
+    [
+        (HasNonEnglishLetters, SecureKeyValidatorConstants.LocalizationKeys.NON_ENGLISH_LETTERS, null),
+        (string.IsNullOrWhiteSpace, SecureKeyValidatorConstants.LocalizationKeys.REQUIRED, null),
+        (s => s.Length < SecureKeyValidatorConstants.ValidationRules.MIN_LENGTH,
+            SecureKeyValidatorConstants.LocalizationKeys.MIN_LENGTH,
+            [SecureKeyValidatorConstants.ValidationRules.MIN_LENGTH]),
+        (s => !HasUppercaseRegex.IsMatch(s), SecureKeyValidatorConstants.LocalizationKeys.NO_UPPERCASE, null),
+        (s => !HasLowercaseRegex.IsMatch(s), SecureKeyValidatorConstants.LocalizationKeys.NO_LOWERCASE, null),
+        (s => !HasSpecialCharRegex.IsMatch(s), SecureKeyValidatorConstants.LocalizationKeys.NO_SPECIAL_CHAR, null)
+    ];
+
+    private static   List<(Func<string, bool> IsWeak, string ErrorMessageKey, object[]? Args)> GetSoftRules() =>
+    [
+        (s => !HasDigitRegex.IsMatch(s), SecureKeyValidatorConstants.LocalizationKeys.NO_DIGIT, null),
+        (s => s.Length > SecureKeyValidatorConstants.ValidationRules.MAX_LENGTH,
+            SecureKeyValidatorConstants.LocalizationKeys.MAX_LENGTH,
+            [SecureKeyValidatorConstants.ValidationRules.MAX_LENGTH]),
+        (s => s.Trim() != s, SecureKeyValidatorConstants.LocalizationKeys.NO_SPACES, null),
+        (s => CalculateTotalShannonEntropy(s) < SecureKeyValidatorConstants.ValidationRules.MIN_TOTAL_ENTROPY_BITS,
+            SecureKeyValidatorConstants.LocalizationKeys.TOO_SIMPLE, null),
+        (s => SecureKeyValidatorConstants.CommonlyUsedSecureKeys.Contains(s),
+            SecureKeyValidatorConstants.LocalizationKeys.TOO_COMMON, null),
+        (IsSequentialOrKeyboardPattern, SecureKeyValidatorConstants.LocalizationKeys.SEQUENTIAL_PATTERN, null),
+        (HasExcessiveRepeats, SecureKeyValidatorConstants.LocalizationKeys.REPEATED_CHARS, null),
+        (LacksCharacterDiversity, SecureKeyValidatorConstants.LocalizationKeys.LACKS_DIVERSITY,
+            [SecureKeyValidatorConstants.ValidationRules.MIN_CHAR_CLASSES]),
+        (ContainsAppNameVariant, SecureKeyValidatorConstants.LocalizationKeys.CONTAINS_APP_NAME, null)
+    ];
+
     public static (string? ERROR, List<string> Recommendations) Validate(string secureKey,
         ILocalizationService localizationService, bool _ = false)
     {
         List<string> recommendations = [];
 
-        List<(Func<string, bool> IsInvalid, string ErrorMessageKey, object[]? Args)> hardValidationRules =
-        [
-            (HasNonEnglishLetters, SecureKeyValidatorConstants.LocalizationKeys.NON_ENGLISH_LETTERS, null),
-            (string.IsNullOrWhiteSpace, SecureKeyValidatorConstants.LocalizationKeys.REQUIRED, null),
-            (s => s.Length < SecureKeyValidatorConstants.ValidationRules.MIN_LENGTH,
-                SecureKeyValidatorConstants.LocalizationKeys.MIN_LENGTH,
-                [SecureKeyValidatorConstants.ValidationRules.MIN_LENGTH]),
-            (s => !HasUppercaseRegex.IsMatch(s), SecureKeyValidatorConstants.LocalizationKeys.NO_UPPERCASE, null),
-            (s => !HasLowercaseRegex.IsMatch(s), SecureKeyValidatorConstants.LocalizationKeys.NO_LOWERCASE, null),
-            (s => !HasSpecialCharRegex.IsMatch(s), SecureKeyValidatorConstants.LocalizationKeys.NO_SPECIAL_CHAR, null)
-        ];
-
-        List<(Func<string, bool> IsWeak, string ErrorMessageKey, object[]? Args)> recommendationRules =
-        [
-            (s => !HasDigitRegex.IsMatch(s), SecureKeyValidatorConstants.LocalizationKeys.NO_DIGIT, null),
-            (s => s.Length > SecureKeyValidatorConstants.ValidationRules.MAX_LENGTH,
-                SecureKeyValidatorConstants.LocalizationKeys.MAX_LENGTH,
-                [SecureKeyValidatorConstants.ValidationRules.MAX_LENGTH]),
-            (s => s.Trim() != s, SecureKeyValidatorConstants.LocalizationKeys.NO_SPACES, null),
-            (s => CalculateTotalShannonEntropy(s) < SecureKeyValidatorConstants.ValidationRules.MIN_TOTAL_ENTROPY_BITS,
-                SecureKeyValidatorConstants.LocalizationKeys.TOO_SIMPLE, null),
-            (s => SecureKeyValidatorConstants.CommonlyUsedSecureKeys.Contains(s),
-                SecureKeyValidatorConstants.LocalizationKeys.TOO_COMMON, null),
-            (IsSequentialOrKeyboardPattern, SecureKeyValidatorConstants.LocalizationKeys.SEQUENTIAL_PATTERN, null),
-            (HasExcessiveRepeats, SecureKeyValidatorConstants.LocalizationKeys.REPEATED_CHARS, null),
-            (LacksCharacterDiversity, SecureKeyValidatorConstants.LocalizationKeys.LACKS_DIVERSITY,
-                [SecureKeyValidatorConstants.ValidationRules.MIN_CHAR_CLASSES]),
-            (ContainsAppNameVariant, SecureKeyValidatorConstants.LocalizationKeys.CONTAINS_APP_NAME, null)
-        ];
-
-        foreach ((Func<string, bool> isInvalid, string errorMessageKey, object[]? args) in hardValidationRules)
+        foreach ((Func<string, bool> isInvalid, string errorMessageKey, object[]? args) in GetHardRules())
         {
             bool result = isInvalid(secureKey);
             if (!result)
@@ -78,7 +78,7 @@ public static partial class SecureKeyValidator
             return (error, recommendations);
         }
 
-        foreach ((Func<string, bool> isWeak, string errorMessageKey, object[]? args) in recommendationRules)
+        foreach ((Func<string, bool> isWeak, string errorMessageKey, object[]? args) in GetSoftRules())
         {
             bool result = isWeak(secureKey);
             if (!result)
@@ -91,6 +91,43 @@ public static partial class SecureKeyValidator
         }
 
         return (null, recommendations);
+    }
+
+
+  public static List<(string Description, bool IsMet)> GetChecklistStatus(string secureKey, ILocalizationService localizationService)
+    {
+        string s = secureKey ?? string.Empty;
+        List<(string Description, bool IsMet)> statusList = new List<(string Description, bool IsMet)>();
+
+        bool isLengthMet = s.Length >= SecureKeyValidatorConstants.ValidationRules.MIN_LENGTH;
+        string lengthMsg = string.Format(localizationService[SecureKeyValidatorConstants.LocalizationKeys.MIN_LENGTH], SecureKeyValidatorConstants.ValidationRules.MIN_LENGTH);
+        statusList.Add((lengthMsg, isLengthMet));
+
+        bool isNoSpaceMet = !s.Any(char.IsWhiteSpace);
+        string noSpaceMsg = localizationService[SecureKeyValidatorConstants.LocalizationKeys.NO_SPACES];
+        statusList.Add((noSpaceMsg, isNoSpaceMet));
+
+        bool isUpperMet = HasUppercaseRegex.IsMatch(s);
+        string upperMsg = localizationService[SecureKeyValidatorConstants.LocalizationKeys.NO_UPPERCASE];
+        statusList.Add((upperMsg, isUpperMet));
+
+        bool isLowerMet = HasLowercaseRegex.IsMatch(s);
+        string lowerMsg = localizationService[SecureKeyValidatorConstants.LocalizationKeys.NO_LOWERCASE];
+        statusList.Add((lowerMsg, isLowerMet));
+
+        bool isSpecialMet = HasSpecialCharRegex.IsMatch(s);
+        string specialMsg = localizationService[SecureKeyValidatorConstants.LocalizationKeys.NO_SPECIAL_CHAR];
+        statusList.Add((specialMsg, isSpecialMet));
+
+        bool isEnglishOnly = !HasNonEnglishLetterRegex.IsMatch(s);
+        string englishMsg = localizationService[SecureKeyValidatorConstants.LocalizationKeys.NON_ENGLISH_LETTERS];
+        statusList.Add((englishMsg, isEnglishOnly));
+
+        bool isDigitMet = HasDigitRegex.IsMatch(s);
+        string digitMsg = localizationService[SecureKeyValidatorConstants.LocalizationKeys.NO_DIGIT];
+        statusList.Add((digitMsg, isDigitMet));
+
+        return statusList;
     }
 
     public static SecureKeyStrength EstimateSecureKeyStrength(string secureKey, ILocalizationService localizationService)
@@ -137,6 +174,43 @@ public static partial class SecureKeyValidator
             _ => SecureKeyStrength.VERY_STRONG
         };
         return strength;
+    }
+
+    public static List<string> GetQualityRecommendations(string secureKey, ILocalizationService localizationService)
+    {
+        List<string> recommendations = new List<string>();
+        string s = secureKey ?? string.Empty;
+
+        if (string.IsNullOrEmpty(s))
+        {
+            return recommendations;
+        }
+
+        List<(Func<string, bool> IsWeak, string Key, object[]? Args)> qualityRules = new List<(Func<string, bool> IsWeak, string Key, object[]? Args)>
+        {
+            (val => CalculateTotalShannonEntropy(val) < SecureKeyValidatorConstants.ValidationRules.MIN_TOTAL_ENTROPY_BITS, SecureKeyValidatorConstants.LocalizationKeys.TOO_SIMPLE, null),
+
+            (val => SecureKeyValidatorConstants.CommonlyUsedSecureKeys.Contains(val), SecureKeyValidatorConstants.LocalizationKeys.TOO_COMMON, null),
+
+            (IsSequentialOrKeyboardPattern, SecureKeyValidatorConstants.LocalizationKeys.SEQUENTIAL_PATTERN, null),
+
+            (HasExcessiveRepeats, SecureKeyValidatorConstants.LocalizationKeys.REPEATED_CHARS, null),
+
+            (LacksCharacterDiversity, SecureKeyValidatorConstants.LocalizationKeys.LACKS_DIVERSITY, [SecureKeyValidatorConstants.ValidationRules.MIN_CHAR_CLASSES]),
+
+            (ContainsAppNameVariant, SecureKeyValidatorConstants.LocalizationKeys.CONTAINS_APP_NAME, null)
+        };
+
+        foreach ((Func<string, bool> isWeak, string key, object[]? args) in qualityRules)
+        {
+            if (isWeak(s))
+            {
+                string message = localizationService[key];
+                recommendations.Add(args != null ? string.Format(message, args) : message);
+            }
+        }
+
+        return recommendations;
     }
 
 

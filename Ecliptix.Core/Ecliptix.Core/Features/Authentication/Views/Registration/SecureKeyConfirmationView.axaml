@@ -13,9 +13,24 @@
 
     <UserControl.Styles>
         <StyleInclude Source="avares://Ecliptix.Core/Controls/Core/HintedTextControls/Shared/CompleteProfileIcons.axaml"></StyleInclude>
+
+        <Style Selector="Ellipse.success">
+            <Setter Property="Fill" Value="#48BB78"/> </Style>
+        <Style Selector="Ellipse.default">
+            <Setter Property="Fill" Value="#9747FF"/> </Style>
+
+        <Style Selector="Border.tipsBlock">
+            <Setter Property="Background" Value="#F8F0FF"/>
+            <Setter Property="BorderBrush" Value="#EAD5FF"/>
+        </Style>
+        <Style Selector="Border.tipsBlock.successState">
+            <Setter Property="Background" Value="#F0FFF4"/>
+            <Setter Property="BorderBrush" Value="#C6F6D5"/>
+        </Style>
+
     </UserControl.Styles>
 
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="{StaticResource Spacing.Authentication}">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto, Auto" RowSpacing="{StaticResource Spacing.Authentication}">
         <StackPanel Grid.Row="0" Spacing="{StaticResource Spacing.S}" MaxWidth="{StaticResource Header.MaxWidth}" HorizontalAlignment="Left">
 
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -50,7 +65,6 @@
             Height="{StaticResource Input.SecureHeight}"
             CornerRadius="{StaticResource Input.CornerRadius}"
             FontSize="{StaticResource Input.SecureFontSize}"
-            MainBorderBrush="Transparent"
             FontWeight="Light"
             TextForeground="{DynamicResource OnSurface}"
             HintForeground="{DynamicResource Primary}"
@@ -69,7 +83,6 @@
             Height="{StaticResource Input.SecureHeight}"
             CornerRadius="{StaticResource Input.CornerRadius}"
             FontSize="{StaticResource Input.SecureFontSize}"
-            MainBorderBrush="Transparent"
             FontWeight="Light"
             TextForeground="{DynamicResource OnSurface}"
             HintForeground="{DynamicResource Primary}"
@@ -77,8 +90,94 @@
             MaxLength="28"
             VisualIcon="{DynamicResource __lock_keyhole}"/>
 
+        <Border Grid.Row="3"
+                Height="150"
+                Classes="tipsBlock"
+                Classes.successState="{Binding IsSecureKeySuccess}"
+                BorderThickness="1"
+                CornerRadius="12"
+                Margin="0,4,0,4">
+
+            <Grid RowDefinitions="Auto,*">
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="16,12,16,8">
+                    <Panel Width="18" Height="18">
+                        <PathIcon Data="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 12,2M11,17H13V11H11V17Z"
+                                  Foreground="#9747FF"
+                                  IsVisible="{Binding !IsSecureKeySuccess}"/>
+                        <PathIcon Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"
+                                  Foreground="#48BB78"
+                                  IsVisible="{Binding IsSecureKeySuccess}"/>
+                    </Panel>
+
+                    <TextBlock IsVisible="{Binding !IsSecureKeySuccess}"
+                               Text="Security Requirements:"
+                               Foreground="#9747FF"
+                               FontWeight="SemiBold"
+                               FontSize="14"/>
+
+                    <TextBlock IsVisible="{Binding IsSecureKeySuccess}"
+                               Text="All requirements met!"
+                               Foreground="#2F855A"
+                               FontWeight="SemiBold"
+                               FontSize="14"/>
+                </StackPanel>
+
+                <ItemsControl Grid.Row="1"
+                              ItemsSource="{Binding ValidationTips}"
+                              Margin="16,0,16,12">
+
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="2"
+                                         VerticalAlignment="Top"
+                                         HorizontalAlignment="Stretch"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:CompileBindings="False">
+                            <Grid ColumnDefinitions="Auto,*" Margin="0,4,8,4">
+
+                                <Panel Grid.Column="0"
+                                       Width="14" Height="14"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0">
+                                    <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                                              Foreground="#FF6B6B"
+                                              Width="10" Height="10"
+                                              IsVisible="{Binding !IsMet}"/>
+                                    <PathIcon Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"
+                                              Foreground="#48BB78"
+                                              Width="12" Height="12"
+                                              IsVisible="{Binding IsMet}"/>
+                                </Panel>
+
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding Text}"
+                                           Classes.met="{Binding IsMet}"
+                                           TextWrapping="Wrap"
+                                           FontSize="12"
+                                           LineHeight="16"
+                                           VerticalAlignment="Center">
+                                    <TextBlock.Styles>
+                                        <Style Selector="TextBlock">
+                                            <Setter Property="Foreground" Value="#5A5A5A"/>
+                                        </Style>
+                                        <Style Selector="TextBlock.met">
+                                            <Setter Property="Foreground" Value="#2F855A"/>
+                                            <Setter Property="Opacity" Value="0.8"/>
+                                        </Style>
+                                    </TextBlock.Styles>
+                                </TextBlock>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
+        </Border>
+
         <Button
-            Grid.Row="3"
+            Grid.Row="4"
             HorizontalAlignment="Stretch"
             Height="{StaticResource Button.Height}"
             FontWeight="Medium"
@@ -94,7 +193,7 @@
             Classes.is-busy="{Binding IsBusy}"
             />
         <coreControls:ErrorNotificationView
-            Grid.Row="4"
+            Grid.Row="5"
             x:Name="ErrorNotification"
             VerticalAlignment="Top"
             HorizontalAlignment="Stretch"
