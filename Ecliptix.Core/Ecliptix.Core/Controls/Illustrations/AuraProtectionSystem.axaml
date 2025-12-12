@@ -364,7 +364,7 @@
                                         </LinearGradientBrush>
                                     </Border.Background>
                                     <Path Data="M4,9 L20,9 M4,15 L20,15 M10,3 L8,21 M16,3 L14,21" Stroke="White"
-                                          StrokeThickness="1.5" Width="12" Height="12" Stretch="Uniform"
+                                          StrokeThickness="1.5" Width="10" Height="11" Stretch="Uniform"
                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
                                 </Border>
                                 <StackPanel Grid.Column="1" Margin="6,0,0,0" VerticalAlignment="Center" Spacing="2">
