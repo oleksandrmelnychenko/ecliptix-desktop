@@ -12,7 +12,7 @@
              x:Class="Ecliptix.Core.Features.Authentication.Views.Welcome.WelcomeView"
              x:DataType="vm:WelcomeViewModel">
 
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto"
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto, Auto"
           HorizontalAlignment="Stretch"
           VerticalAlignment="Stretch"
           Margin="{StaticResource Welcome.Container.Margin}"
@@ -30,13 +30,14 @@
                        Stretch="Uniform" />
             </Border>
         </StackPanel>
-        <!-- -->
-        <!-- <carousels:WelcomeCarouselView Grid.Row="1" -->
-        <!--                           ItemsSource="{Binding Slides}" -->
-        <!--                           SelectedIndex="{Binding CurrentSlideIndex, Mode=TwoWay}" -->
-        <!--                           HtmlUrl="avares://Ecliptix.Core/Assets/WelcomeContent.html" /> -->
 
-        <illustrations:AuraProtectionSystem Grid.Row="1"/>
+
+        <carousels:WelcomeCarouselView Grid.Row="1"
+                                  ItemsSource="{Binding Slides}"
+                                  SelectedIndex="{Binding CurrentSlideIndex, Mode=TwoWay}"
+                                  HtmlUrl="avares://Ecliptix.Core/Assets/WelcomeContent.html" />
+
+        <!-- <illustrations:AuraProtectionSystem Grid.Row="1" Margin="0 0 0 -30"/> -->
 
         <Grid Grid.Row="2"
               ColumnDefinitions="Auto,Auto"
@@ -60,12 +61,24 @@
                     MinWidth="{StaticResource Button.MinWidth}" />
         </Grid>
 
-        <Button Grid.Row="3"
-                Background="Black"
-                Height="20"
-                Foreground="white"
-                Content="navigate to complete"
+        <StackPanel Grid.Row="3" Orientation="Horizontal" IsVisible="False">
+            <Button Background="Black"
+                    Height="20"
+                    Foreground="white"
+                    Content="Complete"
+                    Command="{Binding NavToCompleteAccountCommand}">
+            </Button>
 
-                Command="{Binding NavToCompleteAccountCommand}"></Button>
+            <Button Background="Black"
+                    Height="20"
+                    Foreground="white"
+                    Content="SecureKey"
+                    Command="{Binding NavToSecureKeySetCommand}">
+            </Button>
+
+        </StackPanel>
+
+
+
     </Grid>
 </UserControl>
