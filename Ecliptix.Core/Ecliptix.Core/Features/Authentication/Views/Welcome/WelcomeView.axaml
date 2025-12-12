@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Welcome"
              xmlns:carousels="clr-namespace:Ecliptix.Core.Controls.Carousels"
+             xmlns:illustrations="clr-namespace:Ecliptix.Core.Controls.Illustrations"
              mc:Ignorable="d"
              d:DesignWidth="380"
              d:DesignHeight="480"
@@ -29,11 +30,13 @@
                        Stretch="Uniform" />
             </Border>
         </StackPanel>
+        <!-- -->
+        <!-- <carousels:WelcomeCarouselView Grid.Row="1" -->
+        <!--                           ItemsSource="{Binding Slides}" -->
+        <!--                           SelectedIndex="{Binding CurrentSlideIndex, Mode=TwoWay}" -->
+        <!--                           HtmlUrl="avares://Ecliptix.Core/Assets/WelcomeContent.html" /> -->
 
-        <carousels:WelcomeCarouselView Grid.Row="1"
-                                  ItemsSource="{Binding Slides}"
-                                  SelectedIndex="{Binding CurrentSlideIndex, Mode=TwoWay}"
-                                  HtmlUrl="avares://Ecliptix.Core/Assets/WelcomeContent.html" />
+        <illustrations:AuraProtectionSystem Grid.Row="1"/>
 
         <Grid Grid.Row="2"
               ColumnDefinitions="Auto,Auto"
