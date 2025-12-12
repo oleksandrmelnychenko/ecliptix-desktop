@@ -146,12 +146,18 @@
 					   FontSize="12"/>
 			<Button	Content="Reply"
 					BorderThickness="0"
-					Background="Transparent"
+					Background="#00000001"
 					Padding="0"
 					Foreground="#6A7383"
 					FontWeight="600"
 					FontSize="12"
-					Command="{Binding ReplyCommand}"/>
+					Command="{Binding ReplyCommand}">
+				<Button.Styles>
+					<Style Selector="Button:pointerover /template/ ContentPresenter">
+						<Setter Property="TextBlock.Foreground" Value="#6A76DC"/>
+					</Style>
+				</Button.Styles>
+			</Button>
 		</StackPanel>
 
 		<!--Replies section-->
@@ -172,7 +178,13 @@
 					Padding="0"
 					FontWeight="600"
 					FontSize="12"
-					Command="{Binding ShowRepliesCommand}"/>
+					Command="{Binding ShowRepliesCommand}">
+				<Button.Styles>
+					<Style Selector="Button:pointerover /template/ ContentPresenter">
+						<Setter Property="TextBlock.Foreground" Value="#6A76DC"/>
+					</Style>
+				</Button.Styles>
+			</Button>
 
 			<Button Grid.Row="0"
 					Content="{Binding Comment.RepliesCount, StringFormat='Hide replies ({0})'}"
@@ -184,7 +196,13 @@
 					Padding="0"
 					FontWeight="600"
 					FontSize="12"
-					Command="{Binding HideRepliesCommand}"/>
+					Command="{Binding HideRepliesCommand}">
+				<Button.Styles>
+					<Style Selector="Button:pointerover /template/ ContentPresenter">
+						<Setter Property="TextBlock.Foreground" Value="#6A76DC"/>
+					</Style>
+				</Button.Styles>
+			</Button>
 
 			<Grid Margin="20,10,0,0"
 				  ColumnSpacing="10"
@@ -221,7 +239,13 @@
 						Padding="0"
 						FontWeight="600"
 						FontSize="12"
-						Command="{Binding ShowMoreRepliesCommand}"/>
+						Command="{Binding ShowMoreRepliesCommand}">
+					<Button.Styles>
+						<Style Selector="Button:pointerover /template/ ContentPresenter">
+							<Setter Property="TextBlock.Foreground" Value="#6A76DC"/>
+						</Style>
+					</Button.Styles>
+				</Button>
 			</Grid>
 		</Grid>
 	</Grid>
