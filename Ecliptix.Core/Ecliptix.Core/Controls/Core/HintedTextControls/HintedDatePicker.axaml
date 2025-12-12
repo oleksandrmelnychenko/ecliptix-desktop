@@ -19,6 +19,45 @@
 
         <Style Selector="Border#FocusBorder">
             <Setter Property="BorderBrush" Value="{Binding FocusBorderBrush, ElementName=Control}"/>
+            <Setter Property="Opacity" Value="0"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.1" Delay="0:0:0.1" />
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Grid.hinted-field:focus-within Border#FocusBorder,
+                     Grid.hinted-field.dropdown-open Border#FocusBorder">
+            <Setter Property="Opacity" Value="1"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.1" Delay="0:0:0.0" /> <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Path.hint-icon">
+            <Setter Property="Fill" Value="{Binding HintForeground, ElementName=Control}" />
+        </Style>
+
+        <Style Selector="StackPanel.hint-section, StackPanel.error-section">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.2" Easing="CubicEaseOut" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Grid.hinted-field.error StackPanel.hint-section">
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+        </Style>
+
+        <Style Selector="Grid.hinted-field:not(.error) StackPanel.hint-section">
+            <Setter Property="Opacity" Value="1" />
+            <Setter Property="IsHitTestVisible" Value="True" />
         </Style>
 
     </UserControl.Styles>
@@ -26,6 +65,7 @@
     <Grid x:Name="MainGrid"
           Classes="hinted-field"
           Classes.error="{Binding HasError, ElementName=Control}"
+          Classes.dropdown-open="{Binding IsDropDownOpen, ElementName=MainDatePicker}"
           ClipToBounds="False">
 
         <Border x:Name="ShadowBorder"
@@ -113,7 +153,6 @@
                     <StackPanel x:Name="HintStackPanel"
                                 Grid.Row="1"
                                 Classes="hint-section"
-                                IsVisible="{Binding !HasError, ElementName=Control}"
                                 Orientation="Horizontal">
                         <Path Classes="hint-icon" Margin="0,0,4,0" />
                         <TextBlock Text="{Binding Hint, ElementName=Control}"
@@ -124,7 +163,6 @@
                     <StackPanel Grid.Row="1"
                                 x:Name="ErrorStackPanel"
                                 Classes="error-section"
-                                IsVisible="{Binding HasError, ElementName=Control}"
                                 Opacity="{Binding EllipseOpacity, ElementName=Control}"
                                 Orientation="Horizontal">
                         <Path Classes="error-icon" Margin="0,0,4,0" />

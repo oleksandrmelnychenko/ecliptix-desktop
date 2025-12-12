@@ -4,13 +4,14 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform;
+using Avalonia.Threading;
+using AvaloniaWebView;
 
 namespace Ecliptix.Core.Controls.Illustrations;
 
 public partial class HtmlIllustrationView : UserControl
 {
-    private Border? _contentBorder;
-    private TextBlock? _textBlock;
+    private WebView? _webView;
 
     public static readonly StyledProperty<string?> UrlProperty =
         AvaloniaProperty.Register<HtmlIllustrationView, string?>(nameof(Url));
@@ -34,17 +35,15 @@ public partial class HtmlIllustrationView : UserControl
     private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);
-        _contentBorder = this.FindControl<Border>("ContentBorder");
-        _textBlock = this.FindControl<TextBlock>("StatusText");
+        _webView = this.FindControl<WebView>("WebViewControl");
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-
         if (!string.IsNullOrEmpty(Url))
         {
-            LoadHtmlContent(Url);
+            LoadContent(Url);
         }
     }
 
@@ -52,12 +51,17 @@ public partial class HtmlIllustrationView : UserControl
     {
         if (!string.IsNullOrEmpty(url))
         {
-            LoadHtmlContent(url);
+            LoadContent(url);
         }
     }
 
-    private void LoadHtmlContent(string url)
+    private void LoadContent(string url)
     {
+        if (_webView == null)
+        {
+            return;
+        }
+
         try
         {
             if (url.StartsWith("avares://"))
@@ -67,18 +71,27 @@ public partial class HtmlIllustrationView : UserControl
                 using StreamReader reader = new StreamReader(stream);
                 string htmlContent = reader.ReadToEnd();
 
-                if (_textBlock != null)
+                Dispatcher.UIThread.Post(() =>
                 {
-                    _textBlock.Text = $"HTML Loaded ({htmlContent.Length} bytes)\n{url}";
-                }
+                    _webView.HtmlContent = htmlContent;
+
+                });
+            }
+            else
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (Uri.TryCreate(url, UriKind.RelativeOrAbsolute, out Uri? resultUri))
+                    {
+                        _webView.Url = resultUri;
+                    }
+                });
             }
         }
         catch (Exception ex)
         {
-            if (_textBlock != null)
-            {
-                _textBlock.Text = $"Error: {ex.Message}";
-            }
+            string errorHtml = $"<html><body><h3>Error</h3><p>{ex.Message}</p></body></html>";
+            _webView.HtmlContent = errorHtml;
         }
     }
 }

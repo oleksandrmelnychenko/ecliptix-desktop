@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading;
 using Avalonia;
 using Avalonia.ReactiveUI;
+using Avalonia.WebView.Desktop;
 using DotNetEnv;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Controls.Modals;
@@ -637,5 +638,5 @@ public static class Program
     }
 
     private static AppBuilder BuildAvaloniaApp() =>
-        AppBuilder.Configure<App>().UsePlatformDetect().LogToTrace().UseReactiveUI();
+        AppBuilder.Configure<App>().UsePlatformDetect().LogToTrace().UseReactiveUI().UseDesktopWebView();
 }

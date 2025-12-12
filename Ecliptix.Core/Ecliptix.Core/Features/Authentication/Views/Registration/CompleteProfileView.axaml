@@ -99,6 +99,7 @@
             CornerRadius="{StaticResource Radius.L}"
             FontSize="{StaticResource Input.FontSize}"
             HorizontalAlignment="Stretch"
+            HintForeground="{DynamicResource Primary}"
             VisualIcon="{DynamicResource __calendar}"/>
 
         <Button Grid.Row="4"
