@@ -15,7 +15,7 @@
         <StyleInclude Source="avares://Ecliptix.Core/Controls/Core/HintedTextControls/Shared/CompleteProfileIcons.axaml"></StyleInclude>
 
         <Style Selector="Ellipse.success">
-            <Setter Property="Fill" Value="#48BB78"/> </Style>
+            <Setter Property="Fill" Value="#22C55E"/> </Style>
         <Style Selector="Ellipse.default">
             <Setter Property="Fill" Value="#9747FF"/> </Style>
 
@@ -24,8 +24,8 @@
             <Setter Property="BorderBrush" Value="#EAD5FF"/>
         </Style>
         <Style Selector="Border.tipsBlock.successState">
-            <Setter Property="Background" Value="#F0FFF4"/>
-            <Setter Property="BorderBrush" Value="#C6F6D5"/>
+            <Setter Property="Background" Value="#DCFCE7"/>
+            <Setter Property="BorderBrush" Value="#22C55E"/>
         </Style>
 
     </UserControl.Styles>
@@ -103,7 +103,7 @@
                                   Foreground="#9747FF"
                                   IsVisible="{Binding !IsSecureKeySuccess}"/>
                         <PathIcon Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"
-                                  Foreground="#48BB78"
+                                  Foreground="#16A34A"
                                   IsVisible="{Binding IsSecureKeySuccess}"/>
                     </Panel>
 
@@ -115,7 +115,7 @@
 
                     <TextBlock IsVisible="{Binding IsSecureKeySuccess}"
                                Text="{Binding RequirementsSuccessTitle}"
-                               Foreground="#2F855A"
+                               Foreground="#16A34A"
                                FontWeight="SemiBold"
                                FontSize="14"/>
                 </StackPanel>
@@ -145,7 +145,7 @@
                                               Width="10" Height="10"
                                               IsVisible="{Binding !IsMet}"/>
                                     <PathIcon Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"
-                                              Foreground="#48BB78"
+                                              Foreground="#32CD32"
                                               Width="12" Height="12"
                                               IsVisible="{Binding IsMet}"/>
                                 </Panel>
@@ -162,7 +162,7 @@
                                             <Setter Property="Foreground" Value="#5A5A5A"/>
                                         </Style>
                                         <Style Selector="TextBlock.met">
-                                            <Setter Property="Foreground" Value="#2F855A"/>
+                                            <Setter Property="Foreground" Value="#32CD32"/>
                                             <Setter Property="Opacity" Value="0.8"/>
                                         </Style>
                                     </TextBlock.Styles>
