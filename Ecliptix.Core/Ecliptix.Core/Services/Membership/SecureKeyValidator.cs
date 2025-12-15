@@ -58,7 +58,6 @@ public static partial class SecureKeyValidator
         (ContainsAppNameVariant, SecureKeyValidatorConstants.LocalizationKeys.CONTAINS_APP_NAME, null),
         (s => CalculateTotalShannonEntropy(s) < SecureKeyValidatorConstants.ValidationRules.MIN_TOTAL_ENTROPY_BITS,
             SecureKeyValidatorConstants.LocalizationKeys.TOO_SIMPLE, null),
-
     ];
 
     public static (string? ERROR, List<string> Recommendations) Validate(string secureKey,
@@ -131,48 +130,38 @@ public static partial class SecureKeyValidator
 
     public static SecureKeyStrength EstimateSecureKeyStrength(string secureKey, ILocalizationService localizationService)
     {
-        (string? error, List<string> recommendations) = Validate(secureKey, localizationService);
-        if (error != null)
+        if (string.IsNullOrEmpty(secureKey))
         {
             return SecureKeyStrength.INVALID;
         }
 
-        int score = 0;
-        score += secureKey.Length switch
+        (string? hardError, _) = Validate(secureKey, localizationService);
+        if (hardError != null)
         {
-            >= 12 => 4,
-            >= 9 => 3,
-            >= 7 => 2,
-            >= 6 => 1,
-            _ => 0
+            return SecureKeyStrength.INVALID;
+        }
+
+        List<string> softTips = GetQualityRecommendations(secureKey, localizationService);
+        int penalties = softTips.Count;
+
+        int lengthScore = secureKey.Length switch
+        {
+            >= 14 => 3,
+            >= 12 => 2,
+            >= 10 => 1,
+            _     => 0
         };
 
-        int variety = GetCharacterClassCount(secureKey);
-        if (variety >= 2)
-        {
-            score += 2;
-        }
+        int finalScore = lengthScore - penalties;
 
-        if (variety >= 3)
+        return finalScore switch
         {
-            score += 1;
-        }
-
-        if (variety == 4)
-        {
-            score += 1;
-        }
-
-        score -= recommendations.Count;
-
-        SecureKeyStrength strength = score switch
-        {
-            <= 2 => SecureKeyStrength.WEAK,
-            <= 4 => SecureKeyStrength.GOOD,
-            <= 6 => SecureKeyStrength.STRONG,
-            _ => SecureKeyStrength.VERY_STRONG
+            < 0  => SecureKeyStrength.WEAK,
+            0    => SecureKeyStrength.WEAK,
+            1    => SecureKeyStrength.GOOD,
+            2    => SecureKeyStrength.STRONG,
+            _    => SecureKeyStrength.VERY_STRONG
         };
-        return strength;
     }
 
     public static List<string> GetQualityRecommendations(string secureKey, ILocalizationService localizationService)
@@ -190,26 +179,45 @@ public static partial class SecureKeyValidator
             if (isWeak(s))
             {
                 string message = localizationService[key];
-                recommendations.Add(args != null ? string.Format(message, args) : message);
+                string formattedMessage = args != null ? string.Format(message, args) : message;
+
+                recommendations.Add(formattedMessage);
             }
         }
 
         return recommendations;
     }
 
-
     private static bool IsSequentialOrKeyboardPattern(string s)
     {
-        if (s.Length < 4)
+        const int patternLen = 4;
+
+        if (s.Length < patternLen)
         {
             return false;
         }
 
         string lower = s.ToLowerInvariant();
-        for (int i = 0; i <= lower.Length - 4; i++)
+
+        for (int i = 0; i <= lower.Length - patternLen; i++)
         {
-            string sub = lower.Substring(i, 4);
-            if (SecureKeyValidatorConstants.KeyboardRows.Any(row => row.Contains(sub)) || IsCharSequence(sub))
+            string sub = lower.Substring(i, patternLen);
+
+            if (IsCharSequence(sub))
+            {
+                return true;
+            }
+
+            if (SecureKeyValidatorConstants.KeyboardRows.Any(row => row.Contains(sub)))
+            {
+                return true;
+            }
+
+            char[] charArray = sub.ToCharArray();
+            Array.Reverse(charArray);
+            string reversedSub = new string(charArray);
+
+            if (SecureKeyValidatorConstants.KeyboardRows.Any(row => row.Contains(reversedSub)))
             {
                 return true;
             }

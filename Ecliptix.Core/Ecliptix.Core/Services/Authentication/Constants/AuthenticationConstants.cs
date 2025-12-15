@@ -68,6 +68,10 @@ public static class AuthenticationConstants
         public const string RECOVERY_SECURE_KEY_HINT = "Authentication.SecureKeyRecovery.Reset.NewSecureKeyHint";
         public const string RECOVERY_VERIFY_SECURE_KEY_PLACEHOLDER = "Authentication.SecureKeyRecovery.Reset.ConfirmSecureKeyPlaceholder";
         public const string RECOVERY_VERIFY_SECURE_KEY_HINT = "Authentication.SecureKeyRecovery.Reset.ConfirmSecureKeyHint";
+
+        public const string REQUIREMENTS_SUCCESS_TITLE_KEY = "Authentication.SignUp.SecureKeyConfirmation.RequirementsSuccess";
+        public const string REQUIREMENTS_TITLE_KEY = "Authentication.SignUp.SecureKeyConfirmation.Requirements";
+
     }
 
     public static class MobileVerificationKeys

@@ -52,6 +52,8 @@ public static class LocalizationKeys
                 public const string VERIFY_SECURE_KEY_HINT = "Authentication.SignUp.SecureKeyConfirmation.VERIFY_SECURE_KEY_HINT";
                 public const string ERROR_SECURE_KEY_MISMATCH = "Authentication.SignUp.SecureKeyConfirmation.Error_SecureKeyMismatch";
                 public const string BUTTON = "Authentication.SignUp.SecureKeyConfirmation.Button";
+                public const string REQUIREMENTS_SUCCESS_TITLE = "Authentication.SignUp.SecureKeyConfirmation.RequirementsSuccess";
+                public const string REQUIREMENTS_TITLE = "Authentication.SignUp.SecureKeyConfirmation.Requirements";
             }
 
             public static class CompleteProfile

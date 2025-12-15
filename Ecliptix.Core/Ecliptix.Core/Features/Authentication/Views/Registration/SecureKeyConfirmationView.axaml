@@ -108,13 +108,13 @@
                     </Panel>
 
                     <TextBlock IsVisible="{Binding !IsSecureKeySuccess}"
-                               Text="Security Requirements:"
+                               Text="{Binding RequirementsTitle}"
                                Foreground="#9747FF"
                                FontWeight="SemiBold"
                                FontSize="14"/>
 
                     <TextBlock IsVisible="{Binding IsSecureKeySuccess}"
-                               Text="All requirements met!"
+                               Text="{Binding RequirementsSuccessTitle}"
                                Foreground="#2F855A"
                                FontWeight="SemiBold"
                                FontSize="14"/>
