@@ -1,5 +1,6 @@
 using System;
 using System.Reactive.Disposables;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Messaging;
 using Ecliptix.Core.Core.Messaging.Messages;
 using Ecliptix.Core.Core.MVVM;
@@ -23,7 +24,9 @@ public abstract class FeedItemViewModel : ViewModelBase
     [Reactive] public string RelativeTime { get; set; }
     [Reactive] public bool ShowComments { get; set; }
     [Reactive] public bool IsEdit { get; set; }
+    [Reactive] public bool IsFlyoutOpen { get; set; }
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> BackCommand { get; }
+    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> CopyLinkCommand { get; }
 
     protected FeedItemViewModel(
         FeedPost post,
@@ -53,7 +56,14 @@ public abstract class FeedItemViewModel : ViewModelBase
 
         BackCommand = ReactiveCommand.Create(Back);
 
+        CopyLinkCommand = ReactiveCommand.Create(CopyLink);
+
         UpdateRelativeTime();
+    }
+
+    private void CopyLink()
+    {
+        IsFlyoutOpen = false;
     }
 
     private void Back() => WeakReferenceMessenger.Default.Send(new BackMessage(true));
