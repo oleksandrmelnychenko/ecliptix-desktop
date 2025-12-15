@@ -24,8 +24,8 @@
             <feedConverters:LikeIconConverter x:Key="LikeIconConverter" />
             <feedConverters:SaveColorConverter x:Key="SaveColorConverter" />
             <feedConverters:BooleanNotConverter x:Key="BooleanNotConverter" />
+            <feedConverters:BoolToOpacityConverter x:Key="BoolToOpacityConverter" />
             
-
 
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="Assets/Icons/UI/LampIcon.axaml"></ResourceInclude>
