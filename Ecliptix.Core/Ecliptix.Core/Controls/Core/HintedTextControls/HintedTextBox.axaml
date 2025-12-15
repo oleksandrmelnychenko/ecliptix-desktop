@@ -28,10 +28,6 @@
             <Setter Property="Fill" Value="{Binding HintForeground, ElementName=Control}" />
         </Style>
 
-        <Style Selector="StackPanel.error-section">
-            <Setter Property="Background" Value="{Binding Background, ElementName=Control}" />
-        </Style>
-
         <Style Selector="Border#FocusBorder">
             <Setter Property="BorderBrush" Value="{Binding FocusBorderBrush, ElementName=Control}"/>
         </Style>
@@ -62,10 +58,8 @@
         <Border x:Name="MainBorder"
                 Margin="{StaticResource MainBorderMargin}"
                 BorderThickness="{StaticResource MainBorderThickness}"
-                BorderBrush="{Binding MainBorderBrush, ElementName=Control}"
                 CornerRadius="{Binding CornerRadius, ElementName=Control}"
-                MinHeight="{StaticResource MinControlHeight}"
-                Background="{Binding Background, ElementName=Control}">
+                MinHeight="{StaticResource MinControlHeight}">
             <Border.Transitions>
                 <Transitions>
                     <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
@@ -170,8 +164,7 @@
                     <StackPanel x:Name="HintStackPanel"
                                 Grid.Row="1"
                                 Classes="hint-section"
-                                Orientation="Horizontal"
-                                Background="{DynamicResource Surface}">
+                                Orientation="Horizontal">
                         <Path Classes="hint-icon"
                               VerticalAlignment="Center"
                               Margin="0,0,4,0" />
@@ -186,8 +179,7 @@
                                 x:Name="ErrorStackPanel"
                                 Classes="error-section"
                                 Orientation="Horizontal"
-                                Opacity="{Binding EllipseOpacity, ElementName=Control}"
-                                Background="{DynamicResource Surface}">
+                                Opacity="{Binding EllipseOpacity, ElementName=Control}">
                         <Path Classes="error-icon"
                               VerticalAlignment="Center"
                               Margin="0,0,4,0" />

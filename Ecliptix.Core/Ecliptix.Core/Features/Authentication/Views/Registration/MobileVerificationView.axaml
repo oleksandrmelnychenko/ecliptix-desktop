@@ -56,7 +56,7 @@
             ErrorText="{Binding MobileNumberError, Mode=OneWay}"
             HasError="{Binding HasMobileNumberError, Mode=OneWay}"
             FocusBorderBrush="{DynamicResource Primary}"
-            MainBorderBrush="Transparent"
+            MainBorderBrush="#e5e7eb"
             Text="{Binding MobileNumber,Mode=TwoWay}"
             Height="{StaticResource Input.Height}"
             CornerRadius="{StaticResource Radius.L}"

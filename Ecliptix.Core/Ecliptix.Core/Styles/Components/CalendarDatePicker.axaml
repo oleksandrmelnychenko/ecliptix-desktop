@@ -2,11 +2,6 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="using:System">
 
-    <!-- Define color resources if not already defined -->
-    <Color x:Key="Primary">#8B5CF6</Color>
-    <Color x:Key="Surface">#FFFFFF</Color>
-    <Color x:Key="OnSurface">#1F2937</Color>
-    <Color x:Key="OnPrimary">#FFFFFF</Color>
 
     <ControlTheme x:Key="{x:Type CalendarDatePicker}" TargetType="CalendarDatePicker">
         <Setter Property="Background" Value="Transparent" />

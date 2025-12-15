@@ -134,6 +134,18 @@
         </Setter>
     </Style>
 
+    <Style Selector="Grid.hinted-field Border#MainBorder">
+        <Setter Property="Background" Value="{DynamicResource Surface}" />
+        <Setter Property="BorderBrush" Value="#E0E0E0" />
+    </Style>
+
+    <Style Selector="Grid.hinted-field StackPanel.hint-section,
+                     Grid.hinted-field StackPanel.error-section,
+                     Grid.hinted-field StackPanel.warning-section,
+                     Grid.hinted-field StackPanel.counter-section">
+        <Setter Property="Background" Value="{DynamicResource Surface}" />
+    </Style>
+
     <Style Selector="Path.error-icon">
         <Setter Property="Fill" Value="{DynamicResource Error}" />
     </Style>
@@ -143,15 +155,17 @@
     </Style>
 
 
-    <Style Selector="Grid.hinted-field:focus-within Border#FocusBorder">
-        <Setter Property="Opacity" Value="1"/>
+    <Style Selector="Grid.hinted-field:focus-within Border#FocusBorder,
+                     Grid.hinted-field.dropdown-open Border#FocusBorder">
+         <Setter Property="Opacity" Value="1"/>
     </Style>
 
     <Style Selector="Grid.hinted-field:focus-within Border#ShadowBorder">
         <Setter Property="BoxShadow" Value="{StaticResource ShadowFocus}"/>
     </Style>
 
-    <Style Selector="Grid.hinted-field:focus-within Border#MainBorder">
+    <Style Selector="Grid.hinted-field:focus-within Border#MainBorder,
+                     Grid.hinted-field.dropdown-open Border#MainBorder">
         <Setter Property="BorderBrush" Value="Transparent"/>
     </Style>
 

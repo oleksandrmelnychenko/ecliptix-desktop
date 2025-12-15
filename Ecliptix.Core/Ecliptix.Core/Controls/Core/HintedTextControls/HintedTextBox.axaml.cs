@@ -82,10 +82,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     public static readonly StyledProperty<int> MaxLengthProperty =
         AvaloniaProperty.Register<HintedTextBox, int>(nameof(MaxLength), int.MaxValue);
 
-    public new static readonly StyledProperty<IBrush> BackgroundProperty =
-        AvaloniaProperty.Register<HintedTextBox, IBrush>(
-            nameof(Background), new SolidColorBrush(Colors.White));
-
     public new static readonly StyledProperty<double> FontSizeProperty =
         AvaloniaProperty.Register<HintedTextBox, double>(nameof(FontSize), HintedTextBoxConstants.DEFAULT_FONT_SIZE);
 
@@ -259,12 +255,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     {
         get => GetValue(MaxLengthProperty);
         set => SetValue(MaxLengthProperty, value);
-    }
-
-    public new IBrush Background
-    {
-        get => GetValue(BackgroundProperty);
-        set => SetValue(BackgroundProperty, value);
     }
 
     public new double FontSize
