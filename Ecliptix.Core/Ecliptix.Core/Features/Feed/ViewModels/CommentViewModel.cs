@@ -25,6 +25,7 @@ public sealed class CommentViewModel : ReactiveObject
 
     [Reactive] public bool IsTextExpanded { get; set; }
     [Reactive] public bool HasReplies { get; set; }
+    [Reactive] public bool IsFlyoutOpen { get; set; }
     [Reactive] public string ExpandedText { get; set; }
     [Reactive] public ObservableCollection<CommentViewModel> OrigonalReplies { get; set; } = new();
     [Reactive] public ObservableCollection<CommentViewModel> Replies { get; set; } = new();
@@ -34,6 +35,7 @@ public sealed class CommentViewModel : ReactiveObject
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> ShowMoreRepliesCommand { get; }
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> HideRepliesCommand { get; }
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> ReplyCommand { get; }
+    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> CopyLinkCommand { get; }
 
     public CommentViewModel(Comment comment)
     {
@@ -46,15 +48,14 @@ public sealed class CommentViewModel : ReactiveObject
         ShowMoreRepliesCommand = ReactiveCommand.Create(ShowAllReplies);
         HideRepliesCommand = ReactiveCommand.Create(HideReplies);
         ReplyCommand = ReactiveCommand.Create(Reply);
+        CopyLinkCommand = ReactiveCommand.Create(CopyLink);
 
         ExpandedText = IsTextExpanded ? SEE_LESS : SEE_MORE;
     }
 
-    private void Reply()
-    {
-        WeakReferenceMessenger.Default.Send(new ReplyCommentMessage(Comment));
-    }
+    private void CopyLink() => IsFlyoutOpen = false;
 
+    private void Reply()=> WeakReferenceMessenger.Default.Send(new ReplyCommentMessage(Comment));
     private void HideReplies()
     {
         HasReplies = OrigonalReplies.Count > 0;
