@@ -71,6 +71,8 @@ public static class LocalizationData
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.ERROR_SECURE_KEY_MISMATCH] =
             "Secure keys do not match.",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.BUTTON] = "Set Secure Key",
+        [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.REQUIREMENTS_SUCCESS_TITLE] = "All minimum requirements are met",
+        [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.REQUIREMENTS_TITLE] = "Security Requirements:",
         [LocalizationKeys.Authentication.SecureKeyRecovery.Reset.TITLE] = "Reset Secure Key",
         [LocalizationKeys.Authentication.SecureKeyRecovery.Reset.DESCRIPTION] =
             "Create a new secure key for your account.",
@@ -311,6 +313,8 @@ public static class LocalizationData
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.ERROR_SECURE_KEY_MISMATCH] =
             "Ключі безпеки не збігаються.",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.BUTTON] = "Встановити ключ безпеки",
+        [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.REQUIREMENTS_SUCCESS_TITLE] = "Усі мінімальні вимоги виконано",
+        [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.REQUIREMENTS_TITLE] = "Безпекові вимоги:",
         [LocalizationKeys.Authentication.SecureKeyRecovery.Reset.TITLE] = "Скидання ключа безпеки",
         [LocalizationKeys.Authentication.SecureKeyRecovery.Reset.DESCRIPTION] =
             "Створіть новий ключ безпеки для облікового запису.",

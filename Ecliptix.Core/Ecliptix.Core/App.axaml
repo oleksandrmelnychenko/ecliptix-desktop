@@ -39,9 +39,9 @@
         <SimpleTheme />
 
 
-        <StyleInclude Source="/Styles/Components/ScrollBar.axaml"></StyleInclude>
-        <StyleInclude Source="/Styles/Core/Dimensions.axaml" />
         <StyleInclude Source="/Styles/Core/Colors.axaml" />
+        <StyleInclude Source="/Styles/Core/Dimensions.axaml" />
+        <StyleInclude Source="/Styles/Components/ScrollBar.axaml"></StyleInclude>
         <StyleInclude Source="/Styles/Core/Typography.axaml" />
         <StyleInclude Source="/Styles/Core/Animations.axaml" />
         <StyleInclude Source="/Styles/Components/ItemControl.axaml"/>

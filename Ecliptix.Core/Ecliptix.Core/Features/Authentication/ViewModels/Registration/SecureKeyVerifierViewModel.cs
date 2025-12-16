@@ -98,6 +98,11 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
     public string VerifySecureKeyHint => Localize(Keys.VERIFY_SECURE_KEY_HINT, Keys.RECOVERY_VERIFY_SECURE_KEY_HINT);
     public string ButtonText => Localize(Keys.REGISTRATION_BUTTON, Keys.RECOVERY_BUTTON);
 
+    public string RequirementsTitle => Localize(Keys.REQUIREMENTS_TITLE_KEY, Keys.REQUIREMENTS_TITLE_KEY);
+
+    public string RequirementsSuccessTitle =>
+        Localize(Keys.REQUIREMENTS_SUCCESS_TITLE_KEY, Keys.REQUIREMENTS_SUCCESS_TITLE_KEY);
+
     public string UrlPathSegment => "/secure-key-confirmation";
     public IScreen HostScreen { get; }
 
@@ -418,12 +423,7 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
 
             List<string> qualityTips = SecureKeyValidator.GetQualityRecommendations(secureKey, LocalizationService);
 
-            if (qualityTips.Count > 0)
-            {
-                error = qualityTips.First();
-            }
-
-            if (checklist.All(x => x.IsMet) && qualityTips.Count == 0)
+            if (checklist.All(x => x.IsMet))
             {
                 isSuccess = true;
             }
