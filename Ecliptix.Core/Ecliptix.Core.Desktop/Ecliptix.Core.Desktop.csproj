@@ -29,6 +29,18 @@
         <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     </PropertyGroup>
 
+    <!-- Native protocol payload resolution -->
+    <PropertyGroup>
+        <NativeProtoBase Condition="'$(NativeProtoBase)'=='' and $([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('win'))">ecliptix_protocol</NativeProtoBase>
+        <NativeProtoBase Condition="'$(NativeProtoBase)'=='' and !$([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('win'))">libecliptix_protocol</NativeProtoBase>
+        <NativeProtoExt Condition="'$(NativeProtoExt)'=='' and $([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('win'))">.dll</NativeProtoExt>
+        <NativeProtoExt Condition="'$(NativeProtoExt)'=='' and $([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('osx'))">.dylib</NativeProtoExt>
+        <NativeProtoExt Condition="'$(NativeProtoExt)'==''">.so</NativeProtoExt>
+        <NativeProtoDir Condition="'$(NativeProtoDir)'=='' and Exists('/Users/oleksandrmelnychenko/CLionProjects/Ecliptix.Protocol.System/build/$(RuntimeIdentifier)')">/Users/oleksandrmelnychenko/CLionProjects/Ecliptix.Protocol.System/build/$(RuntimeIdentifier)</NativeProtoDir>
+        <NativeProtoDir Condition="'$(NativeProtoDir)'=='' and Exists('/Users/oleksandrmelnychenko/CLionProjects/Ecliptix.Protocol.System/build')">/Users/oleksandrmelnychenko/CLionProjects/Ecliptix.Protocol.System/build</NativeProtoDir>
+        <NativeProtoDir Condition="'$(NativeProtoDir)'==''">$(MSBuildThisFileDirectory)..\Ecliptix.Protocol.System\bin\$(Configuration)\net10.0\$(RuntimeIdentifier)</NativeProtoDir>
+    </PropertyGroup>
+
     <PropertyGroup>
         <ApplicationManifest>app.manifest</ApplicationManifest>
     </PropertyGroup>
@@ -109,4 +121,14 @@
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
+
+    <!-- Copy native protocol library into the app output -->
+    <Target Name="CopyNativeProtocolLibrary" AfterTargets="Build">
+        <PropertyGroup>
+            <_NativeProtoPath>$(NativeProtoDir)/$(NativeProtoBase)$(NativeProtoExt)</_NativeProtoPath>
+        </PropertyGroup>
+        <Message Importance="High" Text="Copying native protocol library from $(_NativeProtoPath) to $(OutDir)" Condition="Exists('$(_NativeProtoPath)')" />
+        <Copy SourceFiles="$(_NativeProtoPath)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" Condition="Exists('$(_NativeProtoPath)')" />
+        <Warning Text="Native protocol library not found at $(_NativeProtoPath). Set NativeProtoDir/NativeProtoBase/NativeProtoExt or build the native target for $(RuntimeIdentifier)." Condition="!Exists('$(_NativeProtoPath)')" />
+    </Target>
 </Project>

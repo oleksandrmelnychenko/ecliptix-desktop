@@ -17,16 +17,12 @@ using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.ProtocolState;
 using Ecliptix.Protocol.System.Configuration;
-using Ecliptix.Protocol.System.Connection;
-using Ecliptix.Protocol.System.Identity;
 using Ecliptix.Protocol.System.Interfaces;
-using Ecliptix.Protocol.System.Models.Bundles;
-using Ecliptix.Protocol.System.Protocol;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Protocol.System.Native;
 using Ecliptix.Security.Certificate.Pinning.Services;
 using Ecliptix.Utilities;
-using Ecliptix.Utilities.Failures;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Utilities.Failures.Network;
 using Ecliptix.Utilities.Failures.Sodium;
@@ -45,7 +41,7 @@ public sealed class NetworkProvider(
     private static TaskCompletionSource<bool> CreateOutageTcs() =>
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    private readonly ConcurrentDictionary<uint, EcliptixProtocolSystem> _connections = new();
+    private readonly NativeProtocolSessionManager _nativeSessions = new();
     private readonly ConcurrentDictionary<uint, CancellationTokenSource> _activeStreams = new();
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _pendingRequests = new();
     private readonly Lock _cancellationLock = new();
@@ -55,7 +51,9 @@ public sealed class NetworkProvider(
     private readonly Lock _outageLock = new();
     private readonly Lock _disposeLock = new();
     private readonly Lock _appInstanceSetterLock = new();
+    private readonly Lock _nativeInitLock = new();
     private readonly ConcurrentDictionary<uint, Task> _pendingPersistTasks = new();
+    private bool _nativeInitialized;
 
     private CancellationTokenSource? _connectionRecoveryCts;
     private Option<ApplicationInstanceSettings> _applicationInstanceSettings = Option<ApplicationInstanceSettings>.None;
@@ -78,16 +76,23 @@ public sealed class NetworkProvider(
     }
 
     private async Task<Result<(SecureEnvelope Envelope, CertificatePinningService Service), NetworkFailure>>
-        PrepareSecrecyChannelEnvelopeAsync(uint connectId, PubKeyExchangeType exchangeType,
-            EcliptixProtocolSystem protocolSystem)
+        PrepareSecrecyChannelEnvelopeAsync(uint connectId, PubKeyExchangeType exchangeType)
     {
-        Result<PubKeyExchange, EcliptixProtocolFailure> pubKeyExchangeRequest =
-            protocolSystem.BeginDataCenterPubKeyExchange(connectId, exchangeType);
-
-        if (pubKeyExchangeRequest.IsErr)
+        Result<NativeProtocolSession, EcliptixProtocolFailure> nativeSessionResult = _nativeSessions.Get(connectId);
+        if (nativeSessionResult.IsErr)
         {
             return Result<(SecureEnvelope, CertificatePinningService), NetworkFailure>.Err(
-                pubKeyExchangeRequest.UnwrapErr().ToNetworkFailure());
+                nativeSessionResult.UnwrapErr().ToNetworkFailure());
+        }
+
+        NativeProtocolSession nativeSession = nativeSessionResult.Unwrap();
+        Result<byte[], EcliptixProtocolFailure> handshakeResult =
+            nativeSession.BeginHandshake(connectId, (byte)exchangeType);
+
+        if (handshakeResult.IsErr)
+        {
+            return Result<(SecureEnvelope, CertificatePinningService), NetworkFailure>.Err(
+                handshakeResult.UnwrapErr().ToNetworkFailure());
         }
 
         Option<CertificatePinningService> certificatePinningService =
@@ -99,10 +104,8 @@ public sealed class NetworkProvider(
                 NetworkFailure.RsaEncryption("Failed to initialize certificate pinning service"));
         }
 
-        byte[] originalData = pubKeyExchangeRequest.Unwrap().ToByteArray();
-
         Result<byte[], NetworkFailure> encryptResult =
-            security.RsaChunkEncryptor.EncryptInChunks(certificatePinningService.Value!, originalData);
+            security.RsaChunkEncryptor.EncryptInChunks(certificatePinningService.Value!, handshakeResult.Unwrap());
         if (encryptResult.IsErr)
         {
             return Result<(SecureEnvelope, CertificatePinningService), NetworkFailure>.Err(encryptResult.UnwrapErr());
@@ -126,38 +129,35 @@ public sealed class NetworkProvider(
             certificatePinningService.Value!));
     }
 
-    private Result<PubKeyExchange, NetworkFailure> ProcessSecrecyChannelResponse(
-        SecureEnvelope responseEnvelope, CertificatePinningService certificatePinningService,
-        PubKeyExchangeType exchangeType, EcliptixProtocolSystem protocolSystem)
-    {
-        if (exchangeType == PubKeyExchangeType.DataCenterEphemeralConnect)
-        {
-            CertificatePinningBoolResult certificatePinningBoolResult =
-                certificatePinningService.VerifyServerSignature(
-                    responseEnvelope.EncryptedPayload.Memory,
-                    responseEnvelope.AuthenticationTag.Memory);
+    private async Task<Result<(SecureEnvelope Envelope, CertificatePinningService Service), NetworkFailure>>
+        PrepareNativeHandshakeEnvelopeAsync(SecrecyChannelRequest request) =>
+        await PrepareSecrecyChannelEnvelopeAsync(
+            request.ConnectId,
+            request.ExchangeType).ConfigureAwait(false);
 
-            if (!certificatePinningBoolResult.IsSuccess)
-            {
-                return Result<PubKeyExchange, NetworkFailure>.Err(
-                    NetworkFailure.RsaEncryption(
-                        $"Server signature verification failed: {certificatePinningBoolResult.Error?.Message}"));
-            }
+    private Result<PubKeyExchange, NetworkFailure> ProcessNativeHandshakeResponse(
+        SecureEnvelope responseEnvelope,
+        CertificatePinningService certificatePinningService,
+        SecrecyChannelRequest request)
+    {
+        Result<NativeProtocolSession, EcliptixProtocolFailure> nativeSessionResult =
+            _nativeSessions.Get(request.ConnectId);
+        if (nativeSessionResult.IsErr)
+        {
+            return Result<PubKeyExchange, NetworkFailure>.Err(nativeSessionResult.UnwrapErr().ToNetworkFailure());
         }
 
-        byte[] combinedEncryptedResponse = responseEnvelope.EncryptedPayload.ToByteArray();
-
         Result<byte[], NetworkFailure> decryptResult =
-            security.RsaChunkEncryptor.DecryptInChunks(certificatePinningService, combinedEncryptedResponse);
+            security.RsaChunkEncryptor.DecryptInChunks(certificatePinningService,
+                responseEnvelope.EncryptedPayload.ToByteArray());
         if (decryptResult.IsErr)
         {
             return Result<PubKeyExchange, NetworkFailure>.Err(decryptResult.UnwrapErr());
         }
 
         PubKeyExchange peerPubKeyExchange = PubKeyExchange.Parser.ParseFrom(decryptResult.Unwrap());
-
         Result<Unit, EcliptixProtocolFailure> completeResult =
-            protocolSystem.CompleteDataCenterPubKeyExchange(peerPubKeyExchange);
+            nativeSessionResult.Unwrap().CompleteHandshakeAuto(peerPubKeyExchange.ToByteArray());
         return completeResult.IsErr
             ? Result<PubKeyExchange, NetworkFailure>.Err(completeResult.UnwrapErr().ToNetworkFailure())
             : Result<PubKeyExchange, NetworkFailure>.Ok(peerPubKeyExchange);
@@ -168,16 +168,8 @@ public sealed class NetworkProvider(
     {
         PublishConnectingEventIfNeeded(request.ExchangeType, request.ConnectId);
 
-        Result<EcliptixProtocolSystem, NetworkFailure> protocolSystemResult = GetProtocolSystem(request.ConnectId);
-        if (protocolSystemResult.IsErr)
-        {
-            return Result<Option<EcliptixSessionState>, NetworkFailure>.Err(protocolSystemResult.UnwrapErr());
-        }
-
-        EcliptixProtocolSystem protocolSystem = protocolSystemResult.Unwrap();
-
         Result<(SecureEnvelope Envelope, CertificatePinningService Service), NetworkFailure> prepareResult =
-            await PrepareSecrecyChannelEnvelopeAsync(request.ConnectId, request.ExchangeType, protocolSystem);
+            await PrepareNativeHandshakeEnvelopeAsync(request).ConfigureAwait(false);
 
         if (prepareResult.IsErr)
         {
@@ -195,8 +187,7 @@ public sealed class NetworkProvider(
         }
 
         Result<PubKeyExchange, NetworkFailure> processResult =
-            ProcessSecrecyChannelResponse(establishResult.Unwrap(), certificatePinningService, request.ExchangeType,
-                protocolSystem);
+            ProcessNativeHandshakeResponse(establishResult.Unwrap(), certificatePinningService, request);
 
         if (processResult.IsErr)
         {
@@ -205,8 +196,7 @@ public sealed class NetworkProvider(
 
         return await CreateAndPersistSessionStateAsync(
             request,
-            processResult.Unwrap(),
-            protocolSystem);
+            processResult.Unwrap());
     }
 
     private void PublishConnectingEventIfNeeded(PubKeyExchangeType exchangeType, uint connectId)
@@ -228,17 +218,6 @@ public sealed class NetworkProvider(
                 },
                 TaskScheduler.Default);
         });
-    }
-
-    private Result<EcliptixProtocolSystem, NetworkFailure> GetProtocolSystem(uint connectId)
-    {
-        if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
-        {
-            return Result<EcliptixProtocolSystem, NetworkFailure>.Err(
-                NetworkFailure.DataCenterNotResponding("Connection unavailable - server may be recovering"));
-        }
-
-        return Result<EcliptixProtocolSystem, NetworkFailure>.Ok(protocolSystem);
     }
 
     private async Task<Result<SecureEnvelope, NetworkFailure>> ExecuteEstablishChannelRpcAsync(
@@ -293,8 +272,7 @@ public sealed class NetworkProvider(
 
     private Task<Result<Option<EcliptixSessionState>, NetworkFailure>> CreateAndPersistSessionStateAsync(
         SecrecyChannelRequest request,
-        PubKeyExchange peerPubKeyExchange,
-        EcliptixProtocolSystem protocolSystem)
+        PubKeyExchange peerPubKeyExchange)
     {
         if (!ShouldPersistSessionState(request))
         {
@@ -303,7 +281,7 @@ public sealed class NetworkProvider(
         }
 
         Result<EcliptixSessionState, NetworkFailure> stateResult =
-            CreateSessionState(request.ConnectId, peerPubKeyExchange, protocolSystem);
+            CreateSessionState(request.ConnectId, peerPubKeyExchange);
 
         if (stateResult.IsErr)
         {
@@ -330,35 +308,42 @@ public sealed class NetworkProvider(
     private static bool ShouldPersistSessionState(SecrecyChannelRequest request) =>
         request is { SaveState: true, ExchangeType: PubKeyExchangeType.DataCenterEphemeralConnect };
 
-    private static Result<EcliptixSessionState, NetworkFailure> CreateSessionState(
+    private Result<EcliptixSessionState, NetworkFailure> CreateSessionState(
         uint connectId,
-        PubKeyExchange peerPubKeyExchange,
-        EcliptixProtocolSystem protocolSystem)
+        PubKeyExchange peerPubKeyExchange)
     {
-        EcliptixSystemIdentityKeys idKeys = protocolSystem.GetIdentityKeys();
-        EcliptixProtocolConnection? connection = protocolSystem.GetConnection();
-
-        if (connection == null)
+        // Managed protocol is retired; persist only the native state plus handshake metadata.
+        EcliptixSessionState state = new()
         {
-            return Result<EcliptixSessionState, NetworkFailure>.Err(
-                new NetworkFailure(
-                    NetworkFailureType.DATA_CENTER_NOT_RESPONDING,
-                    "Connection has not been established yet."));
+            ConnectId = connectId,
+            IdentityKeys = new IdentityKeysState(),
+            PeerHandshakeMessage = peerPubKeyExchange,
+            RatchetState = new RatchetState()
+        };
+        if (_nativeSessions.Get(connectId).IsOk)
+        {
+            Result<NativeProtocolSession, EcliptixProtocolFailure> nativeSessionResult = _nativeSessions.Get(connectId);
+            if (nativeSessionResult.IsOk)
+            {
+                NativeProtocolSession nativeSession = nativeSessionResult.Unwrap();
+                Result<byte[], EcliptixProtocolFailure> exportResult = nativeSession.ExportState();
+                if (exportResult.IsOk)
+                {
+                    state.NativeState = ByteString.CopyFrom(exportResult.Unwrap());
+                    state.NativePeerBundle = peerPubKeyExchange.Payload;
+                    state.NativeIsInitiator = peerPubKeyExchange.State ==
+                                              PubKeyExchangeState.Init;
+                    if (_applicationInstanceSettings.IsSome)
+                    {
+                        state.MembershipId =
+                            _applicationInstanceSettings.Value!.Membership?.UniqueIdentifier.ToBase64() ??
+                            string.Empty;
+                    }
+                }
+            }
         }
 
-        Result<EcliptixSessionState, EcliptixProtocolFailure> stateResult =
-            idKeys.ToProtoState()
-                .AndThen(identityKeysProto => connection.ToProtoState()
-                    .Map(ratchetStateProto => new EcliptixSessionState
-                    {
-                        ConnectId = connectId,
-                        IdentityKeys = identityKeysProto,
-                        PeerHandshakeMessage = peerPubKeyExchange,
-                        RatchetState = ratchetStateProto
-                    })
-                );
-
-        return stateResult.ToNetworkFailure();
+        return Result<EcliptixSessionState, NetworkFailure>.Ok(state);
     }
 
     public void SetCountry(string country)
@@ -395,18 +380,25 @@ public sealed class NetworkProvider(
 
     public void InitiateEcliptixProtocolSystem(ApplicationInstanceSettings applicationInstanceSettings, uint connectId)
     {
+        EnsureNativeInitialized();
         _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(applicationInstanceSettings);
 
-        EcliptixSystemIdentityKeys identityKeys =
-            EcliptixSystemIdentityKeys.Create(NetworkConstants.Protocol.DEFAULT_ONE_TIME_KEY_COUNT).Unwrap();
+        // Native hybrid/PQ path for new connections.
+        Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure> identityResult =
+            NativeProtocolSystem.CreateIdentity();
+        if (identityResult.IsErr)
+        {
+            throw new InvalidOperationException(
+                $"Failed to create native identity: {identityResult.UnwrapErr().Message}");
+        }
 
-        DetermineExchangeTypeFromConnectId(applicationInstanceSettings, connectId);
-
-        EcliptixProtocolSystem protocolSystem = new(identityKeys);
-
-        protocolSystem.SetEventHandler(this);
-
-        _connections.TryAdd(connectId, protocolSystem);
+        Result<NativeProtocolSession, EcliptixProtocolFailure> nativeCreateResult =
+            _nativeSessions.CreateOrReplace(connectId, identityResult.Unwrap(), this.OnProtocolStateChanged);
+        if (nativeCreateResult.IsErr)
+        {
+            throw new InvalidOperationException(
+                $"Failed to create native session: {nativeCreateResult.UnwrapErr().Message}");
+        }
 
         Guid appInstanceId = Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId);
         Guid deviceId = Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId);
@@ -417,19 +409,35 @@ public sealed class NetworkProvider(
         dependencies.RpcMetaDataProvider.SetAppInfo(appInstanceId, deviceId, culture);
     }
 
+    private void EnsureNativeInitialized()
+    {
+        // Prevent double-init and ensure libsodium is ready before any identity/session creation.
+        lock (_nativeInitLock)
+        {
+            if (_nativeInitialized)
+            {
+                return;
+            }
+
+            Result<Unit, EcliptixProtocolFailure> initResult = NativeProtocolSystem.Initialize();
+            if (initResult.IsErr)
+            {
+                throw new InvalidOperationException(
+                    $"Failed to initialize native protocol: {initResult.UnwrapErr().Message}");
+            }
+
+            _nativeInitialized = true;
+        }
+    }
+
     public void ClearConnection(uint connectId)
     {
-        if (!_connections.TryRemove(connectId, out EcliptixProtocolSystem? system))
-        {
-            return;
-        }
-
-        system.Dispose();
+        _nativeSessions.Remove(connectId);
     }
 
     public void ClearExhaustedOperations() => services.RetryStrategy.ClearExhaustedOperations();
 
-    public bool HasConnection(uint connectId) => _connections.ContainsKey(connectId);
+    public bool HasConnection(uint connectId) => _nativeSessions.Has(connectId);
 
     public async Task<Result<Unit, NetworkFailure>> ExecuteUnaryRequestAsync(
         uint connectId,
@@ -579,7 +587,7 @@ public sealed class NetworkProvider(
         await WaitForOutageRecoveryAsync(operationToken, waitForRecovery).ConfigureAwait(false);
         operationToken.ThrowIfCancellationRequested();
 
-        if (!_connections.TryGetValue(requestContext.ConnectId, out EcliptixProtocolSystem? protocolSystem))
+        if (_nativeSessions.Get(requestContext.ConnectId).IsErr)
         {
             return HandleMissingConnection();
         }
@@ -588,7 +596,7 @@ public sealed class NetworkProvider(
             requestContext.ConnectId, requestContext.ServiceType, requestContext.PlainBuffer);
 
         Result<Unit, NetworkFailure> networkResult = await ExecuteServiceFlowAsync(
-                protocolSystem, logicalOperationId, requestContext, operationToken)
+                logicalOperationId, requestContext, operationToken)
             .ConfigureAwait(false);
 
         if (networkResult.IsOk && Volatile.Read(ref _outageState) == 1)
@@ -620,7 +628,6 @@ public sealed class NetworkProvider(
     }
 
     private async Task<Result<Unit, NetworkFailure>> ExecuteServiceFlowAsync(
-        EcliptixProtocolSystem protocolSystem,
         uint logicalOperationId,
         ServiceRequestContext requestContext,
         CancellationToken operationToken)
@@ -628,22 +635,22 @@ public sealed class NetworkProvider(
         return requestContext.FlowType switch
         {
             ServiceFlowType.SINGLE => await SendUnaryRequestAsync(
-                    protocolSystem, logicalOperationId, requestContext.ServiceType, requestContext.PlainBuffer,
+                    logicalOperationId, requestContext.ServiceType, requestContext.PlainBuffer,
                     requestContext.FlowType, requestContext.OnCompleted, requestContext.ConnectId,
                     requestContext.RetryBehavior, operationToken)
                 .ConfigureAwait(false),
             ServiceFlowType.RECEIVE_STREAM => await SendReceiveStreamRequestAsync(
-                    protocolSystem, logicalOperationId, requestContext.ServiceType, requestContext.PlainBuffer,
+                    logicalOperationId, requestContext.ServiceType, requestContext.PlainBuffer,
                     requestContext.FlowType, requestContext.RequestContext, requestContext.OnCompleted,
                     requestContext.RetryBehavior, requestContext.ConnectId, operationToken)
                 .ConfigureAwait(false),
             ServiceFlowType.SEND_STREAM => await SendSendStreamRequestAsync(
-                    protocolSystem, logicalOperationId, requestContext.ServiceType, requestContext.PlainBuffer,
-                    requestContext.FlowType, requestContext.RequestContext, operationToken)
+                    logicalOperationId, requestContext.ServiceType, requestContext.PlainBuffer,
+                    requestContext.FlowType, requestContext.RequestContext, requestContext.ConnectId, operationToken)
                 .ConfigureAwait(false),
             ServiceFlowType.BIDIRECTIONAL_STREAM => await SendBidirectionalStreamRequestAsync(
-                    protocolSystem, logicalOperationId, requestContext.ServiceType, requestContext.PlainBuffer,
-                    requestContext.FlowType, requestContext.RequestContext, operationToken)
+                    logicalOperationId, requestContext.ServiceType, requestContext.PlainBuffer,
+                    requestContext.FlowType, requestContext.RequestContext, requestContext.ConnectId, operationToken)
                 .ConfigureAwait(false),
             _ => Result<Unit, NetworkFailure>.Err(
                 NetworkFailure.InvalidRequestType($"Unsupported flow type: {requestContext.FlowType}"))
@@ -1021,11 +1028,7 @@ public sealed class NetworkProvider(
         ApplicationInstanceSettings appSettings = _applicationInstanceSettings.Value!;
         uint connectId = ComputeUniqueConnectId(appSettings, exchangeType);
 
-        if (_connections.TryRemove(connectId, out EcliptixProtocolSystem? existingConnection))
-        {
-            existingConnection.Dispose();
-        }
-
+        _nativeSessions.Remove(connectId);
         InitiateEcliptixProtocolSystemForType(connectId);
 
         Result<Option<EcliptixSessionState>, NetworkFailure> establishOptionResult =
@@ -1036,7 +1039,7 @@ public sealed class NetworkProvider(
             return Result<uint, NetworkFailure>.Ok(connectId);
         }
 
-        _connections.TryRemove(connectId, out _);
+        _nativeSessions.Remove(connectId);
         return Result<uint, NetworkFailure>.Err(establishOptionResult.UnwrapErr());
     }
 
@@ -1078,62 +1081,27 @@ public sealed class NetworkProvider(
             cancellationTokenSource.Dispose();
         }
 
-        if (!_connections.TryRemove(connectId, out EcliptixProtocolSystem? protocolSystem))
-        {
-            return Result<Unit, NetworkFailure>.Ok(Unit.Value);
-        }
-
-        protocolSystem.Dispose();
-
+        _nativeSessions.Remove(connectId);
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
 
-    private static RatchetConfig GetRatchetConfigForExchangeType(PubKeyExchangeType exchangeType)
+    private void InitiateEcliptixProtocolSystemForType(uint connectId)
     {
-        RatchetConfig config = exchangeType switch
+        Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure> identityResult =
+            NativeProtocolSystem.CreateIdentity();
+        if (identityResult.IsErr)
         {
-            PubKeyExchangeType.ServerStreaming => RatchetConfig.Create(
-                dhRatchetEveryNMessages: 20,
-                maxMessagesWithoutRatchet: 100),
-            _ => RatchetConfig.Default
-        };
-
-        return config;
-    }
-
-    private static PubKeyExchangeType DetermineExchangeTypeFromConnectId(
-        ApplicationInstanceSettings applicationInstanceSettings, uint connectId)
-    {
-        PubKeyExchangeType[] knownTypes =
-        [
-            PubKeyExchangeType.DataCenterEphemeralConnect,
-            PubKeyExchangeType.ServerStreaming
-        ];
-
-        foreach (PubKeyExchangeType exchangeType in knownTypes)
-        {
-            uint computedConnectId = ComputeUniqueConnectId(applicationInstanceSettings, exchangeType);
-            if (computedConnectId != connectId)
-            {
-                continue;
-            }
-
-            return exchangeType;
+            throw new InvalidOperationException(
+                $"Failed to create native identity: {identityResult.UnwrapErr().Message}");
         }
 
-        return PubKeyExchangeType.DataCenterEphemeralConnect;
-    }
-
-    private void InitiateEcliptixProtocolSystemForType(uint connectId
-    )
-    {
-        EcliptixSystemIdentityKeys identityKeys =
-            EcliptixSystemIdentityKeys.Create(NetworkConstants.Protocol.DEFAULT_ONE_TIME_KEY_COUNT).Unwrap();
-
-        EcliptixProtocolSystem protocolSystem = new(identityKeys);
-        protocolSystem.SetEventHandler(this);
-
-        _connections.TryAdd(connectId, protocolSystem);
+        Result<NativeProtocolSession, EcliptixProtocolFailure> nativeCreateResult =
+            _nativeSessions.CreateOrReplace(connectId, identityResult.Unwrap(), this.OnProtocolStateChanged);
+        if (nativeCreateResult.IsErr)
+        {
+            throw new InvalidOperationException(
+                $"Failed to create native session: {nativeCreateResult.UnwrapErr().Message}");
+        }
     }
 
     private async Task<Result<Option<EcliptixSessionState>, NetworkFailure>> EstablishSecrecyChannelForTypeAsync(
@@ -1155,66 +1123,42 @@ public sealed class NetworkProvider(
         EcliptixSessionState currentState,
         RestoreChannelResponse peerSecrecyChannelState)
     {
-        Result<EcliptixProtocolSystem, EcliptixProtocolFailure> systemResult = RecreateSystemFromState(currentState);
-        if (systemResult.IsErr)
-        {
-            return Result<Unit, EcliptixProtocolFailure>.Err(systemResult.UnwrapErr());
-        }
-
-        EcliptixProtocolSystem system = systemResult.Unwrap();
-
-        system.SetEventHandler(this);
-
-        EcliptixProtocolConnection? connection = system.GetConnection();
-        if (connection == null)
-        {
-            return Result<Unit, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.Generic("Connection not established"));
-        }
-
-        Result<Unit, EcliptixProtocolFailure> syncResult = connection.SyncWithRemoteState(
-            peerSecrecyChannelState.SendingChainLength,
-            peerSecrecyChannelState.ReceivingChainLength
-        );
-
-        if (syncResult.IsErr)
-        {
-            system.Dispose();
-            return Result<Unit, EcliptixProtocolFailure>.Err(syncResult.UnwrapErr());
-        }
-
-        _ = connection.ToProtoState();
-
-        _connections.TryAdd(currentState.ConnectId, system);
-        return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
+        _ = peerSecrecyChannelState;
+        return RestoreNativeSessionFromState(currentState);
     }
 
-    private Result<EcliptixProtocolSystem, EcliptixProtocolFailure> RecreateSystemFromState(
-        EcliptixSessionState state)
+    private Result<Unit, EcliptixProtocolFailure> RestoreNativeSessionFromState(EcliptixSessionState state)
     {
-        Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure> idKeysResult =
-            EcliptixSystemIdentityKeys.FromProtoState(state.IdentityKeys);
-        if (idKeysResult.IsErr)
+        if (state.NativeState.Length == 0 ||
+            state.OpaqueMasterKey.Length != CryptographicConstants.AES_KEY_SIZE ||
+            string.IsNullOrWhiteSpace(state.MembershipId))
         {
-            return Result<EcliptixProtocolSystem, EcliptixProtocolFailure>.Err(idKeysResult.UnwrapErr());
+            return Result<Unit, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.InvalidInput("Missing native state for restoration"));
         }
 
-        PubKeyExchangeType exchangeType = _applicationInstanceSettings.IsSome
-            ? DetermineExchangeTypeFromConnectId(_applicationInstanceSettings.Value!, state.ConnectId)
-            : PubKeyExchangeType.DataCenterEphemeralConnect;
-
-        RatchetConfig config = GetRatchetConfigForExchangeType(exchangeType);
-
-        Result<EcliptixProtocolConnection, EcliptixProtocolFailure> connResult =
-            EcliptixProtocolConnection.FromProtoState(state.ConnectId, state.RatchetState, config, exchangeType);
-
-        if (connResult.IsErr)
+        byte[] nativeStateBytes = state.NativeState.ToByteArray();
+        byte[] masterKeyBytes = state.OpaqueMasterKey.ToByteArray();
+        Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure> nativeIdentityResult =
+            NativeProtocolSystem.CreateIdentityFromSeed(masterKeyBytes, state.MembershipId);
+        if (nativeIdentityResult.IsErr)
         {
-            idKeysResult.Unwrap().Dispose();
-            return Result<EcliptixProtocolSystem, EcliptixProtocolFailure>.Err(connResult.UnwrapErr());
+            return Result<Unit, EcliptixProtocolFailure>.Err(nativeIdentityResult.UnwrapErr());
         }
 
-        return EcliptixProtocolSystem.CreateFrom(idKeysResult.Unwrap(), connResult.Unwrap());
+        EcliptixIdentityKeysWrapper nativeIdentity = nativeIdentityResult.Unwrap();
+        Result<NativeProtocolSession, EcliptixProtocolFailure> nativeImportResult =
+            _nativeSessions.CreateOrReplaceFromState(
+                state.ConnectId,
+                nativeIdentity,
+                nativeStateBytes,
+                this.OnProtocolStateChanged);
+        if (nativeImportResult.IsErr)
+        {
+            return Result<Unit, EcliptixProtocolFailure>.Err(nativeImportResult.UnwrapErr());
+        }
+
+        return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
     }
 
     private static uint GenerateLogicalOperationId(uint connectId, RpcServiceType serviceType, byte[] plainBuffer)
@@ -1269,33 +1213,59 @@ public sealed class NetworkProvider(
         return finalId;
     }
 
-    private static Result<SecureEnvelope, NetworkFailure> EncryptPayload(
-        EcliptixProtocolSystem protocolSystem,
+    private Result<SecureEnvelope, NetworkFailure> EncryptPayload(
+        uint connectId,
         byte[] plainBuffer)
     {
-        Result<SecureEnvelope, EcliptixProtocolFailure> outboundPayload =
-            protocolSystem.ProduceOutboundEnvelope(plainBuffer);
-
-        if (outboundPayload.IsErr)
+        Result<NativeProtocolSession, EcliptixProtocolFailure> nativeSessionResult =
+            _nativeSessions.Get(connectId);
+        if (nativeSessionResult.IsErr)
         {
-            return Result<SecureEnvelope, NetworkFailure>.Err(
-                outboundPayload.UnwrapErr().ToNetworkFailure());
+            return Result<SecureEnvelope, NetworkFailure>.Err(nativeSessionResult.UnwrapErr().ToNetworkFailure());
         }
 
-        SecureEnvelope cipherPayload = outboundPayload.Unwrap();
+        NativeProtocolSession nativeSession = nativeSessionResult.Unwrap();
+        Result<bool, EcliptixProtocolFailure> hasConnResult = nativeSession.HasConnection();
+        if (hasConnResult.IsErr)
+        {
+            return Result<SecureEnvelope, NetworkFailure>.Err(
+                hasConnResult.UnwrapErr().ToNetworkFailure());
+        }
 
-        return Result<SecureEnvelope, NetworkFailure>.Ok(cipherPayload);
+        if (!hasConnResult.Unwrap())
+        {
+            return Result<SecureEnvelope, NetworkFailure>.Err(
+                NetworkFailure.DataCenterNotResponding("Native protocol session not established"));
+        }
+
+        Result<byte[], EcliptixProtocolFailure> nativeCipher = nativeSession.SendMessage(plainBuffer);
+        if (nativeCipher.IsErr)
+        {
+            return Result<SecureEnvelope, NetworkFailure>.Err(
+                nativeCipher.UnwrapErr().ToNetworkFailure());
+        }
+
+        try
+        {
+            SecureEnvelope envelope = SecureEnvelope.Parser.ParseFrom(nativeCipher.Unwrap());
+            return Result<SecureEnvelope, NetworkFailure>.Ok(envelope);
+        }
+        catch (Exception ex)
+        {
+            return Result<SecureEnvelope, NetworkFailure>.Err(
+                NetworkFailure.InvalidRequestType($"Failed to parse native envelope: {ex.Message}"));
+        }
     }
 
-    private static Result<ServiceRequest, NetworkFailure> BuildRequestWithId(
-        EcliptixProtocolSystem protocolSystem,
+    private Result<ServiceRequest, NetworkFailure> BuildRequestWithId(
+        uint connectId,
         uint logicalOperationId,
         RpcServiceType serviceType,
         byte[] plainBuffer,
         ServiceFlowType flowType,
         RpcRequestContext requestContext)
     {
-        Result<SecureEnvelope, NetworkFailure> encryptResult = EncryptPayload(protocolSystem, plainBuffer);
+        Result<SecureEnvelope, NetworkFailure> encryptResult = EncryptPayload(connectId, plainBuffer);
 
         if (encryptResult.IsErr)
         {
@@ -1308,8 +1278,48 @@ public sealed class NetworkProvider(
             ServiceRequest.New(logicalOperationId, flowType, serviceType, cipherPayload, [], requestContext));
     }
 
+    private Result<byte[], NetworkFailure> DecryptPayload(
+        uint connectId,
+        SecureEnvelope envelope)
+    {
+        Result<NativeProtocolSession, EcliptixProtocolFailure> nativeSessionResult = _nativeSessions.Get(connectId);
+        if (nativeSessionResult.IsErr)
+        {
+            return Result<byte[], NetworkFailure>.Err(nativeSessionResult.UnwrapErr().ToNetworkFailure());
+        }
+
+        NativeProtocolSession nativeSession = nativeSessionResult.Unwrap();
+        Result<bool, EcliptixProtocolFailure> hasConnResult = nativeSession.HasConnection();
+        if (hasConnResult.IsErr)
+        {
+            return Result<byte[], NetworkFailure>.Err(hasConnResult.UnwrapErr().ToNetworkFailure());
+        }
+
+        if (!hasConnResult.Unwrap())
+        {
+            return Result<byte[], NetworkFailure>.Err(
+                NetworkFailure.DataCenterNotResponding("Native protocol session not established"));
+        }
+
+        byte[] serializedEnvelope = envelope.ToByteArray();
+        Result<Unit, EcliptixProtocolFailure> validateResult =
+            nativeSession.ValidateEnvelopeHybridRequirements(serializedEnvelope);
+        if (validateResult.IsErr)
+        {
+            return Result<byte[], NetworkFailure>.Err(validateResult.UnwrapErr().ToNetworkFailure());
+        }
+
+        Result<byte[], EcliptixProtocolFailure> decryptResult =
+            nativeSession.ReceiveMessage(serializedEnvelope);
+        if (decryptResult.IsErr)
+        {
+            return Result<byte[], NetworkFailure>.Err(decryptResult.UnwrapErr().ToNetworkFailure());
+        }
+
+        return Result<byte[], NetworkFailure>.Ok(decryptResult.Unwrap());
+    }
+
     private async Task<Result<Unit, NetworkFailure>> SendUnaryRequestAsync(
-        EcliptixProtocolSystem protocolSystem,
         uint logicalOperationId,
         RpcServiceType serviceType,
         byte[] plainBuffer,
@@ -1327,7 +1337,7 @@ public sealed class NetworkProvider(
         if (shouldUseRetry)
         {
             Result<SecureEnvelope, NetworkFailure> encryptResult =
-                EncryptPayload(protocolSystem, plainBuffer);
+                EncryptPayload(connectId, plainBuffer);
 
             if (encryptResult.IsErr)
             {
@@ -1366,7 +1376,7 @@ public sealed class NetworkProvider(
             lastRequestContext = singleAttemptContext;
 
             Result<ServiceRequest, NetworkFailure> serviceRequestResult = BuildRequestWithId(
-                protocolSystem, logicalOperationId, serviceType, plainBuffer, flowType, singleAttemptContext);
+                connectId, logicalOperationId, serviceType, plainBuffer, flowType, singleAttemptContext);
 
             if (serviceRequestResult.IsErr)
             {
@@ -1402,12 +1412,12 @@ public sealed class NetworkProvider(
 
         SecureEnvelope inboundPayload = callResult.Unwrap();
 
-        Result<byte[], EcliptixProtocolFailure> decryptedData =
-            protocolSystem.ProcessInboundEnvelope(inboundPayload);
+        Result<byte[], NetworkFailure> decryptedData =
+            DecryptPayload(connectId, inboundPayload);
         if (decryptedData.IsErr)
         {
             Log.Error("[CLIENT-DECRYPT-ERROR] Decryption failed. ERROR: {Error}", decryptedData.UnwrapErr().Message);
-            NetworkFailure decryptFailure = decryptedData.UnwrapErr().ToNetworkFailure();
+            NetworkFailure decryptFailure = decryptedData.UnwrapErr();
 
             if (FailureClassification.IsProtocolStateMismatch(decryptFailure))
             {
@@ -1417,13 +1427,7 @@ public sealed class NetworkProvider(
 
                 await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
 
-                if (_connections.TryRemove(connectId, out EcliptixProtocolSystem? staleProtocol))
-                {
-                    staleProtocol.Dispose();
-                    Log.Information(
-                        "[NETWORK-PROVIDER] Disposed in-memory protocol system after state mismatch. ConnectId: {ConnectId}",
-                        connectId);
-                }
+                _nativeSessions.Remove(connectId);
             }
 
             decryptFailure = ApplyReinitIfNeeded(decryptFailure, serviceType, retryBehavior);
@@ -1481,7 +1485,6 @@ public sealed class NetworkProvider(
     }
 
     private async Task<Result<Unit, NetworkFailure>> SendReceiveStreamRequestAsync(
-        EcliptixProtocolSystem protocolSystem,
         uint logicalOperationId,
         RpcServiceType serviceType,
         byte[] plainBuffer,
@@ -1495,7 +1498,7 @@ public sealed class NetworkProvider(
         if (retryBehavior.ShouldRetry)
         {
             Result<SecureEnvelope, NetworkFailure> encryptResult =
-                EncryptPayload(protocolSystem, plainBuffer);
+                EncryptPayload(connectId, plainBuffer);
 
             if (encryptResult.IsErr)
             {
@@ -1520,7 +1523,7 @@ public sealed class NetworkProvider(
                         attemptContext);
 
                     Result<Unit, NetworkFailure> processResult = await ProcessStreamWithRequest(
-                        protocolSystem, request, onStreamItem, connectId, ct).ConfigureAwait(false);
+                        request, onStreamItem, connectId, ct).ConfigureAwait(false);
 
                     return processResult;
                 },
@@ -1532,7 +1535,7 @@ public sealed class NetworkProvider(
         }
 
         Result<ServiceRequest, NetworkFailure> serviceRequestResult = BuildRequestWithId(
-            protocolSystem, logicalOperationId, serviceType, plainBuffer, flowType, requestContext);
+            connectId, logicalOperationId, serviceType, plainBuffer, flowType, requestContext);
 
         if (serviceRequestResult.IsErr)
         {
@@ -1540,12 +1543,11 @@ public sealed class NetworkProvider(
         }
 
         ServiceRequest request = serviceRequestResult.Unwrap();
-        return await ProcessStreamWithRequest(protocolSystem, request, onStreamItem, connectId, token)
+        return await ProcessStreamWithRequest(request, onStreamItem, connectId, token)
             .ConfigureAwait(false);
     }
 
     private async Task<Result<Unit, NetworkFailure>> ProcessStreamWithRequest(
-        EcliptixProtocolSystem protocolSystem,
         ServiceRequest request,
         Func<byte[], Task<Result<Unit, NetworkFailure>>> onStreamItem,
         uint connectId,
@@ -1553,7 +1555,8 @@ public sealed class NetworkProvider(
     {
         if (connectId == 0)
         {
-            return await ProcessStreamDirectly(protocolSystem, request, onStreamItem, token).ConfigureAwait(false);
+            return await ProcessStreamDirectly(request, onStreamItem, connectId, token)
+                .ConfigureAwait(false);
         }
 
         using CancellationTokenSource linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(token);
@@ -1589,7 +1592,7 @@ public sealed class NetworkProvider(
                 }
 
                 SecureEnvelope streamPayload = streamItem.Unwrap();
-                await ProcessStreamItemAsync(streamPayload, protocolSystem, onStreamItem).ConfigureAwait(false);
+                await ProcessStreamItemAsync(streamPayload, connectId, onStreamItem).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (linkedTokenSource.Token.IsCancellationRequested)
@@ -1635,12 +1638,12 @@ public sealed class NetworkProvider(
         });
     }
 
-    private static async Task ProcessStreamItemAsync(SecureEnvelope envelope,
-        EcliptixProtocolSystem protocolSystem,
+    private async Task ProcessStreamItemAsync(SecureEnvelope envelope,
+        uint connectId,
         Func<byte[], Task<Result<Unit, NetworkFailure>>> onStreamItem)
     {
-        Result<byte[], EcliptixProtocolFailure> decryptResult =
-            protocolSystem.ProcessInboundEnvelope(envelope);
+        Result<byte[], NetworkFailure> decryptResult =
+            DecryptPayload(connectId, envelope);
 
         if (decryptResult.IsErr)
         {
@@ -1696,9 +1699,9 @@ public sealed class NetworkProvider(
     }
 
     private async Task<Result<Unit, NetworkFailure>> ProcessStreamDirectly(
-        EcliptixProtocolSystem protocolSystem,
         ServiceRequest request,
         Func<byte[], Task<Result<Unit, NetworkFailure>>> onStreamItem,
+        uint connectId,
         CancellationToken token)
     {
         Result<RpcFlow, NetworkFailure> invokeResult =
@@ -1725,8 +1728,8 @@ public sealed class NetworkProvider(
             }
 
             SecureEnvelope streamPayload = streamItem.Unwrap();
-            Result<byte[], EcliptixProtocolFailure> streamDecryptedData =
-                protocolSystem.ProcessInboundEnvelope(streamPayload);
+            Result<byte[], NetworkFailure> streamDecryptedData =
+                DecryptPayload(connectId, streamPayload);
             if (streamDecryptedData.IsErr)
             {
                 continue;
@@ -1739,16 +1742,16 @@ public sealed class NetworkProvider(
     }
 
     private async Task<Result<Unit, NetworkFailure>> SendSendStreamRequestAsync(
-        EcliptixProtocolSystem protocolSystem,
         uint logicalOperationId,
         RpcServiceType serviceType,
         byte[] plainBuffer,
         ServiceFlowType flowType,
         RpcRequestContext requestContext,
+        uint connectId,
         CancellationToken token)
     {
         Result<ServiceRequest, NetworkFailure> serviceRequestResult = BuildRequestWithId(
-            protocolSystem, logicalOperationId, serviceType, plainBuffer, flowType, requestContext);
+            connectId, logicalOperationId, serviceType, plainBuffer, flowType, requestContext);
 
         if (serviceRequestResult.IsErr)
         {
@@ -1772,16 +1775,16 @@ public sealed class NetworkProvider(
     }
 
     private async Task<Result<Unit, NetworkFailure>> SendBidirectionalStreamRequestAsync(
-        EcliptixProtocolSystem protocolSystem,
         uint logicalOperationId,
         RpcServiceType serviceType,
         byte[] plainBuffer,
         ServiceFlowType flowType,
         RpcRequestContext requestContext,
+        uint connectId,
         CancellationToken token)
     {
         Result<ServiceRequest, NetworkFailure> serviceRequestResult = BuildRequestWithId(
-            protocolSystem, logicalOperationId, serviceType, plainBuffer, flowType, requestContext);
+            connectId, logicalOperationId, serviceType, plainBuffer, flowType, requestContext);
 
         if (serviceRequestResult.IsErr)
         {
@@ -2025,44 +2028,33 @@ public sealed class NetworkProvider(
             return;
         }
 
-        if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
+        Result<NativeProtocolSession, EcliptixProtocolFailure> nativeResult = _nativeSessions.Get(connectId);
+        if (nativeResult.IsErr)
         {
             return;
         }
 
-        EcliptixProtocolConnection? connection = protocolSystem.GetConnection();
-        if (connection == null || connection.ExchangeType == PubKeyExchangeType.ServerStreaming)
+        Result<byte[], EcliptixProtocolFailure> exportResult = nativeResult.Unwrap().ExportState();
+        if (exportResult.IsErr)
         {
             return;
-        }
-
-        Option<EcliptixSessionState> sessionStateOption = BuildSessionState(connectId, protocolSystem, connection);
-        if (sessionStateOption.IsSome)
-        {
-            await PersistSessionStateAsync(sessionStateOption.Value!, connectId).ConfigureAwait(false);
-        }
-    }
-
-    private static Option<EcliptixSessionState> BuildSessionState(uint connectId, EcliptixProtocolSystem protocolSystem,
-        EcliptixProtocolConnection connection)
-    {
-        EcliptixSystemIdentityKeys idKeys = protocolSystem.GetIdentityKeys();
-        Result<IdentityKeysState, EcliptixProtocolFailure> idKeysStateResult = idKeys.ToProtoState();
-        Result<RatchetState, EcliptixProtocolFailure> ratchetStateResult = connection.ToProtoState();
-
-        if (!idKeysStateResult.IsOk || !ratchetStateResult.IsOk)
-        {
-            return Option<EcliptixSessionState>.None;
         }
 
         EcliptixSessionState state = new()
         {
             ConnectId = connectId,
-            IdentityKeys = idKeysStateResult.Unwrap(),
-            RatchetState = ratchetStateResult.Unwrap()
+            IdentityKeys = new IdentityKeysState(),
+            RatchetState = new RatchetState(),
+            NativeState = ByteString.CopyFrom(exportResult.Unwrap())
         };
 
-        return Option<EcliptixSessionState>.Some(state);
+        if (_applicationInstanceSettings.IsSome)
+        {
+            state.MembershipId = _applicationInstanceSettings.Value!.Membership?.UniqueIdentifier.ToBase64() ??
+                                 string.Empty;
+        }
+
+        await PersistSessionStateAsync(state, connectId).ConfigureAwait(false);
     }
 
     public void OnProtocolStateChanged(uint connectId) =>
@@ -2211,20 +2203,7 @@ public sealed class NetworkProvider(
 
     private void DisposeConnections()
     {
-        List<KeyValuePair<uint, EcliptixProtocolSystem>> connectionsToDispose = new(_connections);
-        _connections.Clear();
-
-        foreach (KeyValuePair<uint, EcliptixProtocolSystem> connection in connectionsToDispose)
-        {
-            try
-            {
-                connection.Value.Dispose();
-            }
-            catch
-            {
-                // Suppressed
-            }
-        }
+        _nativeSessions.Dispose();
     }
 
     private void DisposeCancellationTokens()
@@ -2293,7 +2272,7 @@ public sealed class NetworkProvider(
         }
 
         (uint connectId, byte[] membershipId) = prerequisitesResult.Unwrap();
-        _connections.TryRemove(connectId, out _);
+        _nativeSessions.Remove(connectId);
 
         Result<EcliptixSessionState, NetworkFailure> stateResult =
             await LoadAndParseStoredState(connectId, membershipId, failOnMissingState, failureMessage)
@@ -2414,9 +2393,9 @@ public sealed class NetworkProvider(
 
     private void ResetRetryStrategyAfterOutage()
     {
-        foreach (KeyValuePair<uint, EcliptixProtocolSystem> connection in _connections)
+        foreach (uint connectionId in _nativeSessions.ActiveConnectionIds())
         {
-            services.RetryStrategy.MarkConnectionHealthy(connection.Key);
+            services.RetryStrategy.MarkConnectionHealthy(connectionId);
         }
     }
 
@@ -2534,19 +2513,7 @@ public sealed class NetworkProvider(
 
     public bool IsConnectionHealthy(uint connectId)
     {
-        if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
-        {
-            return false;
-        }
-
-        EcliptixProtocolConnection? connection = protocolSystem.GetConnection();
-        if (connection == null)
-        {
-            return false;
-        }
-
-        Result<LocalPublicKeyBundle, EcliptixProtocolFailure> peerBundleResult = connection.GetPeerBundle();
-        return peerBundleResult.IsOk;
+        return _nativeSessions.Get(connectId).IsOk;
     }
 
     public async Task<Result<bool, NetworkFailure>> TryRestoreConnectionAsync(uint connectId)
@@ -2558,10 +2525,7 @@ public sealed class NetworkProvider(
                 byte[]? membershipId = GetMembershipIdBytes();
                 if (membershipId == null)
                 {
-                    if (_connections.TryRemove(connectId, out EcliptixProtocolSystem? oldSystem))
-                    {
-                        oldSystem.Dispose();
-                    }
+                    _nativeSessions.Remove(connectId);
 
                     SecrecyChannelRequest request = new(
                         ConnectId: connectId,
@@ -2633,7 +2597,7 @@ public sealed class NetworkProvider(
         uint connectId)
     {
         byte[]? masterKeyBytes = null;
-        byte[]? rootKeyBytes = null;
+        EcliptixIdentityKeysWrapper? nativeIdentity = null;
 
         try
         {
@@ -2648,136 +2612,124 @@ public sealed class NetworkProvider(
             masterKeyBytes = readResult.Unwrap();
             string membershipId = Helpers.FromByteStringToGuid(membershipIdentifier).ToString();
 
-            rootKeyBytes = new byte[CryptographicConstants.AES_KEY_SIZE];
-            HKDF.DeriveKey(
-                HashAlgorithmName.SHA256,
-                ikm: masterKeyBytes,
-                output: rootKeyBytes,
-                salt: null,
-                info: "ecliptix-protocol-root-key"u8.ToArray()
-            );
-
-            Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure> identityKeysResult =
-                EcliptixSystemIdentityKeys.CreateFromMasterKey(masterKeyBytes, membershipId,
-                    NetworkConstants.Protocol.DEFAULT_ONE_TIME_KEY_COUNT);
-
-            if (identityKeysResult.IsErr)
+            Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure> nativeIdentityResult =
+                NativeProtocolSystem.CreateIdentityFromSeed(masterKeyBytes, membershipId);
+            if (nativeIdentityResult.IsErr)
             {
                 return Result<Unit, NetworkFailure>.Err(
-                    identityKeysResult.UnwrapErr().ToNetworkFailure());
+                    nativeIdentityResult.UnwrapErr().ToNetworkFailure());
             }
 
-            EcliptixSystemIdentityKeys identityKeys = identityKeysResult.Unwrap();
+            nativeIdentity = nativeIdentityResult.Unwrap();
 
-            if (_connections.TryRemove(connectId, out EcliptixProtocolSystem? inUseProtocol))
-            {
-                CancelOperationsForConnection(connectId);
-                inUseProtocol.Dispose();
-            }
-
+            _nativeSessions.Remove(connectId);
+            CancelOperationsForConnection(connectId);
             const PubKeyExchangeType exchangeType = PubKeyExchangeType.DataCenterEphemeralConnect;
-            EcliptixProtocolSystem? initiatedProtocol = new(identityKeys);
-
-            try
+            Result<NativeProtocolSession, EcliptixProtocolFailure> nativeSessionResult =
+                _nativeSessions.CreateOrReplace(connectId, nativeIdentity, this.OnProtocolStateChanged);
+            if (nativeSessionResult.IsErr)
             {
-                initiatedProtocol.SetEventHandler(this);
-
-                Result<PubKeyExchange, EcliptixProtocolFailure> peerExchangeResult =
-                    initiatedProtocol.BeginDataCenterPubKeyExchange(connectId, exchangeType);
-
-                if (peerExchangeResult.IsErr)
-                {
-                    await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
-                    return Result<Unit, NetworkFailure>.Err(
-                        peerExchangeResult.UnwrapErr().ToNetworkFailure());
-                }
-
-                PubKeyExchange clientExchange = peerExchangeResult.Unwrap();
-
-                AuthenticatedEstablishRequest authenticatedRequest = new()
-                {
-                    MembershipUniqueId = membershipIdentifier, ClientPubKeyExchange = clientExchange
-                };
-
-                Result<SecureEnvelope, NetworkFailure> serverResponseResult =
-                    await dependencies.RpcServiceManager.EstablishAuthenticatedSecureChannelAsync(
-                        services.ConnectivityService, authenticatedRequest).ConfigureAwait(false);
-
-                if (serverResponseResult.IsErr)
-                {
-                    NetworkFailure failure = serverResponseResult.UnwrapErr();
-                    await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
-                    return Result<Unit, NetworkFailure>.Err(failure);
-                }
-
-                SecureEnvelope responseEnvelope = serverResponseResult.Unwrap();
-
-                Option<CertificatePinningService> certificatePinningService =
-                    await security.CertificatePinningServiceFactory.GetOrInitializeServiceAsync();
-
-                if (!certificatePinningService.IsSome)
-                {
-                    await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
-                    return Result<Unit, NetworkFailure>.Err(
-                        NetworkFailure.RsaEncryption("Failed to initialize certificate pinning service"));
-                }
-
-                byte[] combinedEncryptedResponse = responseEnvelope.EncryptedPayload.ToByteArray();
-                Result<byte[], NetworkFailure> decryptResult =
-                    security.RsaChunkEncryptor.DecryptInChunks(certificatePinningService.Value!,
-                        combinedEncryptedResponse);
-
-                if (decryptResult.IsErr)
-                {
-                    await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
-                    return Result<Unit, NetworkFailure>.Err(decryptResult.UnwrapErr());
-                }
-
-                PubKeyExchange serverExchange = PubKeyExchange.Parser.ParseFrom(decryptResult.Unwrap());
-
-                Result<Unit, EcliptixProtocolFailure> completeResult =
-                    initiatedProtocol.CompleteAuthenticatedPubKeyExchange(serverExchange, rootKeyBytes);
-
-                if (completeResult.IsErr)
-                {
-                    await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
-                    return Result<Unit, NetworkFailure>.Err(
-                        completeResult.UnwrapErr().ToNetworkFailure());
-                }
-
-                _connections.TryAdd(connectId, initiatedProtocol);
-
-                EcliptixProtocolConnection? connection = initiatedProtocol.GetConnection();
-                if (connection != null)
-                {
-                    Result<EcliptixSessionState, EcliptixProtocolFailure> sessionStateResult =
-                        identityKeys.ToProtoState()
-                            .AndThen(identityKeysProto => connection.ToProtoState()
-                                .Map(ratchetStateProto => new EcliptixSessionState
-                                {
-                                    ConnectId = connectId,
-                                    IdentityKeys = identityKeysProto,
-                                    PeerHandshakeMessage = serverExchange,
-                                    RatchetState = ratchetStateProto
-                                })
-                            );
-
-                    if (sessionStateResult.IsOk)
-                    {
-                        EcliptixSessionState sessionState = sessionStateResult.Unwrap();
-
-                        await PersistSessionStateAsync(sessionState, connectId, membershipIdentifier.ToByteArray())
-                            .ConfigureAwait(false);
-                    }
-                }
-
-                initiatedProtocol = null;
-                return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+                await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
+                return Result<Unit, NetworkFailure>.Err(
+                    nativeSessionResult.UnwrapErr().ToNetworkFailure());
             }
-            finally
+
+            Result<byte[], EcliptixProtocolFailure> nativeHandshake =
+                nativeSessionResult.Unwrap().BeginHandshake(connectId, (byte)exchangeType);
+            if (nativeHandshake.IsErr)
             {
-                initiatedProtocol?.Dispose();
+                await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
+                return Result<Unit, NetworkFailure>.Err(
+                    nativeHandshake.UnwrapErr().ToNetworkFailure());
             }
+
+            PubKeyExchange clientExchange = new()
+            {
+                State = PubKeyExchangeState.Init,
+                OfType = exchangeType,
+                Payload = ByteString.CopyFrom(nativeHandshake.Unwrap())
+            };
+
+            AuthenticatedEstablishRequest authenticatedRequest = new()
+            {
+                MembershipUniqueId = membershipIdentifier, ClientPubKeyExchange = clientExchange
+            };
+
+            Result<SecureEnvelope, NetworkFailure> serverResponseResult =
+                await dependencies.RpcServiceManager.EstablishAuthenticatedSecureChannelAsync(
+                    services.ConnectivityService, authenticatedRequest).ConfigureAwait(false);
+
+            if (serverResponseResult.IsErr)
+            {
+                NetworkFailure failure = serverResponseResult.UnwrapErr();
+                await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
+                return Result<Unit, NetworkFailure>.Err(failure);
+            }
+
+            SecureEnvelope responseEnvelope = serverResponseResult.Unwrap();
+
+            Option<CertificatePinningService> certificatePinningService =
+                await security.CertificatePinningServiceFactory.GetOrInitializeServiceAsync();
+
+            if (!certificatePinningService.IsSome)
+            {
+                await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
+                return Result<Unit, NetworkFailure>.Err(
+                    NetworkFailure.RsaEncryption("Failed to initialize certificate pinning service"));
+            }
+
+            Result<PubKeyExchange, NetworkFailure> processResult =
+                ProcessNativeHandshakeResponse(serverResponseResult.Unwrap(), certificatePinningService.Value!,
+                    new SecrecyChannelRequest(
+                        connectId,
+                        exchangeType,
+                        null,
+                        true,
+                        false,
+                        CancellationToken.None));
+
+            if (processResult.IsErr)
+            {
+                await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
+                return Result<Unit, NetworkFailure>.Err(processResult.UnwrapErr());
+            }
+
+            Result<NativeProtocolSession, EcliptixProtocolFailure> nativeSessionForPersist =
+                _nativeSessions.Get(connectId);
+            if (nativeSessionForPersist.IsErr)
+            {
+                await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
+                return Result<Unit, NetworkFailure>.Err(nativeSessionForPersist.UnwrapErr().ToNetworkFailure());
+            }
+
+            NativeProtocolSession nativeSession = nativeSessionForPersist.Unwrap();
+            Result<byte[], EcliptixProtocolFailure> nativeExport = nativeSession.ExportState();
+            if (nativeExport.IsErr)
+            {
+                await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
+                return Result<Unit, NetworkFailure>.Err(nativeExport.UnwrapErr().ToNetworkFailure());
+            }
+
+            // Persist native-only state plus seeds.
+            EcliptixSessionState sessionState = new()
+            {
+                ConnectId = connectId,
+                IdentityKeys = new IdentityKeysState(),
+                PeerHandshakeMessage = processResult.Unwrap(),
+                RatchetState = new RatchetState(),
+                NativeState = ByteString.CopyFrom(nativeExport.Unwrap()),
+                NativePeerBundle = processResult.Unwrap().Payload,
+                NativeIsInitiator = true,
+                OpaqueMasterKey = ByteString.CopyFrom(masterKeyBytes),
+                MembershipId = _applicationInstanceSettings.IsSome
+                    ? _applicationInstanceSettings.Value!.Membership?.UniqueIdentifier.ToBase64() ?? string.Empty
+                    : string.Empty
+            };
+
+            await PersistSessionStateAsync(sessionState, connectId, membershipIdentifier.ToByteArray())
+                .ConfigureAwait(false);
+
+            return Result<Unit, NetworkFailure>.Ok(Unit.Value);
         }
         catch (Exception ex)
         {
@@ -2789,11 +2741,6 @@ public sealed class NetworkProvider(
             if (masterKeyBytes != null)
             {
                 CryptographicOperations.ZeroMemory(masterKeyBytes);
-            }
-
-            if (rootKeyBytes != null)
-            {
-                CryptographicOperations.ZeroMemory(rootKeyBytes);
             }
         }
     }

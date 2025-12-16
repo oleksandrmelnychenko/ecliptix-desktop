@@ -1,13 +1,19 @@
+using System;
 using System.Security.Cryptography;
 using System.Text;
+using System.Linq;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Sodium;
 using Serilog;
 
-namespace Ecliptix.Protocol.System.Security.KeyDerivation;
+namespace Ecliptix.Core.Services.Network;
 
-public static class LogoutKeyDerivation
+/// <summary>
+/// Local logout key derivation helper. Mirrors the previous protocol-layer helper but
+/// lives alongside the network stack now that the managed ratchet has been removed.
+/// </summary>
+internal static class LogoutKeyDerivation
 {
     private const int KEY_SIZE = 32;
     private const int HMAC_SIZE = 32;
@@ -23,6 +29,35 @@ public static class LogoutKeyDerivation
 
     private const string ERROR_MESSAGE_MASTER_KEY_READ_FAILED = "Failed to read master key bytes";
     private const string ERROR_MESSAGE_HKDF_DERIVATION_FAILED = "HKDF key derivation failed";
+
+#if DEBUG
+    static LogoutKeyDerivation()
+    {
+        RunDebugSelfTest();
+    }
+
+    private static void RunDebugSelfTest()
+    {
+        byte[] key = Enumerable.Range(0, KEY_SIZE).Select(i => (byte)i).ToArray();
+        byte[] data = Encoding.UTF8.GetBytes("logout-self-test");
+        byte[] validHmac = ComputeHmac(key, data);
+
+        if (!VerifyHmac(key, data, validHmac))
+        {
+            throw new InvalidOperationException("LogoutKeyDerivation self-test failed: expected HMAC to verify.");
+        }
+
+        validHmac[0] ^= 0xFF;
+        if (VerifyHmac(key, data, validHmac))
+        {
+            throw new InvalidOperationException("LogoutKeyDerivation self-test failed: tampered HMAC verified.");
+        }
+
+        CryptographicOperations.ZeroMemory(key);
+        CryptographicOperations.ZeroMemory(data);
+        CryptographicOperations.ZeroMemory(validHmac);
+    }
+#endif
 
     public static Result<byte[], SodiumFailure> DeriveLogoutHmacKey(SodiumSecureMemoryHandle masterKeyHandle)
     {
