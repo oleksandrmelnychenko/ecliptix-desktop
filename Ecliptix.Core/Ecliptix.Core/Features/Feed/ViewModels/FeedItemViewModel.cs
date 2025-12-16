@@ -1,6 +1,5 @@
 using System;
 using System.Reactive.Disposables;
-using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Messaging;
 using Ecliptix.Core.Core.Messaging.Messages;
 using Ecliptix.Core.Core.MVVM;
@@ -61,10 +60,7 @@ public abstract class FeedItemViewModel : ViewModelBase
         UpdateRelativeTime();
     }
 
-    private void CopyLink()
-    {
-        IsFlyoutOpen = false;
-    }
+    private void CopyLink() => IsFlyoutOpen = false;
 
     private void Back() => WeakReferenceMessenger.Default.Send(new BackMessage(true));
 
