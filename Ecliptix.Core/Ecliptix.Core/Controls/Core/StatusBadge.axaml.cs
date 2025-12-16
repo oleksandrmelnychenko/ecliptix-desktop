@@ -16,6 +16,15 @@ public partial class StatusBadge : UserControl
     public static readonly StyledProperty<string> TextProperty =
         AvaloniaProperty.Register<StatusBadge, string>(nameof(Text));
 
+    public static readonly StyledProperty<double> BadgeFontSizeProperty =
+        AvaloniaProperty.Register<StatusBadge, double>(nameof(BadgeFontSize), 10.0);
+
+    public static readonly StyledProperty<double> PopupFontSizeProperty =
+        AvaloniaProperty.Register<StatusBadge, double>(nameof(PopupFontSize), 12.0);
+
+    public static readonly StyledProperty<FontWeight> TooltipTitleFontWeightProperty =
+        AvaloniaProperty.Register<StatusBadge, FontWeight>(nameof(TooltipTitleFontWeight), FontWeight.Medium);
+
     public static readonly StyledProperty<Geometry> IconProperty =
         AvaloniaProperty.Register<StatusBadge, Geometry>(nameof(Icon));
 
@@ -49,6 +58,9 @@ public partial class StatusBadge : UserControl
     public Geometry Icon { get => GetValue(IconProperty); set => SetValue(IconProperty, value); }
     public IBrush BadgeBrush { get => GetValue(BadgeBrushProperty); set => SetValue(BadgeBrushProperty, value); }
     public IBrush BadgeBackground { get => GetValue(BadgeBackgroundProperty); set => SetValue(BadgeBackgroundProperty, value); }
+    public double BadgeFontSize { get => GetValue(BadgeFontSizeProperty); set => SetValue(BadgeFontSizeProperty, value); }
+    public double PopupFontSize { get => GetValue(PopupFontSizeProperty); set => SetValue(PopupFontSizeProperty, value); }
+    public FontWeight TooltipTitleFontWeight { get => GetValue(TooltipTitleFontWeightProperty); set => SetValue(TooltipTitleFontWeightProperty, value); }
 
     private Popup? _infoPopup;
     private Border? _popupContentBorder;

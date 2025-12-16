@@ -21,13 +21,13 @@
 
         <StackPanel Grid.Row="0"
                     Spacing="{StaticResource Spacing.S}"
-                    MaxWidth="{StaticResource Header.MaxWidth}"
-                    HorizontalAlignment="Left">
+                    HorizontalAlignment="Left"
+                    Margin="0 0 0 5">
 
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <TextBlock Text="{Binding Title}"
-                           FontSize="{StaticResource Font.XXL}"
-                           FontWeight="Light"
+                           FontSize="{StaticResource Font.XL}"
+                           FontWeight="Normal"
                            Foreground="{DynamicResource OnSurface}"
                            LineHeight="{StaticResource LineHeight.Loose}" />
                 <coreControls:StepBadgeView Text="{Binding StepBadgeText}"
@@ -36,11 +36,11 @@
 
             <TextBlock Text="{Binding Description}"
                        TextWrapping="Wrap"
-                       FontSize="{StaticResource Font.XXXL}"
+                       FontSize="{StaticResource Font.XL}"
                        LineHeight="{StaticResource LineHeight.Subtitle}"
-                       FontWeight="Light"
+                       FontWeight="Normal"
                        Foreground="{DynamicResource OnSurface}"
-                       Opacity="0.8" />
+                       Opacity="1" />
         </StackPanel>
 
         <hintedTextControls:HintedTextBox
@@ -71,7 +71,8 @@
                 Command="{Binding VerifyMobileNumberCommand}"
                 IsEnabled="{Binding VerifyMobileNumberCommand.CanExecute}"
                 Classes="primary large glow"
-                Classes.is-busy="{Binding IsBusy}" />
+                Classes.is-busy="{Binding IsBusy}"
+                Margin="0 2 0 0"/>
 
         <coreControls:ErrorNotificationView
             Grid.Row="3"

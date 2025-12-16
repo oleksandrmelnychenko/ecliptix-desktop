@@ -35,7 +35,7 @@ public static class LocalizationData
         [LocalizationKeys.Common.SERVER_UNAVAILABLE] = "Server is currently unavailable. Please try again later.",
         [LocalizationKeys.Authentication.SignUp.SignUpMobileVerification.TITLE] = "Create Account",
         [LocalizationKeys.Authentication.SignUp.SignUpMobileVerification.DESCRIPTION] =
-            "Confirm your number. We'll text you a verification code.",
+            "Let's start by verifying your mobile number. We'll send you a secure verification code.",
         [LocalizationKeys.Authentication.SignUp.SignUpMobileVerification.HINT] = "Include country code (e.g., +1)",
         [LocalizationKeys.Authentication.SignUp.SignUpMobileVerification.WATERMARK] = "Mobile Number",
         [LocalizationKeys.Authentication.SignUp.SignUpMobileVerification.BUTTON] = "Continue",
@@ -277,7 +277,7 @@ public static class LocalizationData
             "Дані реєстрації неповні. Будь ласка, почніть процес реєстрації знову.",
         [LocalizationKeys.Authentication.SignUp.SignUpMobileVerification.TITLE] = "Створити акаунт",
         [LocalizationKeys.Authentication.SignUp.SignUpMobileVerification.DESCRIPTION] =
-            "Підтвердьте номер. Ми надішлемо код в SMS.",
+            "Давайте почнемо з перевірки вашого номера мобільного телефону. Ми надішлемо вам безпечний код підтвердження.",
         [LocalizationKeys.Authentication.SignUp.SignUpMobileVerification.HINT] = "Включіть код країни (напр., +380)",
         [LocalizationKeys.Authentication.SignUp.SignUpMobileVerification.WATERMARK] = "Номер мобільного",
         [LocalizationKeys.Authentication.SignUp.SignUpMobileVerification.BUTTON] = "Продовжити",

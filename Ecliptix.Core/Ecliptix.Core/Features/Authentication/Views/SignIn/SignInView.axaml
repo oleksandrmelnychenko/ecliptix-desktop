@@ -27,21 +27,20 @@
 
             <!-- Header Section -->
             <StackPanel Grid.Row="0"
-                        Spacing="{StaticResource Spacing.S}"
-                        MaxWidth="{StaticResource Header.MaxWidth}"
-                        HorizontalAlignment="Left">
+                        Spacing="{StaticResource Spacing.S+}"
+                        HorizontalAlignment="Left"
+                        Margin="0 0 0 5">
                 <TextBlock Text="{Binding LocalizationService[Authentication.SignIn.Title]}"
-                           FontSize="{StaticResource Font.XXL}"
-                           FontWeight="Light"
-                           Foreground="{DynamicResource OnSurface}"
-                           LineHeight="{StaticResource LineHeight.Loose}" />
+                           FontSize="{StaticResource Font.Title.L}"
+                           FontWeight="Medium"
+                           Foreground="{DynamicResource OnSurface}"/>
                 <TextBlock Text="{Binding LocalizationService[Authentication.SignIn.Welcome]}"
                            TextWrapping="Wrap"
-                           FontSize="{StaticResource Font.XXXL}"
+                           FontSize="{StaticResource Font.XL}"
                            LineHeight="{StaticResource LineHeight.Subtitle}"
-                           FontWeight="Light"
+                           FontWeight="Normal"
                            Foreground="{DynamicResource OnSurface}"
-                           Opacity="0.8" />
+                           Opacity="1" />
             </StackPanel>
 
             <!-- Mobile Number Input -->
