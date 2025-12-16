@@ -15,7 +15,7 @@
 
     <Grid VerticalAlignment="Top"
           RowSpacing="{StaticResource Spacing.Authentication}"
-          RowDefinitions="Auto,Auto,Auto, Auto"
+          RowDefinitions="Auto,Auto,Auto,Auto,Auto"
           HorizontalAlignment="Stretch"
           Width="{StaticResource Content.MaxWidth}">
 
@@ -74,8 +74,50 @@
                 Classes.is-busy="{Binding IsBusy}"
                 Margin="0 2 0 0"/>
 
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    FlowDirection="LeftToRight"
+                    MinHeight="20">
+            <TextBlock Text="{Binding LocalizationService[Footer.AgreementPrefix]}"
+                       Classes="footer"
+                       VerticalAlignment="Center"
+                       Foreground="#6B7280"
+                       TextWrapping="NoWrap"
+                       Margin="0,0,4,0" />
+            <Button Content="{Binding LocalizationService[Footer.TermsOfService]}"
+                    Command="{Binding OpenTermsOfServiceCommand}"
+                    Classes="ghost"
+                    Padding="0"
+                    Margin="0"
+                    MinWidth="0"
+                    MinHeight="0"
+                    Foreground="#A78BFA"
+                    VerticalAlignment="Center"
+                    HorizontalContentAlignment="Left">
+            </Button>
+            <TextBlock Text="{Binding LocalizationService[Footer.AgreementConjunction]}"
+                       Classes="footer"
+                       VerticalAlignment="Center"
+                       Foreground="#6B7280"
+                       TextWrapping="NoWrap"
+                       Margin="1,0,2,0" />
+            <Button Content="{Binding LocalizationService[Footer.PrivacyPolicy]}"
+                    Command="{Binding OpenPrivacyPolicyCommand}"
+                    Classes="ghost"
+                    Padding="0"
+                    Margin="0"
+                    MinWidth="0"
+                    MinHeight="0"
+                    Foreground="#A78BFA"
+                    VerticalAlignment="Center"
+                    HorizontalContentAlignment="Left">
+            </Button>
+        </StackPanel>
+
         <coreControls:ErrorNotificationView
-            Grid.Row="3"
+            Grid.Row="4"
             x:Name="ErrorNotification"
             VerticalAlignment="Top"
             HorizontalAlignment="Stretch"

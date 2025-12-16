@@ -60,7 +60,7 @@ public static class LocalizationData
         [LocalizationKeys.Authentication.SignUp.NicknameInput.BUTTON] = "Confirm",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.TITLE] = "Set Secure Key",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.DESCRIPTION] =
-            "Use a strong, unique secure key for security.",
+            "Choose a strong secure key. This will be used to access your account and is stored only on your device.",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.SECURE_KEY_PLACEHOLDER] = "Secure Key",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.SECURE_KEY_HINT] =
             "Min 6 chars: uppercase, lowercase, number",
@@ -181,7 +181,7 @@ public static class LocalizationData
         [LocalizationKeys.Footer.TERMS_OF_SERVICE] = "Terms of Service",
         [LocalizationKeys.Footer.SUPPORT] = "Support",
         [LocalizationKeys.Footer.AGREEMENT_TEXT] = "By continuing, you agree to our Terms and Privacy Policy.",
-        [LocalizationKeys.Footer.AGREEMENT_PREFIX] = "By signing up, you agree to the ",
+        [LocalizationKeys.Footer.AGREEMENT_PREFIX] = "By continuing, you agree to the ",
         [LocalizationKeys.Footer.AGREEMENT_CONJUNCTION] = " and ",
         [LocalizationKeys.Footer.COPYRIGHT] = "© 2025 Horizon Dynamics. All rights reserved.",
         [LocalizationKeys.Navigation.BACK] = "Back",
@@ -302,7 +302,7 @@ public static class LocalizationData
         [LocalizationKeys.Authentication.SignUp.NicknameInput.BUTTON] = "Підтвердити",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.TITLE] = "Встановіть ключ безпеки",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.DESCRIPTION] =
-            "Для безпеки використовуйте надійний ключ безпеки.",
+            "Оберіть надійний ключ безпеки для доступу до облікового запису. Він зберігається лише на вашому пристрої.",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.SECURE_KEY_PLACEHOLDER] = "Ключ безпеки",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.SECURE_KEY_HINT] =
             "Мін 6 символів: велика, мала літера, цифра",
@@ -314,7 +314,7 @@ public static class LocalizationData
             "Ключі безпеки не збігаються.",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.BUTTON] = "Встановити ключ безпеки",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.REQUIREMENTS_SUCCESS_TITLE] = "Усі мінімальні вимоги виконано",
-        [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.REQUIREMENTS_TITLE] = "Безпекові вимоги:",
+        [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.REQUIREMENTS_TITLE] = "Вимоги безпеки:",
         [LocalizationKeys.Authentication.SecureKeyRecovery.Reset.TITLE] = "Скидання ключа безпеки",
         [LocalizationKeys.Authentication.SecureKeyRecovery.Reset.DESCRIPTION] =
             "Створіть новий ключ безпеки для облікового запису.",
@@ -423,7 +423,7 @@ public static class LocalizationData
         [LocalizationKeys.Footer.SUPPORT] = "Підтримка",
         [LocalizationKeys.Footer.AGREEMENT_TEXT] =
             "Продовжуючи, ви погоджуєтесь з нашими Умовами та Політикою конфіденційності.",
-        [LocalizationKeys.Footer.AGREEMENT_PREFIX] = "Реєструючись, ви погоджуєтесь з ",
+        [LocalizationKeys.Footer.AGREEMENT_PREFIX] = "Продовжуючи, ви погоджуєтесь з ",
         [LocalizationKeys.Footer.AGREEMENT_CONJUNCTION] = " та ",
         [LocalizationKeys.Footer.COPYRIGHT] = "© 2025 Horizon Dynamics. Усі права захищено.",
         [LocalizationKeys.Navigation.BACK] = "Назад",
