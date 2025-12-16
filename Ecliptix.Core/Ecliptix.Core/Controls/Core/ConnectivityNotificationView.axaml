@@ -4,29 +4,56 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:core="clr-namespace:Ecliptix.Core.Controls.Core"
              xmlns:system="clr-namespace:System;assembly=System.Runtime"
+             xmlns:converters="clr-namespace:Ecliptix.Core.Shared.Converters"
              mc:Ignorable="d" d:DesignWidth="350" d:DesignHeight="60"
              x:Class="Ecliptix.Core.Controls.Core.ConnectivityNotificationView"
-             x:Name="Root"
              x:DataType="core:ConnectivityNotificationViewModel">
 
-    <UserControl.Resources>
+   <UserControl.Resources>
         <system:TimeSpan x:Key="RestoredStateDuration">0:0:3</system:TimeSpan>
+        <converters:DrawingColorConverter x:Key="DrawingColorConverter" />
     </UserControl.Resources>
 
-    <UserControl.Styles>
-        <Style Selector="Ellipse.Pulse">
-            <Style.Animations>
-                <Animation Duration="0:0:1.5" IterationCount="INFINITE">
-                    <KeyFrame Cue="0%"><Setter Property="Opacity" Value="0.4"/></KeyFrame>
-                    <KeyFrame Cue="50%"><Setter Property="Opacity" Value="1.0"/></KeyFrame>
-                    <KeyFrame Cue="100%"><Setter Property="Opacity" Value="0.4"/></KeyFrame>
-                </Animation>
-            </Style.Animations>
+  <UserControl.Styles>
+        <Style Selector="Border.Offline Border#IconWrapper">
+            <Setter Property="Background" Value="#F3F4F6"/>
+        </Style>
+        <Style Selector="Border.ServerIssue Border#IconWrapper">
+            <Setter Property="Background" Value="#FEF2F2"/>
+        </Style>
+        <Style Selector="Border.Restored Border#IconWrapper">
+            <Setter Property="Background" Value="#ECFDF5"/>
+        </Style>
+
+        <Style Selector="Border.Offline Viewbox#InnerIconViewbox">
+            <Setter Property="Width" Value="26"/>
+            <Setter Property="Height" Value="26"/>
+        </Style>
+        <Style Selector="Border.ServerIssue Viewbox#InnerIconViewbox">
+            <Setter Property="Width" Value="20"/>
+            <Setter Property="Height" Value="20"/>
+        </Style>
+        <Style Selector="Border.Restored Viewbox#InnerIconViewbox">
+            <Setter Property="Width" Value="20"/>
+            <Setter Property="Height" Value="20"/>
+        </Style>
+
+        <Style Selector="Border.Offline Image#StatusIcon">
+            <Setter Property="Tag" Value="{DynamicResource __wifi_off}"/>
+            <Setter Property="TextElement.Foreground" Value="#4B5563"/>
+        </Style>
+        <Style Selector="Border.ServerIssue Image#StatusIcon">
+            <Setter Property="Tag" Value="{DynamicResource __circle_alert}"/>
+            <Setter Property="TextElement.Foreground" Value="#DC2626"/>
+            <Setter Property="Opacity" Value="1.0"/>
+        </Style>
+        <Style Selector="Border.Restored Image#StatusIcon">
+            <Setter Property="Tag" Value="{DynamicResource __wifi}"/>
+            <Setter Property="TextElement.Foreground" Value="#16A34A"/>
         </Style>
 
         <Style Selector="Border.Offline">
-            <Setter Property="Background" Value="#E5E7EB"/>
-        </Style>
+            <Setter Property="Background" Value="#E5E7EB"/> </Style>
 
         <Style Selector="Border.ServerIssue">
             <Setter Property="Background">
@@ -42,28 +69,43 @@
         </Style>
 
         <Style Selector="Border.Restored">
-            <Setter Property="Background" Value="#BBF7D0"/>
+             <Setter Property="Background" Value="#BBF7D0"/> </Style>
+
+        <Style Selector="Border#MainBorder">
+            <Setter Property="Opacity" Value="0"/>
+            <Setter Property="RenderTransform" Value="translateY(-20px)"/>
+            <Setter Property="IsHitTestVisible" Value="False"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.3" Easing="QuadraticEaseOut"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3" Easing="QuadraticEaseOut"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border#MainBorder.Visible">
+            <Setter Property="Opacity" Value="1"/>
+            <Setter Property="RenderTransform" Value="translateY(0px)"/>
+            <Setter Property="IsHitTestVisible" Value="True"/>
         </Style>
 
+        <Style Selector="Border.ServerIssue TextBlock#StatusText">
+            <Setter Property="Foreground" Value="#DC2626"/>
+        </Style>
+        <Style Selector="Border.ServerIssue TextBlock#DescriptionText">
+            <Setter Property="Foreground" Value="#EF4444"/>
+        </Style>
 
-        <Style Selector="Border#PART_TimerBar">
+        <Style Selector="Border#TimerBar">
             <Setter Property="Opacity" Value="0"/>
             <Setter Property="RenderTransform" Value="scaleX(1)"/>
-            <Setter Property="Background" Value="#22C55E"/>
+            <Setter Property="Background" Value="#16A34A"/>
         </Style>
-
-        <Style Selector="Border.Restored Border#PART_TimerBar">
+        <Style Selector="Border.Restored Border#TimerBar">
             <Setter Property="Opacity" Value="1"/>
             <Style.Animations>
-                <Animation Duration="{StaticResource RestoredStateDuration}"
-                           FillMode="Forward"
-                           Easing="LinearEasing">
-                    <KeyFrame Cue="0%">
-                        <Setter Property="ScaleTransform.ScaleX" Value="1"/>
-                    </KeyFrame>
-                    <KeyFrame Cue="100%">
-                        <Setter Property="ScaleTransform.ScaleX" Value="0"/>
-                    </KeyFrame>
+                <Animation Duration="{Binding RestoredStateDuration}" FillMode="Forward" Easing="LinearEasing">
+                    <KeyFrame Cue="0%"><Setter Property="ScaleTransform.ScaleX" Value="1"/></KeyFrame>
+                    <KeyFrame Cue="100%"><Setter Property="ScaleTransform.ScaleX" Value="0"/></KeyFrame>
                 </Animation>
             </Style.Animations>
         </Style>
@@ -73,116 +115,111 @@
             CornerRadius="12"
             BoxShadow="0 4 24 4 #15000000"
             HorizontalAlignment="Stretch"
-            VerticalAlignment="Stretch">
+            VerticalAlignment="Stretch"
+            Classes.Visible="{Binding IsVisible}"
+            Classes.Offline="{Binding IsOffline}"
+            Classes.ServerIssue="{Binding IsServerIssue}"
+            Classes.Restored="{Binding IsRestored}">
 
-        <Border x:Name="ContentBorder"
-                Background="White"
+        <Border Background="White"
                 Margin="4,0,0,0"
                 CornerRadius="8,12,12,8"
                 ClipToBounds="True">
-
             <Grid>
-                <Grid Margin="16,12" ColumnSpacing="12">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
+                <Grid Margin="12" ColumnSpacing="12" ColumnDefinitions="Auto,*,Auto,Auto,Auto">
 
-                    <Image x:Name="StatusIcon"
-                           Width="24" Height="24"
-                           Grid.Column="0"
-                           VerticalAlignment="Center"
-                           Source="{Binding StatusIconSource}"
-                           Stretch="Uniform">
-                        <Image.Styles>
-                            <Style Selector="Image">
-                                <Setter Property="Opacity" Value="1"/>
-                            </Style>
-                            <Style Selector="Border.ServerIssue Image">
-                                <Setter Property="Opacity" Value="0.9"/>
-                            </Style>
-                        </Image.Styles>
-                    </Image>
+                    <Border x:Name="IconWrapper"
+                            Grid.Column="0"
+                            Width="40" Height="40"
+                            CornerRadius="10"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Center">
+
+                        <Viewbox x:Name="InnerIconViewbox"
+                                 VerticalAlignment="Center"
+                                 HorizontalAlignment="Center">
+
+                            <Canvas Width="24" Height="24">
+                                <Image x:Name="StatusIcon"
+                                       Width="24" Height="24">
+                                    <Image.Source>
+                                        <DrawingImage>
+                                            <DrawingImage.Drawing>
+                                                <MultiBinding Converter="{StaticResource DrawingColorConverter}">
+                                                    <Binding Path="Tag" ElementName="StatusIcon" />
+                                                    <Binding Path="(TextElement.Foreground)" ElementName="StatusIcon" />
+                                                </MultiBinding>
+                                            </DrawingImage.Drawing>
+                                        </DrawingImage>
+                                    </Image.Source>
+                                </Image>
+                            </Canvas>
+                        </Viewbox>
+                    </Border>
 
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                        <TextBlock x:Name="StatusTextBlock"
+                        <TextBlock x:Name="StatusText"
                                    Text="{Binding StatusText}"
                                    FontFamily="{StaticResource SegoeUI}"
-                                   Foreground="#111827"
-                                   FontWeight="SemiBold"
-                                   FontSize="14"
-                                   TextWrapping="NoWrap">
-                            <TextBlock.Styles>
-                                <Style Selector="TextBlock">
-                                    <Setter Property="Foreground" Value="#111827"/>
-                                </Style>
-                                <Style Selector="Border.ServerIssue TextBlock">
-                                    <Setter Property="Foreground" Value="#b91c1c"/>
-                                </Style>
-                            </TextBlock.Styles>
-                        </TextBlock>
-
-                        <TextBlock x:Name="StatusDescriptionBlock"
+                                   FontWeight="SemiBold" FontSize="14" Foreground="#111827"/>
+                        <TextBlock x:Name="DescriptionText"
                                    Text="{Binding StatusDescription}"
                                    FontFamily="{StaticResource SegoeUI}"
-                                   Foreground="#6B7280"
-                                   FontSize="12"
-                                   TextWrapping="NoWrap">
-                            <TextBlock.Styles>
-                                <Style Selector="TextBlock">
-                                    <Setter Property="Foreground" Value="#6B7280"/>
-                                </Style>
-                                <Style Selector="Border.ServerIssue TextBlock">
-                                    <Setter Property="Foreground" Value="#dc2626"/>
-                                </Style>
-                            </TextBlock.Styles>
-                        </TextBlock>
+                                   FontSize="12" Foreground="#6B7280"/>
                     </StackPanel>
 
-                    <Button x:Name="RetryButton"
-                            Grid.Column="2"
-                            Margin="8,0,0,0"
-                            Padding="12,6"
-                            CornerRadius="8"
-                            Background="Transparent"
-                            BorderBrush="#E5E7EB"
-                            BorderThickness="1"
+                    <Button Grid.Column="2"
+                            IsVisible="{Binding ShowRetryButton}"
                             Command="{Binding RetryCommand}"
-                            IsVisible="{Binding ShowRetryButton}">
-
-                        <Button.Styles>
-                            <Style Selector="Button:pointerover /template/ ContentPresenter">
-                                <Setter Property="Background" Value="#F3F4F6"/>
-                                <Setter Property="BorderBrush" Value="#D1D5DB"/>
-                            </Style>
-                        </Button.Styles>
-
+                            Margin="8,0,0,0" Padding="12,6" CornerRadius="8"
+                            Background="Transparent" BorderBrush="#E5E7EB" BorderThickness="1">
                         <TextBlock Text="{Binding RetryButtonText}"
                                    FontFamily="{StaticResource SegoeUI}"
-                                   Foreground="#374151"
-                                   FontWeight="Medium"
-                                   FontSize="12"/>
+                                   Foreground="#374151" FontWeight="Medium" FontSize="12"/>
                     </Button>
 
-                    <Ellipse x:Name="StatusDot"
-                             Grid.Column="3"
-                             Width="8" Height="8"
-                             Margin="8,0,0,0"
-                             VerticalAlignment="Center"
-                             Classes="Pulse"
-                             Fill="#EF4444"
-                             IsVisible="{Binding IssueCategory, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+                    <Ellipse Grid.Column="3" Width="8" Height="8" Margin="8,0,0,0" Fill="#EF4444"
+                             IsVisible="{Binding IsServerIssue}">
+                        <Ellipse.Styles>
+                            <Style Selector="Ellipse">
+                                <Style.Animations>
+                                    <Animation Duration="0:0:1.5" IterationCount="INFINITE">
+                                        <KeyFrame Cue="0%"><Setter Property="Opacity" Value="0.4"/></KeyFrame>
+                                        <KeyFrame Cue="50%"><Setter Property="Opacity" Value="1.0"/></KeyFrame>
+                                        <KeyFrame Cue="100%"><Setter Property="Opacity" Value="0.4"/></KeyFrame>
+                                    </Animation>
+                                </Style.Animations>
+                            </Style>
+                        </Ellipse.Styles>
+                    </Ellipse>
+
+                    <Button Grid.Column="4"
+                            Command="{Binding CloseCommand}"
+                            Margin="8,-4,-4,0"
+                            Padding="4"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            VerticalAlignment="Top"
+                            Cursor="Hand">
+                        <Button.Styles>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                            <Style Selector="Button:pointerover Path">
+                                <Setter Property="Fill" Value="#111827"/>
+                            </Style>
+                        </Button.Styles>
+                        <Path Data="M13.41,12l4.3-4.29a1,1,0,1,0-1.42-1.42L12,10.59,7.71,6.29A1,1,0,0,0,6.29,7.71L10.59,12l-4.3,4.29a1,1,0,0,0,0,1.42,1,1,0,0,0,1.42,0L12,13.41l4.29,4.3a1,1,0,0,0,1.42,0,1,1,0,0,0,0-1.42Z"
+                              Fill="#9CA3AF"
+                              Width="10" Height="10"
+                              Stretch="Uniform"/>
+                    </Button>
                 </Grid>
 
-                <Border x:Name="PART_TimerBar"
-                        VerticalAlignment="Bottom"
-                        HorizontalAlignment="Left"
-                        Height="3"
-                        Width="{Binding Bounds.Width, ElementName=ContentBorder}"
-                        RenderTransformOrigin="0%,0%">
-                        </Border>
+                <Border x:Name="TimerBar"
+                        VerticalAlignment="Bottom" HorizontalAlignment="Left"
+                        Height="3" Width="{Binding $parent[Border].Bounds.Width}"
+                        RenderTransformOrigin="0%,0%"/>
             </Grid>
         </Border>
     </Border>

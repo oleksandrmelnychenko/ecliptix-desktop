@@ -95,7 +95,8 @@
                     MinHeight="0"
                     Foreground="#A78BFA"
                     VerticalAlignment="Center"
-                    HorizontalContentAlignment="Left">
+                    HorizontalContentAlignment="Left"
+                    Cursor="Hand">
             </Button>
             <TextBlock Text="{Binding LocalizationService[Footer.AgreementConjunction]}"
                        Classes="footer"
@@ -112,7 +113,8 @@
                     MinHeight="0"
                     Foreground="#A78BFA"
                     VerticalAlignment="Center"
-                    HorizontalContentAlignment="Left">
+                    HorizontalContentAlignment="Left"
+                    Cursor="Hand">
             </Button>
         </StackPanel>
 

@@ -8,7 +8,6 @@
              x:Class="Ecliptix.Core.Controls.Core.NetworkBadgeView">
     <core:StatusBadge Text="{Binding Text}"
                       Icon="{Binding Icon}"
-                      HoverText="{Binding HoverText}"
                       Classes.green="{Binding IsConnected}"
                       Classes.gray="{Binding IsDisconnected}"
                       Classes.red="{Binding IsServerError}"

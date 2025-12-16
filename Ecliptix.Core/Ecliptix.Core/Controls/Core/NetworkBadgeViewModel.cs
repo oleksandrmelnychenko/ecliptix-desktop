@@ -38,48 +38,42 @@ public class NetworkBadgeViewModel : ReactiveObject, IDisposable
     [ObservableAsProperty] public bool IsDisconnected { get; }
     [ObservableAsProperty] public bool IsServerError { get; }
 
-    public NetworkBadgeViewModel()
+   public NetworkBadgeViewModel()
     {
         _connectivityService = Locator.Current.GetService<IConnectivityService>()
             ?? throw new InvalidOperationException("IConnectivityService not found in Locator");
 
         _localizationService = Locator.Current.GetService<ILocalizationService>();
 
-        ConnectivitySnapshot initialSnapshot = _connectivityService.CurrentSnapshot;
-        Log.Information("[BadgeVM] Init Snapshot: Source={Source}, Status={Status}", initialSnapshot.Source, initialSnapshot.Status);
+        ConnectivityStatus initialInternetState = _connectivityService.LastKnownInternetStatus;
+        ConnectivityStatus initialServerState = _connectivityService.LastKnownServerStatus;
+
+        Log.Information("[BadgeVM] Init State: Internet={Internet}, Server={Server}", initialInternetState, initialServerState);
 
         IObservable<ConnectivitySnapshot> sharedStream = _connectivityService.ConnectivityStream
-            .Do(s => Log.Debug("[BadgeVM] Stream Event: {Source} -> {Status}", s.Source, s.Status)) // Лог вхідних подій
+            .Do(s => Log.Debug("[BadgeVM] Stream Event: {Source} -> {Status}", s.Source, s.Status))
             .Publish()
             .RefCount();
-
-        ConnectivityStatus initialInternetState = initialSnapshot.Source == ConnectivitySource.INTERNET_PROBE
-            ? initialSnapshot.Status
-            : (initialSnapshot.Status == ConnectivityStatus.CONNECTED ? ConnectivityStatus.CONNECTED : ConnectivityStatus.UNAVAILABLE);
-
-        ConnectivityStatus initialServerState = initialSnapshot.Source == ConnectivitySource.DATA_CENTER
-            ? initialSnapshot.Status
-            : ConnectivityStatus.DISCONNECTED;
 
         IObservable<ConnectivityStatus> internetStatus = sharedStream
             .Where(s => s.Source == ConnectivitySource.INTERNET_PROBE)
             .Select(s => s.Status)
             .StartWith(initialInternetState)
-            .Do(s => Log.Debug("[BadgeVM] Internet Status Update: {Status}", s)) // Лог зміни статусу інтернету
+            .Do(s => Log.Debug("[BadgeVM] Internet Status Update: {Status}", s))
             .DistinctUntilChanged();
 
         IObservable<ConnectivityStatus> serverStatus = sharedStream
             .Where(s => s.Source == ConnectivitySource.DATA_CENTER)
             .Select(s => s.Status)
             .StartWith(initialServerState)
-            .Do(s => Log.Debug("[BadgeVM] Server Status Update: {Status}", s)) // Лог зміни статусу сервера
+            .Do(s => Log.Debug("[BadgeVM] Server Status Update: {Status}", s))
             .DistinctUntilChanged();
 
         IObservable<NetworkBadgeState> badgeState = Observable.CombineLatest(
                 internetStatus,
                 serverStatus,
                 DetermineBadgeState)
-            .Do(state => Log.Information("[BadgeVM] Final Calculated State: {State}", state)) // Лог фінального рішення
+            .Do(state => Log.Information("[BadgeVM] Final Calculated State: {State}", state))
             .DistinctUntilChanged();
 
         badgeState.Select(s => s == NetworkBadgeState.Connected)
@@ -115,7 +109,7 @@ public class NetworkBadgeViewModel : ReactiveObject, IDisposable
                 .DisposeWith(_disposables);
         }
 
-        badgeState.Select(_ => string.Empty)
+        badgeState.Select(GetHoverTextForState)
             .ObserveOn(RxApp.MainThreadScheduler)
             .ToPropertyEx(this, x => x.HoverText)
             .DisposeWith(_disposables);
@@ -132,16 +126,20 @@ public class NetworkBadgeViewModel : ReactiveObject, IDisposable
 
         if (internet == ConnectivityStatus.UNAVAILABLE)
         {
-            Log.Verbose("[BadgeVM] Result -> Disconnected (No Internet)");
             return NetworkBadgeState.Disconnected;
         }
 
         if (server == ConnectivityStatus.CONNECTED)
         {
-            Log.Verbose("[BadgeVM] Result -> Connected (OK)");
             return NetworkBadgeState.Connected;
         }
-        Log.Verbose("[BadgeVM] Result -> ServerError");
+
+        if (server == ConnectivityStatus.CONNECTING)
+        {
+            return NetworkBadgeState.Disconnected;
+        }
+
+        // 4. Тільки якщо сервер чітко повернув помилку або DISCONNECTED при живому інтернеті
         return NetworkBadgeState.ServerError;
     }
 
@@ -151,6 +149,7 @@ public class NetworkBadgeViewModel : ReactiveObject, IDisposable
         {
             return state switch
             {
+                    //TODO localize
                 NetworkBadgeState.Connected => "Online",
                 NetworkBadgeState.ServerError => "Server Error",
                 _ => "Offline"
