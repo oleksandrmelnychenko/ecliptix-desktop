@@ -12,7 +12,6 @@
         <Thickness x:Key="BadgePadding">10,4</Thickness>
         <Thickness x:Key="BadgeBorderThickness">1</Thickness>
         <sys:Double x:Key="BadgeIconSize">14</sys:Double>
-        <sys:Double x:Key="BadgeFontSize">10</sys:Double>
         <sys:Double x:Key="BadgeIconSpacing">4</sys:Double>
     </UserControl.Resources>
 
@@ -93,9 +92,8 @@
 
                 <TextBlock Text="{Binding Text, ElementName=Root}"
                            Foreground="{Binding BadgeBrush, ElementName=Root}"
-                           FontSize="{StaticResource BadgeFontSize}"
-                           FontWeight="Normal"
-                           LetterSpacing="0.5"
+                           FontSize="{Binding BadgeFontSize, ElementName=Root}"
+                           FontWeight="{Binding TooltipTitleFontWeight, ElementName=Root}"
                            VerticalAlignment="Center"/>
             </StackPanel>
         </Border>
@@ -130,27 +128,26 @@
                     <StackPanel Grid.Row="0" Grid.Column="1" Spacing="4" Margin="8,0,0,0">
                         <TextBlock Text="{Binding TooltipTitle, ElementName=Root}"
                                    FontFamily="{StaticResource SegoeUI}"
-                                   FontSize="12"
-                                   FontWeight="Medium"
+                                   FontSize="{Binding PopupFontSize, ElementName=Root}"
                                    Foreground="#7e22ce"
                                    LineHeight="19.2"/>
 
                         <StackPanel Spacing="2" Margin="4,0,0,0">
                             <TextBlock Text="{Binding TooltipFeature1, ElementName=Root, StringFormat='• {0}'}"
                                        FontFamily="{StaticResource SegoeUI}"
-                                       FontSize="12"
+                                       FontSize="{Binding PopupFontSize, ElementName=Root}"
                                        Foreground="#7e22ce"
                                        LineHeight="19.2"
                                        TextWrapping="Wrap"/>
                             <TextBlock Text="{Binding TooltipFeature2, ElementName=Root, StringFormat='• {0}'}"
                                        FontFamily="{StaticResource SegoeUI}"
-                                       FontSize="12"
+                                       FontSize="{Binding PopupFontSize, ElementName=Root}"
                                        Foreground="#7e22ce"
                                        LineHeight="19.2"
                                        TextWrapping="Wrap"/>
                             <TextBlock Text="{Binding TooltipFeature3, ElementName=Root, StringFormat='• {0}'}"
                                        FontFamily="{StaticResource SegoeUI}"
-                                       FontSize="12"
+                                       FontSize="{Binding PopupFontSize, ElementName=Root}"
                                        Foreground="#7e22ce"
                                        LineHeight="19.2"
                                        TextWrapping="Wrap"/>

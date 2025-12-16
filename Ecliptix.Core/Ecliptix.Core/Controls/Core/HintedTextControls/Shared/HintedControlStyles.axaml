@@ -33,7 +33,7 @@
         <SolidColorBrush x:Key="BrushStrVeryStrong" Color="#32CD32"/>
 
         <BoxShadows x:Key="ShadowDefault">0 2 12 0 #00000000</BoxShadows>
-        <BoxShadows x:Key="ShadowFocus">0 2 12 0 #996a5acd</BoxShadows>
+        <BoxShadows x:Key="ShadowFocus">0 2 12 0 #999810fa</BoxShadows>
         <BoxShadows x:Key="ShadowError">0 2 12 0 #99ef3a3a</BoxShadows>
 
         <BoxShadows x:Key="ShadowStrInvalid">0 2 12 0 #99ef3a3a</BoxShadows>

@@ -12,24 +12,11 @@
              x:Class="Ecliptix.Core.Features.Authentication.Views.Welcome.WelcomeView"
              x:DataType="vm:WelcomeViewModel">
 
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto, Auto"
+    <Grid RowDefinitions="Auto,Auto,Auto, Auto"
           HorizontalAlignment="Stretch"
           VerticalAlignment="Stretch"
           Margin="{StaticResource Welcome.Container.Margin}"
           Width="{StaticResource Content.MaxWidth}">
-
-        <StackPanel Grid.Row="0"
-                    Spacing="{StaticResource Spacing.S}"
-                    HorizontalAlignment="Center"
-                    Name="HeaderSection"
-                    Margin="0,0,0,8">
-
-            <Border Height="{StaticResource Logo.SmallSize}"
-                    HorizontalAlignment="Center">
-                <Image Source="avares://Ecliptix.Core/Assets/Screens/Welcome/EcliptiX.png"
-                       Stretch="Uniform" />
-            </Border>
-        </StackPanel>
 
 
         <carousels:WelcomeCarouselView Grid.Row="1"
