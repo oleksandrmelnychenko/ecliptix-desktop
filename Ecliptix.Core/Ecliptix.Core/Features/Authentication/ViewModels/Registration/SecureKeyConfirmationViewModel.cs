@@ -164,40 +164,40 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModel
 
     private void SetupSubscriptions()
     {
-    //   TODO commmented for a test purposes
-        // this.WhenActivated(disposables =>
-        // {
-        //     Observable.FromAsync(LoadMembershipAsync)
-        //         .Subscribe(
-        //             result =>
-        //             {
-        //                 IsMembershipLoading = false;
-        //
-        //                 if (!result.IsErr)
-        //                 {
-        //                     return;
-        //                 }
-        //
-        //                 ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
-        //                 ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.WELCOME_VIEW);
-        //             },
-        //             _ =>
-        //             {
-        //                 IsMembershipLoading = false;
-        //                 ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
-        //                 ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.WELCOME_VIEW);
-        //             })
-        //         .DisposeWith(disposables);
-        //
-        //     SubmitCommand
-        //         .Where(_ => !IsBusy && CanSubmit)
-        //         .Subscribe(_ =>
-        //         {
-        //             ((AuthenticationViewModel)HostScreen).ClearNavigationStack(true);
-        //             ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.PIN_SET_VIEW);
-        //         })
-        //         .DisposeWith(disposables);
-        // });
+    //  TODO commmented for a test purposes
+        this.WhenActivated(disposables =>
+        {
+            Observable.FromAsync(LoadMembershipAsync)
+                .Subscribe(
+                    result =>
+                    {
+                        IsMembershipLoading = false;
+
+                        if (!result.IsErr)
+                        {
+                            return;
+                        }
+
+                        ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
+                        ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.WELCOME_VIEW);
+                    },
+                    _ =>
+                    {
+                        IsMembershipLoading = false;
+                        ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
+                        ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.WELCOME_VIEW);
+                    })
+                .DisposeWith(disposables);
+
+            SubmitCommand
+                .Where(_ => !IsBusy && CanSubmit)
+                .Subscribe(_ =>
+                {
+                    ((AuthenticationViewModel)HostScreen).ClearNavigationStack(true);
+                    ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.PIN_SET_VIEW);
+                })
+                .DisposeWith(disposables);
+        });
     }
 
     public void InsertSecureKeyChars(int index, string chars)
