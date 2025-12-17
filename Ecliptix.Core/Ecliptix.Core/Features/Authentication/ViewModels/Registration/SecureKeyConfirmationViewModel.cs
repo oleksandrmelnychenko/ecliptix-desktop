@@ -164,7 +164,7 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModel
 
     private void SetupSubscriptions()
     {
-       // TODO commmented for a test purposes
+    //   TODO commmented for a test purposes
         // this.WhenActivated(disposables =>
         // {
         //     Observable.FromAsync(LoadMembershipAsync)

@@ -11,7 +11,7 @@
             <Style Selector="Border.notification">
                 <Setter Property="Opacity" Value="0"/>
 
-                <Setter Property="RenderTransform" Value="translateY(-20px)"/>
+                <Setter Property="RenderTransform" Value="translateY(-10px)"/>
 
                 <Setter Property="IsHitTestVisible" Value="False"/>
 

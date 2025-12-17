@@ -30,7 +30,7 @@
 
     </UserControl.Styles>
 
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto, Auto" RowSpacing="15">
+    <Grid Margin="0 -15 0 0" RowDefinitions="Auto,Auto,Auto,Auto,Auto, Auto" RowSpacing="13">
         <StackPanel Grid.Row="0" Spacing="{StaticResource Spacing.S}" HorizontalAlignment="Left">
 
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -157,7 +157,7 @@
                                            Classes.met="{Binding IsMet}"
                                            TextWrapping="Wrap"
                                            FontSize="11.5"
-                                           LineHeight="13"
+                                           LineHeight="15"
                                            VerticalAlignment="Top">
                                     <TextBlock.Styles>
                                         <Style Selector="TextBlock">
