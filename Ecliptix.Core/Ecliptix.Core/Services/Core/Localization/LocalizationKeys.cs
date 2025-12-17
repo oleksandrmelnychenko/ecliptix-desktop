@@ -31,6 +31,9 @@ public static class LocalizationKeys
                 public const string ERROR_INVALID_CODE = "Authentication.SignUp.VerificationCodeEntry.Error_InvalidCode";
                 public const string BUTTON_VERIFY = "Authentication.SignUp.VerificationCodeEntry.Button.Verify";
                 public const string BUTTON_RESEND = "Authentication.SignUp.VerificationCodeEntry.Button.Resend";
+                public const string NOT_RECEIVED = "Authentication.SignUp.VerificationCodeEntry.Text.NotReceived";
+                public const string WRONG_NUMBER = "Authentication.SignUp.VerificationCodeEntry.Text.WrongNumber";
+                public const string CHANGE_NUMBER = "Authentication.SignUp.VerificationCodeEntry.Text.ChangeNumber";
             }
 
             public static class NicknameInput

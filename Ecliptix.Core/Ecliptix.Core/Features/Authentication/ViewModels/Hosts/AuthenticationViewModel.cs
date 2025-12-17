@@ -53,7 +53,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
                     ctx.HostViewModel, ctx.StorageProvider, ctx.RegistrationService,
                     ctx.RecoveryService, ctx.FlowContext, ctx.Settings),
             [MembershipViewType.SECURE_KEY_CONFIRMATION_VIEW] = ctx =>
-                new SecureKeyVerifierViewModel(ctx.ConnectivityService, ctx.NetworkProvider, ctx.LocalizationService,
+                new SecureKeyConfirmationViewModel(ctx.ConnectivityService, ctx.NetworkProvider, ctx.LocalizationService,
                     ctx.HostViewModel, ctx.StorageProvider, ctx.RegistrationService, ctx.AuthenticationService,
                     ctx.RecoveryService, ctx.FlowContext),
             [MembershipViewType.COMPLETE_PROFILE_VIEW] = ctx =>
@@ -538,7 +538,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
         return viewModel;
     }
 
-    private IRoutableViewModel? ExecuteNavigateBack()
+    public IRoutableViewModel? ExecuteNavigateBack()
     {
         if (_navigationStack.Count > 0)
         {

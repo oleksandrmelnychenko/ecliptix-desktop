@@ -4,94 +4,145 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:coreControls="clr-namespace:Ecliptix.Core.Controls.Core"
              xmlns:signUp="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Registration"
+             xmlns:hintedTextControls="clr-namespace:Ecliptix.Core.Controls.Core.HintedTextControls"
              mc:Ignorable="d"
              d:DesignWidth="{StaticResource Content.MaxWidth}"
              d:DesignHeight="400"
-             x:DataType="signUp:VerifyOtpViewModel"
+             x:DataType="signUp:VerificationCodeEntryViewModel"
              x:Class="Ecliptix.Core.Features.Authentication.Views.Registration.VerificationCodeEntryView"
              MinWidth="{StaticResource Content.MaxWidth}"
              Width="{StaticResource Content.MaxWidth}">
 
-    <Grid VerticalAlignment="Top"
+    <UserControl.Styles>
+        <StyleInclude Source="avares://Ecliptix.Core/Controls/Core/HintedTextControls/Shared/LucideIcons.axaml"></StyleInclude>
+    </UserControl.Styles>
+
+
+   <Grid VerticalAlignment="Top"
           RowSpacing="{StaticResource Spacing.Authentication}"
-          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+          RowDefinitions="Auto,Auto,Auto,Auto,Auto, Auto"
           HorizontalAlignment="Stretch"
           Width="{StaticResource Content.MaxWidth}">
 
         <StackPanel Grid.Row="0"
                     Spacing="{StaticResource Spacing.S}"
-                    MaxWidth="{StaticResource Header.MaxWidth}"
                     HorizontalAlignment="Left">
 
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Title]}"
-                           FontSize="{StaticResource Font.XXL}"
-                           FontWeight="Light"
+                           FontSize="{StaticResource Font.XL}"
+                           FontWeight="Normal"
                            Foreground="{DynamicResource OnSurface}"
                            LineHeight="{StaticResource LineHeight.Loose}" />
                 <coreControls:StepBadgeView Text="{Binding StepBadgeText}"
                                             VerticalAlignment="Center"/>
             </StackPanel>
 
-            <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Description]}"
-                       TextWrapping="Wrap"
-                       FontSize="{StaticResource Font.XXXL}"
+            <TextBlock TextWrapping="Wrap"
+                       FontSize="{StaticResource Font.XL}"
                        LineHeight="{StaticResource LineHeight.Subtitle}"
                        FontWeight="Light"
-                       Foreground="{DynamicResource OnSurface}"
-                       Opacity="0.8" />
+                       Foreground="{DynamicResource OnSurface}">
+
+                <Run Text="{Binding DescriptionPreText, Mode=OneWay}" /><Run Text="{Binding FormattedMobileNumber, Mode=OneWay}" FontWeight="SemiBold" Foreground="{DynamicResource OnSurface}" /><Run Text="{Binding DescriptionPostText, Mode=OneWay}" />
+            </TextBlock>
+
         </StackPanel>
 
-        <coreControls:SegmentedTextBox Grid.Row="1"
-                                   x:Name="SegmentedTextBox"
-                                   SegmentCount="6"
-                                   Height="60"
-                                   FontSize="{StaticResource Input.SegmentFontSize}"
-                                   FontWeight="Bold"
-                                   HorizontalAlignment="Center"
-                                   SegmentBackground="{DynamicResource SegmentedTextBoxBackgroundColor}"
-                                   ActiveSegmentBorderColor="{DynamicResource Primary}"
-                                   SegmentSpacing="{StaticResource SegmentedTextBox.Spacing}"
-                                   SegmentWidth="40"
-                                   AllowOnlyNumbers="True"
-                                   Value="{Binding VerificationCode, Mode=TwoWay}" />
-
-        <Border Grid.Row="2"
-                Background="Transparent"
-                HorizontalAlignment="Stretch"
-                CornerRadius="8"
-                ClipToBounds="True"
-                Margin="0">
-            <TextBlock Text="{Binding RemainingTime}"
-                       Classes="status-text"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"
-                       MaxWidth="{StaticResource Content.MaxWidth}"/>
-        </Border>
-
-        <Grid Grid.Row="3"
-              ColumnDefinitions="*,*"
-              ColumnSpacing="{StaticResource Spacing.M}">
-            <Button Content="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Button.Resend]}"
-                    IsEnabled="{Binding ResendSendVerificationCodeCommand.CanExecute}"
-                    Command="{Binding ResendSendVerificationCodeCommand}"
-                    Classes="secondary large"
-                    Classes.is-busy="{Binding IsResending}" />
-            <Button Grid.Column="1"
-                    Content="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Button.Verify]}"
-                    Command="{Binding SendVerificationCodeCommand}"
-                    IsEnabled="{Binding SendVerificationCodeCommand.CanExecute}"
-                    Classes="primary large glow"
-                    Classes.is-busy="{Binding IsBusy}"
-                    />
-        </Grid>
-
-        <coreControls:ErrorNotificationView
-            Grid.Row="4"
-            x:Name="ErrorNotification"
-            VerticalAlignment="Top"
+        <hintedTextControls:HintedTextBox
+            Grid.Row="1"
+            x:Name="OtpTextBox"
+            Watermark="000000"
+            MaxLength="6"
+            IsPhoneNumberMode="False"
+            Text="{Binding VerificationCode, Mode=TwoWay}"
+            Hint="{Binding TimerHintText, Mode=OneWay}"
+            HasError="{Binding HasError, Mode=OneWay}"
+            ErrorText="{Binding ErrorMessage, Mode=OneWay}"
+            TextForeground="{DynamicResource OnSurface}"
+            HintForeground="{DynamicResource Primary}"
+            FocusBorderBrush="{DynamicResource Primary}"
+            MainBorderBrush="#e5e7eb"
+            Height="{StaticResource Input.Height}"
+            CornerRadius="{StaticResource Radius.L}"
+            FontSize="{StaticResource Input.FontSize}"
+            WatermarkFontSize="{StaticResource Input.WatermarkFontSize}"
+            Background="{DynamicResource Surface}"
             HorizontalAlignment="Stretch"
-            Margin="0,0,0,0"/>
+            VisualIcon="{DynamicResource __square_chart_gantt}"/>
 
-        </Grid>
+       <TextBlock Grid.Row="2"
+               HorizontalAlignment="Center"
+               TextAlignment="Center"
+               TextWrapping="Wrap"
+               Padding="0 0 4 0"
+               FontSize="{StaticResource Font.M}"
+               Foreground="{DynamicResource OnSurface}">
+
+        <Run Text="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Text.NotReceived], Mode=OneWay}"/>
+        <Run Text=" " />
+
+        <InlineUIContainer BaselineAlignment="Center">
+            <Button Command="{Binding ResendSendVerificationCodeCommand}"
+                    Classes="ghost"
+                    Padding="0"
+                    Margin="0"
+                    MinHeight="0"
+                    Cursor="Hand"
+                    VerticalContentAlignment="Center"
+                    Foreground="{DynamicResource PrimaryBrightVariant}"
+                    FontWeight="SemiBold"
+                    FontSize="{StaticResource Font.M}">
+                <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Button.Resend]}"
+                           TextDecorations="Underline"/>
+            </Button>
+        </InlineUIContainer>
+    </TextBlock>
+
+    <Button Grid.Row="3"
+            Content="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Button.Verify]}"
+            Command="{Binding SendVerificationCodeCommand}"
+            Classes="primary large glow"
+            Classes.is-busy="{Binding IsBusy}"
+            HorizontalAlignment="Stretch"/>
+
+        <TextBlock Grid.Row="4"
+                   HorizontalAlignment="Center"
+                   TextAlignment="Center"
+                   TextWrapping="Wrap"
+                   FontSize="{StaticResource Font.L}"
+                   Foreground="{DynamicResource OnSurface}">
+
+            <Run Text="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Text.WrongNumber]} " />
+
+            <InlineUIContainer BaselineAlignment="Center">
+                <Button Command="{Binding NavigateBackCommand}"
+                        Classes="ghost"
+                        Padding="0,0,4,0"
+                        Margin="0"
+                        MinHeight="0"
+                        Cursor="Hand"
+                        VerticalContentAlignment="Center"
+                        Foreground="{DynamicResource PrimaryBrightVariant}"
+                        FontWeight="SemiBold"
+                        FontSize="{StaticResource Font.L}">
+
+                    <Button.RenderTransform>
+                        <TranslateTransform Y="1" />
+                    </Button.RenderTransform>
+
+                    <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Text.ChangeNumber]}"
+                               TextWrapping="NoWrap"/>
+                </Button>
+            </InlineUIContainer>
+        </TextBlock>
+
+    <coreControls:ErrorNotificationView
+        Grid.Row="5"
+        x:Name="ErrorNotification"
+        VerticalAlignment="Top"
+        HorizontalAlignment="Stretch"
+        Margin="0,0,0,0"/>
+
+    </Grid>
 </UserControl>

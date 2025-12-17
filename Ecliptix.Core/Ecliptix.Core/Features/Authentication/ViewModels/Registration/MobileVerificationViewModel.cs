@@ -452,8 +452,8 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
 
         ByteString mobileNumberIdentifier = result.Unwrap();
 
-        VerifyOtpViewModel vm = new(_connectivityService, NetworkProvider, LocalizationService, HostScreen,
-            mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService,
+        VerificationCodeEntryViewModel vm = new(_connectivityService, NetworkProvider, LocalizationService, HostScreen,
+            (mobileNumberIdentifier, MobileNumber), _applicationSecureStorageProvider, _registrationService,
             _flowContext, _secureKeyRecoveryService);
 
         if (HostScreen is AuthenticationViewModel hostWindow)
@@ -478,8 +478,8 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
             return Task.CompletedTask;
         }
 
-        VerifyOtpViewModel vm = new(_connectivityService, NetworkProvider, LocalizationService, HostScreen,
-            mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService);
+        VerificationCodeEntryViewModel vm = new(_connectivityService, NetworkProvider, LocalizationService, HostScreen,
+            (mobileNumberIdentifier, MobileNumber), _applicationSecureStorageProvider, _registrationService);
 
         if (HostScreen is not AuthenticationViewModel hostWindow)
         {

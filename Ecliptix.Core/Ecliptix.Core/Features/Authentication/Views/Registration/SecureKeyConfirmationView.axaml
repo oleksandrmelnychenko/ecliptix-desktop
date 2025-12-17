@@ -6,7 +6,7 @@
              xmlns:signUp="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Registration"
              xmlns:hintedTextControls="clr-namespace:Ecliptix.Core.Controls.Core.HintedTextControls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:DataType="signUp:SecureKeyVerifierViewModel"
+             x:DataType="signUp:SecureKeyConfirmationViewModel"
              x:Class="Ecliptix.Core.Features.Authentication.Views.Registration.SecureKeyConfirmationView"
              MinWidth="{StaticResource Content.MaxWidth}"
              Width="{StaticResource Content.MaxWidth}">

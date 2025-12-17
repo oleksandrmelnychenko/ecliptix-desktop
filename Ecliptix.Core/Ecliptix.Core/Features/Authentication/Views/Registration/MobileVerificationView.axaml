@@ -74,49 +74,43 @@
                 Classes.is-busy="{Binding IsBusy}"
                 Margin="0 2 0 0"/>
 
+        <TextBlock Grid.Row="3"
+                   TextWrapping="Wrap"
+                   HorizontalAlignment="Center"
+                   TextAlignment="Center"
+                   Foreground="#6B7280">
 
-        <StackPanel Grid.Row="3" Orientation="Horizontal"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    FlowDirection="LeftToRight"
-                    MinHeight="20">
-            <TextBlock Text="{Binding LocalizationService[Footer.AgreementPrefix]}"
-                       Classes="footer"
-                       VerticalAlignment="Center"
-                       Foreground="#6B7280"
-                       TextWrapping="NoWrap"
-                       Margin="0,0,4,0" />
-            <Button Content="{Binding LocalizationService[Footer.TermsOfService]}"
-                    Command="{Binding OpenTermsOfServiceCommand}"
-                    Classes="ghost"
-                    Padding="0"
-                    Margin="0"
-                    MinWidth="0"
-                    MinHeight="0"
-                    Foreground="#A78BFA"
-                    VerticalAlignment="Center"
-                    HorizontalContentAlignment="Left"
-                    Cursor="Hand">
-            </Button>
-            <TextBlock Text="{Binding LocalizationService[Footer.AgreementConjunction]}"
-                       Classes="footer"
-                       VerticalAlignment="Center"
-                       Foreground="#6B7280"
-                       TextWrapping="NoWrap"
-                       Margin="1,0,2,0" />
-            <Button Content="{Binding LocalizationService[Footer.PrivacyPolicy]}"
-                    Command="{Binding OpenPrivacyPolicyCommand}"
-                    Classes="ghost"
-                    Padding="0"
-                    Margin="0"
-                    MinWidth="0"
-                    MinHeight="0"
-                    Foreground="#A78BFA"
-                    VerticalAlignment="Center"
-                    HorizontalContentAlignment="Left"
-                    Cursor="Hand">
-            </Button>
-        </StackPanel>
+            <Run Text="{Binding LocalizationService[Footer.AgreementPrefix], Mode=OneWay}" /><InlineUIContainer BaselineAlignment="Center">
+                <Button Content="{Binding LocalizationService[Footer.TermsOfService]}"
+                        Command="{Binding OpenTermsOfServiceCommand}"
+                        Classes="ghost"
+                        Padding="0,0,4,0"
+                        Margin="0"
+                        MinHeight="0"
+                        Cursor="Hand"
+                        VerticalContentAlignment="Center"
+                        Foreground="#A78BFA">
+                    <Button.RenderTransform>
+                        <TranslateTransform Y="1" />
+                    </Button.RenderTransform>
+                </Button>
+            </InlineUIContainer><Run Text="{Binding LocalizationService[Footer.AgreementConjunction], Mode=OneWay}" /><InlineUIContainer BaselineAlignment="Center">
+                <Button Content="{Binding LocalizationService[Footer.PrivacyPolicy]}"
+                        Command="{Binding OpenPrivacyPolicyCommand}"
+                        Classes="ghost"
+                        Padding="0,0,4,0"
+                        Margin="0"
+                        MinHeight="0"
+                        Cursor="Hand"
+                        VerticalContentAlignment="Center"
+                        Foreground="#A78BFA">
+                    <Button.RenderTransform>
+                        <TranslateTransform Y="1" />
+                    </Button.RenderTransform>
+                </Button>
+            </InlineUIContainer>
+
+        </TextBlock>
 
         <coreControls:ErrorNotificationView
             Grid.Row="4"
