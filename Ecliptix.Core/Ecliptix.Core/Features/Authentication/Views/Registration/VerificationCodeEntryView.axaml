@@ -20,7 +20,7 @@
 
    <Grid VerticalAlignment="Top"
           RowSpacing="{StaticResource Spacing.Authentication}"
-          RowDefinitions="Auto,Auto,Auto,Auto,Auto, Auto"
+          RowDefinitions="Auto,Auto,Auto,Auto,Auto"
           HorizontalAlignment="Stretch"
           Width="{StaticResource Content.MaxWidth}">
 
@@ -106,39 +106,8 @@
             Classes.is-busy="{Binding IsBusy}"
             HorizontalAlignment="Stretch"/>
 
-        <TextBlock Grid.Row="4"
-                   HorizontalAlignment="Center"
-                   TextAlignment="Center"
-                   TextWrapping="Wrap"
-                   FontSize="{StaticResource Font.L}"
-                   Foreground="{DynamicResource OnSurface}">
-
-            <Run Text="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Text.WrongNumber]} " />
-
-            <InlineUIContainer BaselineAlignment="Center">
-                <Button Command="{Binding NavigateBackCommand}"
-                        Classes="ghost"
-                        Padding="0,0,4,0"
-                        Margin="0"
-                        MinHeight="0"
-                        Cursor="Hand"
-                        VerticalContentAlignment="Center"
-                        Foreground="{DynamicResource PrimaryBrightVariant}"
-                        FontWeight="SemiBold"
-                        FontSize="{StaticResource Font.L}">
-
-                    <Button.RenderTransform>
-                        <TranslateTransform Y="1" />
-                    </Button.RenderTransform>
-
-                    <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Text.ChangeNumber]}"
-                               TextWrapping="NoWrap"/>
-                </Button>
-            </InlineUIContainer>
-        </TextBlock>
-
     <coreControls:ErrorNotificationView
-        Grid.Row="5"
+        Grid.Row="4"
         x:Name="ErrorNotification"
         VerticalAlignment="Top"
         HorizontalAlignment="Stretch"

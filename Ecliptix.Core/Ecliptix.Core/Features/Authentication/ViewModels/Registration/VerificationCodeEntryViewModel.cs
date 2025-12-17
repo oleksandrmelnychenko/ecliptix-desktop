@@ -49,8 +49,6 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
     private readonly Subject<string> _executionErrorSubject = new();
     public IObservable<string> ExecutionError => _executionErrorSubject.AsObservable();
 
-    public ReactiveCommand<Unit, Unit> NavigateBackCommand { get; }
-
     private const int CURRENT_STEP = 2;
 
     public VerificationCodeEntryViewModel(
@@ -94,14 +92,6 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
         );
 
         SendVerificationCodeCommand = ReactiveCommand.CreateFromTask(SendVerificationCode, canVerify);
-
-        NavigateBackCommand = ReactiveCommand.Create(() =>
-        {
-            if (HostScreen is AuthenticationViewModel authenticationViewModel)
-            {
-                authenticationViewModel.ExecuteNavigateBack();
-            }
-        });
 
         SendVerificationCodeCommand.ThrownExceptions
             .Subscribe(ex => {
