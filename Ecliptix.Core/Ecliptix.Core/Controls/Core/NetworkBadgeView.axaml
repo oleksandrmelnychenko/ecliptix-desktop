@@ -6,8 +6,21 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="core:NetworkBadgeViewModel"
              x:Class="Ecliptix.Core.Controls.Core.NetworkBadgeView">
+    <UserControl.Styles>
+        <Style Selector="core|StatusBadge.gray">
+            <Setter Property="Icon" Value="{DynamicResource __wifi_off}"/>
+        </Style>
+
+        <Style Selector="core|StatusBadge.red">
+            <Setter Property="Icon" Value="{DynamicResource __circle_alert}"/>
+        </Style>
+
+        <Style Selector="core|StatusBadge.green">
+            <Setter Property="Icon" Value="{DynamicResource __wifi}"/>
+        </Style>
+    </UserControl.Styles>
+
     <core:StatusBadge Text="{Binding Text}"
-                      Icon="{Binding Icon}"
                       Classes.green="{Binding IsConnected}"
                       Classes.gray="{Binding IsDisconnected}"
                       Classes.red="{Binding IsServerError}"

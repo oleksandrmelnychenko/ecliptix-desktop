@@ -13,7 +13,7 @@
                       TooltipFeature1="{Binding LocalizationService[EPP.Feature.EndToEndEncryption]}"
                       TooltipFeature2="{Binding LocalizationService[EPP.Feature.ForwardSecrecy]}"
                       TooltipFeature3="{Binding LocalizationService[EPP.Feature.OpaqueProtocol]}"
-                      Icon="{Binding Icon}"
+                      Icon="{DynamicResource __shield}"
                       BorderThickness="0"
                       Margin="0,0,8,0"/>
 
