@@ -25,12 +25,12 @@ public class ChannelViewModel : ReactiveObject
         _chatId = chatId;
         Name = name;
         _chatService = chatService;
-        LoadPosts().DoSafeAsync(ex => Log.Error(ex, "Error load posts."));
+        LoadPostsAsync().DoSafeAsync(ex => Log.Error(ex, "Error load posts."));
     }
 
     public ChannelViewModel() { } // Design-time
 
-    private async Task LoadPosts()
+    private async Task LoadPostsAsync()
     {
         Posts.Clear();
         await foreach (IEnumerable<MessageViewModelBase> batch in _chatService.GetMessagesStreamAsync(_chatId))
