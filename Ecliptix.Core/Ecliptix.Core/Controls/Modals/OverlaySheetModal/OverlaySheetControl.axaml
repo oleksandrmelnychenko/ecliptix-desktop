@@ -2,11 +2,11 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:bottomSheetModal="clr-namespace:Ecliptix.Core.Controls.Modals.BottomSheetModal"
-             xmlns:rxui="http://reactiveui.net"
+             xmlns:overlaySheetModal="clr-namespace:Ecliptix.Core.Controls.Modals.OverlaySheetModal"
+             xmlns:reactiveUi="http://reactiveui.net"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="Ecliptix.Core.Controls.Modals.BottomSheetModal.BottomSheetControl"
-             x:DataType="bottomSheetModal:BottomSheetViewModel"
+             x:Class="Ecliptix.Core.Controls.Modals.OverlaySheetModal.OverlaySheetControl"
+             x:DataType="overlaySheetModal:OverlaySheetViewModel"
              ZIndex="10">
 
     <UserControl.Styles>
@@ -22,7 +22,7 @@
         <!-- Base Scrim Styles -->
         <Style Selector="Border.scrim">
             <Setter Property="Background"
-                    Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type bottomSheetModal:BottomSheetControl}}, Path=ScrimColor}" />
+                    Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type overlaySheetModal:OverlaySheetControl}}, Path=ScrimColor}" />
             <Setter Property="ZIndex" Value="0" />
             <Setter Property="CornerRadius" Value="12" />
         </Style>
@@ -45,16 +45,16 @@
 
         <Border x:Name="SheetBorder"
                 Classes="sheet"
-                VerticalAlignment="Bottom"
-                Width="400"
-                MaxHeight="800"
-                Margin="0,0,0,24"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Center"
                 Background="White"
-                IsHitTestVisible="True">
-                <rxui:ViewModelViewHost
-                    x:Name="ContentHost"
-                    ViewModel="{Binding Content}"
-                    IsHitTestVisible="True" />
+                IsHitTestVisible="True"
+                Opacity="0"
+                RenderTransform="scale(0.8)">
+            <reactiveUi:ViewModelViewHost
+                x:Name="ContentHost"
+                ViewModel="{Binding Content}"
+                IsHitTestVisible="True" />
         </Border>
     </Grid>
 </UserControl>

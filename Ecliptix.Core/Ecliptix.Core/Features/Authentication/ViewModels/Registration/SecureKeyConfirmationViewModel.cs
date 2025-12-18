@@ -66,8 +66,9 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModel
         IOpaqueRegistrationService registrationService,
         IAuthenticationService authenticationService,
         ISecureKeyRecoveryService secureKeyRecoveryService,
-        AuthenticationFlowContext flowContext
-    ) : base(networkProvider, localizationService, connectivityService)
+        AuthenticationFlowContext flowContext,
+        IGlobalModalService globalModalService
+    ) : base(networkProvider, localizationService, globalModalService,connectivityService)
     {
         HostScreen = hostScreen;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;

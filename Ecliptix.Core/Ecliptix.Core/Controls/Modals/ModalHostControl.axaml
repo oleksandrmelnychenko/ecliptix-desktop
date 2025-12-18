@@ -1,0 +1,21 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Ecliptix.Core.Controls.Modals.ModalHostControl"
+             xmlns:bottom="clr-namespace:Ecliptix.Core.Controls.Modals.BottomSheetModal"
+             xmlns:overlay="clr-namespace:Ecliptix.Core.Controls.Modals.OverlaySheetModal"
+             xmlns:side="clr-namespace:Ecliptix.Core.Controls.Modals.SideSheetModal"
+             IsHitTestVisible="True">
+    <Grid>
+        <side:SideSheetControl ZIndex="10"
+                               DismissableScrimColor="{DynamicResource Modal.Scrim.Dismissable}"
+                               UnDismissableScrimColor="{DynamicResource Modal.Scrim.Solid}"/>
+
+        <bottom:BottomSheetControl ZIndex="20"
+                                   DismissableScrimColor="{DynamicResource Modal.Scrim.Dismissable}"
+                                   UnDismissableScrimColor="{DynamicResource Modal.Scrim.Solid}"/>
+
+        <overlay:OverlaySheetControl ZIndex="30"
+                                     DismissableScrimColor="{DynamicResource Modal.Scrim.Dismissable}"
+                                     UnDismissableScrimColor="{DynamicResource Modal.Scrim.Solid}"/>
+    </Grid>
+</UserControl>

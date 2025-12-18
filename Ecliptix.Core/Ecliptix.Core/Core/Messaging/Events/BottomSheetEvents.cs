@@ -3,13 +3,7 @@ using Avalonia.Controls;
 
 namespace Ecliptix.Core.Core.Messaging.Events;
 
-public enum BottomSheetComponentType
-{
-    DETECTED_LOCALIZATION,
-    REDIRECT_NOTIFICATION,
-    USER_REQUEST_ERROR,
-    HIDDEN
-}
+
 
 public enum AnimationType
 {
@@ -20,29 +14,27 @@ public enum AnimationType
 public sealed record BottomSheetCommandEvent
 {
     public AnimationType AnimationType { get; }
-    public BottomSheetComponentType ComponentType { get; }
-    public UserControl? Control { get; }
+    public object? ViewModel { get; }
     public bool ShowScrim { get; }
     public bool IsDismissable { get; }
     public DateTime Timestamp { get; }
 
-    private BottomSheetCommandEvent(AnimationType animationType, BottomSheetComponentType componentType,
-        UserControl? control, bool showScrim, bool isDismissable)
+    private BottomSheetCommandEvent(AnimationType animationType,
+        object? viewModel, bool showScrim, bool isDismissable)
     {
         AnimationType = animationType;
-        ComponentType = componentType;
-        Control = control;
+        ViewModel = viewModel;
         ShowScrim = showScrim;
         IsDismissable = isDismissable;
         Timestamp = DateTime.UtcNow;
     }
 
-    public static BottomSheetCommandEvent Show(BottomSheetComponentType componentType, UserControl? control,
+    public static BottomSheetCommandEvent Show(object? viewModel,
         bool showScrim, bool isDismissable) =>
-        new(AnimationType.SHOW, componentType, control, showScrim, isDismissable);
+        new(AnimationType.SHOW, viewModel, showScrim, isDismissable);
 
     public static BottomSheetCommandEvent Hide() =>
-        new(AnimationType.HIDE, BottomSheetComponentType.HIDDEN, null, false, true);
+        new(AnimationType.HIDE, null, false, true);
 }
 
 public sealed record BottomSheetHiddenEvent

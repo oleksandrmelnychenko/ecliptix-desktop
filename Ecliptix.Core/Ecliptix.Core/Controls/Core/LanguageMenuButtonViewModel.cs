@@ -44,15 +44,9 @@ public class LanguageMenuButtonViewModel : ReactiveObject, IActivatableViewModel
 
         OpenLanguagePickerCommand = ReactiveCommand.CreateFromTask(async () =>
         {
-            LanguagePickerView view = new()
-            {
-                DataContext = _cachedLanguagePickerVm
-            };
-
             await sideSheetService.ShowAsync(
-                SideSheetComponentType.SETTINGS_PANEL,
-                view,
-                showScrim: false,
+                _cachedLanguagePickerVm,
+                showScrim: true,
                 isDismissable: true
             );
         });

@@ -47,6 +47,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
     private volatile bool _isDisposed;
 
     private readonly Subject<string> _executionErrorSubject = new();
+    private readonly IGlobalModalService _globalModalService;
     public IObservable<string> ExecutionError => _executionErrorSubject.AsObservable();
 
     private const int CURRENT_STEP = 2;
@@ -59,9 +60,10 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
         (ByteString, string) mobileNumber,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IOpaqueRegistrationService registrationService,
+        IGlobalModalService globalModalService,
         AuthenticationFlowContext flowContext = AuthenticationFlowContext.REGISTRATION,
         ISecureKeyRecoveryService? secureKeyRecoveryService = null) : base(networkProvider,
-        localizationService, connectivityService)
+        localizationService, globalModalService, connectivityService)
     {
         _mobileNumberIdentifier = mobileNumber.Item1;
         _mobileNumber = mobileNumber.Item2;
@@ -70,6 +72,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
         _secureKeyRecoveryService = secureKeyRecoveryService;
         _flowContext = flowContext;
         _localizationService = localizationService;
+        _globalModalService = globalModalService;
 
         HostScreen = hostScreen;
 
@@ -775,7 +778,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
 
         if (HostScreen is AuthenticationViewModel hostWindow)
         {
-            ShowRedirectNotification(hostWindow, message, seconds, () =>
+            ShowRedirectNotification(message, seconds, () =>
             {
                 if (!_isDisposed)
                 {
@@ -927,10 +930,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             _cooldownTimer?.Dispose();
             _cooldownTimer = null;
 
-            if (HostScreen is AuthenticationViewModel hostWindow)
-            {
-                await hostWindow.HideBottomSheetAsync();
-            }
+            await _globalModalService.CloseAllAsync();
 
             VerificationCode = string.Empty;
             ErrorMessage = string.Empty;

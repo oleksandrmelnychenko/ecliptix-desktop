@@ -20,9 +20,9 @@ public sealed class SideSheetViewModel : ReactiveObject, IActivatableViewModel, 
     private bool _isVisible;
     private bool _isDismissableOnScrimClick;
     private bool _showScrim;
-    private UserControl? _content;
+    private object? _content;
 
-    public UserControl? Content
+    public object? Content
     {
         get => _content;
         set => this.RaiseAndSetIfChanged(ref _content, value);
@@ -64,7 +64,7 @@ public sealed class SideSheetViewModel : ReactiveObject, IActivatableViewModel, 
                 .Skip(1)
                 .Subscribe(async isVisible =>
                 {
-                    UserControl? contentSnapshot = Content;
+                    object? contentSnapshot = Content;
 
                     await Task.Delay(isVisible
                         ? SideSheetAnimationConstants.ShowAnimationDuration
@@ -100,7 +100,7 @@ public sealed class SideSheetViewModel : ReactiveObject, IActivatableViewModel, 
 
         if (evt.AnimationType == AnimationType.SHOW)
         {
-            Content = evt.Control;
+            Content = evt.ViewModel;
             ShowScrim = evt.ShowScrim;
             IsDismissableOnScrimClick = evt.IsDismissable;
             IsVisible = true;

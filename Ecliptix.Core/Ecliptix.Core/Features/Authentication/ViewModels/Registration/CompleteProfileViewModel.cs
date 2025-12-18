@@ -34,8 +34,9 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IScreen hostScreen,
-        IApplicationSecureStorageProvider applicationSecureStorageProvider)
-        : base(networkProvider, localizationService, connectivityService)
+        IApplicationSecureStorageProvider applicationSecureStorageProvider,
+        IGlobalModalService globalModalService)
+        : base(networkProvider, localizationService, globalModalService, connectivityService)
     {
         HostScreen = hostScreen;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;

@@ -48,7 +48,7 @@ public partial class SideSheetControl : ReactiveUserControl<SideSheetViewModel>,
     private Border? _sheetBorder;
     private Border? _scrimBorder;
     private Grid? _rootGrid;
-    private ContentControl? _contentControl;
+    private ViewModelViewHost? _contentHost;
 
     private Animation? _showAnimation;
     private Animation? _hideAnimation;
@@ -177,7 +177,7 @@ public partial class SideSheetControl : ReactiveUserControl<SideSheetViewModel>,
         _rootGrid = this.FindControl<Grid>("RootGrid");
         _sheetBorder = this.FindControl<Border>("SheetBorder");
         _scrimBorder = this.FindControl<Border>("ScrimBorder");
-        _contentControl = this.FindControl<ContentControl>("ContentControl");
+        _contentHost = this.FindControl<ViewModelViewHost>("ContentHost");
 
         if (_sheetBorder != null && _scrimBorder != null && _rootGrid != null)
         {
@@ -268,7 +268,7 @@ public partial class SideSheetControl : ReactiveUserControl<SideSheetViewModel>,
 
     private void UpdateSheetLayout()
     {
-        if (_contentControl == null || _sheetBorder == null)
+        if (_contentHost == null || _sheetBorder == null)
         {
             _sheetWidth = DefaultSideSheetVariables.DEFAULT_WIDTH;
             return;
@@ -284,9 +284,9 @@ public partial class SideSheetControl : ReactiveUserControl<SideSheetViewModel>,
 
         Size availableSize = new(availableWidth, Height);
 
-        _contentControl.Measure(availableSize);
+        _contentHost.Measure(availableSize);
 
-        double contentWidth = _contentControl.DesiredSize.Width;
+        double contentWidth = _contentHost.DesiredSize.Width;
 
         if (double.IsNaN(contentWidth) || contentWidth <= 0)
         {

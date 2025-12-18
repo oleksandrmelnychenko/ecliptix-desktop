@@ -66,8 +66,9 @@ public sealed class MasterViewModel : ViewModelBase
         ILogoutService logoutService,
         IProfileMenuService profileMenuService,
         IApplicationSecureStorageProvider storageProvider,
-        MainWindowViewModel mainWindowViewModel)
-        : base(networkProvider, localizationService)
+        MainWindowViewModel mainWindowViewModel,
+        IGlobalModalService globalModalService)
+        : base(networkProvider, localizationService, globalModalService)
     {
         _moduleViewFactory = moduleViewFactory;
         ConnectivityNotification = mainWindowViewModel.ConnectivityNotification;

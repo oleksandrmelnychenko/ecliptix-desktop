@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
+using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Models.Membership;
@@ -50,14 +51,15 @@ public sealed partial class SettingsViewModel : Core.MVVM.ViewModelBase, IActiva
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         ILogoutService logoutService,
-        IApplicationSecureStorageProvider secureStorageProvider)
-        : base(networkProvider, localizationService, null)
+        IApplicationSecureStorageProvider secureStorageProvider,
+        IGlobalModalService globalModalService)
+        : base(networkProvider, localizationService, globalModalService)
     {
         _logoutService = logoutService;
 
         IObservable<bool> canLogout = this.WhenAnyValue(x => x.IsBusy, isBusy => !isBusy);
 
-        AccountSettingsViewModel accountVm = new (networkProvider, localizationService, secureStorageProvider);
+        AccountSettingsViewModel accountVm = new (networkProvider, localizationService, secureStorageProvider, globalModalService);
         AppearanceSettingsViewModel appearanceVm = new ();
         SecuritySettingsViewModel securityVm = new ();
 

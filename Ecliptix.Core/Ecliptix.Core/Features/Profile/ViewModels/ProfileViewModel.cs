@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Linq;
+using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
@@ -37,8 +38,9 @@ public class ProfileViewModel : Core.MVVM.ViewModelBase, IActivatableViewModel
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         ILogoutService logoutService,
-        IApplicationSecureStorageProvider secureStorageProvider)
-        : base(networkProvider, localizationService, null)
+        IApplicationSecureStorageProvider secureStorageProvider,
+        IGlobalModalService globalModalService)
+        : base(networkProvider, localizationService, globalModalService)
     {
         AboutProfileViewModel aboutVm = new();
         PersonalPostsProfileViewModel postsVm = new();
