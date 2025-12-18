@@ -13,6 +13,9 @@ namespace Ecliptix.Core.Controls.Core;
 
 public partial class StatusBadge : UserControl
 {
+    public static readonly StyledProperty<IBrush> BadgeBorderBrushProperty =
+        AvaloniaProperty.Register<StatusBadge, IBrush>(nameof(BadgeBorderBrush), Brushes.Transparent);
+
     public static readonly StyledProperty<string> TextProperty =
         AvaloniaProperty.Register<StatusBadge, string>(nameof(Text));
 
@@ -25,8 +28,8 @@ public partial class StatusBadge : UserControl
     public static readonly StyledProperty<FontWeight> TooltipTitleFontWeightProperty =
         AvaloniaProperty.Register<StatusBadge, FontWeight>(nameof(TooltipTitleFontWeight), FontWeight.Medium);
 
-    public static readonly StyledProperty<Geometry> IconProperty =
-        AvaloniaProperty.Register<StatusBadge, Geometry>(nameof(Icon));
+    public static readonly StyledProperty<object?> IconProperty =
+        AvaloniaProperty.Register<StatusBadge, object?>(nameof(Icon));
 
     public static readonly StyledProperty<IBrush> BadgeBrushProperty =
         AvaloniaProperty.Register<StatusBadge, IBrush>(nameof(BadgeBrush), Brushes.Gray);
@@ -55,12 +58,14 @@ public partial class StatusBadge : UserControl
     public string? TooltipFeature1 { get => GetValue(TooltipFeature1Property); set => SetValue(TooltipFeature1Property, value); }
     public string? TooltipFeature2 { get => GetValue(TooltipFeature2Property); set => SetValue(TooltipFeature2Property, value); }
     public string? TooltipFeature3 { get => GetValue(TooltipFeature3Property); set => SetValue(TooltipFeature3Property, value); }
-    public Geometry Icon { get => GetValue(IconProperty); set => SetValue(IconProperty, value); }
+    public object? Icon { get => GetValue(IconProperty); set => SetValue(IconProperty, value); }
     public IBrush BadgeBrush { get => GetValue(BadgeBrushProperty); set => SetValue(BadgeBrushProperty, value); }
     public IBrush BadgeBackground { get => GetValue(BadgeBackgroundProperty); set => SetValue(BadgeBackgroundProperty, value); }
     public double BadgeFontSize { get => GetValue(BadgeFontSizeProperty); set => SetValue(BadgeFontSizeProperty, value); }
     public double PopupFontSize { get => GetValue(PopupFontSizeProperty); set => SetValue(PopupFontSizeProperty, value); }
     public FontWeight TooltipTitleFontWeight { get => GetValue(TooltipTitleFontWeightProperty); set => SetValue(TooltipTitleFontWeightProperty, value); }
+    public IBrush BadgeBorderBrush { get => GetValue(BadgeBorderBrushProperty); set => SetValue(BadgeBorderBrushProperty, value); }
+
 
     private Popup? _infoPopup;
     private Border? _popupContentBorder;

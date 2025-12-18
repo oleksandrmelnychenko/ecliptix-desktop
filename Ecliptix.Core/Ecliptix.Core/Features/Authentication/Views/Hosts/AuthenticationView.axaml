@@ -35,15 +35,15 @@
         </Button>
 
         <StackPanel Grid.Row="0"
-                    Spacing="{StaticResource Spacing.S}"
                     HorizontalAlignment="Center"
                     Name="HeaderSection"
-                    Margin="0 23 0 35">
+                    Margin="0 23 0 35"
+                    Spacing="20">
             <Svg Path="avares://Ecliptix.Core/Assets/Branding/Logos/ecliptix_logo.svg"
                  Width="{StaticResource Logo.Size}"
                  Height="{StaticResource Logo.Size}"
                  HorizontalAlignment="Center"
-                 VerticalAlignment="Top" />
+                 VerticalAlignment="Top"/>
 
             <Border Height="{StaticResource Logo.SmallSize}"
                     HorizontalAlignment="Center">
@@ -66,60 +66,13 @@
             </Border>
         </Border>
 
-        <StackPanel Grid.Row="2"
-                    Classes="footer-section"
-                    Spacing="8"
-                    MinHeight="60">
-
-            <!-- Agreement Text (Terms & Privacy) -->
-            <StackPanel Orientation="Horizontal"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        FlowDirection="LeftToRight"
-                        MinHeight="20">
-                <TextBlock Text="{Binding LocalizationService[Footer.AgreementPrefix]}"
-                           Classes="footer"
-                           VerticalAlignment="Center"
-                           Foreground="#6B7280"
-                           TextWrapping="NoWrap"
-                           Margin="0,0,4,0" />
-                <Button Content="{Binding LocalizationService[Footer.TermsOfService]}"
-                        Command="{Binding OpenTermsOfServiceCommand}"
-                        Classes="ghost"
-                        Padding="0"
-                        Margin="0"
-                        MinWidth="0"
-                        MinHeight="0"
-                        Foreground="#A78BFA"
-                        VerticalAlignment="Center"
-                        HorizontalContentAlignment="Left">
-                </Button>
-                <TextBlock Text="{Binding LocalizationService[Footer.AgreementConjunction]}"
-                           Classes="footer"
-                           VerticalAlignment="Center"
-                           Foreground="#6B7280"
-                           TextWrapping="NoWrap"
-                           Margin="1,0,2,0" />
-                <Button Content="{Binding LocalizationService[Footer.PrivacyPolicy]}"
-                        Command="{Binding OpenPrivacyPolicyCommand}"
-                        Classes="ghost"
-                        Padding="0"
-                        Margin="0"
-                        MinWidth="0"
-                        MinHeight="0"
-                        Foreground="#A78BFA"
-                        VerticalAlignment="Center"
-                        HorizontalContentAlignment="Left">
-                </Button>
-            </StackPanel>
-
-            <!-- Copyright -->
-            <TextBlock Text="{Binding LocalizationService[Footer.Copyright]}"
-                       Classes="footer"
-                       Foreground="#6B7280"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"
-                       TextAlignment="Center" />
-        </StackPanel>
+        <TextBlock Text="{Binding LocalizationService[Footer.Copyright]}"
+                   Classes="footer"
+                   Foreground="#0a0a0a"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   TextAlignment="Center"
+                   Grid.Row="2"
+                   Margin="0 0 0 8"/>
     </Grid>
 </UserControl>

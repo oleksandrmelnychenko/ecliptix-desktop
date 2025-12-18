@@ -51,9 +51,9 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
             [MembershipViewType.MOBILE_VERIFICATION_VIEW] = ctx =>
                 new MobileVerificationViewModel(ctx.ConnectivityService, ctx.NetworkProvider, ctx.LocalizationService,
                     ctx.HostViewModel, ctx.StorageProvider, ctx.RegistrationService,
-                    ctx.RecoveryService, ctx.FlowContext),
+                    ctx.RecoveryService, ctx.FlowContext, ctx.Settings),
             [MembershipViewType.SECURE_KEY_CONFIRMATION_VIEW] = ctx =>
-                new SecureKeyVerifierViewModel(ctx.ConnectivityService, ctx.NetworkProvider, ctx.LocalizationService,
+                new SecureKeyConfirmationViewModel(ctx.ConnectivityService, ctx.NetworkProvider, ctx.LocalizationService,
                     ctx.HostViewModel, ctx.StorageProvider, ctx.RegistrationService, ctx.AuthenticationService,
                     ctx.RecoveryService, ctx.FlowContext),
             [MembershipViewType.COMPLETE_PROFILE_VIEW] = ctx =>
@@ -136,10 +136,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
     public ReactiveCommand<Unit, IRoutableViewModel?> NavigateBack { get; private set; } = null!;
 
     public ReactiveCommand<Unit, Unit> SwitchToMainWindowCommand { get; private set; } = null!;
-
-    public ReactiveCommand<Unit, Unit> OpenPrivacyPolicyCommand { get; private set; } = null!;
-
-    public ReactiveCommand<Unit, Unit> OpenTermsOfServiceCommand { get; private set; } = null!;
 
     public ReactiveCommand<Unit, Unit> OpenSupportCommand { get; private set; } = null!;
 
@@ -274,6 +270,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
         base.Dispose(disposing);
     }
 
+    //TODO move to helpers
     private static void OpenUrl(string url)
     {
         if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform
@@ -466,7 +463,8 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
             HostViewModel = this,
             RegistrationService = _opaqueRegistrationService,
             RecoveryService = _secureKeyRecoveryService,
-            FlowContext = flowContext
+            FlowContext = flowContext,
+            Settings = _settings
         };
 
         IRoutableViewModel newViewModel = factory(context);
@@ -523,8 +521,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
             CleanupAuthenticationFlow();
             await router.NavigateToMainAsync();
         });
-        OpenPrivacyPolicyCommand = ReactiveCommand.Create(() => OpenUrl(_settings.PrivacyPolicyUrl));
-        OpenTermsOfServiceCommand = ReactiveCommand.Create(() => OpenUrl(_settings.TermsOfServiceUrl));
         OpenSupportCommand = ReactiveCommand.Create(() => OpenUrl(_settings.SupportUrl));
     }
 
@@ -542,7 +538,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
         return viewModel;
     }
 
-    private IRoutableViewModel? ExecuteNavigateBack()
+    public IRoutableViewModel? ExecuteNavigateBack()
     {
         if (_navigationStack.Count > 0)
         {

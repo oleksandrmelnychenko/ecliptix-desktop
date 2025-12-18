@@ -35,7 +35,7 @@ namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
 public record RequirementItem(string Text, bool IsMet);
 
-public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
+public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
 {
     private const int VALIDATION_THROTTLE_MS = 150;
 
@@ -57,7 +57,7 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
     private readonly Subject<string> _executionErrorSubject = new();
     public IObservable<string> ExecutionError => _executionErrorSubject.AsObservable();
 
-    public SecureKeyVerifierViewModel(
+    public SecureKeyConfirmationViewModel(
         IConnectivityService connectivityService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
@@ -164,7 +164,7 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
 
     private void SetupSubscriptions()
     {
-       // TODO commmented for a test purposes
+    //  TODO commmented for a test purposes
         this.WhenActivated(disposables =>
         {
             Observable.FromAsync(LoadMembershipAsync)

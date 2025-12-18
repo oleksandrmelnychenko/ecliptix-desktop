@@ -28,9 +28,10 @@ using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
-public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
+public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
 {
     private readonly ByteString _mobileNumberIdentifier;
+    private readonly string _mobileNumber;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IOpaqueRegistrationService _registrationService;
     private readonly ISecureKeyRecoveryService? _secureKeyRecoveryService;
@@ -50,19 +51,20 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
 
     private const int CURRENT_STEP = 2;
 
-    public VerifyOtpViewModel(
+    public VerificationCodeEntryViewModel(
         IConnectivityService connectivityService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IScreen hostScreen,
-        ByteString mobileNumberIdentifier,
+        (ByteString, string) mobileNumber,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IOpaqueRegistrationService registrationService,
         AuthenticationFlowContext flowContext = AuthenticationFlowContext.REGISTRATION,
         ISecureKeyRecoveryService? secureKeyRecoveryService = null) : base(networkProvider,
         localizationService, connectivityService)
     {
-        _mobileNumberIdentifier = mobileNumberIdentifier;
+        _mobileNumberIdentifier = mobileNumber.Item1;
+        _mobileNumber = mobileNumber.Item2;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _registrationService = registrationService;
         _secureKeyRecoveryService = secureKeyRecoveryService;
@@ -81,20 +83,22 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
             x => x.VerificationCode,
             x => x.RemainingTime,
             x => x.IsInNetworkOutage,
-            (code, time, isInOutage) => code.Length == 6 && code.All(char.IsDigit) &&
-                                        time != AuthenticationConstants.EXPIRED_REMAINING_TIME && !isInOutage
+            (code, time, isInOutage) =>
+                !string.IsNullOrEmpty(code) &&
+                code.Length == 6 &&
+                code.All(char.IsDigit) &&
+                time != AuthenticationConstants.EXPIRED_REMAINING_TIME &&
+                !isInOutage
         );
+
         SendVerificationCodeCommand = ReactiveCommand.CreateFromTask(SendVerificationCode, canVerify);
 
         SendVerificationCodeCommand.ThrownExceptions
-            .Subscribe(ex =>
-            {
-                if (_isDisposed)
+            .Subscribe(ex => {
+                if (!_isDisposed)
                 {
-                    return;
+                    PublishError(ex.Message);
                 }
-
-                PublishError(ex.Message);
             })
             .DisposeWith(_disposables);
 
@@ -107,18 +111,23 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
             .Select(tuple => CanResendVerification(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5))
             .DistinctUntilChanged()
             .Catch<bool, Exception>(_ => Observable.Return(false));
+
         ResendSendVerificationCodeCommand = ReactiveCommand.CreateFromTask(ReSendVerificationCode, canResend);
 
         ResendSendVerificationCodeCommand.ThrownExceptions
             .Subscribe(ex =>
             {
-                if (_isDisposed)
+                if (!_isDisposed)
                 {
-                    return;
+                    PublishError(ex.Message);
                 }
 
-                PublishError(ex.Message);
             })
+            .DisposeWith(_disposables);
+
+        LanguageChanged
+            .StartWith(Unit.Default)
+            .Subscribe(_ => UpdateDescriptionParts())
             .DisposeWith(_disposables);
 
         this.WhenActivated(disposables =>
@@ -129,7 +138,37 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
                 .Select(FormatRemainingTime)
                 .Subscribe(rt => RemainingTime = rt)
                 .DisposeWith(disposables).DisposeWith(_disposables);
+
+            this.WhenAnyValue(x => x.RemainingTime)
+                .Select(time =>
+                {
+                    return $"Code expires in: {time}";
+                })
+                .ToPropertyEx(this, x => x.TimerHintText)
+                .DisposeWith(disposables).DisposeWith(_disposables);
         });
+    }
+
+    [Reactive] public string DescriptionPreText { get; private set; } = string.Empty;
+    [Reactive] public string DescriptionPostText { get; private set; } = string.Empty;
+
+    public string FormattedMobileNumber => _mobileNumber;
+
+    private void UpdateDescriptionParts()
+    {
+        string rawTemplate = _localizationService[LocalizationKeys.Authentication.SignUp.VerificationCodeEntry.DESCRIPTION];
+
+        if (string.IsNullOrEmpty(rawTemplate))
+        {
+            DescriptionPreText = string.Empty;
+            DescriptionPostText = string.Empty;
+            return;
+        }
+
+        string[] parts = rawTemplate.Split(new[] { "{0}" }, StringSplitOptions.None);
+
+        DescriptionPreText = parts.Length > 0 ? parts[0] : string.Empty;
+        DescriptionPostText = parts.Length > 1 ? parts[1] : string.Empty;
     }
 
     public string StepBadgeText => _flowContext switch
@@ -138,6 +177,10 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
         AuthenticationFlowContext.SECURE_KEY_RECOVERY => string.Format(StepFormatKey, CURRENT_STEP, TOTAL_RECOVERY_STEPS),
         _ => string.Format(StepFormatKey, CURRENT_STEP, TOTAL_STEPS)
     };
+
+    [ObservableAsProperty] public string CodeSentDescription { get; }
+
+    [ObservableAsProperty] public string TimerHintText { get; }
 
     public string? UrlPathSegment { get; } = "/verification-code-entry";
 

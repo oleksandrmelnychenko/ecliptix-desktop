@@ -94,13 +94,13 @@ public sealed class ModuleContentControl : ContentControl
                     StaticViewMapper.CreateView(
                         typeof(
                             Features.Authentication.ViewModels.Registration.MobileVerificationViewModel)),
-                Features.Authentication.ViewModels.Registration.VerifyOtpViewModel =>
+                Features.Authentication.ViewModels.Registration.VerificationCodeEntryViewModel =>
                     StaticViewMapper.CreateView(
-                        typeof(Features.Authentication.ViewModels.Registration.VerifyOtpViewModel)),
-                Features.Authentication.ViewModels.Registration.SecureKeyVerifierViewModel =>
+                        typeof(Features.Authentication.ViewModels.Registration.VerificationCodeEntryViewModel)),
+                Features.Authentication.ViewModels.Registration.SecureKeyConfirmationViewModel =>
                     StaticViewMapper.CreateView(
                         typeof(Features.Authentication.ViewModels.Registration.
-                            SecureKeyVerifierViewModel)),
+                            SecureKeyConfirmationViewModel)),
                 Features.Authentication.ViewModels.Registration.CompleteProfileViewModel =>
                     StaticViewMapper.CreateView(
                         typeof(Features.Authentication.ViewModels.Registration.

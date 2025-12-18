@@ -13,7 +13,7 @@ using ReactiveUI;
 
 namespace Ecliptix.Core.Features.Authentication.Views.Registration;
 
-public partial class VerificationCodeEntryView : ReactiveUserControl<VerifyOtpViewModel>
+public partial class VerificationCodeEntryView : ReactiveUserControl<VerificationCodeEntryViewModel>
 {
     private const string ERROR_NOTIFICATION_CONTROL_NAME = "ErrorNotification";
     private bool _handlersAttached;
@@ -114,7 +114,7 @@ public partial class VerificationCodeEntryView : ReactiveUserControl<VerifyOtpVi
             return;
         }
 
-        if (DataContext is not VerifyOtpViewModel vm)
+        if (DataContext is not VerificationCodeEntryViewModel vm)
         {
             return;
         }

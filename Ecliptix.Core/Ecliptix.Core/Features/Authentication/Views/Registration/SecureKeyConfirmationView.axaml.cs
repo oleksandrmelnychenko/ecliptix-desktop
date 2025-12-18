@@ -15,7 +15,7 @@ using ReactiveUI;
 
 namespace Ecliptix.Core.Features.Authentication.Views.Registration;
 
-public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVerifierViewModel>
+public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyConfirmationViewModel>
 {
     private const string ERROR_NOTIFICATION_CONTROL_NAME = "ErrorNotification";
     private bool _handlersAttached;
@@ -134,7 +134,7 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
 
     private void OnSecureKeyCharactersAdded(object? sender, SecureKeyCharactersAddedEventArgs e)
     {
-        if (DataContext is not SecureKeyVerifierViewModel vm || sender is not HintedPasswordBox tb)
+        if (DataContext is not SecureKeyConfirmationViewModel vm || sender is not HintedPasswordBox tb)
         {
             return;
         }
@@ -145,7 +145,7 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
 
     private void OnSecureKeyCharactersRemoved(object? sender, SecureKeyCharactersRemovedEventArgs e)
     {
-        if (DataContext is not SecureKeyVerifierViewModel vm || sender is not HintedPasswordBox tb)
+        if (DataContext is not SecureKeyConfirmationViewModel vm || sender is not HintedPasswordBox tb)
         {
             return;
         }
@@ -156,7 +156,7 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
 
     private void OnVerifySecureKeyCharactersAdded(object? sender, SecureKeyCharactersAddedEventArgs e)
     {
-        if (DataContext is not SecureKeyVerifierViewModel vm || sender is not HintedPasswordBox tb)
+        if (DataContext is not SecureKeyConfirmationViewModel vm || sender is not HintedPasswordBox tb)
         {
             return;
         }
@@ -167,7 +167,7 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
 
     private void OnVerifySecureKeyCharactersRemoved(object? sender, SecureKeyCharactersRemovedEventArgs e)
     {
-        if (DataContext is not SecureKeyVerifierViewModel vm || sender is not HintedPasswordBox tb)
+        if (DataContext is not SecureKeyConfirmationViewModel vm || sender is not HintedPasswordBox tb)
         {
             return;
         }
@@ -183,7 +183,7 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
             return;
         }
 
-        if (DataContext is not SecureKeyVerifierViewModel vm)
+        if (DataContext is not SecureKeyConfirmationViewModel vm)
         {
             return;
         }
@@ -203,7 +203,7 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
 
     private void OnCharacterRejected(object? sender, CharacterRejectedEventArgs e)
     {
-        if (DataContext is not SecureKeyVerifierViewModel vm || sender is not HintedPasswordBox tb)
+        if (DataContext is not SecureKeyConfirmationViewModel vm || sender is not HintedPasswordBox tb)
         {
             return;
         }
