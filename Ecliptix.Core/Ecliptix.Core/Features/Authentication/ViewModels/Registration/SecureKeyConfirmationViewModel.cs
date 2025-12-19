@@ -515,9 +515,15 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModel
                     return SystemU.Default;
                 }
 
-                Option<string> mobileNumberOption = _flowContext == AuthenticationFlowContext.REGISTRATION
-                    ? Option<string>.Some(hostViewModel.RegistrationMobileNumber!)
-                    : Option<string>.Some(hostViewModel.RecoveryMobileNumber!);
+                if (_flowContext == AuthenticationFlowContext.REGISTRATION)
+                {
+                    hostViewModel.Navigate.Execute(MembershipViewType.COMPLETE_PROFILE_VIEW).Subscribe();
+                    //TODO disable navigation back
+                    //TODO test logic on recovery
+                    return SystemU.Default;
+                }
+
+                Option<string> mobileNumberOption = Option<string>.Some(hostViewModel.RecoveryMobileNumber!);
 
                 if (mobileNumberOption.IsSome)
                 {

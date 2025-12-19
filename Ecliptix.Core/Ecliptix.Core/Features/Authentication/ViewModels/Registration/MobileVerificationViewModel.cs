@@ -208,7 +208,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         {
             await GlobalModalService.ShowRightAsync(
                 new CountryCodeViewModel(),
-                showScrim: false,
+                showScrim: true,
                 isDismissable: true
             );
         });

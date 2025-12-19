@@ -359,6 +359,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
         MembershipViewType.MOBILE_VERIFICATION_VIEW,
         MembershipViewType.OTP_VERIFICATION_VIEW,
         MembershipViewType.SECURE_KEY_CONFIRMATION_VIEW,
+        MembershipViewType.COMPLETE_PROFILE_VIEW
     }.ToFrozenSet();
 
 
