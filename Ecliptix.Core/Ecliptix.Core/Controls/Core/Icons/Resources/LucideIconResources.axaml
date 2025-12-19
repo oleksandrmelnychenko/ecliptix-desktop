@@ -1,0 +1,28 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Lucide Icon Datas-->
+    <!-- Dictionary Key Names Are Created Based On Lucide Naming-->
+
+    <PathGeometry x:Key="ChevronDown">F1 m6 9 6 6 6-6</PathGeometry>
+    <PathGeometry x:Key="ChevronUp">F1 m18 15-6-6-6 6</PathGeometry>
+    <PathGeometry x:Key="PaperClip">F1 m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48</PathGeometry>
+
+    <GeometryGroup x:Key="ImagePlus">
+        <GeometryGroup.Children>
+            <PathGeometry Figures="F1 M16 5h6"/>
+            <PathGeometry Figures="F1 M19 2v6"/>
+            <PathGeometry Figures="F1 M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7.5"/>
+            <PathGeometry Figures="F1 m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+            <EllipseGeometry RadiusX="2" RadiusY="2" Center="9,9" />
+        </GeometryGroup.Children>
+    </GeometryGroup>
+
+    <GeometryGroup x:Key="Send">
+        <GeometryGroup.Children>
+            <PathGeometry Figures="F1 M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/>
+            <PathGeometry Figures="F1 m21.854 2.147-10.94 10.939"/>
+        </GeometryGroup.Children>
+    </GeometryGroup>
+</ResourceDictionary>
+

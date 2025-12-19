@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:feedConverters="clr-namespace:Ecliptix.Core.Features.Feed.Converters"
              xmlns:hintedTextControls="clr-namespace:Ecliptix.Core.Controls.Core.HintedTextControls"
+             xmlns:sharedConverters="clr-namespace:Ecliptix.Core.Shared.Converters"
              x:Class="Ecliptix.Core.App"
              RequestedThemeVariant="Light">
 
@@ -24,13 +25,17 @@
             <feedConverters:LikeIconConverter x:Key="LikeIconConverter" />
             <feedConverters:SaveColorConverter x:Key="SaveColorConverter" />
             <feedConverters:BooleanNotConverter x:Key="BooleanNotConverter" />
-            
 
+            <!-- Shared Converters -->
+            <sharedConverters:ResourceConverter x:Key="ResourceConverter"/>
 
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="Assets/Icons/UI/LampIcon.axaml"></ResourceInclude>
                 <ResourceInclude Source="/Features/Feed/Resources/IconGeometries.axaml"/>
                 <ResourceInclude Source="/Styles/Components/CalendarDatePicker.axaml"/>
+                <ResourceInclude Source="Controls/Core/Icons/Resources/LucideIconResources.axaml"/>
+                <ResourceInclude Source="Controls/Core/Icons/EcliptixIcon.axaml"/>
+                <ResourceInclude Source="/Features/Feed/Resources/FeedColors.axaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

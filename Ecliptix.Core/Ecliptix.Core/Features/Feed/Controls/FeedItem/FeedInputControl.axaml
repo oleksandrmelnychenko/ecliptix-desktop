@@ -8,113 +8,95 @@
 			 x:DataType="vm:FeedViewModel"
 			 x:Class="Ecliptix.Core.Features.Feed.Controls.FeedItem.FeedInputControl">
 
+	<UserControl.Resources>
+
+		<ResourceDictionary>
+
+
+		</ResourceDictionary>
+
+	</UserControl.Resources>
+
 	<UserControl.Styles>
 		<Style Selector="Border#InputBorder">
 			<Setter Property="BoxShadow" Value="0 6 18 0 #15000000" />
 		</Style>
 
 		<Style Selector="Border#InputBorder:focus-within">
-			<Setter Property="BorderBrush" Value="#6A5ACD" />
+			<Setter Property="BorderBrush" Value="{StaticResource SlateBlue}" />
 			<Setter Property="BoxShadow" Value="0 6 18 0 #336A5ACD" />
+		</Style>
+
+		<Style Selector="Button.ButtonBasePrimary">
+			<Setter Property="Width" Value="38" />
+			<Setter Property="Height" Value="38" />
+			<Setter Property="CornerRadius" Value="20" />
+			<Setter Property="Background" Value="Transparent" />
+			<Setter Property="Margin" Value="0" />
+		</Style>
+
+		<Style Selector="Button.ButtonBaseSecondary">
+			<Setter Property="Width" Value="38" />
+			<Setter Property="Height" Value="38" />
+			<Setter Property="CornerRadius" Value="20" />
+			<Setter Property="Background" Value="{StaticResource SlateBlue}"/>
+			<Setter Property="Margin" Value="0" />
+		</Style>
+
+		<Style Selector="Button.ButtonBasePrimary.ButtonAttachment" >
+			<Style Selector="^:pointerover">
+				 <Style Selector="^/template/ ContentPresenter">
+					 <Setter Property="TextBlock.Background" Value="{StaticResource LightGrayishBlue}"/>
+				 </Style>
+				<Style Selector="^ .IconAttachment Path">
+					<Setter Property="Stroke" Value="{StaticResource VeryDarkGrayishBlue}"/>
+				</Style>
+			</Style>
+		</Style>
+
+		<Style Selector="Button.ButtonBasePrimary.ButtonArrow" >
+			<Style Selector="^:pointerover">
+				<Style Selector="^/template/ ContentPresenter">
+					<Setter Property="TextBlock.Background" Value="{StaticResource LightGrayishBlue}"/>
+				</Style>
+				<Style Selector="^ .IconArrow Path">
+					<Setter Property="Stroke" Value="{StaticResource SlateBlueBrush}"/>
+				</Style>
+			</Style>
+		</Style>
+
+		<Style Selector="Button.ButtonBaseSecondary.ButtonSend" >
+			<Style Selector="^:pointerover">
+				<Style Selector="^/template/ ContentPresenter">
+					<Setter Property="TextBlock.Background" Value="{StaticResource SlateBlueBrush}" />
+				</Style>
+			</Style>
+		</Style>
+
+
+		<Style Selector="EcliptixIcon.IconAttachment">
+			<Setter Property="Width" Value="18" />
+			<Setter Property="Height" Value="18" />
+			<Setter Property="StrokeThickness" Value="1.5"/>
+			<Setter Property="Stroke" Value="{StaticResource DarkGrayishBlue}"/>
+		</Style>
+
+		<Style Selector="EcliptixIcon.IconArrow">
+			<Setter Property="Width" Value="20" />
+			<Setter Property="Height" Value="20" />
+			<Setter Property="StrokeThickness" Value="2"/>
+			<Setter Property="Stroke" Value="{StaticResource DarkGrayishBlue}"/>
+		</Style>
+
+		<Style Selector="EcliptixIcon.IconSend">
+			<Setter Property="Height" Value="18"/>
+			<Setter Property="Width" Value="18"/>
+			<Setter Property="StrokeThickness" Value="1.5"/>
+			<Setter Property="Stroke" Value="#FFF"/>
 		</Style>
 
 	</UserControl.Styles>
 
-	<UserControl.Resources>
-		<SolidColorBrush x:Key="BrushDefaultGray" Color="#99a1af"/>
-		<SolidColorBrush x:Key="BrushHoverGray" Color="#4a5565"/>
-
-		<DrawingImage x:Key="ChevronsDown">
-			<DrawingImage.Drawing>
-				<DrawingGroup ClipGeometry="M 0,0 L 24,0 24,24 0,24 Z">
-					<GeometryDrawing Geometry="F1 m7 6 5 5 5-5">
-						<GeometryDrawing.Pen>
-							<Pen Brush="{DynamicResource BrushDefaultGray}" Thickness="2" LineCap="Round" LineJoin="Round" />
-						</GeometryDrawing.Pen>
-					</GeometryDrawing>
-				</DrawingGroup>
-			</DrawingImage.Drawing>
-		</DrawingImage>
-
-		<DrawingImage x:Key="ChevronUp">
-			<DrawingImage.Drawing>
-				<DrawingGroup ClipGeometry="M 0,0 L 24,0 24,24 0,24 Z">
-					<GeometryDrawing Geometry="F1 m18 15-6-6-6 6">
-						<GeometryDrawing.Pen>
-							<Pen Brush="{DynamicResource BrushDefaultGray}" Thickness="2" LineCap="Round" LineJoin="Round" />
-						</GeometryDrawing.Pen>
-					</GeometryDrawing>
-				</DrawingGroup>
-			</DrawingImage.Drawing>
-		</DrawingImage>
-
-		<DrawingImage x:Key="ImagePlus">
-			<DrawingImage.Drawing>
-				<DrawingGroup ClipGeometry="M 0,0 L 24,0 24,24 0,24 Z">
-					<GeometryDrawing Geometry="F1 M16 5h6">
-						<GeometryDrawing.Pen>
-							<Pen Brush="{DynamicResource BrushDefaultGray}" Thickness="2" LineCap="Round" LineJoin="Round" />
-						</GeometryDrawing.Pen>
-					</GeometryDrawing>
-					<GeometryDrawing Geometry="F1 M19 2v6">
-						<GeometryDrawing.Pen>
-							<Pen Brush="{DynamicResource BrushDefaultGray}" Thickness="2" LineCap="Round" LineJoin="Round" />
-						</GeometryDrawing.Pen>
-					</GeometryDrawing>
-					<GeometryDrawing
-						Geometry="F1 M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7.5">
-						<GeometryDrawing.Pen>
-							<Pen Brush="{DynamicResource BrushDefaultGray}" Thickness="2" LineCap="Round" LineJoin="Round" />
-						</GeometryDrawing.Pen>
-					</GeometryDrawing>
-					<GeometryDrawing Geometry="F1 m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21">
-						<GeometryDrawing.Pen>
-							<Pen Brush="{DynamicResource BrushDefaultGray}" Thickness="2" LineCap="Round" LineJoin="Round" />
-						</GeometryDrawing.Pen>
-					</GeometryDrawing>
-					<GeometryDrawing>
-						<GeometryDrawing.Pen>
-							<Pen Brush="{DynamicResource BrushDefaultGray}" Thickness="2" LineCap="Round" LineJoin="Round" />
-						</GeometryDrawing.Pen>
-						<GeometryDrawing.Geometry>
-							<EllipseGeometry RadiusX="2" RadiusY="2" Center="9,9" />
-						</GeometryDrawing.Geometry>
-					</GeometryDrawing>
-				</DrawingGroup>
-			</DrawingImage.Drawing>
-		</DrawingImage>
-
-		<DrawingImage x:Key="Paperclip">
-			<DrawingImage.Drawing>
-				<DrawingGroup ClipGeometry="M 0,0 L 24,0 24,24 0,24 Z">
-					<GeometryDrawing
-						Geometry="F1 m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48">
-						<GeometryDrawing.Pen>
-							<Pen Brush="{DynamicResource BrushDefaultGray}" Thickness="2" LineCap="Round" LineJoin="Round" />
-						</GeometryDrawing.Pen>
-					</GeometryDrawing>
-				</DrawingGroup>
-			</DrawingImage.Drawing>
-		</DrawingImage>
-
-		<DrawingImage x:Key="Send">
-			<DrawingImage.Drawing>
-				<DrawingGroup ClipGeometry="M 0,0 L 24,0 24,24 0,24 Z">
-					<GeometryDrawing
-						Geometry="F1 M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z">
-						<GeometryDrawing.Pen>
-							<Pen Brush="#fff" Thickness="2" LineCap="Round" LineJoin="Round" />
-						</GeometryDrawing.Pen>
-					</GeometryDrawing>
-					<GeometryDrawing Geometry="F1 m21.854 2.147-10.94 10.939">
-						<GeometryDrawing.Pen>
-							<Pen Brush="#fff" Thickness="2" LineCap="Round" LineJoin="Round" />
-						</GeometryDrawing.Pen>
-					</GeometryDrawing>
-				</DrawingGroup>
-			</DrawingImage.Drawing>
-		</DrawingImage>
-	</UserControl.Resources>
 
 	<Grid RowDefinitions="Auto,Auto"
 		  VerticalAlignment="Bottom">
@@ -123,14 +105,13 @@
 				IsVisible="{Binding $parent[local:FeedInputControl].IsExpand}"
 				Background="#FFF"
 				CornerRadius="28"
-				BorderBrush="#6A5ACD"
+				BorderBrush="{StaticResource SlateBlue}"
 				BorderThickness="1"
 				BoxShadow="0 6 18 0 #336A5ACD"
 				MinHeight="150">
 
 			<Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto"
 				  RowDefinitions="*,Auto"
-				  ColumnSpacing="10"
 				  Margin="10">
 
 				<!-- Input -->
@@ -147,59 +128,34 @@
 
 				<Button Grid.Column="0"
 						Grid.Row="1"
-						Width="38"
-						Height="38"
-						CornerRadius="20"
-						Background="Transparent"
-						Margin="0">
-					<StackPanel Spacing="2">
-						<Image	Source="{StaticResource ImagePlus}" Width="14" Height="14"  />
-					</StackPanel>
-					<Button.Styles>
-						<Style Selector="Button:pointerover /template/ ContentPresenter">
-							<Setter Property="TextBlock.Background" Value="#f3f4f6"/>
-						</Style>
-					</Button.Styles>
+						Classes="ButtonBasePrimary ButtonAttachment">
+
+					<EcliptixIcon Kind="ImagePlus"
+					              Classes="IconAttachment"/>
+
 				</Button>
 
 				<Button Grid.Column="1"
 						Grid.Row="1"
-						Width="38"
-						Height="38"
-						CornerRadius="20"
-						Background="Transparent"
-						Margin="0">
-					<StackPanel Spacing="2">
-						<Image	Source="{StaticResource Paperclip}" Width="14" Height="14" />
-					</StackPanel>
-					<Button.Styles>
-						<Style Selector="Button:pointerover /template/ ContentPresenter">
-							<Setter Property="TextBlock.Background" Value="#f3f4f6"/>
-						</Style>
-					</Button.Styles>
+						Classes="ButtonBasePrimary ButtonAttachment">
+
+					<EcliptixIcon Kind="PaperClip" Classes="IconAttachment"  />
+
 				</Button>
 
 				<Button Grid.Column="3"
 						Grid.Row="1"
 						Command="{Binding $parent[local:FeedInputControl].ToggleExpandCommand}"
-						Width="38"
-						Height="38"
-						CornerRadius="20"
-						Background="Transparent"
-						Margin="0">
-					<StackPanel Spacing="2">
-						<Image	Source="{StaticResource ChevronsDown}" Width="14" Height="14" />
-					</StackPanel>
-					<Button.Styles>
-						<Style Selector="Button:pointerover /template/ ContentPresenter">
-							<Setter Property="TextBlock.Background" Value="#f3f4f6"/>
-						</Style>
-					</Button.Styles>
+						Classes="ButtonBasePrimary ButtonArrow">
+
+					<EcliptixIcon Classes="IconArrow" Kind="ChevronDown"/>
+
 				</Button>
 
 				<Border Grid.Column="4" Grid.Row="1"
 				        Width="1"
 				        Height="18"
+				        Margin="15,0,10,0"
 				        Background="#D0D0D0"/>
 
 				<!-- Post Button -->
@@ -207,19 +163,10 @@
 						Grid.Row="1"
 						Command="{Binding PostCommand}"
 						IsEnabled="{Binding PostMessage, Converter={StaticResource NotNullOrEmptyConverter}}"
-						Width="38"
-						Height="38"
-						CornerRadius="20"
-						Background="#6A5ACD"
-						Margin="0">
-					<StackPanel Spacing="2">
-						<Image	Source="{StaticResource Send}" Width="14" Height="14" >
-							<Image.Resources>
-								<!-- This brush overrides the shared "MySharedBrush" with a new color for this specific instance -->
+						Classes="ButtonBaseSecondary ButtonSend">
 
-							</Image.Resources>
-						</Image>
-					</StackPanel>
+					<EcliptixIcon Kind="Send" Classes="IconSend"/>
+
 				</Button>
 			</Grid>
 		</Border>
@@ -248,24 +195,15 @@
 				<Border Grid.Column="1"
 				        Width="1"
 				        Height="18"
+				        Margin="0,0, 5,0"
 				        Background="#D0D0D0"/>
 
 				<Button Grid.Column="2"
 						Command="{Binding $parent[local:FeedInputControl].ToggleExpandCommand}"
-						Width="38"
-						Height="38"
-						CornerRadius="20"
-						Background="#fafafa"
-						Margin="0">
-					<StackPanel Spacing="2">
-						<Image	Source="{StaticResource ChevronUp}" Width="14" Height="14" />
-					</StackPanel>
+						Classes="ButtonBasePrimary ButtonArrow">
 
-					<Button.Styles>
-						<Style Selector="Button:pointerover /template/ ContentPresenter">
-							<Setter Property="TextBlock.Background" Value="#F0EEFA"/>
-						</Style>
-					</Button.Styles>
+					<EcliptixIcon  Kind="ChevronUp" Classes="IconArrow" />
+
 				</Button>
 
 
@@ -273,19 +211,13 @@
 				<Button Grid.Column="3"
 						Command="{Binding PostCommand}"
 						IsEnabled="{Binding PostMessage, Converter={StaticResource NotNullOrEmptyConverter}}"
-						Width="38"
-						Height="38"
-						CornerRadius="20"
-						Background="#6A5ACD"
-						Margin="0">
+						Classes="ButtonBaseSecondary ButtonSend">
 
-					<StackPanel Spacing="2">
-						<Image	Source="{StaticResource Send}" Width="14" Height="14">
-							<Image.RenderTransform>
-								<RotateTransform Angle="45"/>
-							</Image.RenderTransform>
-						</Image>
-					</StackPanel>
+					<EcliptixIcon Kind="Send" Classes="IconSend">
+						<EcliptixIcon.RenderTransform>
+							<RotateTransform Angle="45"/>
+						</EcliptixIcon.RenderTransform>
+					</EcliptixIcon>
 
 				</Button>
 			</Grid>
