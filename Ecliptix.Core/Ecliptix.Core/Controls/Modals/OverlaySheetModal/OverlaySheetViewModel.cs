@@ -11,11 +11,11 @@ using Ecliptix.Core.Core.Messaging.Services;
 using ReactiveUI;
 using IMessageBus = Ecliptix.Core.Core.Messaging.IMessageBus;
 
-namespace Ecliptix.Core.Controls.Modals.BottomSheetModal;
+namespace Ecliptix.Core.Controls.Modals.OverlaySheetModal;
 
-public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel, IDisposable
+public sealed class OverlaySheetViewModel : ReactiveObject, IActivatableViewModel, IDisposable
 {
-    private readonly IBottomSheetService _bottomSheetService;
+    private readonly IOverlaySheetService _overlaySheetService;
     private bool _disposed;
     private bool _isVisible;
     private bool _isDismissableOnScrimClick;
@@ -48,14 +48,14 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
 
     public ViewModelActivator Activator { get; } = new();
 
-    public BottomSheetViewModel(IBottomSheetService bottomSheetService, IMessageBus messageBus)
+    public OverlaySheetViewModel(IOverlaySheetService overlaySheetService, IMessageBus messageBus)
     {
-        _bottomSheetService = bottomSheetService;
+        _overlaySheetService = overlaySheetService;
         IMessageBus messageBus1 = messageBus;
 
         this.WhenActivated(disposables =>
         {
-            messageBus1.Subscribe<BottomSheetCommandEvent>(async evt =>
+            messageBus1.Subscribe<OverlaySheetCommandEvent>(async evt =>
             {
                 await HandleCommand(evt);
             }).DisposeWith(disposables);
@@ -67,12 +67,12 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
                     object? contentSnapshot = Content;
 
                     await Task.Delay(isVisible
-                        ? BottomSheetAnimationConstants.ShowAnimationDuration
-                        : BottomSheetAnimationConstants.HideAnimationDuration);
+                        ? OverlaySheetAnimationConstants.ShowAnimationDuration
+                        : OverlaySheetAnimationConstants.HideAnimationDuration);
 
                     await messageBus1.PublishAsync(isVisible
-                        ? BottomSheetAnimationCompleteEvent.ShowComplete()
-                        : BottomSheetAnimationCompleteEvent.HideComplete());
+                        ? OverlaySheetAnimationCompleteEvent.ShowComplete()
+                        : OverlaySheetAnimationCompleteEvent.HideComplete());
 
                     if (!isVisible)
                     {
@@ -91,14 +91,14 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
         });
     }
 
-    private Task HandleCommand(BottomSheetCommandEvent evt)
+    private Task HandleCommand(OverlaySheetCommandEvent evt)
     {
         if (_disposed)
         {
             return Task.CompletedTask;
         }
 
-        if (evt.AnimationType == AnimationType.SHOW)
+        if (evt.AnimationType == OverlayAnimationType.SHOW)
         {
             Content = evt.ViewModel;
             ShowScrim = evt.ShowScrim;
@@ -113,7 +113,7 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
         return Task.CompletedTask;
     }
 
-    public void BottomSheetDismissed() => Task.Run(async () => await _bottomSheetService.BottomSheetDismissed());
+    public void OverlaySheetDismissed() => Task.Run(async () => await _overlaySheetService.OverlaySheetDismissed());
 
     public void Dispose()
     {

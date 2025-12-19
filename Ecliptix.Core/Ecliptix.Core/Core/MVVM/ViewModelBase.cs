@@ -31,10 +31,12 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
 
     protected ViewModelBase(NetworkProvider networkProvider,
         ILocalizationService localizationService,
+        IGlobalModalService globalModalService,
         IConnectivityService? connectivityService = null)
     {
         NetworkProvider = networkProvider;
         LocalizationService = localizationService;
+        GlobalModalService = globalModalService;
 
         LanguageChanged = Observable.FromEvent(
                 handler => localizationService.LanguageChanged += handler,
@@ -64,6 +66,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
     }
 
     public ILocalizationService LocalizationService { get; }
+    protected IGlobalModalService GlobalModalService { get; }
     public ViewModelActivator Activator { get; } = new();
 
     [ObservableAsProperty] public bool IsInNetworkOutage { get; }
@@ -101,7 +104,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         };
     }
 
-    protected void ShowServerErrorNotification(AuthenticationViewModel hostWindow, string errorMessage)
+    protected void ShowServerErrorNotification(string errorMessage)
     {
         if (string.IsNullOrEmpty(errorMessage))
         {
@@ -115,9 +118,8 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         {
             try
             {
-                await hostWindow.ShowBottomSheet(
-                    BottomSheetComponentType.USER_REQUEST_ERROR,
-                    errorView,
+                await GlobalModalService.ShowBottomAsync(
+                    errorViewModel,
                     showScrim: false,
                     isDismissable: true);
             }
@@ -136,7 +138,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
             TaskScheduler.Default);
     }
 
-    protected void ShowRedirectNotification(AuthenticationViewModel hostWindow, string message, int seconds,
+    protected async Task ShowRedirectNotification(string message, int seconds,
         Action onComplete)
     {
         if (_disposedValue)
@@ -148,38 +150,26 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         RedirectNotificationViewModel redirectViewModel = new(message, seconds, onComplete, LocalizationService);
         RedirectNotificationView redirectView = new() { DataContext = redirectViewModel };
 
-        Task.Run(async () =>
+        try
         {
-            try
+            if (!_disposedValue)
             {
-                if (!_disposedValue)
-                {
-                    await hostWindow.ShowBottomSheet(BottomSheetComponentType.REDIRECT_NOTIFICATION, redirectView,
-                        showScrim: true, isDismissable: false);
-                }
-                else
-                {
-                    onComplete();
-                }
+                await GlobalModalService.ShowMiddleAsync(redirectViewModel,
+                    showScrim: true, isDismissable: false);
             }
-            catch (Exception ex)
+            else
             {
-                Log.Error(ex, "[VIEWMODEL-BASE] Exception showing redirect notification bottom sheet");
                 onComplete();
             }
-        }).ContinueWith(
-            task =>
-            {
-                if (task.IsFaulted && task.Exception != null)
-                {
-                    Log.Error(task.Exception, "[VIEWMODEL-BASE] Unhandled exception in ShowRedirectNotification background task");
-                    onComplete();
-                }
-            },
-            TaskScheduler.Default);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[VIEWMODEL-BASE] Exception showing redirect notification bottom sheet");
+            onComplete();
+        }
     }
 
-    protected static void CleanupAndNavigate(AuthenticationViewModel membershipHostWindow, MembershipViewType targetView)
+    protected void CleanupAndNavigate(AuthenticationViewModel membershipHostWindow, MembershipViewType targetView)
     {
         membershipHostWindow.ClearNavigationStack();
         membershipHostWindow.Navigate.Execute(targetView).Subscribe();
@@ -188,11 +178,11 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         {
             try
             {
-                await membershipHostWindow.HideBottomSheetAsync();
+                await GlobalModalService.CloseAllAsync();
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "[VIEWMODEL-BASE] Exception hiding bottom sheet during cleanup");
+                Log.Error(ex, "[VIEWMODEL-BASE] Exception closing modals during cleanup");
             }
         }).ContinueWith(
             task =>

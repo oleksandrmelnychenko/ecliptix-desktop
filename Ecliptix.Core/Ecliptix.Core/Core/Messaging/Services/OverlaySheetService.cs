@@ -7,20 +7,20 @@ using Ecliptix.Core.Core.Messaging.Events;
 
 namespace Ecliptix.Core.Core.Messaging.Services;
 
-internal sealed class BottomSheetService : IBottomSheetService, IDisposable
+internal sealed class OverlaySheetService : IOverlaySheetService, IDisposable
 {
     private readonly IMessageBus _messageBus;
-    private readonly Queue<BottomSheetRequest> _requestQueue = new();
+    private readonly Queue<OverlaySheetRequest> _requestQueue = new();
     private readonly Lock _queueLock = new();
-    private BottomSheetRequest? _pendingRequest;
-    private bool _isShowingBottomSheet;
+    private OverlaySheetRequest? _pendingRequest;
+    private bool _isShowingOverlaySheet;
     private bool _isAnimating;
     private bool _disposed;
 
-    public BottomSheetService(IMessageBus messageBus)
+    public OverlaySheetService(IMessageBus messageBus)
     {
         _messageBus = messageBus;
-        _messageBus.Subscribe<BottomSheetAnimationCompleteEvent>(async evt =>
+        _messageBus.Subscribe<OverlaySheetAnimationCompleteEvent>(async evt =>
         {
             await HandleAnimationComplete(evt);
         });
@@ -33,7 +33,7 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
             return;
         }
 
-        BottomSheetRequest request = new(viewModel, showScrim, isDismissable);
+        OverlaySheetRequest request = new(viewModel, showScrim, isDismissable);
 
         lock (_queueLock)
         {
@@ -52,7 +52,7 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
 
         lock (_queueLock)
         {
-            if (!_isShowingBottomSheet || _isAnimating)
+            if (!_isShowingOverlaySheet || _isAnimating)
             {
                 return;
             }
@@ -60,20 +60,20 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
             _isAnimating = true;
         }
 
-        await _messageBus.PublishAsync(BottomSheetCommandEvent.Hide());
+        await _messageBus.PublishAsync(OverlaySheetCommandEvent.Hide());
     }
 
-    public async Task BottomSheetDismissed()
+    public async Task OverlaySheetDismissed()
     {
         lock (_queueLock)
         {
-            if (!_isShowingBottomSheet)
+            if (!_isShowingOverlaySheet)
             {
                 return;
             }
         }
 
-        await _messageBus.PublishAsync(BottomSheetCommandEvent.Hide());
+        await _messageBus.PublishAsync(OverlaySheetCommandEvent.Hide());
     }
 
     private async Task ProcessNextRequest()
@@ -83,7 +83,7 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
             return;
         }
 
-        BottomSheetRequest? requestToShow = null;
+        OverlaySheetRequest? requestToShow = null;
         bool shouldHide = false;
 
         lock (_queueLock)
@@ -98,7 +98,7 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
                 return;
             }
 
-            if (_isShowingBottomSheet)
+            if (_isShowingOverlaySheet)
             {
                 _pendingRequest = _requestQueue.Dequeue();
                 shouldHide = true;
@@ -113,37 +113,37 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
 
         if (shouldHide)
         {
-            await _messageBus.PublishAsync(BottomSheetCommandEvent.Hide());
+            await _messageBus.PublishAsync(OverlaySheetCommandEvent.Hide());
         }
         else
         {
-            await _messageBus.PublishAsync(BottomSheetCommandEvent.Show(
+            await _messageBus.PublishAsync(OverlaySheetCommandEvent.Show(
                 requestToShow!.ViewModel,
                 requestToShow.ShowScrim,
                 requestToShow.IsDismissable));
         }
     }
 
-    private async Task HandleAnimationComplete(BottomSheetAnimationCompleteEvent evt)
+    private async Task HandleAnimationComplete(OverlaySheetAnimationCompleteEvent evt)
     {
         if (_disposed)
         {
             return;
         }
 
-        BottomSheetRequest? requestToShow = null;
+        OverlaySheetRequest? requestToShow = null;
 
         lock (_queueLock)
         {
             _isAnimating = false;
 
-            if (evt.AnimationType == AnimationType.SHOW)
+            if (evt.AnimationType == OverlayAnimationType.SHOW)
             {
-                _isShowingBottomSheet = true;
+                _isShowingOverlaySheet = true;
             }
             else // Hide
             {
-                _isShowingBottomSheet = false;
+                _isShowingOverlaySheet = false;
                 if (_pendingRequest != null)
                 {
                     requestToShow = _pendingRequest;
@@ -155,7 +155,7 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
 
         if (requestToShow != null)
         {
-            await _messageBus.PublishAsync(BottomSheetCommandEvent.Show(
+            await _messageBus.PublishAsync(OverlaySheetCommandEvent.Show(
                 requestToShow.ViewModel,
                 requestToShow.ShowScrim,
                 requestToShow.IsDismissable));
@@ -165,11 +165,11 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
             await ProcessNextRequest();
         }
     }
-
-    public IDisposable OnBottomSheetChanged(Func<BottomSheetCommandEvent, Task> handler,
+    
+    public IDisposable OnOverlaySheetChanged(Func<OverlaySheetCommandEvent, Task> handler,
         SubscriptionLifetime lifetime = SubscriptionLifetime.WEAK) => _messageBus.Subscribe(handler, lifetime);
 
-    public IDisposable OnBottomSheetHidden(Func<BottomSheetHiddenEvent, Task> handler,
+    public IDisposable OnOverlaySheetHidden(Func<OverlaySheetHiddenEvent, Task> handler,
         SubscriptionLifetime lifetime = SubscriptionLifetime.WEAK) => _messageBus.Subscribe(handler, lifetime);
 
     public void Dispose()
@@ -188,7 +188,7 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
         }
     }
 
-    private sealed record BottomSheetRequest(
+    private sealed record OverlaySheetRequest(
         object ViewModel,
         bool ShowScrim,
         bool IsDismissable);

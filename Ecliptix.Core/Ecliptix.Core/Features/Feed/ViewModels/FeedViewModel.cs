@@ -6,6 +6,7 @@ using System.Reactive.Disposables;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Messaging;
 using Ecliptix.Core.Core.Messaging.Messages;
+using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Features.Feed.Models;
 using Ecliptix.Core.Features.Feed.Services.Abstractions;
 using Ecliptix.Core.Features.Profile.ViewModels;
@@ -46,8 +47,9 @@ public sealed partial class FeedViewModel : Core.MVVM.ViewModelBase
         ILocalizationService localizationService,
         IFeedService feedService,
         IPostInteractionService interactionService,
-        ICommentService commentService)
-        : base(networkProvider, localizationService, null)
+        ICommentService commentService,
+        IGlobalModalService globalModalService)
+        : base(networkProvider, localizationService, globalModalService)
     {
         _feedService = feedService;
         _interactionService = interactionService;

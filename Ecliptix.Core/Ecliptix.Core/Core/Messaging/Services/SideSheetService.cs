@@ -23,15 +23,14 @@ public sealed class SideSheetService: ISideSheetService
         _messageBus.Subscribe<SideSheetAnimationCompleteEvent>(async evt => await HandleAnimationComplete(evt));
     }
 
-    public async Task ShowAsync(SideSheetComponentType componentType, UserControl? control = null,
-        bool showScrim = true, bool isDismissable = true)
+    public async Task ShowAsync(object viewModel, bool showScrim = true, bool isDismissable = true)
     {
         if (_disposed)
         {
             return;
         }
 
-        SideSheetRequest request = new(componentType, control, showScrim, isDismissable);
+        SideSheetRequest request = new(viewModel, showScrim, isDismissable);
 
         lock (_queueLock)
         {
@@ -117,8 +116,7 @@ public sealed class SideSheetService: ISideSheetService
         else
         {
             await _messageBus.PublishAsync(SideSheetCommandEvent.Show(
-                requestToShow!.ComponentType,
-                requestToShow.Control,
+                requestToShow!.ViewModel,
                 requestToShow.ShowScrim,
                 requestToShow.IsDismissable));
         }
@@ -156,8 +154,7 @@ public sealed class SideSheetService: ISideSheetService
         if (requestToShow != null)
         {
             await _messageBus.PublishAsync(SideSheetCommandEvent.Show(
-                requestToShow.ComponentType,
-                requestToShow.Control,
+                requestToShow.ViewModel,
                 requestToShow.ShowScrim,
                 requestToShow.IsDismissable));
         }
@@ -190,8 +187,7 @@ public sealed class SideSheetService: ISideSheetService
     }
 
     private sealed record SideSheetRequest(
-        SideSheetComponentType ComponentType,
-        UserControl? Control,
+        object ViewModel,
         bool ShowScrim,
         bool IsDismissable);
 }

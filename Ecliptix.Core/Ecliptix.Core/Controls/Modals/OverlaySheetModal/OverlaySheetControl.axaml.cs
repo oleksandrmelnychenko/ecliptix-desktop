@@ -20,35 +20,28 @@ using ReactiveUI;
 using Serilog;
 using Splat;
 
-namespace Ecliptix.Core.Controls.Modals.BottomSheetModal;
+namespace Ecliptix.Core.Controls.Modals.OverlaySheetModal;
 
-public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewModel>, IDisposable
+public sealed partial class OverlaySheetControl : ReactiveUserControl<OverlaySheetViewModel>, IDisposable
 {
-    public new static readonly StyledProperty<double> MinHeightProperty =
-        AvaloniaProperty.Register<BottomSheetControl, double>(nameof(MinHeight), DefaultBottomSheetVariables.MIN_HEIGHT);
-
-    public new static readonly StyledProperty<double> MaxHeightProperty =
-        AvaloniaProperty.Register<BottomSheetControl, double>(nameof(MaxHeight), DefaultBottomSheetVariables.MAX_HEIGHT);
-
     public static readonly StyledProperty<IBrush> ScrimColorProperty =
-        AvaloniaProperty.Register<BottomSheetControl, IBrush>(nameof(ScrimColor),
-            DefaultBottomSheetVariables.ScrimBrush);
+        AvaloniaProperty.Register<OverlaySheetControl, IBrush>(nameof(ScrimColor),
+            DefaultOverlaySheetVariables.ScrimBrush);
 
     public static readonly StyledProperty<bool> IsDismissableOnScrimClickProperty =
-        AvaloniaProperty.Register<BottomSheetControl, bool>(nameof(IsDismissableOnScrimClick),
-            DefaultBottomSheetVariables.DEFAULT_IS_DISMISSABLE_ON_SCRIM_CLICK);
+        AvaloniaProperty.Register<OverlaySheetControl, bool>(nameof(IsDismissableOnScrimClick),
+            DefaultOverlaySheetVariables.DEFAULT_IS_DISMISSABLE_ON_SCRIM_CLICK);
 
     public static readonly StyledProperty<IBrush> DismissableScrimColorProperty =
-        AvaloniaProperty.Register<BottomSheetControl, IBrush>(nameof(DismissableScrimColor),
-            DefaultBottomSheetVariables.ScrimBrush);
+        AvaloniaProperty.Register<OverlaySheetControl, IBrush>(nameof(DismissableScrimColor),
+            DefaultOverlaySheetVariables.ScrimBrush);
 
     public static readonly StyledProperty<IBrush> UnDismissableScrimColorProperty =
-        AvaloniaProperty.Register<BottomSheetControl, IBrush>(nameof(UnDismissableScrimColor),
-            DefaultBottomSheetVariables.ScrimBrush);
+        AvaloniaProperty.Register<OverlaySheetControl, IBrush>(nameof(UnDismissableScrimColor),
+            DefaultOverlaySheetVariables.ScrimBrush);
 
     private bool _disposed;
     private bool _isAnimating;
-    private double _sheetHeight;
 
     private Border? _sheetBorder;
     private Border? _scrimBorder;
@@ -60,7 +53,7 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
     private Animation? _scrimShowAnimation;
     private Animation? _scrimHideAnimation;
 
-    public BottomSheetControl()
+    public OverlaySheetControl()
     {
         InitializeComponent();
         InitializeDefaults();
@@ -77,18 +70,6 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
     {
         get => GetValue(UnDismissableScrimColorProperty);
         set => SetValue(UnDismissableScrimColorProperty, value);
-    }
-
-    public new double MinHeight
-    {
-        get => GetValue(MinHeightProperty);
-        set => SetValue(MinHeightProperty, value);
-    }
-
-    public new double MaxHeight
-    {
-        get => GetValue(MaxHeightProperty);
-        set => SetValue(MaxHeightProperty, value);
     }
 
     public IBrush ScrimColor
@@ -165,8 +146,8 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
 
     private void InitializeDefaults()
     {
-        ViewModel = Locator.Current.GetService<BottomSheetViewModel>();
-        IsDismissableOnScrimClick = DefaultBottomSheetVariables.DEFAULT_IS_DISMISSABLE_ON_SCRIM_CLICK;
+        ViewModel = Locator.Current.GetService<OverlaySheetViewModel>();
+        IsDismissableOnScrimClick = DefaultOverlaySheetVariables.DEFAULT_IS_DISMISSABLE_ON_SCRIM_CLICK;
 
         if (ViewModel is IActivatableViewModel activatableViewModel)
         {
@@ -190,7 +171,7 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
 
         if (_sheetBorder != null && _scrimBorder != null && _rootGrid != null)
         {
-            EnsureTransform<TranslateTransform>(_sheetBorder);
+            EnsureTransform<ScaleTransform>(_sheetBorder);
             _rootGrid.IsVisible = false;
             _sheetBorder.IsVisible = false;
             _scrimBorder.IsVisible = false;
@@ -247,7 +228,7 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
                 }
                 catch (Exception e)
                 {
-                    Log.Error(e, "[BottomSheetControl] ERROR during visibility change to {IsVisible}", isVisible);
+                    Log.Error(e, "[OverlaySheetControl] ERROR during visibility change to {IsVisible}", isVisible);
                 }
             })
             .DisposeWith(disposables);
@@ -265,11 +246,11 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
 
         if (isVisible)
         {
-            await ShowBottomSheetWithFocusAsync();
+            await ShowOverlaySheetWithFocusAsync();
         }
         else
         {
-            await HideBottomSheetWithFocusRestoreAsync();
+            await HideOverlaySheetWithFocusRestoreAsync();
         }
     }
 
@@ -292,11 +273,11 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
         }
     }
 
-    private async Task ShowBottomSheetWithFocusAsync()
+    private async Task ShowOverlaySheetWithFocusAsync()
     {
         SavePreviousFocusedElement();
-        UpdateSheetHeight();
-        await ShowBottomSheet();
+        UpdateSheetLayout();
+        await ShowOverlaySheet();
         Focus();
     }
 
@@ -313,9 +294,9 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
         }
     }
 
-    private async Task HideBottomSheetWithFocusRestoreAsync()
+    private async Task HideOverlaySheetWithFocusRestoreAsync()
     {
-        await HideBottomSheet();
+        await HideOverlaySheet();
         RestorePreviousFocus();
     }
 
@@ -347,53 +328,39 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
         }
     }
 
-    private void UpdateSheetHeight()
+    private void UpdateSheetLayout()
     {
         if (_contentHost == null || _sheetBorder == null)
         {
-            _sheetHeight = MinHeight;
             return;
         }
 
-        double sheetWidth = _sheetBorder.Width;
-        if (double.IsNaN(sheetWidth) || sheetWidth <= 0)
-        {
-            sheetWidth = DefaultBottomSheetVariables.DEFAULT_WIDTH;
-        }
+        // Measure the content
+        Size availableSize = new(double.PositiveInfinity, double.PositiveInfinity);
+        _contentHost.Measure(availableSize);
 
+        double contentWidth = _contentHost.DesiredSize.Width;
+        double contentHeight = _contentHost.DesiredSize.Height;
+
+        // Apply padding and border thickness
         Thickness padding = _sheetBorder.Padding;
         Thickness borderThickness = _sheetBorder.BorderThickness;
 
-        double verticalExtras = padding.Top + padding.Bottom + borderThickness.Top + borderThickness.Bottom;
         double horizontalExtras = padding.Left + padding.Right + borderThickness.Left + borderThickness.Right;
+        double verticalExtras = padding.Top + padding.Bottom + borderThickness.Top + borderThickness.Bottom;
 
-        double availableWidth = sheetWidth - horizontalExtras;
-        double availableHeight = MaxHeight - verticalExtras;
-
-        Size availableSize = new(availableWidth, double.PositiveInfinity);
-        _contentHost.Measure(availableSize);
-
-        double contentHeight = _contentHost.DesiredSize.Height;
-
-        if (double.IsNaN(contentHeight) || contentHeight <= 0)
-        {
-            contentHeight = MinHeight;
-        }
-
-        double maxContentHeight = Math.Max(MinHeight, availableHeight);
-
-        _sheetHeight = Math.Clamp(contentHeight, MinHeight, maxContentHeight);
-        _sheetBorder.Height = _sheetHeight;
+        // Set the sheet dimensions
+        _sheetBorder.Width = Math.Max(0, contentWidth + horizontalExtras);
+        _sheetBorder.Height = Math.Max(0, contentHeight + verticalExtras);
     }
-
-    private async Task ShowBottomSheet()
+    
+    private async Task ShowOverlaySheet()
     {
         if (_sheetBorder is null || _rootGrid is null)
         {
             return;
         }
 
-        UpdateSheetHeight();
         CreateAnimations();
 
         if (_showAnimation is null)
@@ -430,7 +397,7 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
         }
     }
 
-    private async Task HideBottomSheet()
+    private async Task HideOverlaySheet()
     {
         if (_hideAnimation is null || _sheetBorder is null || _rootGrid is null)
         {
@@ -467,32 +434,46 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
 
     private void CreateAnimations()
     {
-        double hiddenPosition = _sheetHeight;
-
-        CubicEaseInOut showEasing = new();
-        CubicEaseInOut hideEasing = new();
+        CubicEaseOut showEasing = new(); // For a pop-in effect, start fast and decelerate
+        CubicEaseIn hideEasing = new(); // For pop-out, start slow and accelerate
 
         _showAnimation = new Animation
         {
-            Duration = BottomSheetAnimationConstants.ShowAnimationDuration,
+            Duration = OverlaySheetAnimationConstants.ShowAnimationDuration,
             Easing = showEasing,
             FillMode = FillMode.Both,
             Children =
             {
-                new KeyFrame { Cue = new Cue(0.0), Setters = { new Setter(TranslateTransform.YProperty, hiddenPosition), new Setter(OpacityProperty, 1.0) } },
-                new KeyFrame { Cue = new Cue(1.0), Setters = { new Setter(TranslateTransform.YProperty, 0.0) } }
+                new KeyFrame { Cue = new Cue(0.0), Setters = {
+                    new Setter(OpacityProperty, 0.0),
+                    new Setter(ScaleTransform.ScaleXProperty, 0.8),
+                    new Setter(ScaleTransform.ScaleYProperty, 0.8)
+                } },
+                new KeyFrame { Cue = new Cue(1.0), Setters = {
+                    new Setter(OpacityProperty, 1.0),
+                    new Setter(ScaleTransform.ScaleXProperty, 1.0),
+                    new Setter(ScaleTransform.ScaleYProperty, 1.0)
+                } }
             }
         };
 
         _hideAnimation = new Animation
         {
-            Duration = BottomSheetAnimationConstants.HideAnimationDuration,
+            Duration = OverlaySheetAnimationConstants.HideAnimationDuration,
             Easing = hideEasing,
             FillMode = FillMode.Both,
             Children =
             {
-                new KeyFrame { Cue = new Cue(0.0), Setters = { new Setter(TranslateTransform.YProperty, 0.0), new Setter(OpacityProperty, 1.0) } },
-                new KeyFrame { Cue = new Cue(1.0), Setters = { new Setter(TranslateTransform.YProperty, hiddenPosition), new Setter(OpacityProperty, 0.0) } }
+                new KeyFrame { Cue = new Cue(0.0), Setters = {
+                    new Setter(OpacityProperty, 1.0),
+                    new Setter(ScaleTransform.ScaleXProperty, 1.0),
+                    new Setter(ScaleTransform.ScaleYProperty, 1.0)
+                } },
+                new KeyFrame { Cue = new Cue(1.0), Setters = {
+                    new Setter(OpacityProperty, 0.0),
+                    new Setter(ScaleTransform.ScaleXProperty, 0.8),
+                    new Setter(ScaleTransform.ScaleYProperty, 0.8)
+                } }
             }
         };
 
@@ -503,7 +484,7 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
 
         _scrimShowAnimation = new Animation
         {
-            Duration = BottomSheetAnimationConstants.ShowAnimationDuration,
+            Duration = OverlaySheetAnimationConstants.ShowAnimationDuration,
             Easing = new CubicEaseInOut(),
             FillMode = FillMode.Both,
             Children =
@@ -515,7 +496,7 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
 
         _scrimHideAnimation = new Animation
         {
-            Duration = BottomSheetAnimationConstants.HideAnimationDuration,
+            Duration = OverlaySheetAnimationConstants.HideAnimationDuration,
             Easing = new CubicEaseInOut(),
             FillMode = FillMode.Both,
             Children =
@@ -537,9 +518,9 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
 
             ViewModel.IsVisible = false;
 
-            await Task.Delay(BottomSheetAnimationConstants.HideAnimationDuration);
+            await Task.Delay(OverlaySheetAnimationConstants.HideAnimationDuration);
 
-            ViewModel.BottomSheetDismissed();
+            ViewModel.OverlaySheetDismissed();
         }
         catch
         {
@@ -547,8 +528,8 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
         }
     }
 
-    private static readonly FrozenDictionary<Key, Func<BottomSheetControl, bool>> DismissKeys =
-        new Dictionary<Key, Func<BottomSheetControl, bool>>
+    private static readonly FrozenDictionary<Key, Func<OverlaySheetControl, bool>> DismissKeys =
+        new Dictionary<Key, Func<OverlaySheetControl, bool>>
         {
             { Key.Enter, control => control.IsDismissableOnScrimClick },
             { Key.Escape, control => control.IsDismissableOnScrimClick },
@@ -557,18 +538,17 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
 
     private async void OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (DismissKeys.TryGetValue(e.Key, out Func<BottomSheetControl, bool>? shouldDismiss) &&
+        if (DismissKeys.TryGetValue(e.Key, out Func<OverlaySheetControl, bool>? shouldDismiss) &&
             shouldDismiss(this) &&
             ViewModel is not null &&
             !_isAnimating)
         {
             ViewModel.IsVisible = false;
 
-            await Task.Delay(BottomSheetAnimationConstants.HideAnimationDuration);
+            await Task.Delay(OverlaySheetAnimationConstants.HideAnimationDuration);
 
-            ViewModel.BottomSheetDismissed();
+            ViewModel.OverlaySheetDismissed();
             e.Handled = true;
         }
     }
-
 }

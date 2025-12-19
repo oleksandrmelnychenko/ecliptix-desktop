@@ -14,6 +14,7 @@ using DotNetEnv;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Controls.Modals.BottomSheetModal;
+using Ecliptix.Core.Controls.Modals.OverlaySheetModal;
 using Ecliptix.Core.Controls.Modals.SideSheetModal;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.Communication;
@@ -120,6 +121,10 @@ public static class Program
             Splat.Locator.CurrentMutable.Register(() => new NetworkBadgeView(), typeof(ReactiveUI.IViewFor<NetworkBadgeViewModel>));
             Splat.Locator.CurrentMutable.Register(() => new LanguageMenuButtonView(), typeof(ReactiveUI.IViewFor<LanguageMenuButtonViewModel>));
             Splat.Locator.CurrentMutable.Register(() => new VerticalSeparatorView(), typeof(ReactiveUI.IViewFor<VerticalSeparatorViewModel>));
+            Splat.Locator.CurrentMutable.Register(( ) => new DetectLanguageDialog(), typeof(ReactiveUI.IViewFor<DetectLanguageDialogViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new RedirectNotificationView(), typeof(ReactiveUI.IViewFor<RedirectNotificationViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new LanguagePickerView(), typeof(ReactiveUI.IViewFor<LanguagePickerViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new CountryCodeView(), typeof(ReactiveUI.IViewFor<CountryCodeViewModel>));
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
         }
         catch (Exception ex)
@@ -366,8 +371,10 @@ public static class Program
     {
         services.AddSingleton<IMessageBus, MessageBus>();
         services.AddSingleton<IConnectivityService, ConnectivityService>();
-        services.AddSingleton<IBottomSheetService, BottomSheetService>();
+        services.AddSingleton<IGlobalModalService, GlobalModalService>(sp => new GlobalModalService(sp.GetRequiredService<IMessageBus>()));
         services.AddSingleton<ISideSheetService, SideSheetService>();
+        services.AddSingleton<IBottomSheetService, BottomSheetService>();
+        services.AddSingleton<IOverlaySheetService, OverlaySheetService>();
         services.AddSingleton<IProfileMenuService, ProfileMenuService>();
         services.AddSingleton<ILanguageDetectionService, LanguageDetectionService>();
         services.AddSingleton<ILocalizationService, LocalizationService>();
@@ -531,6 +538,7 @@ public static class Program
         services.AddTransient<LanguageCycleButtonViewModel>();
         services.AddSingleton<BottomSheetViewModel>();
         services.AddSingleton<SideSheetViewModel>();
+        services.AddSingleton<OverlaySheetViewModel>();
         services.AddSingleton<ConnectivityNotificationViewModel>();
         services.AddSingleton<Ecliptix.Core.ViewModels.Core.MainWindowViewModel>();
         services.AddTransient<Ecliptix.Core.Controls.Core.VerticalSeparatorViewModel>();
@@ -553,6 +561,7 @@ public static class Program
                 RecoveryService = sp.GetRequiredService<ISecureKeyRecoveryService>(),
                 LanguageDetectionService = sp.GetRequiredService<ILanguageDetectionService>(),
                 Router = sp.GetRequiredService<IApplicationRouter>(),
+                GlobalModalService = sp.GetRequiredService<IGlobalModalService>(),
                 MainWindowViewModel = sp.GetRequiredService<Ecliptix.Core.ViewModels.Core.MainWindowViewModel>(),
                 Settings = sp.GetRequiredService<DefaultSystemSettings>()
             }));

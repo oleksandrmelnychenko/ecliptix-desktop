@@ -6,6 +6,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Ecliptix.Core.Controls.Carousels;
 using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Core.Features.Authentication.Common;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
@@ -36,8 +37,9 @@ public sealed class WelcomeViewModel : ViewModelBase, IRoutableViewModel, IReset
     private bool _isDisposed;
 
     public WelcomeViewModel(IScreen hostScreen, ILocalizationService localizationService,
-        NetworkProvider networkProvider)
-        : base(networkProvider, localizationService)
+        NetworkProvider networkProvider,
+        IGlobalModalService globalModalService)
+        : base(networkProvider, localizationService, globalModalService)
     {
         HostScreen = hostScreen;
         Slides = InitializeSlides(localizationService);

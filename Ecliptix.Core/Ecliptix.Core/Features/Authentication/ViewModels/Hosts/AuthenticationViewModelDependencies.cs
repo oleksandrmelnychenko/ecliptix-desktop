@@ -19,6 +19,7 @@ public readonly struct AuthenticationViewModelDependencies
     public required ISecureKeyRecoveryService RecoveryService { get; init; }
     public required ILanguageDetectionService LanguageDetectionService { get; init; }
     public required IApplicationRouter Router { get; init; }
+    public required IGlobalModalService GlobalModalService { get; init; }
     public required MainWindowViewModel MainWindowViewModel { get; init; }
     public required DefaultSystemSettings Settings { get; init; }
 }

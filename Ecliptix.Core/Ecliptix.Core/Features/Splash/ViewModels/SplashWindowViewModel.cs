@@ -31,7 +31,7 @@ public sealed class SplashWindowViewModel : Core.MVVM.ViewModelBase
         IConnectivityService connectivityService,
         ILocalizationService localizationService,
         NetworkProvider networkProvider)
-        : base(networkProvider, localizationService)
+        : base(networkProvider, localizationService, null)
     {
         SetupPrecompiledNetworkBinding(connectivityService);
     }

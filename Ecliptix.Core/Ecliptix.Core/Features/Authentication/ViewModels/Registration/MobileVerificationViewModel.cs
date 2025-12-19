@@ -38,7 +38,6 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
     private readonly AuthenticationFlowContext _flowContext;
     private readonly IConnectivityService _connectivityService;
     private readonly CompositeDisposable _disposables = new();
-    private readonly ISideSheetService? _sideSheetService;
     private readonly DefaultSystemSettings _settings;
 
     private CancellationTokenSource? _cancellationTokenSource;
@@ -59,7 +58,8 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         IOpaqueRegistrationService registrationService,
         ISecureKeyRecoveryService secureKeyRecoveryService,
         AuthenticationFlowContext flowContext,
-        DefaultSystemSettings settings) : base(networkProvider, localizationService,
+        DefaultSystemSettings settings,
+        IGlobalModalService globalModalService) : base(networkProvider, localizationService, globalModalService,
         connectivityService)
     {
         _registrationService = registrationService;
@@ -69,7 +69,6 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         HostScreen = hostScreen;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _settings = settings;
-        _sideSheetService = Locator.Current.GetService<ISideSheetService>();
 
         IObservable<bool> isFormLogicallyValid = SetupValidation();
         SetupCommands(isFormLogicallyValid);
@@ -207,9 +206,8 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
 
         OpenCountryPickerCommand = ReactiveCommand.CreateFromTask(async () =>
         {
-            await _sideSheetService.ShowAsync(
-                SideSheetComponentType.COUNTRY_CODE,
-                new CountryCodeView(),
+            await GlobalModalService.ShowRightAsync(
+                new CountryCodeViewModel(),
                 showScrim: false,
                 isDismissable: true
             );
@@ -453,7 +451,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         ByteString mobileNumberIdentifier = result.Unwrap();
 
         VerificationCodeEntryViewModel vm = new(_connectivityService, NetworkProvider, LocalizationService, HostScreen,
-            (mobileNumberIdentifier, MobileNumber), _applicationSecureStorageProvider, _registrationService,
+            (mobileNumberIdentifier, MobileNumber), _applicationSecureStorageProvider, _registrationService, GlobalModalService,
             _flowContext, _secureKeyRecoveryService);
 
         if (HostScreen is AuthenticationViewModel hostWindow)
@@ -479,7 +477,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         }
 
         VerificationCodeEntryViewModel vm = new(_connectivityService, NetworkProvider, LocalizationService, HostScreen,
-            (mobileNumberIdentifier, MobileNumber), _applicationSecureStorageProvider, _registrationService);
+            (mobileNumberIdentifier, MobileNumber), _applicationSecureStorageProvider, _registrationService, GlobalModalService);
 
         if (HostScreen is not AuthenticationViewModel hostWindow)
         {

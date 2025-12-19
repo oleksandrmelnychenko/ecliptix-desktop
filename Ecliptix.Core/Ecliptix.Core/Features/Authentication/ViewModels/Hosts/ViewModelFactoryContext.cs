@@ -13,6 +13,7 @@ public readonly struct ViewModelFactoryContext
     public required IConnectivityService ConnectivityService { get; init; }
     public required NetworkProvider NetworkProvider { get; init; }
     public required ILocalizationService LocalizationService { get; init; }
+    public required IGlobalModalService GlobalModalService { get; init; }
     public required IAuthenticationService AuthenticationService { get; init; }
     public required IApplicationSecureStorageProvider StorageProvider { get; init; }
     public required AuthenticationViewModel HostViewModel { get; init; }
