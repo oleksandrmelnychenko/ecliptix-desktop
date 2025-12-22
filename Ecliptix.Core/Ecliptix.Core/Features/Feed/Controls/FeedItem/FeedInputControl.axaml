@@ -8,14 +8,6 @@
 			 x:DataType="vm:FeedViewModel"
 			 x:Class="Ecliptix.Core.Features.Feed.Controls.FeedItem.FeedInputControl">
 
-	<UserControl.Resources>
-
-		<ResourceDictionary>
-
-
-		</ResourceDictionary>
-
-	</UserControl.Resources>
 
 	<UserControl.Styles>
 		<Style Selector="Border#InputBorder">
@@ -121,6 +113,7 @@
 						 Text="{Binding PostMessage}"
 						 MaxLines="5"
 						 MinLines="3"
+						 Margin="0,10"
 						 TextWrapping="Wrap"
 						 BorderThickness="0"
 						 Watermark="What's on your mind?"
@@ -155,7 +148,7 @@
 				<Border Grid.Column="4" Grid.Row="1"
 				        Width="1"
 				        Height="18"
-				        Margin="15,0,10,0"
+				        Margin="10,0,10,0"
 				        Background="#D0D0D0"/>
 
 				<!-- Post Button -->
@@ -195,7 +188,6 @@
 				<Border Grid.Column="1"
 				        Width="1"
 				        Height="18"
-				        Margin="0,0, 5,0"
 				        Background="#D0D0D0"/>
 
 				<Button Grid.Column="2"
