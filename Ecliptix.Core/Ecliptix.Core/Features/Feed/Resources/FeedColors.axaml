@@ -1,0 +1,13 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Feed Input Control -->
+    <Color x:Key="SlateBlue">#6A5ACD</Color>
+    <Color x:Key="LightGrayishBlue">#f3f4f6 </Color>
+    <Color x:Key="DarkGrayishBlue">#99a1af </Color>
+    <Color x:Key="VeryDarkGrayishBlue">#4a5565</Color>
+
+    <SolidColorBrush x:Key="SlateBlueBrush" Color="{StaticResource SlateBlue}" Opacity="0.9" />
+
+</ResourceDictionary>
+

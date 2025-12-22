@@ -4,12 +4,14 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Metadata;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Settings;
 using ReactiveUI;
 using Serilog;
 using Splat;
 
+[assembly: XmlnsDefinition("https://github.com/avaloniaui", "Ecliptix.Core.Controls.Core.Icons")]
 namespace Ecliptix.Core;
 
 public class App : Application
