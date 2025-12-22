@@ -35,7 +35,6 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
     private readonly CompositeDisposable _disposables = new();
     private readonly Subject<string> _signInErrorSubject = new();
     private readonly AuthenticationViewModel _hostWindowModel;
-    private readonly ISideSheetService? _sideSheetService;
 
     private CancellationTokenSource? _signInCancellationTokenSource;
     private bool _hasMobileNumberBeenTouched;
@@ -47,12 +46,12 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IAuthenticationService authService,
-        IScreen hostScreen) : base(networkProvider, localizationService, connectivityService)
+        IScreen hostScreen,
+        IGlobalModalService globalModalService) : base(networkProvider, localizationService, globalModalService, connectivityService)
     {
         HostScreen = hostScreen;
         _authService = authService;
         _hostWindowModel = (AuthenticationViewModel)hostScreen;
-        _sideSheetService = Locator.Current.GetService<ISideSheetService>();
 
         IObservable<bool> isFormLogicallyValid = SetupValidation();
         SetupCommands(isFormLogicallyValid);
@@ -294,10 +293,9 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
 
         OpenCountryPickerCommand = ReactiveCommand.CreateFromTask(async () =>
         {
-            await _sideSheetService.ShowAsync(
-                SideSheetComponentType.COUNTRY_CODE,
-                new CountryCodeView(),
-                showScrim: false,
+            await GlobalModalService.ShowRightAsync(
+                new CountryCodeViewModel(),
+                showScrim: true,
                 isDismissable: true
             );
         });

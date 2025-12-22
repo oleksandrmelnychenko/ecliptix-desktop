@@ -16,6 +16,7 @@ using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Core.Services.Membership;
+using Ecliptix.Core.Settings;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
@@ -37,7 +38,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
     private readonly AuthenticationFlowContext _flowContext;
     private readonly IConnectivityService _connectivityService;
     private readonly CompositeDisposable _disposables = new();
-    private readonly ISideSheetService? _sideSheetService;
+    private readonly DefaultSystemSettings _settings;
 
     private CancellationTokenSource? _cancellationTokenSource;
     private bool _hasMobileNumberBeenTouched;
@@ -56,7 +57,9 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IOpaqueRegistrationService registrationService,
         ISecureKeyRecoveryService secureKeyRecoveryService,
-        AuthenticationFlowContext flowContext) : base(networkProvider, localizationService,
+        AuthenticationFlowContext flowContext,
+        DefaultSystemSettings settings,
+        IGlobalModalService globalModalService) : base(networkProvider, localizationService, globalModalService,
         connectivityService)
     {
         _registrationService = registrationService;
@@ -65,7 +68,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         _flowContext = flowContext;
         HostScreen = hostScreen;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
-        _sideSheetService = Locator.Current.GetService<ISideSheetService>();
+        _settings = settings;
 
         IObservable<bool> isFormLogicallyValid = SetupValidation();
         SetupCommands(isFormLogicallyValid);
@@ -97,6 +100,10 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
     public ReactiveCommand<Unit, Unit>? VerifyMobileNumberCommand { get; private set; }
 
     public ReactiveCommand<Unit, Unit>? OpenCountryPickerCommand { get; private set; }
+
+    public ReactiveCommand<Unit, Unit> OpenPrivacyPolicyCommand { get; private set; } = null!;
+
+    public ReactiveCommand<Unit, Unit> OpenTermsOfServiceCommand { get; private set; } = null!;
 
     [Reactive] public string MobileNumber { get; set; } = string.Empty;
     [Reactive] public string? MobileNumberError { get; private set; }
@@ -199,16 +206,44 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
 
         OpenCountryPickerCommand = ReactiveCommand.CreateFromTask(async () =>
         {
-            await _sideSheetService.ShowAsync(
-                SideSheetComponentType.COUNTRY_CODE,
-                new CountryCodeView(),
-                showScrim: false,
+            await GlobalModalService.ShowRightAsync(
+                new CountryCodeViewModel(),
+                showScrim: true,
                 isDismissable: true
             );
         });
 
+        OpenPrivacyPolicyCommand = ReactiveCommand.Create(() => OpenUrl(_settings.PrivacyPolicyUrl));
+        OpenTermsOfServiceCommand = ReactiveCommand.Create(() => OpenUrl(_settings.TermsOfServiceUrl));
+
         _disposables.Add(VerifyMobileNumberCommand);
     }
+
+    //TODO move to helpers
+    private static void OpenUrl(string url)
+    {
+        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform
+                .Windows))
+        {
+            System.Diagnostics.Process.Start(
+                new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
+        }
+        else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices
+                     .OSPlatform.OSX))
+        {
+            System.Diagnostics.Process.Start("open", url);
+        }
+        else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices
+                     .OSPlatform.Linux))
+        {
+            System.Diagnostics.Process.Start("xdg-open", url);
+        }
+        else
+        {
+            Log.Warning("Unsupported platform for opening URL: {Url}", url);
+        }
+    }
+
 
     private async Task<Unit> ExecuteVerificationAsync()
     {
@@ -415,8 +450,8 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
 
         ByteString mobileNumberIdentifier = result.Unwrap();
 
-        VerifyOtpViewModel vm = new(_connectivityService, NetworkProvider, LocalizationService, HostScreen,
-            mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService,
+        VerificationCodeEntryViewModel vm = new(_connectivityService, NetworkProvider, LocalizationService, HostScreen,
+            (mobileNumberIdentifier, MobileNumber), _applicationSecureStorageProvider, _registrationService, GlobalModalService,
             _flowContext, _secureKeyRecoveryService);
 
         if (HostScreen is AuthenticationViewModel hostWindow)
@@ -441,8 +476,8 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
             return Task.CompletedTask;
         }
 
-        VerifyOtpViewModel vm = new(_connectivityService, NetworkProvider, LocalizationService, HostScreen,
-            mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService);
+        VerificationCodeEntryViewModel vm = new(_connectivityService, NetworkProvider, LocalizationService, HostScreen,
+            (mobileNumberIdentifier, MobileNumber), _applicationSecureStorageProvider, _registrationService, GlobalModalService);
 
         if (HostScreen is not AuthenticationViewModel hostWindow)
         {

@@ -488,18 +488,16 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     }
 
     public async Task ShowBottomSheetAsync(
-        BottomSheetComponentType type,
-        UserControl view,
+        object viewModel,
         bool showScrim = true,
         bool isDismissable = false) =>
-        await _bottomSheetService.ShowAsync(type, view, showScrim, isDismissable).ConfigureAwait(false);
+        await _bottomSheetService.ShowAsync(viewModel, showScrim, isDismissable).ConfigureAwait(false);
 
     public async Task ShowSideSheetAsync(
-        SideSheetComponentType type,
-        UserControl view,
+        object viewModel,
         bool showScrim = true,
         bool isDismissable = false) =>
-        await _sideSheetService.ShowAsync(type, view, showScrim, isDismissable).ConfigureAwait(false);
+        await _sideSheetService.ShowAsync(viewModel, showScrim, isDismissable).ConfigureAwait(false);
 
     public async Task HideBottomSheetAsync() =>
         await _bottomSheetService.HideAsync().ConfigureAwait(false);

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging.Connectivity;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Services.Abstractions.Network;
+using Ecliptix.Protobuf.Account;
 using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Membership;
@@ -18,6 +19,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
 {
     private readonly Dictionary<RpcServiceType, GrpcMethodDelegate> _serviceMethods;
     private readonly MembershipServices.MembershipServicesClient _membershipServicesClient;
+    private readonly AccountServices.AccountServicesClient _accountServicesClient;
     private readonly IGrpcErrorProcessor _errorProcessor;
     private readonly IGrpcCallOptionsFactory _callOptionsFactory;
 
@@ -32,11 +34,13 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         MembershipServices.MembershipServicesClient membershipServicesClient,
         DeviceService.DeviceServiceClient deviceServiceClient,
         AuthVerificationServices.AuthVerificationServicesClient authenticationServicesClient,
+        AccountServices.AccountServicesClient accountServicesClient,
         IGrpcErrorProcessor errorProcessor,
         IGrpcCallOptionsFactory callOptionsFactory
     )
     {
         _membershipServicesClient = membershipServicesClient;
+        _accountServicesClient = accountServicesClient;
         _errorProcessor = errorProcessor;
         _callOptionsFactory = callOptionsFactory;
 
@@ -54,9 +58,51 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
             [RpcServiceType.SignInCompleteRequest] = OpaqueSignInCompleteRequestAsync,
             [RpcServiceType.Logout] = LogoutAsync,
             [RpcServiceType.AnonymousLogout] = AnonymousLogoutAsync,
+            [RpcServiceType.CheckProfileNameAvailability] = CheckProfileNameAvailabilityAsync,
+            [RpcServiceType.CreateOrUpdateProfile] = CreateOrUpdateProfileAsync,
             [RpcServiceType.GetAccountProfile] = GetAccountProfile,
         };
         return;
+
+        async Task<Result<SecureEnvelope, NetworkFailure>> CheckProfileNameAvailabilityAsync(
+            SecureEnvelope payload,
+            RpcRequestContext? requestContext,
+            IConnectivityService connectivityService,
+            CancellationToken token
+        )
+        {
+            return await ExecuteGrpcCallAsync(
+                RpcServiceType.CheckProfileNameAvailability,
+                connectivityService,
+                requestContext,
+                token,
+                callOptions =>
+                    _accountServicesClient.CheckProfileNameAvailabilityAsync(
+                        payload,
+                        callOptions
+                    )
+            ).ConfigureAwait(false);
+        }
+
+        async Task<Result<SecureEnvelope, NetworkFailure>> CreateOrUpdateProfileAsync(
+            SecureEnvelope payload,
+            RpcRequestContext? requestContext,
+            IConnectivityService connectivityService,
+            CancellationToken token
+        )
+        {
+            return await ExecuteGrpcCallAsync(
+                RpcServiceType.CreateOrUpdateProfile,
+                connectivityService,
+                requestContext,
+                token,
+                callOptions =>
+                    _accountServicesClient.CreateOrUpdateProfileAsync(
+                        payload,
+                        callOptions
+                    )
+            ).ConfigureAwait(false);
+        }
 
         async Task<Result<SecureEnvelope, NetworkFailure>> GetAccountProfile(
             SecureEnvelope payload,
@@ -71,7 +117,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
                 requestContext,
                 token,
                 callOptions =>
-                    _membershipServicesClient.GetAccountProfileAsync(
+                    _accountServicesClient.GetAccountProfileAsync(
                         payload,
                         callOptions
                     )

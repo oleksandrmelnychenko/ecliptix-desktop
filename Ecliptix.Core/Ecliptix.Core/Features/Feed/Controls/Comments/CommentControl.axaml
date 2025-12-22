@@ -115,7 +115,9 @@
 					Background="#00000001"
 					HorizontalAlignment="Left"
 					BorderThickness="0"
-					VerticalAlignment="Top">
+					VerticalAlignment="Top"
+					Opacity="{Binding IsFlyoutOpen, Converter={StaticResource BoolToOpacityConverter}}"
+					IsHitTestVisible="{Binding !IsFlyoutOpen}">
 				<Path Width="35"
 					  Height="4"
 					  Fill="#9DA5B2"
@@ -130,7 +132,30 @@
 					<Style Selector="Button:pointerover /template/ ContentPresenter">
 						<Setter Property="TextBlock.Background" Value="#F3F4F6"/>
 					</Style>
+
+					<Style Selector="FlyoutPresenter">
+						<Setter Property="BorderThickness" Value="0"/>
+					</Style>
 				</Button.Styles>
+
+				<Button.Flyout>
+					<Flyout	Placement="BottomEdgeAlignedRight"
+							Opened="Flyout_Opened"
+							Closed="Flyout_Closed">
+
+						<Border Width="180"
+								Height="42"
+								Padding="3"
+								BorderThickness="1"
+								CornerRadius="8"								
+								BoxShadow ="0 4 12 0 #15000000">
+							<Button Content="Copy link"
+									HorizontalContentAlignment="Left"
+									CornerRadius="8"
+									Command="{Binding CopyLinkCommand}" />
+						</Border>
+					</Flyout>
+				</Button.Flyout>
 			</Button>
 		</Grid>
 

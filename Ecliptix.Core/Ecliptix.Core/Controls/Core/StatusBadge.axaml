@@ -4,19 +4,20 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="clr-namespace:Ecliptix.Core.Controls.Core"
              xmlns:sys="clr-namespace:System;assembly=System.Runtime"
+             xmlns:converters="clr-namespace:Ecliptix.Core.Shared.Converters"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Name="Root"
              x:Class="Ecliptix.Core.Controls.Core.StatusBadge">
-    <UserControl.Resources>
+   <UserControl.Resources>
+        <converters:DrawingColorConverter x:Key="DrawingColorConverter" />
         <sys:TimeSpan x:Key="FlyoutAnimDuration">0:0:0.200</sys:TimeSpan>
         <Thickness x:Key="BadgePadding">10,4</Thickness>
         <Thickness x:Key="BadgeBorderThickness">1</Thickness>
         <sys:Double x:Key="BadgeIconSize">14</sys:Double>
-        <sys:Double x:Key="BadgeFontSize">10</sys:Double>
         <sys:Double x:Key="BadgeIconSpacing">4</sys:Double>
     </UserControl.Resources>
 
-    <UserControl.Styles>
+   <UserControl.Styles>
         <Style Selector="local|StatusBadge Border#ContainerBorder">
              <Setter Property="BorderThickness" Value="{StaticResource BadgeBorderThickness}"/>
         </Style>
@@ -25,6 +26,7 @@
             <Setter Property="Height" Value="28"/>
             <Setter Property="BadgeBrush" Value="#6B7280"/>
             <Setter Property="BadgeBackground" Value="#F3F4F6"/>
+            <Setter Property="BadgeBorderBrush" Value="Transparent"/>
             <Setter Property="HorizontalAlignment" Value="Left"/>
         </Style>
 
@@ -33,20 +35,32 @@
             <Setter Property="BadgeBackground" Value="#f3e8ff"/>
         </Style>
         <Style Selector="local|StatusBadge.purple Border#ContainerBorder">
-            <Setter Property="BorderThickness" Value="0"/>
+             <Setter Property="BorderThickness" Value="0"/>
         </Style>
+
+        <Style Selector="local|StatusBadge.gray">
+            <Setter Property="BadgeBrush" Value="#4B5563"/>
+            <Setter Property="BadgeBackground" Value="#F3F4F6"/>
+            <Setter Property="BadgeBorderBrush" Value="#E5E7EB"/> </Style>
+        <Style Selector="local|StatusBadge.red">
+            <Setter Property="BadgeBrush" Value="#DC2626"/>
+            <Setter Property="BadgeBackground" Value="#FEF2F2"/>
+            <Setter Property="BadgeBorderBrush" Value="#FECACA"/> </Style>
 
         <Style Selector="local|StatusBadge.green">
-            <Setter Property="BadgeBrush" Value="#15803d"/>
-            <Setter Property="BadgeBackground" Value="#ecfdf5"/>
-        </Style>
-        <Style Selector="local|StatusBadge.green Border#ContainerBorder">
-            <Setter Property="BorderThickness" Value="0"/>
-        </Style>
+            <Setter Property="BadgeBrush" Value="#16A34A"/>
+            <Setter Property="BadgeBackground" Value="#ECFDF5"/>
+            <Setter Property="BadgeBorderBrush" Value="#BBF7D0"/> </Style>
 
-        <Style Selector="local|StatusBadge.red">
-            <Setter Property="BadgeBrush" Value="#EF4444"/>
-            <Setter Property="BadgeBackground" Value="#15EF4444"/>
+        <Style Selector="local|StatusBadge Viewbox#IconBox">
+            <Setter Property="Width" Value="{StaticResource BadgeIconSize}"/>
+            <Setter Property="Height" Value="{StaticResource BadgeIconSize}"/>
+            <Setter Property="Margin" Value="0"/>
+        </Style>
+        <Style Selector="local|StatusBadge.gray Viewbox#IconBox">
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Height" Value="18"/>
+            <Setter Property="Margin" Value="-2"/>
         </Style>
 
         <Style Selector="Border.popupContent">
@@ -59,17 +73,19 @@
                 </Transitions>
             </Setter>
         </Style>
-
         <Style Selector="Border.popupContent.visible">
             <Setter Property="Opacity" Value="1"/>
             <Setter Property="RenderTransform" Value="scale(1)"/>
         </Style>
     </UserControl.Styles>
 
-    <Grid Background="Transparent"> <Border x:Name="ContainerBorder"
+    <Grid Background="Transparent">
+        <Border x:Name="ContainerBorder"
                 CornerRadius="50"
                 Background="{Binding BadgeBackground, ElementName=Root}"
-                BorderBrush="{Binding BadgeBrush, ElementName=Root}"
+
+                BorderBrush="{Binding BadgeBorderBrush, ElementName=Root}"
+
                 Padding="{StaticResource BadgePadding}"
                 HorizontalAlignment="{Binding HorizontalAlignment, ElementName=Root}"
                 VerticalAlignment="Center"
@@ -79,23 +95,27 @@
                         Spacing="{StaticResource BadgeIconSpacing}"
                         VerticalAlignment="Center">
 
-                <Viewbox Width="{StaticResource BadgeIconSize}"
-                         Height="{StaticResource BadgeIconSize}"
+                <Viewbox x:Name="IconBox"
                          IsVisible="{Binding Icon, ElementName=Root, Converter={x:Static ObjectConverters.IsNotNull}}">
-                    <Canvas Width="24" Height="24">
-                        <Path Data="{Binding Icon, ElementName=Root}"
-                              Stroke="{Binding BadgeBrush, ElementName=Root}"
-                              StrokeThickness="2.5"
-                              StrokeLineCap="Round"
-                              Fill="Transparent"/>
-                    </Canvas>
+
+                    <Image>
+                        <Image.Source>
+                            <DrawingImage>
+                                <DrawingImage.Drawing>
+                                    <MultiBinding Converter="{StaticResource DrawingColorConverter}">
+                                        <Binding Path="Icon" ElementName="Root" />
+                                        <Binding Path="BadgeBrush" ElementName="Root" />
+                                    </MultiBinding>
+                                </DrawingImage.Drawing>
+                            </DrawingImage>
+                        </Image.Source>
+                    </Image>
                 </Viewbox>
 
                 <TextBlock Text="{Binding Text, ElementName=Root}"
                            Foreground="{Binding BadgeBrush, ElementName=Root}"
-                           FontSize="{StaticResource BadgeFontSize}"
-                           FontWeight="Normal"
-                           LetterSpacing="0.5"
+                           FontSize="{Binding BadgeFontSize, ElementName=Root}"
+                           FontWeight="{Binding TooltipTitleFontWeight, ElementName=Root}"
                            VerticalAlignment="Center"/>
             </StackPanel>
         </Border>
@@ -130,27 +150,26 @@
                     <StackPanel Grid.Row="0" Grid.Column="1" Spacing="4" Margin="8,0,0,0">
                         <TextBlock Text="{Binding TooltipTitle, ElementName=Root}"
                                    FontFamily="{StaticResource SegoeUI}"
-                                   FontSize="12"
-                                   FontWeight="Medium"
+                                   FontSize="{Binding PopupFontSize, ElementName=Root}"
                                    Foreground="#7e22ce"
                                    LineHeight="19.2"/>
 
                         <StackPanel Spacing="2" Margin="4,0,0,0">
                             <TextBlock Text="{Binding TooltipFeature1, ElementName=Root, StringFormat='• {0}'}"
                                        FontFamily="{StaticResource SegoeUI}"
-                                       FontSize="12"
+                                       FontSize="{Binding PopupFontSize, ElementName=Root}"
                                        Foreground="#7e22ce"
                                        LineHeight="19.2"
                                        TextWrapping="Wrap"/>
                             <TextBlock Text="{Binding TooltipFeature2, ElementName=Root, StringFormat='• {0}'}"
                                        FontFamily="{StaticResource SegoeUI}"
-                                       FontSize="12"
+                                       FontSize="{Binding PopupFontSize, ElementName=Root}"
                                        Foreground="#7e22ce"
                                        LineHeight="19.2"
                                        TextWrapping="Wrap"/>
                             <TextBlock Text="{Binding TooltipFeature3, ElementName=Root, StringFormat='• {0}'}"
                                        FontFamily="{StaticResource SegoeUI}"
-                                       FontSize="12"
+                                       FontSize="{Binding PopupFontSize, ElementName=Root}"
                                        Foreground="#7e22ce"
                                        LineHeight="19.2"
                                        TextWrapping="Wrap"/>

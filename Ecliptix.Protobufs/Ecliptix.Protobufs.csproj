@@ -9,6 +9,8 @@
   <ItemGroup>
     <!-- Account proto files -->
     <Protobuf Include="Sources\account\account.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
+    <Protobuf Include="Sources\account\account_services.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
+
 
     <!-- Authentication proto files -->
     <Protobuf Include="Sources\authentication\auth_services.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />

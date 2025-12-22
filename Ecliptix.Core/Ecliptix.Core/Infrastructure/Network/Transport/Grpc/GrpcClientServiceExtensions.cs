@@ -1,6 +1,7 @@
 using System;
 using Ecliptix.Core.Infrastructure.Network.Transport.Grpc.Interceptors;
 using Ecliptix.Core.Settings;
+using Ecliptix.Protobuf.Account;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Membership;
 using Grpc.Net.ClientFactory;
@@ -20,6 +21,9 @@ public static class GrpcClientServiceExtensions
             .AddInterceptor<RequestMetaDataInterceptor>();
 
         services.AddGrpcClient<AuthVerificationServices.AuthVerificationServicesClient>(ConfigureClient)
+            .AddInterceptor<RequestMetaDataInterceptor>();
+
+        services.AddGrpcClient<AccountServices.AccountServicesClient>(ConfigureClient)
             .AddInterceptor<RequestMetaDataInterceptor>();
     }
 

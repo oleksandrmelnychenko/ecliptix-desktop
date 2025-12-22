@@ -3,6 +3,7 @@ using System.Reactive;
 using System.Reactive.Disposables;
 
 using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
 
@@ -19,7 +20,9 @@ public sealed class PassPhaseViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     public PassPhaseViewModel(
         ILocalizationService localizationService,
-        IScreen hostScreen, NetworkProvider networkProvider) : base(networkProvider, localizationService, null)
+        IScreen hostScreen,
+        NetworkProvider networkProvider,
+        IGlobalModalService globalModalService) : base(networkProvider, localizationService, globalModalService)
     {
         HostScreen = hostScreen;
         SubmitCommand = ReactiveCommand.Create(() => { });

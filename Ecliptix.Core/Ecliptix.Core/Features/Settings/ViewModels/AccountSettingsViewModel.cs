@@ -3,6 +3,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
@@ -47,8 +48,9 @@ public class AccountSettingsViewModel : Core.MVVM.ViewModelBase, IActivatableVie
     public AccountSettingsViewModel(
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
-        IApplicationSecureStorageProvider secureStorageProvider)
-        : base(networkProvider, localizationService, null)
+        IApplicationSecureStorageProvider secureStorageProvider,
+        IGlobalModalService globalModalService)
+        : base(networkProvider, localizationService, globalModalService)
     {
         _secureStorage = secureStorageProvider;
 

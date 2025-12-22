@@ -25,5 +25,9 @@ public enum RpcServiceType : short
 
     Logout,
     AnonymousLogout,
-    GetAccountProfile
+
+    GetAccountProfile,
+    CheckProfileNameAvailability,
+    CreateOrUpdateProfile,
+
 }

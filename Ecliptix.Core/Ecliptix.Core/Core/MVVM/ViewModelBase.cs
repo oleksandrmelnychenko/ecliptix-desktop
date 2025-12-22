@@ -4,6 +4,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using Ecliptix.Core.Controls.Common;
 using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Core.Messaging.Connectivity;
@@ -31,10 +32,12 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
 
     protected ViewModelBase(NetworkProvider networkProvider,
         ILocalizationService localizationService,
+        IGlobalModalService globalModalService,
         IConnectivityService? connectivityService = null)
     {
         NetworkProvider = networkProvider;
         LocalizationService = localizationService;
+        GlobalModalService = globalModalService;
 
         LanguageChanged = Observable.FromEvent(
                 handler => localizationService.LanguageChanged += handler,
@@ -63,7 +66,9 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         });
     }
 
+    private IDisposable? _autoRedirectTimer;
     public ILocalizationService LocalizationService { get; }
+    protected IGlobalModalService GlobalModalService { get; }
     public ViewModelActivator Activator { get; } = new();
 
     [ObservableAsProperty] public bool IsInNetworkOutage { get; }
@@ -101,42 +106,42 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         };
     }
 
-    protected void ShowServerErrorNotification(AuthenticationViewModel hostWindow, string errorMessage)
+    protected async Task StartAutoRedirectSequenceAsync(
+        IScreen hostScreen,
+        string message,
+        int seconds,
+        Action<AuthenticationViewModel> navigationAction)
     {
-        if (string.IsNullOrEmpty(errorMessage))
+        await Dispatcher.UIThread.InvokeAsync(() =>
         {
-            return;
-        }
+            _autoRedirectTimer?.Dispose();
+            _autoRedirectTimer = null;
+        });
 
-        UserRequestErrorViewModel errorViewModel = new(errorMessage, LocalizationService);
-        UserRequestErrorView errorView = new() { DataContext = errorViewModel };
-
-        Task.Run(async () =>
+        if (hostScreen is AuthenticationViewModel hostWindow)
         {
-            try
+            await ShowRedirectNotification(message, seconds, () =>
             {
-                await hostWindow.ShowBottomSheet(
-                    BottomSheetComponentType.USER_REQUEST_ERROR,
-                    errorView,
-                    showScrim: false,
-                    isDismissable: true);
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "[VIEWMODEL-BASE] Exception showing user request error bottom sheet");
-            }
-        }).ContinueWith(
-            task =>
-            {
-                if (task.IsFaulted && task.Exception != null)
+                Dispatcher.UIThread.Post(async () =>
                 {
-                    Log.Error(task.Exception, "[VIEWMODEL-BASE] Unhandled exception in ShowServerErrorNotification background task");
-                }
-            },
-            TaskScheduler.Default);
+                    try
+                    {
+                        await GlobalModalService.CloseAllAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex, "[VIEWMODEL-BASE] Error closing modals explicitly during redirect sequence");
+                    }
+                    finally
+                    {
+                        navigationAction(hostWindow);
+                    }
+                });
+            });
+        }
     }
 
-    protected void ShowRedirectNotification(AuthenticationViewModel hostWindow, string message, int seconds,
+    protected async Task ShowRedirectNotification(string message, int seconds,
         Action onComplete)
     {
         if (_disposedValue)
@@ -146,40 +151,27 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         }
 
         RedirectNotificationViewModel redirectViewModel = new(message, seconds, onComplete, LocalizationService);
-        RedirectNotificationView redirectView = new() { DataContext = redirectViewModel };
 
-        Task.Run(async () =>
+        try
         {
-            try
+            if (!_disposedValue)
             {
-                if (!_disposedValue)
-                {
-                    await hostWindow.ShowBottomSheet(BottomSheetComponentType.REDIRECT_NOTIFICATION, redirectView,
-                        showScrim: true, isDismissable: false);
-                }
-                else
-                {
-                    onComplete();
-                }
+                await GlobalModalService.ShowMiddleAsync(redirectViewModel,
+                    showScrim: true, isDismissable: false);
             }
-            catch (Exception ex)
+            else
             {
-                Log.Error(ex, "[VIEWMODEL-BASE] Exception showing redirect notification bottom sheet");
                 onComplete();
             }
-        }).ContinueWith(
-            task =>
-            {
-                if (task.IsFaulted && task.Exception != null)
-                {
-                    Log.Error(task.Exception, "[VIEWMODEL-BASE] Unhandled exception in ShowRedirectNotification background task");
-                    onComplete();
-                }
-            },
-            TaskScheduler.Default);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[VIEWMODEL-BASE] Exception showing redirect notification bottom sheet");
+            onComplete();
+        }
     }
 
-    protected static void CleanupAndNavigate(AuthenticationViewModel membershipHostWindow, MembershipViewType targetView)
+    protected void CleanupAndNavigate(AuthenticationViewModel membershipHostWindow, MembershipViewType targetView)
     {
         membershipHostWindow.ClearNavigationStack();
         membershipHostWindow.Navigate.Execute(targetView).Subscribe();
@@ -188,11 +180,11 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         {
             try
             {
-                await membershipHostWindow.HideBottomSheetAsync();
+                await GlobalModalService.CloseAllAsync();
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "[VIEWMODEL-BASE] Exception hiding bottom sheet during cleanup");
+                Log.Error(ex, "[VIEWMODEL-BASE] Exception closing modals during cleanup");
             }
         }).ContinueWith(
             task =>
@@ -266,6 +258,9 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         {
             _connectivitySubscription?.Dispose();
             _connectivitySubscription = null;
+
+            _autoRedirectTimer?.Dispose();
+            _autoRedirectTimer = null;
         }
 
         _disposedValue = true;

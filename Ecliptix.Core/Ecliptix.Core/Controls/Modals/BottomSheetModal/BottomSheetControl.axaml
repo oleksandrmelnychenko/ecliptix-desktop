@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:bottomSheetModal="clr-namespace:Ecliptix.Core.Controls.Modals.BottomSheetModal"
+             xmlns:rxui="http://reactiveui.net"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ecliptix.Core.Controls.Modals.BottomSheetModal.BottomSheetControl"
              x:DataType="bottomSheetModal:BottomSheetViewModel"
@@ -50,9 +51,9 @@
                 Margin="0,0,0,24"
                 Background="White"
                 IsHitTestVisible="True">
-                <ContentControl
-                    x:Name="ContentControl"
-                    Content="{Binding Content}"
+                <rxui:ViewModelViewHost
+                    x:Name="ContentHost"
+                    ViewModel="{Binding Content}"
                     IsHitTestVisible="True" />
         </Border>
     </Grid>

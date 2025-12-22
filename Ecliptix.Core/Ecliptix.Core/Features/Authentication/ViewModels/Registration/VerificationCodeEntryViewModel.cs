@@ -28,9 +28,10 @@ using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
-public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
+public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
 {
     private readonly ByteString _mobileNumberIdentifier;
+    private readonly string _mobileNumber;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IOpaqueRegistrationService _registrationService;
     private readonly ISecureKeyRecoveryService? _secureKeyRecoveryService;
@@ -40,34 +41,37 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
     private readonly CompositeDisposable _disposables = new();
 
     private Guid _verificationSessionIdentifier = Guid.Empty;
-    private IDisposable? _autoRedirectTimer;
     private IDisposable? _cooldownTimer;
     private CancellationTokenSource? _cancellationTokenSource;
     private volatile bool _isDisposed;
 
     private readonly Subject<string> _executionErrorSubject = new();
+    private readonly IGlobalModalService _globalModalService;
     public IObservable<string> ExecutionError => _executionErrorSubject.AsObservable();
 
     private const int CURRENT_STEP = 2;
 
-    public VerifyOtpViewModel(
+    public VerificationCodeEntryViewModel(
         IConnectivityService connectivityService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IScreen hostScreen,
-        ByteString mobileNumberIdentifier,
+        (ByteString, string) mobileNumber,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IOpaqueRegistrationService registrationService,
+        IGlobalModalService globalModalService,
         AuthenticationFlowContext flowContext = AuthenticationFlowContext.REGISTRATION,
         ISecureKeyRecoveryService? secureKeyRecoveryService = null) : base(networkProvider,
-        localizationService, connectivityService)
+        localizationService, globalModalService, connectivityService)
     {
-        _mobileNumberIdentifier = mobileNumberIdentifier;
+        _mobileNumberIdentifier = mobileNumber.Item1;
+        _mobileNumber = mobileNumber.Item2;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _registrationService = registrationService;
         _secureKeyRecoveryService = secureKeyRecoveryService;
         _flowContext = flowContext;
         _localizationService = localizationService;
+        _globalModalService = globalModalService;
 
         HostScreen = hostScreen;
 
@@ -81,20 +85,22 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
             x => x.VerificationCode,
             x => x.RemainingTime,
             x => x.IsInNetworkOutage,
-            (code, time, isInOutage) => code.Length == 6 && code.All(char.IsDigit) &&
-                                        time != AuthenticationConstants.EXPIRED_REMAINING_TIME && !isInOutage
+            (code, time, isInOutage) =>
+                !string.IsNullOrEmpty(code) &&
+                code.Length == 6 &&
+                code.All(char.IsDigit) &&
+                time != AuthenticationConstants.EXPIRED_REMAINING_TIME &&
+                !isInOutage
         );
+
         SendVerificationCodeCommand = ReactiveCommand.CreateFromTask(SendVerificationCode, canVerify);
 
         SendVerificationCodeCommand.ThrownExceptions
-            .Subscribe(ex =>
-            {
-                if (_isDisposed)
+            .Subscribe(ex => {
+                if (!_isDisposed)
                 {
-                    return;
+                    PublishError(ex.Message);
                 }
-
-                PublishError(ex.Message);
             })
             .DisposeWith(_disposables);
 
@@ -107,18 +113,23 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
             .Select(tuple => CanResendVerification(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5))
             .DistinctUntilChanged()
             .Catch<bool, Exception>(_ => Observable.Return(false));
+
         ResendSendVerificationCodeCommand = ReactiveCommand.CreateFromTask(ReSendVerificationCode, canResend);
 
         ResendSendVerificationCodeCommand.ThrownExceptions
             .Subscribe(ex =>
             {
-                if (_isDisposed)
+                if (!_isDisposed)
                 {
-                    return;
+                    PublishError(ex.Message);
                 }
 
-                PublishError(ex.Message);
             })
+            .DisposeWith(_disposables);
+
+        LanguageChanged
+            .StartWith(Unit.Default)
+            .Subscribe(_ => UpdateDescriptionParts())
             .DisposeWith(_disposables);
 
         this.WhenActivated(disposables =>
@@ -129,7 +140,37 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
                 .Select(FormatRemainingTime)
                 .Subscribe(rt => RemainingTime = rt)
                 .DisposeWith(disposables).DisposeWith(_disposables);
+
+            this.WhenAnyValue(x => x.RemainingTime)
+                .Select(time =>
+                {
+                    return $"Code expires in: {time}";
+                })
+                .ToPropertyEx(this, x => x.TimerHintText)
+                .DisposeWith(disposables).DisposeWith(_disposables);
         });
+    }
+
+    [Reactive] public string DescriptionPreText { get; private set; } = string.Empty;
+    [Reactive] public string DescriptionPostText { get; private set; } = string.Empty;
+
+    public string FormattedMobileNumber => _mobileNumber;
+
+    private void UpdateDescriptionParts()
+    {
+        string rawTemplate = _localizationService[LocalizationKeys.Authentication.SignUp.VerificationCodeEntry.DESCRIPTION];
+
+        if (string.IsNullOrEmpty(rawTemplate))
+        {
+            DescriptionPreText = string.Empty;
+            DescriptionPostText = string.Empty;
+            return;
+        }
+
+        string[] parts = rawTemplate.Split(new[] { "{0}" }, StringSplitOptions.None);
+
+        DescriptionPreText = parts.Length > 0 ? parts[0] : string.Empty;
+        DescriptionPostText = parts.Length > 1 ? parts[1] : string.Empty;
     }
 
     public string StepBadgeText => _flowContext switch
@@ -138,6 +179,10 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
         AuthenticationFlowContext.SECURE_KEY_RECOVERY => string.Format(StepFormatKey, CURRENT_STEP, TOTAL_RECOVERY_STEPS),
         _ => string.Format(StepFormatKey, CURRENT_STEP, TOTAL_STEPS)
     };
+
+    [ObservableAsProperty] public string CodeSentDescription { get; }
+
+    [ObservableAsProperty] public string TimerHintText { get; }
 
     public string? UrlPathSegment { get; } = "/verification-code-entry";
 
@@ -237,7 +282,6 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
             _isDisposed = true;
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource?.Dispose();
-            _autoRedirectTimer?.Dispose();
             _cooldownTimer?.Dispose();
             _disposables.Dispose();
             _executionErrorSubject.Dispose();
@@ -707,16 +751,7 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
             return;
         }
 
-        await Dispatcher.UIThread.InvokeAsync(() =>
-        {
-            _autoRedirectTimer?.Dispose();
-            _autoRedirectTimer = null;
-
-            return Task.CompletedTask;
-        });
-
         string message;
-
         if (!string.IsNullOrEmpty(localizedMessage))
         {
             message = localizedMessage;
@@ -730,25 +765,23 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
             message = _localizationService.GetString(key);
         }
 
-        if (HostScreen is AuthenticationViewModel hostWindow)
-        {
-            ShowRedirectNotification(hostWindow, message, seconds, () =>
+        await StartAutoRedirectSequenceAsync(
+            HostScreen,
+            message,
+            seconds,
+            (hostViewModel) =>
             {
-                if (!_isDisposed)
-                {
-                    CleanupAndNavigateAsync(targetView).ContinueWith(
-                        task =>
-                        {
-                            if (task is { IsFaulted: true, Exception: not null })
-                            {
-                                Log.Error(task.Exception,
-                                    "[VERIFY-OTP] Unhandled exception in cleanup and navigate");
-                            }
-                        },
-                        TaskScheduler.Default);
-                }
+                CancelCurrentOperation();
+
+                CleanupAndNavigate(hostViewModel, targetView);
             });
-        }
+    }
+
+    private void CancelCurrentOperation()
+    {
+        CancellationTokenSource? cancellationTokenSource = Interlocked.Exchange(ref _cancellationTokenSource, null);
+        cancellationTokenSource?.Cancel();
+        cancellationTokenSource?.Dispose();
     }
 
     private void HandleCountdownUpdate(uint seconds, Guid identifier,
@@ -813,31 +846,6 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
         }
     }
 
-    private async Task CleanupAndNavigateAsync(MembershipViewType targetView)
-    {
-        if (_isDisposed)
-        {
-            return;
-        }
-
-        if (_cancellationTokenSource != null)
-        {
-            await _cancellationTokenSource.CancelAsync();
-            _cancellationTokenSource.Dispose();
-            _cancellationTokenSource = null;
-        }
-
-        await Dispatcher.UIThread.InvokeAsync(() =>
-        {
-            if (!_isDisposed && HostScreen is AuthenticationViewModel membershipHostWindow)
-            {
-                CleanupAndNavigate(membershipHostWindow, targetView);
-            }
-
-            return Task.CompletedTask;
-        });
-    }
-
     private static string FormatRemainingTime(uint seconds) => TimeSpan.FromSeconds(seconds).ToString(@"mm\:ss");
 
     private bool IsServerUnavailableError(string errorMessage)
@@ -878,16 +886,10 @@ public sealed partial class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRouta
 
         await Dispatcher.UIThread.InvokeAsync(async () =>
         {
-            _autoRedirectTimer?.Dispose();
-            _autoRedirectTimer = null;
-
             _cooldownTimer?.Dispose();
             _cooldownTimer = null;
 
-            if (HostScreen is AuthenticationViewModel hostWindow)
-            {
-                await hostWindow.HideBottomSheetAsync();
-            }
+            await _globalModalService.CloseAllAsync();
 
             VerificationCode = string.Empty;
             ErrorMessage = string.Empty;

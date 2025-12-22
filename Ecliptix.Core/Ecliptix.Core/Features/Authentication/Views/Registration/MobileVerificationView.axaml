@@ -15,19 +15,19 @@
 
     <Grid VerticalAlignment="Top"
           RowSpacing="{StaticResource Spacing.Authentication}"
-          RowDefinitions="Auto,Auto,Auto, Auto"
+          RowDefinitions="Auto,Auto,Auto,Auto,Auto"
           HorizontalAlignment="Stretch"
           Width="{StaticResource Content.MaxWidth}">
 
         <StackPanel Grid.Row="0"
                     Spacing="{StaticResource Spacing.S}"
-                    MaxWidth="{StaticResource Header.MaxWidth}"
-                    HorizontalAlignment="Left">
+                    HorizontalAlignment="Left"
+                    Margin="0 0 0 5">
 
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <TextBlock Text="{Binding Title}"
-                           FontSize="{StaticResource Font.XXL}"
-                           FontWeight="Light"
+                           FontSize="{StaticResource Font.XL}"
+                           FontWeight="Normal"
                            Foreground="{DynamicResource OnSurface}"
                            LineHeight="{StaticResource LineHeight.Loose}" />
                 <coreControls:StepBadgeView Text="{Binding StepBadgeText}"
@@ -36,11 +36,11 @@
 
             <TextBlock Text="{Binding Description}"
                        TextWrapping="Wrap"
-                       FontSize="{StaticResource Font.XXXL}"
+                       FontSize="{StaticResource Font.XL}"
                        LineHeight="{StaticResource LineHeight.Subtitle}"
-                       FontWeight="Light"
+                       FontWeight="Normal"
                        Foreground="{DynamicResource OnSurface}"
-                       Opacity="0.8" />
+                       Opacity="1" />
         </StackPanel>
 
         <hintedTextControls:HintedTextBox
@@ -71,10 +71,49 @@
                 Command="{Binding VerifyMobileNumberCommand}"
                 IsEnabled="{Binding VerifyMobileNumberCommand.CanExecute}"
                 Classes="primary large glow"
-                Classes.is-busy="{Binding IsBusy}" />
+                Classes.is-busy="{Binding IsBusy}"
+                Margin="0 2 0 0"/>
+
+        <TextBlock Grid.Row="3"
+                   TextWrapping="Wrap"
+                   HorizontalAlignment="Center"
+                   TextAlignment="Center"
+                   Foreground="#6B7280">
+
+            <Run Text="{Binding LocalizationService[Footer.AgreementPrefix], Mode=OneWay}" /><InlineUIContainer BaselineAlignment="Center">
+                <Button Content="{Binding LocalizationService[Footer.TermsOfService]}"
+                        Command="{Binding OpenTermsOfServiceCommand}"
+                        Classes="ghost"
+                        Padding="0,0,4,0"
+                        Margin="0"
+                        MinHeight="0"
+                        Cursor="Hand"
+                        VerticalContentAlignment="Center"
+                        Foreground="#A78BFA">
+                    <Button.RenderTransform>
+                        <TranslateTransform Y="1" />
+                    </Button.RenderTransform>
+                </Button>
+            </InlineUIContainer><Run Text="{Binding LocalizationService[Footer.AgreementConjunction], Mode=OneWay}" /><InlineUIContainer BaselineAlignment="Center">
+                <Button Content="{Binding LocalizationService[Footer.PrivacyPolicy]}"
+                        Command="{Binding OpenPrivacyPolicyCommand}"
+                        Classes="ghost"
+                        Padding="0,0,4,0"
+                        Margin="0"
+                        MinHeight="0"
+                        Cursor="Hand"
+                        VerticalContentAlignment="Center"
+                        Foreground="#A78BFA">
+                    <Button.RenderTransform>
+                        <TranslateTransform Y="1" />
+                    </Button.RenderTransform>
+                </Button>
+            </InlineUIContainer>
+
+        </TextBlock>
 
         <coreControls:ErrorNotificationView
-            Grid.Row="3"
+            Grid.Row="4"
             x:Name="ErrorNotification"
             VerticalAlignment="Top"
             HorizontalAlignment="Stretch"

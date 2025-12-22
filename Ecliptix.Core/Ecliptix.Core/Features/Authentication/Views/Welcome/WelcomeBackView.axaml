@@ -1,0 +1,79 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:welcome="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Welcome"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Ecliptix.Core.Features.Authentication.Views.Welcome.WelcomeBackView"
+             x:DataType="welcome:WelcomeBackViewModel">
+    <Grid RowDefinitions="*,Auto,Auto,Auto,*"
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch"
+          Margin="{StaticResource Welcome.Container.Margin}"
+          Width="{StaticResource Content.MaxWidth}">
+
+        <Border Grid.Row="1"
+                Width="80" Height="80"
+                CornerRadius="40"
+                Margin="0,0,0,24"
+                HorizontalAlignment="Center">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                    <GradientStop Offset="0" Color="#FFF4E0"/>
+                    <GradientStop Offset="1" Color="#F8BBD0"/>
+                </LinearGradientBrush>
+            </Border.Background>
+            <TextBlock Text="👋"
+                       FontSize="40"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Margin="4,0,0,4"/>
+        </Border>
+
+        <StackPanel Grid.Row="2"
+                    Spacing="16"
+                    HorizontalAlignment="Center"
+                    Margin="0,0,0,40">
+
+            <TextBlock Text="Welcome Back!"
+                       FontSize="24"
+                       FontWeight="Bold"
+                       TextAlignment="Center"
+                       Foreground="{DynamicResource TextControlForeground}"/>
+
+            <TextBlock Text="Your mobile number is already verified."
+                       FontSize="15"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextControlForegroundDisabled}"/>
+
+            <TextBlock Text="Let's finish setting up your secure key to protect your account."
+                       FontSize="15"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextControlForegroundDisabled}"
+                       MaxWidth="300"/>
+        </StackPanel>
+
+        <Grid Grid.Row="3"
+              ColumnDefinitions="*,*"
+              ColumnSpacing="12"
+              HorizontalAlignment="Center">
+
+            <Button Grid.Column="0"
+                    Content="Continue Later"
+                    Command="{Binding ContinueLaterCommand}"
+                    Classes="secondary large"
+                    MinWidth="{StaticResource Button.MinWidth}" />
+
+            <Button Grid.Column="1"
+                    Content="Continue to Setup"
+                    Command="{Binding ContinueToSetupCommand}"
+                    Classes="primary large glow"
+                    Classes.is-busy="{Binding IsBusy}"
+                    MinWidth="{StaticResource Button.MinWidth}" />
+        </Grid>
+
+    </Grid>
+</UserControl>
+

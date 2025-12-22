@@ -3,42 +3,32 @@ using Avalonia.Controls;
 
 namespace Ecliptix.Core.Core.Messaging.Events;
 
-public enum SideSheetComponentType
-{
-    SETTINGS_PANEL,
-    FILTERS,
-    DETAILS,
-    DETECTED_LOCALIZATION,
-    HIDDEN,
-    COUNTRY_CODE
-}
+
 
 public sealed record SideSheetCommandEvent
 {
     public AnimationType AnimationType { get; }
-    public SideSheetComponentType ComponentType { get; }
-    public UserControl? Control { get; }
+    public object? ViewModel { get; }
     public bool ShowScrim { get; }
     public bool IsDismissable { get; }
     public DateTime Timestamp { get; }
 
-    private SideSheetCommandEvent(AnimationType animationType, SideSheetComponentType componentType,
-        UserControl? control, bool showScrim, bool isDismissable)
+    private SideSheetCommandEvent(AnimationType animationType,
+        object? viewModel, bool showScrim, bool isDismissable)
     {
         AnimationType = animationType;
-        ComponentType = componentType;
-        Control = control;
+        ViewModel = viewModel;
         ShowScrim = showScrim;
         IsDismissable = isDismissable;
         Timestamp = DateTime.UtcNow;
     }
 
-    public static SideSheetCommandEvent Show(SideSheetComponentType componentType, UserControl? control,
+    public static SideSheetCommandEvent Show(object? viewModel,
         bool showScrim, bool isDismissable) =>
-        new(AnimationType.SHOW, componentType, control, showScrim, isDismissable);
+        new(AnimationType.SHOW, viewModel, showScrim, isDismissable);
 
     public static SideSheetCommandEvent Hide() =>
-        new(AnimationType.HIDE, SideSheetComponentType.HIDDEN, null, false, true);
+        new(AnimationType.HIDE, null, false, true);
 }
 
 public sealed record SideSheetHiddenEvent

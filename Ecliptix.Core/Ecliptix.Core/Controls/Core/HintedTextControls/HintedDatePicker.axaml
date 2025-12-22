@@ -145,7 +145,8 @@
                                             Foreground="{Binding TextForeground, ElementName=Control}"
                                             Background="Transparent"
                                             BorderThickness="0"
-                                            Padding="0"/>
+                                            Padding="0"
+                                            Margin="0 0 20 0"/>
                     </Grid>
 
                     <Grid Grid.Row="0"

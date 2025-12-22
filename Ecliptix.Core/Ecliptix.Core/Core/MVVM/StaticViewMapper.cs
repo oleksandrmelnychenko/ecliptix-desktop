@@ -25,12 +25,13 @@ internal static class StaticViewMapper
         {
             [typeof(SignInViewModel)] = new(() => () => new SignInView()),
             [typeof(MobileVerificationViewModel)] = new(() => () => new MobileVerificationView()),
-            [typeof(VerifyOtpViewModel)] = new(() => () => new VerificationCodeEntryView()),
-            [typeof(SecureKeyVerifierViewModel)] = new(() => () => new SecureKeyConfirmationView()),
+            [typeof(VerificationCodeEntryViewModel)] = new(() => () => new VerificationCodeEntryView()),
+            [typeof(SecureKeyConfirmationViewModel)] = new(() => () => new SecureKeyConfirmationView()),
             [typeof(CompleteProfileViewModel)] = new(() => () => new CompleteProfileView()),
             [typeof(PassPhaseViewModel)] = new(() => () => new PassPhaseView()),
             [typeof(WelcomeViewModel)] = new(() => () => new WelcomeView()),
             [typeof(MasterViewModel)] = new(() => () => new MasterView()),
+            [typeof(WelcomeBackViewModel)] = new(() => () => new WelcomeBackView()),
         };
     }
 

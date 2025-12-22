@@ -5,10 +5,6 @@ using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
-using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Threading;
 using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.Messaging;
@@ -36,7 +32,7 @@ using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 
-public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
+public sealed class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
 {
     private static readonly AppCultureSettings LanguageConfig = AppCultureSettings.Default;
 
@@ -45,21 +41,23 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
         {
             [MembershipViewType.SIGN_IN_VIEW] = ctx =>
                 new SignInViewModel(ctx.ConnectivityService, ctx.NetworkProvider, ctx.LocalizationService,
-                    ctx.AuthenticationService, ctx.HostViewModel),
+                    ctx.AuthenticationService, ctx.HostViewModel, ctx.GlobalModalService),
             [MembershipViewType.WELCOME_VIEW] = ctx =>
-                new WelcomeViewModel(ctx.HostViewModel, ctx.LocalizationService, ctx.NetworkProvider),
+                new WelcomeViewModel(ctx.HostViewModel, ctx.LocalizationService, ctx.NetworkProvider, ctx.GlobalModalService),
+            [MembershipViewType.WELCOME_BACK_VIEW] = ctx =>
+                new WelcomeBackViewModel(ctx.HostViewModel, ctx.LocalizationService, ctx.NetworkProvider, ctx.GlobalModalService, ctx.StorageProvider),
             [MembershipViewType.MOBILE_VERIFICATION_VIEW] = ctx =>
                 new MobileVerificationViewModel(ctx.ConnectivityService, ctx.NetworkProvider, ctx.LocalizationService,
                     ctx.HostViewModel, ctx.StorageProvider, ctx.RegistrationService,
-                    ctx.RecoveryService, ctx.FlowContext),
+                    ctx.RecoveryService, ctx.FlowContext, ctx.Settings, ctx.GlobalModalService),
             [MembershipViewType.SECURE_KEY_CONFIRMATION_VIEW] = ctx =>
-                new SecureKeyVerifierViewModel(ctx.ConnectivityService, ctx.NetworkProvider, ctx.LocalizationService,
+                new SecureKeyConfirmationViewModel(ctx.ConnectivityService, ctx.NetworkProvider, ctx.LocalizationService,
                     ctx.HostViewModel, ctx.StorageProvider, ctx.RegistrationService, ctx.AuthenticationService,
-                    ctx.RecoveryService, ctx.FlowContext),
+                    ctx.RecoveryService, ctx.FlowContext, ctx.GlobalModalService),
             [MembershipViewType.COMPLETE_PROFILE_VIEW] = ctx =>
-                new CompleteProfileViewModel(ctx.ConnectivityService, ctx.NetworkProvider, ctx.LocalizationService, ctx.HostViewModel, ctx.StorageProvider),
+                new CompleteProfileViewModel(ctx.ConnectivityService, ctx.NetworkProvider, ctx.LocalizationService, ctx.HostViewModel, ctx.StorageProvider, ctx.GlobalModalService),
             [MembershipViewType.PIN_SET_VIEW] = ctx =>
-                new PassPhaseViewModel(ctx.LocalizationService, ctx.HostViewModel, ctx.NetworkProvider),
+                new PassPhaseViewModel(ctx.LocalizationService, ctx.HostViewModel, ctx.NetworkProvider, ctx.GlobalModalService),
         }.ToFrozenDictionary();
 
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
@@ -71,6 +69,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
     private readonly IAuthenticationService _authenticationService;
     private readonly IOpaqueRegistrationService _opaqueRegistrationService;
     private readonly ISecureKeyRecoveryService _secureKeyRecoveryService;
+    private readonly IGlobalModalService _globalModalService;
     private readonly DefaultSystemSettings _settings;
 
     private readonly
@@ -80,13 +79,13 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
     private readonly Stack<IRoutableViewModel> _navigationStack = new();
 
     private IDisposable? _languageSubscription;
-    private IDisposable? _bottomSheetHiddenSubscription;
+    private IDisposable? _modalHiddenSubscription;
     private IRoutableViewModel? _currentView;
 
     public AuthenticationFlowContext CurrentFlowContext { get; set; } = AuthenticationFlowContext.REGISTRATION;
 
     public AuthenticationViewModel(AuthenticationViewModelDependencies dependencies)
-        : base(dependencies.NetworkProvider, dependencies.LocalizationService)
+        : base(dependencies.NetworkProvider, dependencies.LocalizationService, dependencies.GlobalModalService)
     {
         _localizationService = dependencies.LocalizationService;
         _connectivityService = dependencies.ConnectivityService;
@@ -97,6 +96,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
         _secureKeyRecoveryService = dependencies.RecoveryService;
         _languageDetectionService = dependencies.LanguageDetectionService;
         _mainWindowViewModel = dependencies.MainWindowViewModel;
+        _globalModalService = dependencies.GlobalModalService;
         _settings = dependencies.Settings;
 
         InitializeVersionInfo();
@@ -136,10 +136,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
     public ReactiveCommand<Unit, IRoutableViewModel?> NavigateBack { get; private set; } = null!;
 
     public ReactiveCommand<Unit, Unit> SwitchToMainWindowCommand { get; private set; } = null!;
-
-    public ReactiveCommand<Unit, Unit> OpenPrivacyPolicyCommand { get; private set; } = null!;
-
-    public ReactiveCommand<Unit, Unit> OpenTermsOfServiceCommand { get; private set; } = null!;
 
     public ReactiveCommand<Unit, Unit> OpenSupportCommand { get; private set; } = null!;
 
@@ -198,71 +194,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
         Navigate.Execute(MembershipViewType.MOBILE_VERIFICATION_VIEW).Subscribe();
     }
 
-    public async Task ShowBottomSheet(BottomSheetComponentType componentType, UserControl redirectView,
-        bool showScrim = true, bool isDismissable = false)
-    {
-        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime)
-        {
-            await Dispatcher.UIThread.InvokeAsync(async () =>
-            {
-                await _mainWindowViewModel.ShowBottomSheetAsync(componentType, redirectView,
-                    showScrim: showScrim, isDismissable: isDismissable).ConfigureAwait(false);
-            }).ConfigureAwait(false);
-        }
-        else
-        {
-            await _mainWindowViewModel.ShowBottomSheetAsync(componentType, redirectView,
-                showScrim: showScrim, isDismissable: isDismissable).ConfigureAwait(false);
-        }
-    }
 
-    public async Task HideBottomSheetAsync()
-    {
-        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime)
-        {
-            await Dispatcher.UIThread.InvokeAsync(async () =>
-            {
-                await _mainWindowViewModel.HideBottomSheetAsync().ConfigureAwait(false);
-            }).ConfigureAwait(false);
-        }
-        else
-        {
-            await _mainWindowViewModel.HideBottomSheetAsync().ConfigureAwait(false);
-        }
-    }
-
-    public async Task ShowSideSheet(SideSheetComponentType componentType, UserControl redirectView,
-        bool showScrim = true, bool isDismissable = false)
-    {
-        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime)
-        {
-            await Dispatcher.UIThread.InvokeAsync(async () =>
-            {
-                await _mainWindowViewModel.ShowSideSheetAsync(componentType, redirectView,
-                    showScrim: showScrim, isDismissable: isDismissable).ConfigureAwait(false);
-            }).ConfigureAwait(false);
-        }
-        else
-        {
-            await _mainWindowViewModel.ShowSideSheetAsync(componentType, redirectView,
-                showScrim: showScrim, isDismissable: isDismissable).ConfigureAwait(false);
-        }
-    }
-
-    public async Task HideSideSheetAsync()
-    {
-        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime)
-        {
-            await Dispatcher.UIThread.InvokeAsync(async () =>
-            {
-                await _mainWindowViewModel.HideSideSheetAsync().ConfigureAwait(false);
-            }).ConfigureAwait(false);
-        }
-        else
-        {
-            await _mainWindowViewModel.HideSideSheetAsync().ConfigureAwait(false);
-        }
-    }
 
     protected override void Dispose(bool disposing)
     {
@@ -274,6 +206,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
         base.Dispose(disposing);
     }
 
+    //TODO move to helpers
     private static void OpenUrl(string url)
     {
         if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform
@@ -343,12 +276,12 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
                     break;
             }
 
-            await _mainWindowViewModel.HideBottomSheetAsync().ConfigureAwait(false);
+            await _globalModalService.CloseAllAsync().ConfigureAwait(false);
         }
         finally
         {
             _languageSubscription?.Dispose();
-            _bottomSheetHiddenSubscription?.Dispose();
+            _modalHiddenSubscription?.Dispose();
         }
     }
 
@@ -373,10 +306,10 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
             });
     }
 
-    private Task HandleBottomSheetDismissedEvent(BottomSheetHiddenEvent evt)
+    private Task HandleModalDismissedEvent(ModalHiddenEvent evt)
     {
         _languageSubscription?.Dispose();
-        _bottomSheetHiddenSubscription?.Dispose();
+        _modalHiddenSubscription?.Dispose();
         return Task.CompletedTask;
     }
 
@@ -393,8 +326,8 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
                 _languageSubscription =
                     _languageDetectionService.OnLanguageDetectionRequested(HandleLanguageDetectionEvent,
                         SubscriptionLifetime.SCOPED);
-                _bottomSheetHiddenSubscription =
-                    _mainWindowViewModel.OnBottomSheetHidden(HandleBottomSheetDismissedEvent,
+                _modalHiddenSubscription =
+                    _globalModalService.OnModalHidden(HandleModalDismissedEvent,
                         SubscriptionLifetime.SCOPED);
 
                 string currentCulture = System.Globalization.CultureInfo.CurrentUICulture.Name;
@@ -409,11 +342,8 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
                         _networkProvider
                     );
 
-                    DetectLanguageDialog detectLanguageView = new() { DataContext = detectLanguageViewModel };
-
-                    await _mainWindowViewModel.ShowBottomSheetAsync(
-                        BottomSheetComponentType.DETECTED_LOCALIZATION,
-                        detectLanguageView,
+                    await _globalModalService.ShowBottomAsync(
+                        detectLanguageViewModel,
                         showScrim: true,
                         isDismissable: true
                     ).ConfigureAwait(false);
@@ -427,6 +357,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
         MembershipViewType.MOBILE_VERIFICATION_VIEW,
         MembershipViewType.OTP_VERIFICATION_VIEW,
         MembershipViewType.SECURE_KEY_CONFIRMATION_VIEW,
+        MembershipViewType.COMPLETE_PROFILE_VIEW
     }.ToFrozenSet();
 
 
@@ -461,12 +392,14 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
             ConnectivityService = _connectivityService,
             NetworkProvider = _networkProvider,
             LocalizationService = LocalizationService,
+            GlobalModalService = _globalModalService,
             AuthenticationService = _authenticationService,
             StorageProvider = _applicationSecureStorageProvider,
             HostViewModel = this,
             RegistrationService = _opaqueRegistrationService,
             RecoveryService = _secureKeyRecoveryService,
-            FlowContext = flowContext
+            FlowContext = flowContext,
+            Settings = _settings
         };
 
         IRoutableViewModel newViewModel = factory(context);
@@ -523,8 +456,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
             CleanupAuthenticationFlow();
             await router.NavigateToMainAsync();
         });
-        OpenPrivacyPolicyCommand = ReactiveCommand.Create(() => OpenUrl(_settings.PrivacyPolicyUrl));
-        OpenTermsOfServiceCommand = ReactiveCommand.Create(() => OpenUrl(_settings.TermsOfServiceUrl));
         OpenSupportCommand = ReactiveCommand.Create(() => OpenUrl(_settings.SupportUrl));
     }
 
@@ -542,7 +473,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
         return viewModel;
     }
 
-    private IRoutableViewModel? ExecuteNavigateBack()
+    public IRoutableViewModel? ExecuteNavigateBack()
     {
         if (_navigationStack.Count > 0)
         {

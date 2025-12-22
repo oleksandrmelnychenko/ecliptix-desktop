@@ -10,6 +10,10 @@ public interface IConnectivityService : IDisposable
 {
     ConnectivitySnapshot CurrentSnapshot { get; }
 
+    ConnectivityStatus LastKnownInternetStatus { get; }
+
+    ConnectivityStatus LastKnownServerStatus { get; }
+
     IObservable<ConnectivitySnapshot> ConnectivityStream { get; }
 
     Task PublishAsync(ConnectivityIntent intent, CancellationToken cancellationToken = default);

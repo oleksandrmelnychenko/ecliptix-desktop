@@ -26,15 +26,14 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
         });
     }
 
-    public async Task ShowAsync(BottomSheetComponentType componentType, UserControl? control = null,
-        bool showScrim = true, bool isDismissable = true)
+    public async Task ShowAsync(object viewModel, bool showScrim = true, bool isDismissable = true)
     {
         if (_disposed)
         {
             return;
         }
 
-        BottomSheetRequest request = new(componentType, control, showScrim, isDismissable);
+        BottomSheetRequest request = new(viewModel, showScrim, isDismissable);
 
         lock (_queueLock)
         {
@@ -119,8 +118,7 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
         else
         {
             await _messageBus.PublishAsync(BottomSheetCommandEvent.Show(
-                requestToShow!.ComponentType,
-                requestToShow.Control,
+                requestToShow!.ViewModel,
                 requestToShow.ShowScrim,
                 requestToShow.IsDismissable));
         }
@@ -158,8 +156,7 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
         if (requestToShow != null)
         {
             await _messageBus.PublishAsync(BottomSheetCommandEvent.Show(
-                requestToShow.ComponentType,
-                requestToShow.Control,
+                requestToShow.ViewModel,
                 requestToShow.ShowScrim,
                 requestToShow.IsDismissable));
         }
@@ -192,8 +189,7 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
     }
 
     private sealed record BottomSheetRequest(
-        BottomSheetComponentType ComponentType,
-        UserControl? Control,
+        object ViewModel,
         bool ShowScrim,
         bool IsDismissable);
 }

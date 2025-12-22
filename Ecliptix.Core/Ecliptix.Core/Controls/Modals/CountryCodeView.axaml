@@ -2,8 +2,15 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:modals="clr-namespace:Ecliptix.Core.Controls.Modals"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="Ecliptix.Core.Controls.Modals.CountryCodeView">
-    Welcome to Country code view!
+             x:Class="Ecliptix.Core.Controls.Modals.CountryCodeView"
+             x:DataType="modals:CountryCodeViewModel"
+             MinWidth="200"
+             MinHeight="200">
+    Choose your country code
+    - Ukraine
+    - USA
+
 </UserControl>
 

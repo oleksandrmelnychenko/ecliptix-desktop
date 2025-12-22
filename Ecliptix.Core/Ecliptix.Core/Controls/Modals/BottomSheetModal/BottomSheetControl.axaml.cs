@@ -53,7 +53,7 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
     private Border? _sheetBorder;
     private Border? _scrimBorder;
     private Grid? _rootGrid;
-    private ContentControl? _contentControl;
+    private ViewModelViewHost? _contentHost;
 
     private Animation? _showAnimation;
     private Animation? _hideAnimation;
@@ -186,7 +186,7 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
         _rootGrid = this.FindControl<Grid>("RootGrid");
         _sheetBorder = this.FindControl<Border>("SheetBorder");
         _scrimBorder = this.FindControl<Border>("ScrimBorder");
-        _contentControl = this.FindControl<ContentControl>("ContentControl");
+        _contentHost = this.FindControl<ViewModelViewHost>("ContentHost");
 
         if (_sheetBorder != null && _scrimBorder != null && _rootGrid != null)
         {
@@ -349,7 +349,7 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
 
     private void UpdateSheetHeight()
     {
-        if (_contentControl == null || _sheetBorder == null)
+        if (_contentHost == null || _sheetBorder == null)
         {
             _sheetHeight = MinHeight;
             return;
@@ -371,9 +371,9 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
         double availableHeight = MaxHeight - verticalExtras;
 
         Size availableSize = new(availableWidth, double.PositiveInfinity);
-        _contentControl.Measure(availableSize);
+        _contentHost.Measure(availableSize);
 
-        double contentHeight = _contentControl.DesiredSize.Height;
+        double contentHeight = _contentHost.DesiredSize.Height;
 
         if (double.IsNaN(contentHeight) || contentHeight <= 0)
         {

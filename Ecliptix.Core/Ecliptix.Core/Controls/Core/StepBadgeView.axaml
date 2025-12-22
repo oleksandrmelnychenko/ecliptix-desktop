@@ -11,6 +11,8 @@
                       Text="{Binding Text, ElementName=Root}"
                       BorderThickness="0"
                       Margin="8,0,0,0"
-                      VerticalAlignment="Center"/>
+                      VerticalAlignment="Center"
+                      BadgeFontSize="12"
+                      TooltipTitleFontWeight="Medium"/>
 </UserControl>
 

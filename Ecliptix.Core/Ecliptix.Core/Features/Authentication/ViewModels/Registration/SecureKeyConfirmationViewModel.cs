@@ -35,7 +35,7 @@ namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
 public record RequirementItem(string Text, bool IsMet);
 
-public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
+public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
 {
     private const int VALIDATION_THROTTLE_MS = 150;
 
@@ -57,7 +57,7 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
     private readonly Subject<string> _executionErrorSubject = new();
     public IObservable<string> ExecutionError => _executionErrorSubject.AsObservable();
 
-    public SecureKeyVerifierViewModel(
+    public SecureKeyConfirmationViewModel(
         IConnectivityService connectivityService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
@@ -66,8 +66,9 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
         IOpaqueRegistrationService registrationService,
         IAuthenticationService authenticationService,
         ISecureKeyRecoveryService secureKeyRecoveryService,
-        AuthenticationFlowContext flowContext
-    ) : base(networkProvider, localizationService, connectivityService)
+        AuthenticationFlowContext flowContext,
+        IGlobalModalService globalModalService
+    ) : base(networkProvider, localizationService, globalModalService,connectivityService)
     {
         HostScreen = hostScreen;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
@@ -164,7 +165,7 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
 
     private void SetupSubscriptions()
     {
-       // TODO commmented for a test purposes
+    //  TODO commmented for a test purposes
         this.WhenActivated(disposables =>
         {
             Observable.FromAsync(LoadMembershipAsync)
@@ -514,9 +515,15 @@ public sealed partial class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase
                     return SystemU.Default;
                 }
 
-                Option<string> mobileNumberOption = _flowContext == AuthenticationFlowContext.REGISTRATION
-                    ? Option<string>.Some(hostViewModel.RegistrationMobileNumber!)
-                    : Option<string>.Some(hostViewModel.RecoveryMobileNumber!);
+                if (_flowContext == AuthenticationFlowContext.REGISTRATION)
+                {
+                    hostViewModel.Navigate.Execute(MembershipViewType.COMPLETE_PROFILE_VIEW).Subscribe();
+                    //TODO disable navigation back
+                    //TODO test logic on recovery
+                    return SystemU.Default;
+                }
+
+                Option<string> mobileNumberOption = Option<string>.Some(hostViewModel.RecoveryMobileNumber!);
 
                 if (mobileNumberOption.IsSome)
                 {
