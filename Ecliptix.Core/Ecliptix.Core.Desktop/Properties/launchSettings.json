@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "Ecliptix.Core.Desktop": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development",
+        "ECLIPTIX_STATE_MAC_SECRET": "dev-ecliptix-state-mac-secret-key-for-integrity-check-32bytes"
+      }
+    }
+  }
+}

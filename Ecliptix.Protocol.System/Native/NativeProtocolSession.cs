@@ -49,6 +49,12 @@ public sealed class NativeProtocolSession : IDisposable
     public Result<byte[], EcliptixProtocolFailure> BeginHandshake(uint connectId, byte exchangeType) =>
         _wrapper.BeginHandshake(connectId, exchangeType);
 
+    public Result<byte[], EcliptixProtocolFailure> BeginHandshakeWithPeerKyber(
+        uint connectId,
+        byte exchangeType,
+        byte[] peerKyberPublicKey) =>
+        _wrapper.BeginHandshakeWithPeerKyber(connectId, exchangeType, peerKyberPublicKey);
+
     public Result<Unit, EcliptixProtocolFailure> CompleteHandshake(byte[] peerHandshakeMessage, byte[] rootKey) =>
         _wrapper.CompleteHandshake(peerHandshakeMessage, rootKey);
 
@@ -86,6 +92,9 @@ public sealed class NativeProtocolSession : IDisposable
     public Result<bool, EcliptixProtocolFailure> HasConnection() => _wrapper.HasConnection();
 
     public Result<uint, EcliptixProtocolFailure> GetConnectionId() => _wrapper.GetConnectionId();
+
+    public Result<(uint SendingIndex, uint ReceivingIndex), EcliptixProtocolFailure> GetChainIndices() =>
+        _wrapper.GetChainIndices();
 
     public void SetEventHandler(Action<uint>? onProtocolStateChanged) => _wrapper.SetEventHandler(onProtocolStateChanged);
 

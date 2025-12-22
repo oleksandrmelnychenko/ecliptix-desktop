@@ -70,4 +70,6 @@ public static class NativeProtocolSystem
 
     public static Result<Unit, EcliptixProtocolFailure> ValidateEnvelopeHybridRequirements(byte[] encryptedEnvelope)
         => EcliptixProtocolSystemWrapper.ValidateEnvelopeHybridRequirements(encryptedEnvelope);
+
+    public static string GetVersion() => EcliptixNativeInterop.GetVersion();
 }

@@ -54,6 +54,7 @@ public sealed class NetworkProvider(
     private readonly Lock _nativeInitLock = new();
     private readonly ConcurrentDictionary<uint, Task> _pendingPersistTasks = new();
     private bool _nativeInitialized;
+    private bool _nativeVersionLogged;
 
     private CancellationTokenSource? _connectionRecoveryCts;
     private Option<ApplicationInstanceSettings> _applicationInstanceSettings = Option<ApplicationInstanceSettings>.None;
@@ -427,6 +428,12 @@ public sealed class NetworkProvider(
             }
 
             _nativeInitialized = true;
+            if (!_nativeVersionLogged)
+            {
+                string version = NativeProtocolSystem.GetVersion();
+                Log.Information("Native Ecliptix protocol initialized (version: {Version})", version);
+                _nativeVersionLogged = true;
+            }
         }
     }
 
@@ -951,7 +958,10 @@ public sealed class NetworkProvider(
         if (syncResult.IsErr)
         {
             EcliptixProtocolFailure error = syncResult.UnwrapErr();
-            return error.Message.Contains("Session validation failed")
+            bool isValidationFailure =
+                error.FailureType == EcliptixProtocolFailureType.STATE_MISMATCH ||
+                error.Message.Contains("Session validation failed", StringComparison.OrdinalIgnoreCase);
+            return isValidationFailure
                 ? Result<bool, NetworkFailure>.Ok(false)
                 : Result<bool, NetworkFailure>.Err(error.ToNetworkFailure());
         }
@@ -961,6 +971,8 @@ public sealed class NetworkProvider(
             services.PendingRequestManager.RemovePendingRequest(
                 BuildSecrecyChannelRestoreKey(sessionState.ConnectId));
         }
+
+        PersistProtocolStateInBackground(sessionState.ConnectId);
 
         ExitOutage();
         return Result<bool, NetworkFailure>.Ok(true);
@@ -1123,8 +1135,59 @@ public sealed class NetworkProvider(
         EcliptixSessionState currentState,
         RestoreChannelResponse peerSecrecyChannelState)
     {
-        _ = peerSecrecyChannelState;
-        return RestoreNativeSessionFromState(currentState);
+        Result<Unit, EcliptixProtocolFailure> restoreResult = RestoreNativeSessionFromState(currentState);
+        if (restoreResult.IsErr)
+        {
+            return restoreResult;
+        }
+
+        Result<NativeProtocolSession, EcliptixProtocolFailure> sessionResult =
+            _nativeSessions.Get(currentState.ConnectId);
+        if (sessionResult.IsErr)
+        {
+            return Result<Unit, EcliptixProtocolFailure>.Err(sessionResult.UnwrapErr());
+        }
+
+        Result<(uint SendingIndex, uint ReceivingIndex), EcliptixProtocolFailure> chainResult =
+            sessionResult.Unwrap().GetChainIndices();
+        if (chainResult.IsErr)
+        {
+            EcliptixProtocolFailure chainError = chainResult.UnwrapErr();
+            if (chainError.Message.Contains("chain index", StringComparison.OrdinalIgnoreCase))
+            {
+                Log.Debug("[NETWORK-PROVIDER] Chain index validation unavailable: {Error}", chainError.Message);
+                return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
+            }
+
+            return Result<Unit, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.StateMismatch(
+                    $"Session validation failed: unable to read chain indices ({chainError.Message})."));
+        }
+
+        (uint localSending, uint localReceiving) = chainResult.Unwrap();
+        // Server indices are from its perspective: server receiving == client sending, server sending == client receiving.
+        uint serverReceiving = peerSecrecyChannelState.ReceivingChainLength;
+        uint serverSending = peerSecrecyChannelState.SendingChainLength;
+
+        if (localSending != serverReceiving || localReceiving != serverSending)
+        {
+            Log.Warning(
+                "[NETWORK-PROVIDER] Session chain indices out of sync. ConnectId: {ConnectId}, " +
+                "ClientSending: {ClientSending}, ClientReceiving: {ClientReceiving}, " +
+                "ServerReceiving: {ServerReceiving}, ServerSending: {ServerSending}",
+                currentState.ConnectId,
+                localSending,
+                localReceiving,
+                serverReceiving,
+                serverSending);
+
+            return Result<Unit, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.StateMismatch(
+                    $"Session validation failed: chain indices out of sync (client send {localSending}/recv {localReceiving}, " +
+                    $"server recv {serverReceiving}/send {serverSending})."));
+        }
+
+        return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
     }
 
     private Result<Unit, EcliptixProtocolFailure> RestoreNativeSessionFromState(EcliptixSessionState state)
@@ -2040,21 +2103,42 @@ public sealed class NetworkProvider(
             return;
         }
 
-        EcliptixSessionState state = new()
+        byte[]? membershipId = GetMembershipIdBytes();
+        if (membershipId == null)
         {
-            ConnectId = connectId,
-            IdentityKeys = new IdentityKeysState(),
-            RatchetState = new RatchetState(),
-            NativeState = ByteString.CopyFrom(exportResult.Unwrap())
-        };
+            return;
+        }
 
-        if (_applicationInstanceSettings.IsSome)
+        EcliptixSessionState? existingState = await TryLoadStoredStateAsync(connectId, membershipId)
+            .ConfigureAwait(false);
+        if (existingState == null)
+        {
+            Log.Warning(
+                "[CLIENT-STATE-PERSIST] Skipping state update because existing state is missing. ConnectId: {ConnectId}",
+                connectId);
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(existingState.MembershipId) &&
+            existingState.OpaqueMasterKey.Length != CryptographicConstants.AES_KEY_SIZE)
+        {
+            Log.Warning(
+                "[CLIENT-STATE-PERSIST] Skipping state update because stored master key is missing/invalid. ConnectId: {ConnectId}",
+                connectId);
+            return;
+        }
+
+        EcliptixSessionState state = existingState.Clone();
+        state.ConnectId = connectId;
+        state.NativeState = ByteString.CopyFrom(exportResult.Unwrap());
+
+        if (_applicationInstanceSettings.IsSome && string.IsNullOrWhiteSpace(state.MembershipId))
         {
             state.MembershipId = _applicationInstanceSettings.Value!.Membership?.UniqueIdentifier.ToBase64() ??
                                  string.Empty;
         }
 
-        await PersistSessionStateAsync(state, connectId).ConfigureAwait(false);
+        await PersistSessionStateAsync(state, connectId, membershipId).ConfigureAwait(false);
     }
 
     public void OnProtocolStateChanged(uint connectId) =>
@@ -2373,6 +2457,31 @@ public sealed class NetworkProvider(
         }
     }
 
+    private async Task<EcliptixSessionState?> TryLoadStoredStateAsync(uint connectId, byte[] membershipId)
+    {
+        Result<byte[], SecureStorageFailure> stateResult =
+            await dependencies.SecureProtocolStateStorage.LoadStateAsync(connectId.ToString(), membershipId)
+                .ConfigureAwait(false);
+
+        if (stateResult.IsErr)
+        {
+            return null;
+        }
+
+        try
+        {
+            byte[] stateBytes = stateResult.Unwrap();
+            return EcliptixSessionState.Parser.ParseFrom(stateBytes);
+        }
+        catch (InvalidProtocolBufferException ex)
+        {
+            Log.Warning(ex,
+                "[CLIENT-STATE-PERSIST] Stored state is corrupted. ConnectId: {ConnectId}",
+                connectId);
+            return null;
+        }
+    }
+
     private void PublishConnectionRestored(uint connectId)
     {
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
@@ -2665,8 +2774,6 @@ public sealed class NetworkProvider(
                 await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
                 return Result<Unit, NetworkFailure>.Err(failure);
             }
-
-            SecureEnvelope responseEnvelope = serverResponseResult.Unwrap();
 
             Option<CertificatePinningService> certificatePinningService =
                 await security.CertificatePinningServiceFactory.GetOrInitializeServiceAsync();

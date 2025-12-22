@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.InteropServices;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
@@ -6,6 +7,7 @@ namespace Ecliptix.Protocol.System.Native;
 
 public sealed class EcliptixProtocolSystemWrapper : IDisposable
 {
+    private static bool _chainIndicesSupported = true;
     private IntPtr _handle;
     private readonly EcliptixIdentityKeysWrapper _identityKeys;
     private bool _disposed;
@@ -276,6 +278,62 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
         }
     }
 
+    /// <summary>
+    /// Begins handshake with encapsulation to peer's Kyber public key.
+    /// Use this when you have the peer's Kyber key (e.g., from their bundle).
+    /// The resulting handshake message will include kyber_ciphertext for peer to decapsulate.
+    /// </summary>
+    public Result<byte[], EcliptixProtocolFailure> BeginHandshakeWithPeerKyber(
+        uint connectionId,
+        byte exchangeType,
+        byte[] peerKyberPublicKey)
+    {
+        ThrowIfDisposed();
+
+        if (peerKyberPublicKey == null || peerKyberPublicKey.Length != 1184)
+        {
+            return Result<byte[], EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.InvalidInput("Peer Kyber public key must be 1184 bytes"));
+        }
+
+        IntPtr bufferPtr = EcliptixNativeInterop.ecliptix_buffer_allocate(0);
+        if (bufferPtr == IntPtr.Zero)
+        {
+            return Result<byte[], EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.Generic("Failed to allocate native buffer"));
+        }
+
+        EcliptixErrorCode result = EcliptixNativeInterop.ecliptix_protocol_system_begin_handshake_with_peer_kyber(
+            _handle,
+            connectionId,
+            exchangeType,
+            peerKyberPublicKey,
+            (nuint)peerKyberPublicKey.Length,
+            bufferPtr,
+            out EcliptixError error);
+
+        if (result != EcliptixErrorCode.Success)
+        {
+            string errorMessage = error.GetMessage();
+            EcliptixNativeInterop.ecliptix_error_free(ref error);
+            EcliptixNativeInterop.ecliptix_buffer_free(bufferPtr);
+            return Result<byte[], EcliptixProtocolFailure>.Err(
+                ConvertError(result, errorMessage));
+        }
+
+        try
+        {
+            EcliptixBuffer buffer = Marshal.PtrToStructure<EcliptixBuffer>(bufferPtr);
+            byte[] handshake = new byte[buffer.Length];
+            Marshal.Copy(buffer.Data, handshake, 0, (int)buffer.Length);
+            return Result<byte[], EcliptixProtocolFailure>.Ok(handshake);
+        }
+        finally
+        {
+            EcliptixNativeInterop.ecliptix_buffer_free(bufferPtr);
+        }
+    }
+
     public Result<Unit, EcliptixProtocolFailure> CompleteHandshake(byte[] peerHandshakeMessage, byte[] rootKey)
     {
         ThrowIfDisposed();
@@ -368,6 +426,41 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
         }
 
         return Result<uint, EcliptixProtocolFailure>.Ok(id);
+    }
+
+    public Result<(uint SendingIndex, uint ReceivingIndex), EcliptixProtocolFailure> GetChainIndices()
+    {
+        ThrowIfDisposed();
+
+        if (!_chainIndicesSupported)
+        {
+            return Result<(uint, uint), EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.Generic("Native protocol does not expose chain indices"));
+        }
+
+        try
+        {
+            EcliptixErrorCode result = EcliptixNativeInterop.ecliptix_protocol_system_get_chain_indices(
+                _handle,
+                out uint sendingIndex,
+                out uint receivingIndex,
+                out EcliptixError error);
+
+            if (result != EcliptixErrorCode.Success)
+            {
+                string errorMessage = error.GetMessage();
+                EcliptixNativeInterop.ecliptix_error_free(ref error);
+                return Result<(uint, uint), EcliptixProtocolFailure>.Err(ConvertError(result, errorMessage));
+            }
+
+            return Result<(uint, uint), EcliptixProtocolFailure>.Ok((sendingIndex, receivingIndex));
+        }
+        catch (EntryPointNotFoundException)
+        {
+            _chainIndicesSupported = false;
+            return Result<(uint, uint), EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.Generic("Native protocol missing chain index entry point"));
+        }
     }
 
     public Result<byte[], EcliptixProtocolFailure> ExportState()
