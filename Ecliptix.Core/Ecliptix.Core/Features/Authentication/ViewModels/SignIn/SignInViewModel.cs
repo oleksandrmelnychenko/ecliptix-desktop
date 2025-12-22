@@ -15,6 +15,7 @@ using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Authentication;
 using Ecliptix.Core.Services.Membership;
 using Ecliptix.Core.Services.Membership.Constants;
+using Ecliptix.Core.Settings.Constants;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Authentication;
@@ -25,6 +26,7 @@ using ReactiveUI.Fody.Helpers;
 using Serilog;
 using Splat;
 using SystemU = System.Reactive.Unit;
+using IMessageBus = Ecliptix.Core.Core.Messaging.IMessageBus;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
 
@@ -41,17 +43,21 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
     private bool _hasSecureKeyBeenTouched;
     private bool _isDisposed;
 
+    private readonly IMessageBus? _messageBus;
+
     public SignInViewModel(
         IConnectivityService connectivityService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IAuthenticationService authService,
         IScreen hostScreen,
-        IGlobalModalService globalModalService) : base(networkProvider, localizationService, globalModalService, connectivityService)
+        IGlobalModalService globalModalService,
+        IMessageBus messageBus) : base(networkProvider, localizationService, globalModalService, connectivityService)
     {
         HostScreen = hostScreen;
         _authService = authService;
         _hostWindowModel = (AuthenticationViewModel)hostScreen;
+        _messageBus = messageBus;
 
         IObservable<bool> isFormLogicallyValid = SetupValidation();
         SetupCommands(isFormLogicallyValid);
@@ -77,6 +83,10 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
     [Reactive] public string? ServerError { get; set; }
 
     [Reactive] public bool HasServerError { get; set; }
+
+    [Reactive] public string CountryFlag { get; set; } = AppCultureSettingsConstants.UNITED_STATES_FLAG_PATH;
+    [Reactive] public string PhonePrefix { get; set; } = "+1";
+    [Reactive] public string CountryIso { get; set; } = "US";
 
     public int CurrentSecureKeyLength => _secureKeyBuffer.Length;
 
@@ -291,14 +301,16 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
             ((AuthenticationViewModel)HostScreen).StartSecureKeyRecoveryFlow();
         });
 
+
         OpenCountryPickerCommand = ReactiveCommand.CreateFromTask(async () =>
         {
             await GlobalModalService.ShowRightAsync(
-                new CountryCodeViewModel(),
+                new CountryCodeViewModel(_messageBus, CountryIso),
                 showScrim: true,
                 isDismissable: true
             );
         });
+
     }
 
     private void SetupSubscriptions()
@@ -328,6 +340,20 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
                 );
             })
             .DisposeWith(_disposables);
+
+
+        if (_messageBus != null)
+        {
+            _messageBus.Subscribe<CountryCodeSelectedEvent>(evt =>
+                {
+                    CountryFlag = evt.SelectedCountry.FlagImagePath;
+                    PhonePrefix = evt.SelectedCountry.PhonePrefix;
+                    CountryIso = evt.SelectedCountry.IsoCode;
+                    return Task.CompletedTask;
+                })
+                .DisposeWith(_disposables);
+        }
+
     }
 
     private string ValidateSecureKey() =>

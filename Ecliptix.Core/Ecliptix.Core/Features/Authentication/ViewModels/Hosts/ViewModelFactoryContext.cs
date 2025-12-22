@@ -1,3 +1,4 @@
+using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Features.Authentication.Common;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
@@ -21,4 +22,5 @@ public readonly struct ViewModelFactoryContext
     public required ISecureKeyRecoveryService RecoveryService { get; init; }
     public required AuthenticationFlowContext FlowContext { get; init; }
     public required DefaultSystemSettings Settings { get; init; }
+    public required IMessageBus MessageBus { get; init; }
 }

@@ -95,8 +95,11 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     public static readonly StyledProperty<bool> IsPhoneNumberModeProperty =
         AvaloniaProperty.Register<HintedTextBox, bool>(nameof(IsPhoneNumberMode), false);
 
-    public static readonly StyledProperty<string> CountryCodeProperty =
-        AvaloniaProperty.Register<HintedTextBox, string>(nameof(CountryCode), "US +1");
+    public static readonly StyledProperty<string> PhonePrefixProperty =
+        AvaloniaProperty.Register<HintedTextBox, string>(nameof(PhonePrefix), "+1");
+
+    public static readonly StyledProperty<string?> CountryFlagPathProperty =
+        AvaloniaProperty.Register<HintedTextBox, string?>(nameof(CountryFlagPath));
 
     public static readonly StyledProperty<ICommand?> CountryCodeCommandProperty =
         AvaloniaProperty.Register<HintedTextBox, ICommand?>(nameof(CountryCodeCommand));
@@ -143,10 +146,16 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         set => SetValue(IsPhoneNumberModeProperty, value);
     }
 
-    public string CountryCode
+    public string PhonePrefix
     {
-        get => GetValue(CountryCodeProperty);
-        set => SetValue(CountryCodeProperty, value);
+        get => GetValue(PhonePrefixProperty);
+        set => SetValue(PhonePrefixProperty, value);
+    }
+
+    public string? CountryFlagPath
+    {
+        get => GetValue(CountryFlagPathProperty);
+        set => SetValue(CountryFlagPathProperty, value);
     }
 
     public ICommand? CountryCodeCommand

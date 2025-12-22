@@ -17,6 +17,7 @@ using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Core.Services.Membership;
 using Ecliptix.Core.Settings;
+using Ecliptix.Core.Settings.Constants;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
@@ -27,6 +28,7 @@ using Serilog;
 using Splat;
 using Keys = Ecliptix.Core.Services.Authentication.Constants.AuthenticationConstants.MobileVerificationKeys;
 using Unit = System.Reactive.Unit;
+using IMessageBus = Ecliptix.Core.Core.Messaging.IMessageBus;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
@@ -39,6 +41,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
     private readonly IConnectivityService _connectivityService;
     private readonly CompositeDisposable _disposables = new();
     private readonly DefaultSystemSettings _settings;
+    private readonly IMessageBus? _messageBus;
 
     private CancellationTokenSource? _cancellationTokenSource;
     private bool _hasMobileNumberBeenTouched;
@@ -59,7 +62,8 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         ISecureKeyRecoveryService secureKeyRecoveryService,
         AuthenticationFlowContext flowContext,
         DefaultSystemSettings settings,
-        IGlobalModalService globalModalService) : base(networkProvider, localizationService, globalModalService,
+        IGlobalModalService globalModalService,
+        IMessageBus messageBus) : base(networkProvider, localizationService, globalModalService,
         connectivityService)
     {
         _registrationService = registrationService;
@@ -69,9 +73,12 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         HostScreen = hostScreen;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _settings = settings;
+        _messageBus = messageBus;
 
         IObservable<bool> isFormLogicallyValid = SetupValidation();
         SetupCommands(isFormLogicallyValid);
+
+        SetupSubscriptions();
     }
 
     public string? UrlPathSegment { get; } = "/mobile-verification";
@@ -108,6 +115,10 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
     [Reactive] public string MobileNumber { get; set; } = string.Empty;
     [Reactive] public string? MobileNumberError { get; private set; }
     [Reactive] public bool HasMobileNumberError { get; private set; }
+
+    [Reactive] public string CountryFlag { get; set; } = AppCultureSettingsConstants.UNITED_STATES_FLAG_PATH;
+    [Reactive] public string PhonePrefix { get; set; } = "+1";
+    [Reactive] public string CountryIso { get; set; } = "US";
 
     [ObservableAsProperty] public bool IsBusy { get; }
 
@@ -193,6 +204,22 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
             .DistinctUntilChanged();
     }
 
+    private void SetupSubscriptions()
+    {
+        if (_messageBus != null)
+        {
+            _messageBus.Subscribe<CountryCodeSelectedEvent>(evt =>
+                {
+                    CountryFlag = evt.SelectedCountry.FlagImagePath;
+                    PhonePrefix = evt.SelectedCountry.PhonePrefix;
+                    CountryIso = evt.SelectedCountry.IsoCode;
+                    return Task.CompletedTask;
+                })
+                .DisposeWith(_disposables);
+        }
+
+    }
+
     private void SetupCommands(IObservable<bool> isFormLogicallyValid)
     {
         IObservable<bool> canVerify = this.WhenAnyValue(x => x.IsBusy, x => x.IsInNetworkOutage,
@@ -207,7 +234,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         OpenCountryPickerCommand = ReactiveCommand.CreateFromTask(async () =>
         {
             await GlobalModalService.ShowRightAsync(
-                new CountryCodeViewModel(),
+                new CountryCodeViewModel(_messageBus, CountryIso),
                 showScrim: true,
                 isDismissable: true
             );

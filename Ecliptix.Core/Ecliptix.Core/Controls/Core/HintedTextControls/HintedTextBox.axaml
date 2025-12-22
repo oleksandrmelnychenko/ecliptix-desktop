@@ -94,7 +94,12 @@
                             </Button.Styles>
 
                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                <TextBlock Text="{Binding CountryCode, ElementName=Control}"
+                                <Svg Path="{Binding CountryFlagPath, ElementName=Control}"
+                                     Width="24"
+                                     Height="18"
+                                     VerticalAlignment="Center"/>
+
+                                <TextBlock Text="{Binding PhonePrefix, ElementName=Control}"
                                            Foreground="{Binding TextForeground, ElementName=Control}"
                                            FontWeight="Medium"
                                            FontSize="{Binding FontSize, ElementName=Control}"

@@ -29,6 +29,7 @@ using ReactiveUI;
 using Serilog;
 using Splat;
 using Unit = System.Reactive.Unit;
+using IMessageBus = Ecliptix.Core.Core.Messaging.IMessageBus;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 
@@ -41,7 +42,7 @@ public sealed class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
         {
             [MembershipViewType.SIGN_IN_VIEW] = ctx =>
                 new SignInViewModel(ctx.ConnectivityService, ctx.NetworkProvider, ctx.LocalizationService,
-                    ctx.AuthenticationService, ctx.HostViewModel, ctx.GlobalModalService),
+                    ctx.AuthenticationService, ctx.HostViewModel, ctx.GlobalModalService, ctx.MessageBus),
             [MembershipViewType.WELCOME_VIEW] = ctx =>
                 new WelcomeViewModel(ctx.HostViewModel, ctx.LocalizationService, ctx.NetworkProvider, ctx.GlobalModalService),
             [MembershipViewType.WELCOME_BACK_VIEW] = ctx =>
@@ -49,7 +50,7 @@ public sealed class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
             [MembershipViewType.MOBILE_VERIFICATION_VIEW] = ctx =>
                 new MobileVerificationViewModel(ctx.ConnectivityService, ctx.NetworkProvider, ctx.LocalizationService,
                     ctx.HostViewModel, ctx.StorageProvider, ctx.RegistrationService,
-                    ctx.RecoveryService, ctx.FlowContext, ctx.Settings, ctx.GlobalModalService),
+                    ctx.RecoveryService, ctx.FlowContext, ctx.Settings, ctx.GlobalModalService, ctx.MessageBus),
             [MembershipViewType.SECURE_KEY_CONFIRMATION_VIEW] = ctx =>
                 new SecureKeyConfirmationViewModel(ctx.ConnectivityService, ctx.NetworkProvider, ctx.LocalizationService,
                     ctx.HostViewModel, ctx.StorageProvider, ctx.RegistrationService, ctx.AuthenticationService,
@@ -71,6 +72,7 @@ public sealed class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
     private readonly ISecureKeyRecoveryService _secureKeyRecoveryService;
     private readonly IGlobalModalService _globalModalService;
     private readonly DefaultSystemSettings _settings;
+    private readonly IMessageBus _mesageBus;
 
     private readonly
         Dictionary<(MembershipViewType ViewType, AuthenticationFlowContext FlowContext),
@@ -98,6 +100,7 @@ public sealed class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
         _mainWindowViewModel = dependencies.MainWindowViewModel;
         _globalModalService = dependencies.GlobalModalService;
         _settings = dependencies.Settings;
+        _mesageBus = dependencies.MessageBus;
 
         InitializeVersionInfo();
         InitializeCommands(dependencies.Router);
@@ -399,7 +402,8 @@ public sealed class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
             RegistrationService = _opaqueRegistrationService,
             RecoveryService = _secureKeyRecoveryService,
             FlowContext = flowContext,
-            Settings = _settings
+            Settings = _settings,
+            MessageBus = _mesageBus
         };
 
         IRoutableViewModel newViewModel = factory(context);
