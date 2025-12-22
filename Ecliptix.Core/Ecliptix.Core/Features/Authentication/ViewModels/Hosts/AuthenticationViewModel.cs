@@ -5,10 +5,6 @@ using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
-using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Threading;
 using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.Messaging;
@@ -36,7 +32,7 @@ using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 
-public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
+public sealed class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
 {
     private static readonly AppCultureSettings LanguageConfig = AppCultureSettings.Default;
 
@@ -48,6 +44,8 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
                     ctx.AuthenticationService, ctx.HostViewModel, ctx.GlobalModalService),
             [MembershipViewType.WELCOME_VIEW] = ctx =>
                 new WelcomeViewModel(ctx.HostViewModel, ctx.LocalizationService, ctx.NetworkProvider, ctx.GlobalModalService),
+            [MembershipViewType.WELCOME_BACK_VIEW] = ctx =>
+                new WelcomeBackViewModel(ctx.HostViewModel, ctx.LocalizationService, ctx.NetworkProvider, ctx.GlobalModalService, ctx.StorageProvider),
             [MembershipViewType.MOBILE_VERIFICATION_VIEW] = ctx =>
                 new MobileVerificationViewModel(ctx.ConnectivityService, ctx.NetworkProvider, ctx.LocalizationService,
                     ctx.HostViewModel, ctx.StorageProvider, ctx.RegistrationService,

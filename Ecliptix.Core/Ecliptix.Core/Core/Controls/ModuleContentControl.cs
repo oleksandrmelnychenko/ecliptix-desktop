@@ -111,6 +111,9 @@ public sealed class ModuleContentControl : ContentControl
                 Features.Authentication.ViewModels.Welcome.WelcomeViewModel =>
                     StaticViewMapper.CreateView(
                         typeof(Ecliptix.Core.Features.Authentication.ViewModels.Welcome.WelcomeViewModel)),
+                Features.Authentication.ViewModels.Welcome.WelcomeBackViewModel =>
+                    StaticViewMapper.CreateView(
+                        typeof(Ecliptix.Core.Features.Authentication.ViewModels.Welcome.WelcomeBackViewModel)),
                 _ => null
             };
             return result;

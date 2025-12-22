@@ -47,19 +47,26 @@
         </Grid>
 
         <StackPanel Grid.Row="3" Orientation="Horizontal" IsVisible="True">
-            <Button Background="Black"
-                    Height="20"
-                    Foreground="white"
-                    Content="Complete"
-                    Command="{Binding NavToCompleteAccountCommand}">
-            </Button>
+                <Button Background="Black"
+                        Height="20"
+                        Foreground="white"
+                        Content="Complete"
+                        Command="{Binding NavToCompleteAccountCommand}">
+                </Button>
 
-            <Button Background="Black"
-                    Height="20"
-                    Foreground="white"
-                    Content="SecureKey"
-                    Command="{Binding NavToSecureKeySetCommand}">
-            </Button>
+                <Button Background="Black"
+                        Height="20"
+                        Foreground="white"
+                        Content="SecureKey"
+                        Command="{Binding NavToSecureKeySetCommand}">
+                </Button>
+
+                <Button Background="Black"
+                        Height="20"
+                        Foreground="white"
+                        Content="Welcome Back"
+                        Command="{Binding NavToWelcomeBackCommand}">
+                </Button>
 
         </StackPanel>
 

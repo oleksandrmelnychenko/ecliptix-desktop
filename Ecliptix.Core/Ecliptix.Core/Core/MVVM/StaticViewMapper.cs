@@ -31,6 +31,7 @@ internal static class StaticViewMapper
             [typeof(PassPhaseViewModel)] = new(() => () => new PassPhaseView()),
             [typeof(WelcomeViewModel)] = new(() => () => new WelcomeView()),
             [typeof(MasterViewModel)] = new(() => () => new MasterView()),
+            [typeof(WelcomeBackViewModel)] = new(() => () => new WelcomeBackView()),
         };
     }
 

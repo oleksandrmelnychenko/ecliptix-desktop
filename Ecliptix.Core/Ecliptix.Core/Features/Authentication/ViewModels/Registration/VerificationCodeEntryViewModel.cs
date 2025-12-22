@@ -41,7 +41,6 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
     private readonly CompositeDisposable _disposables = new();
 
     private Guid _verificationSessionIdentifier = Guid.Empty;
-    private IDisposable? _autoRedirectTimer;
     private IDisposable? _cooldownTimer;
     private CancellationTokenSource? _cancellationTokenSource;
     private volatile bool _isDisposed;
@@ -283,7 +282,6 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             _isDisposed = true;
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource?.Dispose();
-            _autoRedirectTimer?.Dispose();
             _cooldownTimer?.Dispose();
             _disposables.Dispose();
             _executionErrorSubject.Dispose();
@@ -753,16 +751,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             return;
         }
 
-        await Dispatcher.UIThread.InvokeAsync(() =>
-        {
-            _autoRedirectTimer?.Dispose();
-            _autoRedirectTimer = null;
-
-            return Task.CompletedTask;
-        });
-
         string message;
-
         if (!string.IsNullOrEmpty(localizedMessage))
         {
             message = localizedMessage;
@@ -776,25 +765,23 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             message = _localizationService.GetString(key);
         }
 
-        if (HostScreen is AuthenticationViewModel hostWindow)
-        {
-            ShowRedirectNotification(message, seconds, () =>
+        await StartAutoRedirectSequenceAsync(
+            HostScreen,
+            message,
+            seconds,
+            (hostViewModel) =>
             {
-                if (!_isDisposed)
-                {
-                    CleanupAndNavigateAsync(targetView).ContinueWith(
-                        task =>
-                        {
-                            if (task is { IsFaulted: true, Exception: not null })
-                            {
-                                Log.Error(task.Exception,
-                                    "[VERIFY-OTP] Unhandled exception in cleanup and navigate");
-                            }
-                        },
-                        TaskScheduler.Default);
-                }
+                CancelCurrentOperation();
+
+                CleanupAndNavigate(hostViewModel, targetView);
             });
-        }
+    }
+
+    private void CancelCurrentOperation()
+    {
+        CancellationTokenSource? cancellationTokenSource = Interlocked.Exchange(ref _cancellationTokenSource, null);
+        cancellationTokenSource?.Cancel();
+        cancellationTokenSource?.Dispose();
     }
 
     private void HandleCountdownUpdate(uint seconds, Guid identifier,
@@ -859,31 +846,6 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
         }
     }
 
-    private async Task CleanupAndNavigateAsync(MembershipViewType targetView)
-    {
-        if (_isDisposed)
-        {
-            return;
-        }
-
-        if (_cancellationTokenSource != null)
-        {
-            await _cancellationTokenSource.CancelAsync();
-            _cancellationTokenSource.Dispose();
-            _cancellationTokenSource = null;
-        }
-
-        await Dispatcher.UIThread.InvokeAsync(() =>
-        {
-            if (!_isDisposed && HostScreen is AuthenticationViewModel membershipHostWindow)
-            {
-                CleanupAndNavigate(membershipHostWindow, targetView);
-            }
-
-            return Task.CompletedTask;
-        });
-    }
-
     private static string FormatRemainingTime(uint seconds) => TimeSpan.FromSeconds(seconds).ToString(@"mm\:ss");
 
     private bool IsServerUnavailableError(string errorMessage)
@@ -924,9 +886,6 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
 
         await Dispatcher.UIThread.InvokeAsync(async () =>
         {
-            _autoRedirectTimer?.Dispose();
-            _autoRedirectTimer = null;
-
             _cooldownTimer?.Dispose();
             _cooldownTimer = null;
 
