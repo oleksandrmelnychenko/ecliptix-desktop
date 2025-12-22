@@ -7,13 +7,24 @@ using System.Threading.Tasks;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Core.MVVM;
+using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.Core.Localization;
+using Ecliptix.Core.Services.Network.Rpc;
+using Ecliptix.Protobuf.Account;
+using Ecliptix.Protobuf.Device;
+using Ecliptix.Protobuf.Protocol;
+using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures.Network;
+using Google.Protobuf;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Serilog;
+using EUnit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
@@ -109,7 +120,7 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(name =>
             {
-                bool isValid = !string.IsNullOrWhiteSpace(name) && name.StartsWith("@");
+                bool isValid = !string.IsNullOrWhiteSpace(name);
                 DisplayNameError = isValid ? string.Empty : LocalizationService[LocalizationKeys.ValidationErrors.Profile.INVALID_DISPLAY_NAME];
                 HasDisplayNameError = !isValid;
             })
@@ -178,40 +189,94 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
              .DisposeWith(_disposables);
     }
 
-    private async Task ExecuteCompletionAsync()
+   private async Task ExecuteCompletionAsync(CancellationToken cancellationToken)
     {
         try
         {
-            DateTime? birthDate = DateOfBirth?.DateTime;
+            Option<Guid> accountIdOpt = await GetCurrentAccountIdAsync();
 
-            await Task.Delay(1000);
+            if (!accountIdOpt.IsSome)
+            {
+                _executionErrorSubject.OnNext(LocalizationService["Common.Error.SessionExpired"]);
+                return;
+            }
 
-            Log.Information("Profile completed: {ProfileName}, {DisplayName}, Age: {Age}",
-                ProfileName, DisplayName, CalculateAge(DateOfBirth));
+            Guid currentAccountId = accountIdOpt.Value;
+
+            CreateOrUpdateProfileRequest request = new()
+            {
+                AccountId = Helpers.GuidToByteString(currentAccountId),
+                ProfileName = ProfileName,
+                DisplayName = DisplayName
+            };
+
+            TaskCompletionSource<CreateOrUpdateProfileResponse> responseSource =
+                new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
+
+            Result<EUnit, NetworkFailure> networkResult = await NetworkProvider.ExecuteUnaryRequestAsync(
+                connectId,
+                RpcServiceType.CreateOrUpdateProfile,
+                SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()),
+                payload =>
+                {
+                    CreateOrUpdateProfileResponse response = Helpers.ParseFromBytes<CreateOrUpdateProfileResponse>(payload);
+                    responseSource.TrySetResult(response);
+                    return Task.FromResult(Result<EUnit, NetworkFailure>.Ok(EUnit.Value));
+                },
+                allowDuplicates: false,
+                token: cancellationToken
+            );
+
+            if (networkResult.IsErr)
+            {
+                Log.Error("[COMPLETE-PROFILE-VM] Network error: {Error}", networkResult.UnwrapErr().Message);
+                _executionErrorSubject.OnNext(networkResult.UnwrapErr().Message);
+                return;
+            }
+
+            CreateOrUpdateProfileResponse response = await responseSource.Task;
+
+            if (response.IsSuccess)
+            {
+                Log.Information("Profile created successfully for AccountId: {AccountId}", currentAccountId);
+
+
+                if (HostScreen is AuthenticationViewModel authHost)
+                {
+                    await authHost.SwitchToMainWindowCommand.Execute();
+                }
+            }
+            else
+            {
+                _executionErrorSubject.OnNext(LocalizationService["Verification.Error.ProfileCreationFailed"]);
+            }
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Error completing profile");
+            Log.Error(ex, "[COMPLETE-PROFILE-VM] Unexpected error completing profile");
             _executionErrorSubject.OnNext(LocalizationService["Common.Error.Unexpected"]);
         }
     }
 
-    private int? CalculateAge(DateTimeOffset? dateOfBirth)
+    private async Task<Option<Guid>> GetCurrentAccountIdAsync()
     {
-        if (!dateOfBirth.HasValue)
+        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
+            await _applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync();
+
+        if (settingsResult.IsOk)
         {
-            return null;
+            ApplicationInstanceSettings settings = settingsResult.Unwrap();
+
+            if (settings.CurrentAccountId != null && !settings.CurrentAccountId.IsEmpty)
+            {
+                return Option<Guid>.Some(Helpers.FromByteStringToGuid(settings.CurrentAccountId));
+            }
         }
 
-        DateTime birthDate = dateOfBirth.Value.DateTime.Date;
-        DateTime today = DateTime.Today;
-        int age = today.Year - birthDate.Year;
-        if (birthDate > today.AddYears(-age))
-        {
-            age--;
-        }
-
-        return age;
+        Log.Warning("[COMPLETE-PROFILE-VM] Cannot retrieve AccountId from storage.");
+        return Option<Guid>.None;
     }
 
     public new void Dispose() => Dispose(true);

@@ -5,7 +5,12 @@
              xmlns:modals="clr-namespace:Ecliptix.Core.Controls.Modals"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ecliptix.Core.Controls.Modals.CountryCodeView"
-             x:DataType="modals:CountryCodeViewModel">
-    Welcome to Country code view!
+             x:DataType="modals:CountryCodeViewModel"
+             MinWidth="200"
+             MinHeight="200">
+    Choose your country code
+    - Ukraine
+    - USA
+
 </UserControl>
 
