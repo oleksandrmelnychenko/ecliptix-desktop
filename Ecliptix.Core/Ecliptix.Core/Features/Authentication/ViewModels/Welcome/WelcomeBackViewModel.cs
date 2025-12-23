@@ -11,6 +11,7 @@ using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Common;
+using Ecliptix.Core.Services.Core.Localization;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Utilities;
 using ReactiveUI;
@@ -110,7 +111,7 @@ public sealed class WelcomeBackViewModel: ViewModelBase, IRoutableViewModel, IRe
         }
         else
         {
-            string errorMessage = LocalizationService["Session data missing. Please sign in again."];
+            string errorMessage = LocalizationService[LocalizationKeys.Authentication.WelcomeBack.ERROR_SESSION_MISSING];
 
             await StartAutoRedirectSequenceAsync(
                 HostScreen,

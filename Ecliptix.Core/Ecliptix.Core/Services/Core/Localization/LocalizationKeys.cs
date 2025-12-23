@@ -84,6 +84,16 @@ public static class LocalizationKeys
             }
         }
 
+        public static class WelcomeBack
+        {
+            public const string TITLE = "Authentication.WelcomeBack.Title";
+            public const string DESCRIPTION_VERIFIED = "Authentication.WelcomeBack.Description.Verified";
+            public const string DESCRIPTION_SETUP = "Authentication.WelcomeBack.Description.Setup";
+            public const string BUTTON_LATER = "Authentication.WelcomeBack.Button.Later";
+            public const string BUTTON_CONTINUE = "Authentication.WelcomeBack.Button.Continue";
+            public const string ERROR_SESSION_MISSING = "Authentication.WelcomeBack.Error.SessionMissing";
+        }
+
         public static class SecureKeyRecovery
         {
             public static class RecoveryMobileVerification
@@ -295,6 +305,8 @@ public static class LocalizationKeys
             }
         }
     }
+
+
 
     public static class Footer
     {
