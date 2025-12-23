@@ -58,7 +58,7 @@
             HasError="{Binding HasMobileNumberError, Mode=OneWay}"
             FocusBorderBrush="{DynamicResource Primary}"
             MainBorderBrush="#e5e7eb"
-            Text="{Binding MobileNumber,Mode=TwoWay}"
+            Text="{Binding RawMobileNumber,Mode=TwoWay}"
             Height="{StaticResource Input.Height}"
             CornerRadius="{StaticResource Radius.L}"
             FontSize="{StaticResource Input.FontSize}"

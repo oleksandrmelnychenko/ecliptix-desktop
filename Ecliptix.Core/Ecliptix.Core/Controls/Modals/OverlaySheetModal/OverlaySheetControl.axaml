@@ -57,5 +57,10 @@
                 ViewModel="{Binding Content}"
                 IsHitTestVisible="True" />
         </Border>
+
+        <Canvas x:Name="HiddenMeasureContainer"
+                Opacity="0"
+                IsHitTestVisible="False"
+                Width="0" Height="0"/>
     </Grid>
 </UserControl>

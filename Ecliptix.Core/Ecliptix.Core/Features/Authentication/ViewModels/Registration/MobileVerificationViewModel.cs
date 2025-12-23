@@ -112,7 +112,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
 
     public ReactiveCommand<Unit, Unit> OpenTermsOfServiceCommand { get; private set; } = null!;
 
-    [Reactive] public string MobileNumber { get; set; } = string.Empty;
+    [Reactive] public string RawMobileNumber { get; set; } = string.Empty;
     [Reactive] public string? MobileNumberError { get; private set; }
     [Reactive] public bool HasMobileNumberError { get; private set; }
 
@@ -143,7 +143,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         }
 
         CancelCurrentOperation();
-        MobileNumber = string.Empty;
+        RawMobileNumber = string.Empty;
         _hasMobileNumberBeenTouched = false;
         HasMobileNumberError = false;
         MobileNumberError = string.Empty;
@@ -166,7 +166,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
             .DisposeWith(_disposables);
 
         IObservable<Unit> mobileTrigger = this
-            .WhenAnyValue(x => x.MobileNumber)
+            .WhenAnyValue(x => x.RawMobileNumber)
             .Select(_ => Unit.Default);
 
         IObservable<Unit> validationTrigger =
@@ -174,11 +174,11 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
                 .Merge(languageTrigger);
 
         IObservable<string> mobileValidation = validationTrigger
-            .Select(_ => MobileNumberValidator.Validate(MobileNumber, LocalizationService))
+            .Select(_ => MobileNumberValidator.Validate(RawMobileNumber, LocalizationService))
             .Replay(1)
             .RefCount();
 
-        IObservable<string> mobileErrorStream = this.WhenAnyValue(x => x.MobileNumber)
+        IObservable<string> mobileErrorStream = this.WhenAnyValue(x => x.RawMobileNumber)
             .CombineLatest(mobileValidation, (mobile, validationError) =>
             {
                 if (!_hasMobileNumberBeenTouched && !string.IsNullOrWhiteSpace(mobile))
@@ -300,7 +300,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
 
     private async Task ExecuteRegistrationFlowAsync(uint connectId, CancellationToken operationToken)
     {
-        string fullNumber = PhoneNumberHelper.CombineWithPrefix(PhonePrefix, MobileNumber);
+        string fullNumber = PhoneNumberHelper.CombineWithPrefix(PhonePrefix, RawMobileNumber);
 
         Task<Result<ValidateMobileNumberResponse, string>> validationTask =
             _registrationService.ValidateMobileNumberAsync(fullNumber, connectId, operationToken);
@@ -450,7 +450,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
 
     private async Task ExecuteRecoveryFlowAsync(uint connectId, CancellationToken operationToken)
     {
-        string fullNumber = PhoneNumberHelper.CombineWithPrefix(PhonePrefix, MobileNumber);
+        string fullNumber = PhoneNumberHelper.CombineWithPrefix(PhonePrefix, RawMobileNumber);
 
         Task<Result<ByteString, string>> recoveryValidationTask =
             _secureKeyRecoveryService!.ValidateMobileForRecoveryAsync(fullNumber, connectId, operationToken);
@@ -470,13 +470,21 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
 
         ByteString mobileNumberIdentifier = result.Unwrap();
 
-        VerificationCodeEntryViewModel vm = new(_connectivityService, NetworkProvider, LocalizationService, HostScreen,
-            (mobileNumberIdentifier, MobileNumber), _applicationSecureStorageProvider, _registrationService, GlobalModalService,
-            _flowContext, _secureKeyRecoveryService);
+        VerificationCodeEntryViewModel vm = new(
+            _connectivityService,
+            NetworkProvider,
+            LocalizationService,
+            HostScreen,
+            (mobileNumberIdentifier, fullNumber),
+            _applicationSecureStorageProvider,
+            _registrationService,
+            GlobalModalService,
+            _flowContext,
+            _secureKeyRecoveryService);
 
         if (HostScreen is AuthenticationViewModel hostWindow)
         {
-            hostWindow.RecoveryMobileNumber = MobileNumber;
+            hostWindow.RecoveryMobileNumber = fullNumber;
             hostWindow.NavigateToViewModel(vm);
         }
     }
@@ -495,16 +503,24 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         {
             return Task.CompletedTask;
         }
+        string fullNumber = PhoneNumberHelper.CombineWithPrefix(PhonePrefix, RawMobileNumber);
 
-        VerificationCodeEntryViewModel vm = new(_connectivityService, NetworkProvider, LocalizationService, HostScreen,
-            (mobileNumberIdentifier, MobileNumber), _applicationSecureStorageProvider, _registrationService, GlobalModalService);
+        VerificationCodeEntryViewModel vm = new(
+            _connectivityService,
+            NetworkProvider,
+            LocalizationService,
+            HostScreen,
+            (mobileNumberIdentifier, fullNumber),
+            _applicationSecureStorageProvider,
+            _registrationService,
+            GlobalModalService);
 
         if (HostScreen is not AuthenticationViewModel hostWindow)
         {
             return Task.CompletedTask;
         }
 
-        hostWindow.RegistrationMobileNumber = MobileNumber;
+        hostWindow.RegistrationMobileNumber = fullNumber;
         hostWindow.NavigateToViewModel(vm);
 
         return Task.CompletedTask;
@@ -517,7 +533,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
             return Task.CompletedTask;
         }
 
-        hostWindow.RegistrationMobileNumber = MobileNumber;
+        hostWindow.RegistrationMobileNumber = RawMobileNumber;
         hostWindow.Navigate.Execute(MembershipViewType.SECURE_KEY_CONFIRMATION_VIEW).Subscribe();
 
         return Task.CompletedTask;
