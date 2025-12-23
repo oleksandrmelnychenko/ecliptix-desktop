@@ -11,11 +11,13 @@ public class ResourceConverter : IValueConverter
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value == null)
+        {
             return AvaloniaProperty.UnsetValue;
+        }
 
-        var key = value.ToString();
+        string? key = value.ToString();
 
-        var resource =  Application.Current.FindResource(key);
+        object? resource =  Application.Current.FindResource(key);
 
         return resource;
     }

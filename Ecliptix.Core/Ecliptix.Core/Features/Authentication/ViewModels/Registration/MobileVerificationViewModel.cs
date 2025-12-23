@@ -240,37 +240,26 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
             );
         });
 
-        OpenPrivacyPolicyCommand = ReactiveCommand.Create(() => OpenUrl(_settings.PrivacyPolicyUrl));
-        OpenTermsOfServiceCommand = ReactiveCommand.Create(() => OpenUrl(_settings.TermsOfServiceUrl));
+        OpenPrivacyPolicyCommand = ReactiveCommand.Create(() =>
+        {
+            bool success = BrowserHelper.OpenUrl(_settings.PrivacyPolicyUrl);
+            if (!success)
+            {
+                Log.Warning("Failed to open privacy policy URL: {Url}", _settings.PrivacyPolicyUrl);
+            }
+        });
+
+        OpenTermsOfServiceCommand = ReactiveCommand.Create(() =>
+        {
+            bool success = BrowserHelper.OpenUrl(_settings.TermsOfServiceUrl);
+            if (!success)
+            {
+                Log.Warning("Failed to open privacy policy URL: {Url}", _settings.TermsOfServiceUrl);
+            }
+        });
 
         _disposables.Add(VerifyMobileNumberCommand);
     }
-
-    //TODO move to helpers
-    private static void OpenUrl(string url)
-    {
-        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform
-                .Windows))
-        {
-            System.Diagnostics.Process.Start(
-                new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
-        }
-        else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices
-                     .OSPlatform.OSX))
-        {
-            System.Diagnostics.Process.Start("open", url);
-        }
-        else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices
-                     .OSPlatform.Linux))
-        {
-            System.Diagnostics.Process.Start("xdg-open", url);
-        }
-        else
-        {
-            Log.Warning("Unsupported platform for opening URL: {Url}", url);
-        }
-    }
-
 
     private async Task<Unit> ExecuteVerificationAsync()
     {
@@ -311,8 +300,10 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
 
     private async Task ExecuteRegistrationFlowAsync(uint connectId, CancellationToken operationToken)
     {
+        string fullNumber = PhoneNumberHelper.CombineWithPrefix(PhonePrefix, MobileNumber);
+
         Task<Result<ValidateMobileNumberResponse, string>> validationTask =
-            _registrationService.ValidateMobileNumberAsync(MobileNumber, connectId, operationToken);
+            _registrationService.ValidateMobileNumberAsync(fullNumber, connectId, operationToken);
 
         Result<ValidateMobileNumberResponse, string> result = await validationTask;
 
@@ -459,8 +450,10 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
 
     private async Task ExecuteRecoveryFlowAsync(uint connectId, CancellationToken operationToken)
     {
+        string fullNumber = PhoneNumberHelper.CombineWithPrefix(PhonePrefix, MobileNumber);
+
         Task<Result<ByteString, string>> recoveryValidationTask =
-            _secureKeyRecoveryService!.ValidateMobileForRecoveryAsync(MobileNumber, connectId, operationToken);
+            _secureKeyRecoveryService!.ValidateMobileForRecoveryAsync(fullNumber, connectId, operationToken);
 
         Result<ByteString, string> result = await recoveryValidationTask;
 
