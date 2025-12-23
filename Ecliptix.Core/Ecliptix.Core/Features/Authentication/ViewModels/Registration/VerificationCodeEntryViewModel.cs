@@ -765,6 +765,35 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             message = _localizationService.GetString(key);
         }
 
+        string title;
+        string subtitle;
+
+        if (IsMaxAttemptsReached)
+        {
+            title = _localizationService[LocalizationKeys.Verification.Redirect.Title.MAX_ATTEMPTS];
+            subtitle = _localizationService[LocalizationKeys.Verification.Redirect.Subtitle.SECURITY_LIMIT];
+        }
+        else if (IsServerUnavailableError(message))
+        {
+            title = _localizationService[LocalizationKeys.Verification.Redirect.Title.SERVER_ERROR];
+            subtitle = _localizationService[LocalizationKeys.Verification.Redirect.Subtitle.TRY_AGAIN];
+        }
+        else if (CurrentStatus == VerificationCountdownUpdate.Types.CountdownUpdateStatus.SessionExpired)
+        {
+            title = _localizationService[LocalizationKeys.Verification.Redirect.Title.SESSION_EXPIRED];
+            subtitle = _localizationService[LocalizationKeys.Verification.Redirect.Subtitle.TIMEOUT];
+        }
+        else if (CurrentStatus == VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound)
+        {
+            title = _localizationService[LocalizationKeys.Verification.Redirect.Title.SESSION_NOT_FOUND];
+            subtitle = _localizationService[LocalizationKeys.Verification.Redirect.Subtitle.INVALID_STATE];
+        }
+        else
+        {
+            title = _localizationService[LocalizationKeys.Verification.Redirect.Title.GENERIC_ERROR];
+            subtitle = _localizationService[LocalizationKeys.Verification.Redirect.Subtitle.RETURNING];
+        }
+
         await StartAutoRedirectSequenceAsync(
             HostScreen,
             message,
@@ -772,9 +801,11 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             (hostViewModel) =>
             {
                 CancelCurrentOperation();
-
                 CleanupAndNavigate(hostViewModel, targetView);
-            });
+            },
+            title,
+            subtitle
+        );
     }
 
     private void CancelCurrentOperation()

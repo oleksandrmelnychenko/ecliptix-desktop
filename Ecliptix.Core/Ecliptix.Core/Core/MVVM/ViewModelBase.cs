@@ -110,7 +110,10 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         IScreen hostScreen,
         string message,
         int seconds,
-        Action<AuthenticationViewModel> navigationAction)
+        Action<AuthenticationViewModel> navigationAction,
+        string title,
+        string subtitle
+        )
     {
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
@@ -137,12 +140,16 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
                         navigationAction(hostWindow);
                     }
                 });
-            });
+            }, title, subtitle);
         }
     }
 
-    protected async Task ShowRedirectNotification(string message, int seconds,
-        Action onComplete)
+    protected async Task ShowRedirectNotification(
+        string message,
+        int seconds,
+        Action onComplete,
+        string title,
+        string subtitle)
     {
         if (_disposedValue)
         {
@@ -150,7 +157,13 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
             return;
         }
 
-        RedirectNotificationViewModel redirectViewModel = new(message, seconds, onComplete, LocalizationService);
+        RedirectNotificationViewModel redirectViewModel = new(
+            title,
+            subtitle,
+            message,
+            seconds,
+            onComplete,
+            LocalizationService);
 
         try
         {

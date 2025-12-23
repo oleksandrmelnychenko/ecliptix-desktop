@@ -111,17 +111,22 @@ public sealed class WelcomeBackViewModel: ViewModelBase, IRoutableViewModel, IRe
         }
         else
         {
-            string errorMessage = LocalizationService[LocalizationKeys.Authentication.WelcomeBack.ERROR_SESSION_MISSING];
+            string title = LocalizationService[LocalizationKeys.Authentication.WelcomeBack.ERROR_TITLE];
+            string subtitle = LocalizationService[LocalizationKeys.Authentication.WelcomeBack.ERROR_SUBTITLE];
+            string message = LocalizationService[LocalizationKeys.Authentication.WelcomeBack.ERROR_SESSION_MISSING];
 
             await StartAutoRedirectSequenceAsync(
                 HostScreen,
-                errorMessage,
-                3,
+                message,
+                66,
                 (host) =>
                 {
                     host.ClearNavigationStack(preserveInitialWelcome: true);
                     host.NavigateBack.Execute().Subscribe();
-                });
+                },
+                title,
+                subtitle
+            );
         }
     }
 
