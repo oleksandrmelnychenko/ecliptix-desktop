@@ -26,7 +26,7 @@
                 Command="{Binding NavigateBack}"
                 Margin="24,24,0,0"
                 Grid.Row="0"
-                Classes="ghost icon-only"
+                Classes="back-button"
                 Opacity="{Binding CanNavigateBack, Converter={StaticResource BoolToOpacityConverter}}">
             <Image Source="avares://Ecliptix.Core/Assets/Icons/UI/back-icon.png"
                    Stretch="Uniform"

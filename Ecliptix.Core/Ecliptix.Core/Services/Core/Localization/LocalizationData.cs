@@ -458,8 +458,8 @@ public static class LocalizationData
         [LocalizationKeys.Authentication.WelcomeBack.ERROR_SESSION_MISSING] = "Не вдалося знайти дані вашої сесії. Будь ласка, розпочніть процес реєстрації заново.",
         [LocalizationKeys.Authentication.WelcomeBack.ERROR_TITLE] = "Сесія відсутня",
         [LocalizationKeys.Authentication.WelcomeBack.ERROR_SUBTITLE] = "Потрібна автентифікація",
-        [LocalizationKeys.Footer.PRIVACY_POLICY] = "Політика конфіденційності",
-        [LocalizationKeys.Footer.TERMS_OF_SERVICE] = "Умови надання послуг",
+        [LocalizationKeys.Footer.PRIVACY_POLICY] = "Політикою конфіденційності",
+        [LocalizationKeys.Footer.TERMS_OF_SERVICE] = "Умовами надання послуг",
         [LocalizationKeys.Footer.SUPPORT] = "Підтримка",
         [LocalizationKeys.Footer.AGREEMENT_TEXT] =
             "Продовжуючи, ви погоджуєтесь з нашими Умовами та Політикою конфіденційності.",
