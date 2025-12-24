@@ -9,6 +9,7 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform;
 using Avalonia.ReactiveUI;
+using Avalonia.Threading;
 using Ecliptix.Core.Services.Core;
 using Ecliptix.Core.ViewModels.Core;
 using Ecliptix.Core.Views.Core.Constants;
@@ -172,7 +173,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>, IDisposab
 
     private async Task LoadWindowPlacementAsync(MainWindowViewModel viewModel)
     {
-        WindowPlacement? placement = await viewModel.LoadInitialPlacementAsync().ConfigureAwait(false);
+        WindowPlacement? placement = await viewModel.LoadInitialPlacementAsync();
         if (placement == null || !placement.IsValidSave)
         {
             return;
@@ -187,14 +188,17 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>, IDisposab
             Position = savedPosition;
         }
 
-        Size clientSize = new(placement.ClientWidth, placement.ClientHeight);
-        ClientSize = clientSize;
-        viewModel.WindowWidth = clientSize.Width;
-        viewModel.WindowHeight = clientSize.Height;
+        Dispatcher.UIThread.Invoke(() =>
+        {
+            Size clientSize = new(placement.ClientWidth, placement.ClientHeight);
+            ClientSize = clientSize;
+            viewModel.WindowWidth = clientSize.Width;
+            viewModel.WindowHeight = clientSize.Height;
 
-        WindowState windowState = (WindowState)placement.WindowState;
-        WindowState = windowState;
-        viewModel.WindowState = windowState;
+            WindowState windowState = (WindowState)placement.WindowState;
+            WindowState = windowState;
+            viewModel.WindowState = windowState;
+        });
     }
 
     private async void OnWindowClosing(object? sender, WindowClosingEventArgs e)

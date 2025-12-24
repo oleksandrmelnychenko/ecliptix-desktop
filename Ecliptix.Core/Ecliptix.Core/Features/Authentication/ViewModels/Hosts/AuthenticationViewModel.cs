@@ -5,10 +5,6 @@ using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
-using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Threading;
 using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.Messaging;
@@ -33,10 +29,11 @@ using ReactiveUI;
 using Serilog;
 using Splat;
 using Unit = System.Reactive.Unit;
+using IMessageBus = Ecliptix.Core.Core.Messaging.IMessageBus;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 
-public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
+public sealed class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
 {
     private static readonly AppCultureSettings LanguageConfig = AppCultureSettings.Default;
 
@@ -45,13 +42,15 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
         {
             [MembershipViewType.SIGN_IN_VIEW] = ctx =>
                 new SignInViewModel(ctx.ConnectivityService, ctx.NetworkProvider, ctx.LocalizationService,
-                    ctx.AuthenticationService, ctx.HostViewModel, ctx.GlobalModalService),
+                    ctx.AuthenticationService, ctx.HostViewModel, ctx.GlobalModalService, ctx.MessageBus),
             [MembershipViewType.WELCOME_VIEW] = ctx =>
                 new WelcomeViewModel(ctx.HostViewModel, ctx.LocalizationService, ctx.NetworkProvider, ctx.GlobalModalService),
+            [MembershipViewType.WELCOME_BACK_VIEW] = ctx =>
+                new WelcomeBackViewModel(ctx.HostViewModel, ctx.LocalizationService, ctx.NetworkProvider, ctx.GlobalModalService, ctx.StorageProvider),
             [MembershipViewType.MOBILE_VERIFICATION_VIEW] = ctx =>
                 new MobileVerificationViewModel(ctx.ConnectivityService, ctx.NetworkProvider, ctx.LocalizationService,
                     ctx.HostViewModel, ctx.StorageProvider, ctx.RegistrationService,
-                    ctx.RecoveryService, ctx.FlowContext, ctx.Settings, ctx.GlobalModalService),
+                    ctx.RecoveryService, ctx.FlowContext, ctx.Settings, ctx.GlobalModalService, ctx.MessageBus),
             [MembershipViewType.SECURE_KEY_CONFIRMATION_VIEW] = ctx =>
                 new SecureKeyConfirmationViewModel(ctx.ConnectivityService, ctx.NetworkProvider, ctx.LocalizationService,
                     ctx.HostViewModel, ctx.StorageProvider, ctx.RegistrationService, ctx.AuthenticationService,
@@ -73,6 +72,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
     private readonly ISecureKeyRecoveryService _secureKeyRecoveryService;
     private readonly IGlobalModalService _globalModalService;
     private readonly DefaultSystemSettings _settings;
+    private readonly IMessageBus _mesageBus;
 
     private readonly
         Dictionary<(MembershipViewType ViewType, AuthenticationFlowContext FlowContext),
@@ -100,6 +100,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
         _mainWindowViewModel = dependencies.MainWindowViewModel;
         _globalModalService = dependencies.GlobalModalService;
         _settings = dependencies.Settings;
+        _mesageBus = dependencies.MessageBus;
 
         InitializeVersionInfo();
         InitializeCommands(dependencies.Router);
@@ -206,31 +207,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
         }
 
         base.Dispose(disposing);
-    }
-
-    //TODO move to helpers
-    private static void OpenUrl(string url)
-    {
-        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform
-                .Windows))
-        {
-            System.Diagnostics.Process.Start(
-                new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
-        }
-        else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices
-                     .OSPlatform.OSX))
-        {
-            System.Diagnostics.Process.Start("open", url);
-        }
-        else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices
-                     .OSPlatform.Linux))
-        {
-            System.Diagnostics.Process.Start("xdg-open", url);
-        }
-        else
-        {
-            Log.Warning("Unsupported platform for opening URL: {Url}", url);
-        }
     }
 
     private void CleanupAuthenticationFlow()
@@ -401,7 +377,8 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
             RegistrationService = _opaqueRegistrationService,
             RecoveryService = _secureKeyRecoveryService,
             FlowContext = flowContext,
-            Settings = _settings
+            Settings = _settings,
+            MessageBus = _mesageBus
         };
 
         IRoutableViewModel newViewModel = factory(context);
@@ -458,7 +435,15 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
             CleanupAuthenticationFlow();
             await router.NavigateToMainAsync();
         });
-        OpenSupportCommand = ReactiveCommand.Create(() => OpenUrl(_settings.SupportUrl));
+
+        OpenSupportCommand = ReactiveCommand.Create(() =>
+        {
+            bool success = BrowserHelper.OpenUrl(_settings.SupportUrl);
+            if (!success)
+            {
+                Log.Warning("Failed to open privacy policy URL: {Url}", _settings.SupportUrl);
+            }
+        });
     }
 
     private IRoutableViewModel ExecuteNavigate(MembershipViewType viewType)

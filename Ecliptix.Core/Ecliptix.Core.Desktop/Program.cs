@@ -565,7 +565,8 @@ public static class Program
                 Router = sp.GetRequiredService<IApplicationRouter>(),
                 GlobalModalService = sp.GetRequiredService<IGlobalModalService>(),
                 MainWindowViewModel = sp.GetRequiredService<Ecliptix.Core.ViewModels.Core.MainWindowViewModel>(),
-                Settings = sp.GetRequiredService<DefaultSystemSettings>()
+                Settings = sp.GetRequiredService<DefaultSystemSettings>(),
+                MessageBus = sp.GetRequiredService<IMessageBus>(),
             }));
         services.AddTransient<MasterViewModel>();
     }

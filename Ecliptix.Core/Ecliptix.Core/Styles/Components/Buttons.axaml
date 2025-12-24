@@ -180,6 +180,7 @@
         <Setter Property="Foreground" Value="#111827" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="FontFamily" Value="{StaticResource SegoeUI}" />
+        <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Padding" Value="24,0"/>
     </Style>
     <Style Selector="Button.secondary:pointerover">
@@ -355,4 +356,50 @@
         <Setter Property="Background" Value="Transparent" />
     </Style>
 
+    <Style Selector="Button.ghost.footer-link">
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryUltraBrightVariant}" />
+    </Style>
+
+    <Style Selector="Button.ghost.footer-link:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrightVariant}" />
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <Style Selector="Button.ghost.footer-link:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrightVariant}" />
+        <Setter Property="Opacity" Value="0.7"/>
+    </Style>
+
+    <Style Selector="Button.back-button">
+        <Setter Property="Width" Value="44" />
+        <Setter Property="Height" Value="44" />
+        <Setter Property="CornerRadius" Value="22" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="#F3F4F6" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+
+    <Style Selector="Button.back-button Image">
+        <Setter Property="RenderTransformOrigin" Value="50%,50%" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" Easing="CubicEaseOut"/>
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button.back-button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#E5E7EB" />
+    </Style>
+
+    <Style Selector="Button.back-button:pointerover Image">
+        <Setter Property="RenderTransform" Value="scale(1.1)" />
+    </Style>
+
+    <Style Selector="Button.back-button:pressed Image">
+        <Setter Property="RenderTransform" Value="scale(0.9)" />
+    </Style>
+    <Style Selector="Button.back-button:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#D1D5DB" />
+    </Style>
 </Styles>

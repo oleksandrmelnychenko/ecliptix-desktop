@@ -1,3 +1,4 @@
+using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
@@ -22,4 +23,5 @@ public readonly struct AuthenticationViewModelDependencies
     public required IGlobalModalService GlobalModalService { get; init; }
     public required MainWindowViewModel MainWindowViewModel { get; init; }
     public required DefaultSystemSettings Settings { get; init; }
+    public required IMessageBus MessageBus { get; init; }
 }

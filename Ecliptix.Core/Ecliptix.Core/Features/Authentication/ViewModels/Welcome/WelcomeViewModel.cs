@@ -30,7 +30,8 @@ public sealed class WelcomeViewModel : ViewModelBase, IRoutableViewModel, IReset
             [CREATE_ACCOUNT_KEY] = MembershipViewType.MOBILE_VERIFICATION_VIEW,
             [SIGN_IN_KEY] = MembershipViewType.SIGN_IN_VIEW,
             ["CompleteAccount"] = MembershipViewType.COMPLETE_PROFILE_VIEW,
-            ["SecureKeySet"] = MembershipViewType.SECURE_KEY_CONFIRMATION_VIEW
+            ["SecureKeySet"] = MembershipViewType.SECURE_KEY_CONFIRMATION_VIEW,
+            ["WelcomeBack"] = MembershipViewType.WELCOME_BACK_VIEW
         }.ToFrozenDictionary();
 
     private readonly CompositeDisposable _disposables = new();
@@ -94,6 +95,15 @@ public sealed class WelcomeViewModel : ViewModelBase, IRoutableViewModel, IReset
             return hostWindow.Navigate.Execute(viewType);
         });
 
+        NavToWelcomeBackCommand = ReactiveCommand.CreateFromObservable(() =>
+        {
+            AuthenticationViewModel hostWindow = (AuthenticationViewModel)HostScreen;
+            // Можна задати контекст, якщо потрібно, наприклад RECOVERY
+            ((AuthenticationViewModel)HostScreen).CurrentFlowContext = AuthenticationFlowContext.SECURE_KEY_RECOVERY;
+            MembershipViewType viewType = NavigationCache["WelcomeBack"];
+            return hostWindow.Navigate.Execute(viewType);
+        });
+
         NavToCreateAccountCommand.IsExecuting.ToPropertyEx(this, x => x.IsCreateAccountBusy).DisposeWith(_disposables);
         NavToSignInCommand.IsExecuting.ToPropertyEx(this, x => x.IsSignInBusy).DisposeWith(_disposables);
 
@@ -128,6 +138,8 @@ public sealed class WelcomeViewModel : ViewModelBase, IRoutableViewModel, IReset
     public string UrlPathSegment => ROUTE_WELCOME;
 
     public IScreen HostScreen { get; }
+
+    public ReactiveCommand<Unit, IRoutableViewModel> NavToWelcomeBackCommand { get; }
 
     public ReactiveCommand<Unit, IRoutableViewModel> NavToCreateAccountCommand { get; }
 

@@ -41,7 +41,6 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
     private readonly CompositeDisposable _disposables = new();
 
     private Guid _verificationSessionIdentifier = Guid.Empty;
-    private IDisposable? _autoRedirectTimer;
     private IDisposable? _cooldownTimer;
     private CancellationTokenSource? _cancellationTokenSource;
     private volatile bool _isDisposed;
@@ -283,7 +282,6 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             _isDisposed = true;
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource?.Dispose();
-            _autoRedirectTimer?.Dispose();
             _cooldownTimer?.Dispose();
             _disposables.Dispose();
             _executionErrorSubject.Dispose();
@@ -553,7 +551,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             if (IsServerUnavailableError(error))
             {
                 PublishError(error);
-                StartAutoRedirectAsync(5, MembershipViewType.WELCOME_VIEW, error).ContinueWith(
+                StartAutoRedirectAsync(10, MembershipViewType.WELCOME_VIEW, error).ContinueWith(
                     task =>
                     {
                         if (task is { IsFaulted: true, Exception: not null })
@@ -633,7 +631,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
     private uint HandleMaxAttemptsStatus()
     {
         IsMaxAttemptsReached = true;
-        StartAutoRedirectAsync(5, MembershipViewType.WELCOME_VIEW).ContinueWith(
+        StartAutoRedirectAsync(10, MembershipViewType.WELCOME_VIEW).ContinueWith(
             task =>
             {
                 if (task is { IsFaulted: true, Exception: not null })
@@ -648,7 +646,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
     private uint HandleNotFoundStatus()
     {
         string message = _localizationService[AuthenticationConstants.SESSION_NOT_FOUND_KEY];
-        StartAutoRedirectAsync(5, MembershipViewType.WELCOME_VIEW, message).ContinueWith(
+        StartAutoRedirectAsync(10, MembershipViewType.WELCOME_VIEW, message).ContinueWith(
             task =>
             {
                 if (task is { IsFaulted: true, Exception: not null })
@@ -663,7 +661,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
     private uint HandleSessionExpiredStatus()
     {
         string message = _localizationService[AuthenticationConstants.VERIFICATION_SESSION_EXPIRED_KEY];
-        StartAutoRedirectAsync(5, MembershipViewType.WELCOME_VIEW, message).ContinueWith(
+        StartAutoRedirectAsync(10, MembershipViewType.WELCOME_VIEW, message).ContinueWith(
             task =>
             {
                 if (task is { IsFaulted: true, Exception: not null })
@@ -679,8 +677,8 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
     private uint HandleFailedStatus(string? error)
     {
         Task redirectTask = !string.IsNullOrEmpty(error)
-            ? StartAutoRedirectAsync(5, MembershipViewType.WELCOME_VIEW, error)
-            : StartAutoRedirectAsync(5, MembershipViewType.WELCOME_VIEW);
+            ? StartAutoRedirectAsync(10, MembershipViewType.WELCOME_VIEW, error)
+            : StartAutoRedirectAsync(10, MembershipViewType.WELCOME_VIEW);
 
         redirectTask.ContinueWith(
             task =>
@@ -704,7 +702,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             ? message
             : _localizationService[LocalizationKeys.Common.SERVER_UNAVAILABLE];
 
-        StartAutoRedirectAsync(5, MembershipViewType.WELCOME_VIEW, errorMessage).ContinueWith(
+        StartAutoRedirectAsync(10, MembershipViewType.WELCOME_VIEW, errorMessage).ContinueWith(
             task =>
             {
                 if (task is { IsFaulted: true, Exception: not null })
@@ -753,16 +751,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             return;
         }
 
-        await Dispatcher.UIThread.InvokeAsync(() =>
-        {
-            _autoRedirectTimer?.Dispose();
-            _autoRedirectTimer = null;
-
-            return Task.CompletedTask;
-        });
-
         string message;
-
         if (!string.IsNullOrEmpty(localizedMessage))
         {
             message = localizedMessage;
@@ -776,25 +765,54 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             message = _localizationService.GetString(key);
         }
 
-        if (HostScreen is AuthenticationViewModel hostWindow)
+        string title;
+        string subtitle;
+
+        if (IsMaxAttemptsReached)
         {
-            ShowRedirectNotification(message, seconds, () =>
-            {
-                if (!_isDisposed)
-                {
-                    CleanupAndNavigateAsync(targetView).ContinueWith(
-                        task =>
-                        {
-                            if (task is { IsFaulted: true, Exception: not null })
-                            {
-                                Log.Error(task.Exception,
-                                    "[VERIFY-OTP] Unhandled exception in cleanup and navigate");
-                            }
-                        },
-                        TaskScheduler.Default);
-                }
-            });
+            title = _localizationService[LocalizationKeys.Verification.Redirect.Title.MAX_ATTEMPTS];
+            subtitle = _localizationService[LocalizationKeys.Verification.Redirect.Subtitle.SECURITY_LIMIT];
         }
+        else if (IsServerUnavailableError(message))
+        {
+            title = _localizationService[LocalizationKeys.Verification.Redirect.Title.SERVER_ERROR];
+            subtitle = _localizationService[LocalizationKeys.Verification.Redirect.Subtitle.TRY_AGAIN];
+        }
+        else if (CurrentStatus == VerificationCountdownUpdate.Types.CountdownUpdateStatus.SessionExpired)
+        {
+            title = _localizationService[LocalizationKeys.Verification.Redirect.Title.SESSION_EXPIRED];
+            subtitle = _localizationService[LocalizationKeys.Verification.Redirect.Subtitle.TIMEOUT];
+        }
+        else if (CurrentStatus == VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound)
+        {
+            title = _localizationService[LocalizationKeys.Verification.Redirect.Title.SESSION_NOT_FOUND];
+            subtitle = _localizationService[LocalizationKeys.Verification.Redirect.Subtitle.INVALID_STATE];
+        }
+        else
+        {
+            title = _localizationService[LocalizationKeys.Verification.Redirect.Title.GENERIC_ERROR];
+            subtitle = _localizationService[LocalizationKeys.Verification.Redirect.Subtitle.RETURNING];
+        }
+
+        await StartAutoRedirectSequenceAsync(
+            HostScreen,
+            message,
+            seconds,
+            (hostViewModel) =>
+            {
+                CancelCurrentOperation();
+                CleanupAndNavigate(hostViewModel, targetView);
+            },
+            title,
+            subtitle
+        );
+    }
+
+    private void CancelCurrentOperation()
+    {
+        CancellationTokenSource? cancellationTokenSource = Interlocked.Exchange(ref _cancellationTokenSource, null);
+        cancellationTokenSource?.Cancel();
+        cancellationTokenSource?.Dispose();
     }
 
     private void HandleCountdownUpdate(uint seconds, Guid identifier,
@@ -859,31 +877,6 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
         }
     }
 
-    private async Task CleanupAndNavigateAsync(MembershipViewType targetView)
-    {
-        if (_isDisposed)
-        {
-            return;
-        }
-
-        if (_cancellationTokenSource != null)
-        {
-            await _cancellationTokenSource.CancelAsync();
-            _cancellationTokenSource.Dispose();
-            _cancellationTokenSource = null;
-        }
-
-        await Dispatcher.UIThread.InvokeAsync(() =>
-        {
-            if (!_isDisposed && HostScreen is AuthenticationViewModel membershipHostWindow)
-            {
-                CleanupAndNavigate(membershipHostWindow, targetView);
-            }
-
-            return Task.CompletedTask;
-        });
-    }
-
     private static string FormatRemainingTime(uint seconds) => TimeSpan.FromSeconds(seconds).ToString(@"mm\:ss");
 
     private bool IsServerUnavailableError(string errorMessage)
@@ -924,9 +917,6 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
 
         await Dispatcher.UIThread.InvokeAsync(async () =>
         {
-            _autoRedirectTimer?.Dispose();
-            _autoRedirectTimer = null;
-
             _cooldownTimer?.Dispose();
             _cooldownTimer = null;
 

@@ -25,9 +25,9 @@
                                   HtmlUrl="avares://Ecliptix.Core/Assets/WelcomeContent.html" />
 
         <Grid Grid.Row="2"
-              ColumnDefinitions="Auto,Auto"
+              ColumnDefinitions="208*,176*"
               ColumnSpacing="12"
-              HorizontalAlignment="Center"
+              HorizontalAlignment="Stretch"
               VerticalAlignment="Top"
               Margin="0,0,0,16">
 
@@ -47,19 +47,26 @@
         </Grid>
 
         <StackPanel Grid.Row="3" Orientation="Horizontal" IsVisible="True">
-            <Button Background="Black"
-                    Height="20"
-                    Foreground="white"
-                    Content="Complete"
-                    Command="{Binding NavToCompleteAccountCommand}">
-            </Button>
+                <Button Background="Black"
+                        Height="20"
+                        Foreground="white"
+                        Content="Complete"
+                        Command="{Binding NavToCompleteAccountCommand}">
+                </Button>
 
-            <Button Background="Black"
-                    Height="20"
-                    Foreground="white"
-                    Content="SecureKey"
-                    Command="{Binding NavToSecureKeySetCommand}">
-            </Button>
+                <Button Background="Black"
+                        Height="20"
+                        Foreground="white"
+                        Content="SecureKey"
+                        Command="{Binding NavToSecureKeySetCommand}">
+                </Button>
+
+                <Button Background="Black"
+                        Height="20"
+                        Foreground="white"
+                        Content="Welcome Back"
+                        Command="{Binding NavToWelcomeBackCommand}">
+                </Button>
 
         </StackPanel>
 

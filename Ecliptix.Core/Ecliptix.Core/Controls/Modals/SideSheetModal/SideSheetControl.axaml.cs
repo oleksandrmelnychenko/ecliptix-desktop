@@ -49,6 +49,7 @@ public partial class SideSheetControl : ReactiveUserControl<SideSheetViewModel>,
     private Border? _scrimBorder;
     private Grid? _rootGrid;
     private ViewModelViewHost? _contentHost;
+    private Canvas? _measureContainer;
 
     private Animation? _showAnimation;
     private Animation? _hideAnimation;
@@ -178,6 +179,7 @@ public partial class SideSheetControl : ReactiveUserControl<SideSheetViewModel>,
         _sheetBorder = this.FindControl<Border>("SheetBorder");
         _scrimBorder = this.FindControl<Border>("ScrimBorder");
         _contentHost = this.FindControl<ViewModelViewHost>("ContentHost");
+        _measureContainer = this.FindControl<Canvas>("HiddenMeasureContainer");
 
         if (_sheetBorder != null && _scrimBorder != null && _rootGrid != null)
         {
@@ -268,25 +270,37 @@ public partial class SideSheetControl : ReactiveUserControl<SideSheetViewModel>,
 
     private void UpdateSheetLayout()
     {
-        if (_contentHost == null || _sheetBorder == null)
+        if (ViewModel?.Content == null || _sheetBorder == null || _measureContainer == null)
         {
             _sheetWidth = DefaultSideSheetVariables.DEFAULT_WIDTH;
             return;
         }
 
-        _sheetBorder.Height = Height;
+        Control? viewToMeasure = CreateViewForViewModel(ViewModel.Content);
+        if (viewToMeasure == null)
+        {
+            return;
+        }
+
+        _measureContainer.Children.Add(viewToMeasure);
 
         Thickness padding = _sheetBorder.Padding;
         Thickness borderThickness = _sheetBorder.BorderThickness;
         double horizontalExtras = padding.Left + padding.Right + borderThickness.Left + borderThickness.Right;
+        double verticalExtras = padding.Top + padding.Bottom + borderThickness.Top + borderThickness.Bottom;
 
         double availableWidth = MaxWidth - horizontalExtras;
 
-        Size availableSize = new(availableWidth, Height);
+        double availableHeight = _rootGrid != null ? _rootGrid.Bounds.Height : Height;
+        if(availableHeight == 0)
+        {
+            availableHeight = double.PositiveInfinity;
+        }
 
-        _contentHost.Measure(availableSize);
+        viewToMeasure.Measure(new Size(availableWidth, availableHeight));
+        double contentWidth = viewToMeasure.DesiredSize.Width;
 
-        double contentWidth = _contentHost.DesiredSize.Width;
+        _measureContainer.Children.Remove(viewToMeasure);
 
         if (double.IsNaN(contentWidth) || contentWidth <= 0)
         {
@@ -295,6 +309,19 @@ public partial class SideSheetControl : ReactiveUserControl<SideSheetViewModel>,
 
         _sheetWidth = Math.Clamp(contentWidth + horizontalExtras, 50, MaxWidth);
         _sheetBorder.Width = _sheetWidth;
+    }
+
+    private Control? CreateViewForViewModel(object viewModel)
+    {
+        IViewLocator viewLocator = ViewLocator.Current;
+        IViewFor? view = viewLocator.ResolveView(viewModel);
+        if (view is Control control)
+        {
+            control.DataContext = viewModel;
+            view.ViewModel = viewModel;
+            return control;
+        }
+        return null;
     }
 
     private async Task ShowSideSheet()

@@ -7,60 +7,100 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ecliptix.Core.Controls.Modals.RedirectNotificationView"
              x:DataType="modals:RedirectNotificationViewModel">
-   
-    <Border Background="White" 
-            CornerRadius="16" 
-            Margin="24 32 24 64"
-            MinWidth="320"
-            VerticalAlignment="Stretch"
-            HorizontalAlignment="Stretch">
-        <Grid RowDefinitions="Auto, Auto, Auto, Auto"
-              RowSpacing="20">
-            
-            <TextBlock Grid.Row="0"
-                       Text="{Binding Message}"
-                       FontSize="{StaticResource Font.Title.M}"
-                       FontWeight="SemiBold"
-                       TextAlignment="Center"
-                       TextWrapping="Wrap"
-                       HorizontalAlignment="Center"
-                       Foreground="{DynamicResource OnSurface}" />
-            
-            <Grid Grid.Row="1">
-                <Image anim:ImageBehavior.AnimatedSource="avares://Ecliptix.Core/Assets/Animations/warning.gif"
-                       Width="64"
-                       Height="64"
-                       Stretch="Uniform"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center" />
-                
-            </Grid>
-            
-            <Border CornerRadius="4"
-                    Background="{DynamicResource Surface}"
-                    Height="4"
-                    HorizontalAlignment="Stretch"
-                    VerticalAlignment="Center"
-                    ClipToBounds="True"
-                    Padding="0"
-                    Grid.Row="2">
-                <ProgressBar Value="{Binding Progress}"
-                             Maximum="100"
-                             Height="4"
-                             Background="Transparent"
-                             Foreground="{DynamicResource Primary}"
-                             VerticalAlignment="Center" />
+
+    <UserControl.Styles>
+        <Style Selector="Button.countdown-btn">
+            <Setter Property="Background" Value="#F9FAFB"/>
+            <Setter Property="BorderBrush" Value="#F3F4F6"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Height" Value="48"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+
+            <Setter Property="FocusAdorner" Value="{x:Null}"/>
+
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.2"/>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.2"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1"/>
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Button.countdown-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#F3F4F6"/> <Setter Property="BorderBrush" Value="#E5E7EB"/>
+        </Style>
+
+        <Style Selector="Button.countdown-btn:pressed">
+            <Setter Property="RenderTransform" Value="scale(0.98)"/> </Style>
+
+        <Style Selector="Button.countdown-btn:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#E5E7EB"/> <Setter Property="BorderBrush" Value="#D1D5DB"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto, *, Auto"
+          Margin="24">
+        <Grid Grid.Row="0"
+              ColumnDefinitions="Auto, *"
+              ColumnSpacing="16"
+              Margin="0,0,0,16">
+
+            <Border Grid.Column="0"
+                    Width="48" Height="48"
+                    CornerRadius="12"
+                    BorderBrush="#E5E7EB"
+                    BorderThickness="1"
+                    Background="#FAFAFA"
+                    VerticalAlignment="Top">
+                <PathIcon Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"
+                          Foreground="#374151"
+                          Width="24" Height="24"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center"/>
             </Border>
-            
-            
-            <TextBlock Grid.Row="3"
-                       Text="{Binding CountdownText}"
-                       FontSize="14"
-                       TextAlignment="Center"
-                       HorizontalAlignment="Center"
-                       Opacity="1"
-                       Height="20"
-                       Foreground="{DynamicResource OnSurface}" />
+
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                <TextBlock Text="{Binding Title}"
+                           FontSize="18"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource OnSurface}" />
+                <TextBlock Text="{Binding Subtitle}"
+                           FontSize="14"
+                           Foreground="#6B7280" />
+            </StackPanel>
         </Grid>
-    </Border>
+
+        <TextBlock Grid.Row="1"
+                   Text="{Binding Message}"
+                   FontSize="16"
+                   LineHeight="24"
+                   TextWrapping="Wrap"
+                   VerticalAlignment="Top"
+                   Foreground="#4B5563"
+                   Margin="0,0,0,24" />
+
+        <Button Grid.Row="2"
+                Command="{Binding SkipDelayCommand}"
+                Classes="countdown-btn"
+                HorizontalAlignment="Stretch">
+
+            <TextBlock VerticalAlignment="Center"
+                       HorizontalAlignment="Center"
+                       FontSize="15">
+                <Run Text="{Binding AutoRequestPrefixText}"
+                     Foreground="#6B7280"/>
+                <Run Text=" "/>
+                <Run Text="{Binding SecondsRemaining}"
+                     FontWeight="Bold"
+                     Foreground="{DynamicResource Primary}"/>
+                <Run Text="s"
+                     FontWeight="Bold"
+                     Foreground="{DynamicResource Primary}"/>
+            </TextBlock>
+        </Button>
+    </Grid>
 </UserControl>

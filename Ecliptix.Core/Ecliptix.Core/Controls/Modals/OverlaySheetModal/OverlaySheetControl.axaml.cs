@@ -47,6 +47,7 @@ public sealed partial class OverlaySheetControl : ReactiveUserControl<OverlayShe
     private Border? _scrimBorder;
     private Grid? _rootGrid;
     private ViewModelViewHost? _contentHost;
+    private Canvas? _measureContainer;
 
     private Animation? _showAnimation;
     private Animation? _hideAnimation;
@@ -168,6 +169,8 @@ public sealed partial class OverlaySheetControl : ReactiveUserControl<OverlayShe
         _sheetBorder = this.FindControl<Border>("SheetBorder");
         _scrimBorder = this.FindControl<Border>("ScrimBorder");
         _contentHost = this.FindControl<ViewModelViewHost>("ContentHost");
+
+        _measureContainer = this.FindControl<Canvas>("HiddenMeasureContainer");
 
         if (_sheetBorder != null && _scrimBorder != null && _rootGrid != null)
         {
@@ -328,32 +331,62 @@ public sealed partial class OverlaySheetControl : ReactiveUserControl<OverlayShe
         }
     }
 
-    private void UpdateSheetLayout()
+   private void UpdateSheetLayout()
     {
-        if (_contentHost == null || _sheetBorder == null)
+        if (ViewModel?.Content == null || _sheetBorder == null || _measureContainer == null)
         {
             return;
         }
 
-        // Measure the content
-        Size availableSize = new(double.PositiveInfinity, double.PositiveInfinity);
-        _contentHost.Measure(availableSize);
+        Control? viewToMeasure = CreateViewForViewModel(ViewModel.Content);
 
-        double contentWidth = _contentHost.DesiredSize.Width;
-        double contentHeight = _contentHost.DesiredSize.Height;
+        if (viewToMeasure == null)
+        {
+            return;
+        }
 
-        // Apply padding and border thickness
+        _measureContainer.Children.Add(viewToMeasure);
+
+        double maxWidth = _sheetBorder.MaxWidth;
+
+        if (double.IsInfinity(maxWidth) || double.IsNaN(maxWidth))
+        {
+             maxWidth = double.PositiveInfinity;
+        }
+
         Thickness padding = _sheetBorder.Padding;
-        Thickness borderThickness = _sheetBorder.BorderThickness;
+        Thickness border = _sheetBorder.BorderThickness;
+        double horizontalExtras = padding.Left + padding.Right + border.Left + border.Right;
+        double verticalExtras = padding.Top + padding.Bottom + border.Top + border.Bottom;
 
-        double horizontalExtras = padding.Left + padding.Right + borderThickness.Left + borderThickness.Right;
-        double verticalExtras = padding.Top + padding.Bottom + borderThickness.Top + borderThickness.Bottom;
+        double availableWidthForContent = double.IsPositiveInfinity(maxWidth)
+            ? double.PositiveInfinity
+            : Math.Max(0, maxWidth - horizontalExtras);
 
-        // Set the sheet dimensions
-        _sheetBorder.Width = Math.Max(0, contentWidth + horizontalExtras);
-        _sheetBorder.Height = Math.Max(0, contentHeight + verticalExtras);
+        viewToMeasure.Measure(new Size(availableWidthForContent, double.PositiveInfinity));
+        Size desiredSize = viewToMeasure.DesiredSize;
+
+        _measureContainer.Children.Remove(viewToMeasure);
+
+        _sheetBorder.Width = desiredSize.Width + horizontalExtras;
+        _sheetBorder.Height = desiredSize.Height + verticalExtras;
     }
-    
+
+    private Control? CreateViewForViewModel(object viewModel)
+    {
+        IViewLocator viewLocator = ViewLocator.Current;
+        IViewFor? view = viewLocator.ResolveView(viewModel);
+
+        if (view is Control control)
+        {
+            control.DataContext = viewModel;
+            view.ViewModel = viewModel;
+            return control;
+        }
+
+        return null;
+    }
+
     private async Task ShowOverlaySheet()
     {
         if (_sheetBorder is null || _rootGrid is null)

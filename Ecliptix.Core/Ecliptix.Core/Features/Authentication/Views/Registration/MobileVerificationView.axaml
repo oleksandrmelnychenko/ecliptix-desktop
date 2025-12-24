@@ -47,7 +47,8 @@
             Grid.Row="1"
             x:Name="MobileTextBox"
             IsPhoneNumberMode="True"
-            CountryCode="US +1"
+            CountryFlagPath="{Binding CountryFlag}"
+            PhonePrefix="{Binding PhonePrefix}"
             CountryCodeCommand="{Binding OpenCountryPickerCommand}"
             Watermark="{Binding Watermark}"
             Hint="{Binding Hint}"
@@ -57,7 +58,7 @@
             HasError="{Binding HasMobileNumberError, Mode=OneWay}"
             FocusBorderBrush="{DynamicResource Primary}"
             MainBorderBrush="#e5e7eb"
-            Text="{Binding MobileNumber,Mode=TwoWay}"
+            Text="{Binding RawMobileNumber,Mode=TwoWay}"
             Height="{StaticResource Input.Height}"
             CornerRadius="{StaticResource Radius.L}"
             FontSize="{StaticResource Input.FontSize}"
@@ -78,18 +79,18 @@
                    TextWrapping="Wrap"
                    HorizontalAlignment="Center"
                    TextAlignment="Center"
+                   FontSize="10"
                    Foreground="#6B7280">
 
             <Run Text="{Binding LocalizationService[Footer.AgreementPrefix], Mode=OneWay}" /><InlineUIContainer BaselineAlignment="Center">
                 <Button Content="{Binding LocalizationService[Footer.TermsOfService]}"
                         Command="{Binding OpenTermsOfServiceCommand}"
-                        Classes="ghost"
+                        Classes="ghost footer-link"
                         Padding="0,0,4,0"
                         Margin="0"
                         MinHeight="0"
                         Cursor="Hand"
-                        VerticalContentAlignment="Center"
-                        Foreground="#A78BFA">
+                        VerticalContentAlignment="Center">
                     <Button.RenderTransform>
                         <TranslateTransform Y="1" />
                     </Button.RenderTransform>
@@ -97,13 +98,12 @@
             </InlineUIContainer><Run Text="{Binding LocalizationService[Footer.AgreementConjunction], Mode=OneWay}" /><InlineUIContainer BaselineAlignment="Center">
                 <Button Content="{Binding LocalizationService[Footer.PrivacyPolicy]}"
                         Command="{Binding OpenPrivacyPolicyCommand}"
-                        Classes="ghost"
+                        Classes="ghost footer-link"
                         Padding="0,0,4,0"
                         Margin="0"
                         MinHeight="0"
                         Cursor="Hand"
-                        VerticalContentAlignment="Center"
-                        Foreground="#A78BFA">
+                        VerticalContentAlignment="Center">
                     <Button.RenderTransform>
                         <TranslateTransform Y="1" />
                     </Button.RenderTransform>

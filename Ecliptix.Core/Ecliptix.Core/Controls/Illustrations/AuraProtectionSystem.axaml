@@ -271,7 +271,7 @@
         </Style>
     </UserControl.Styles>
 
-    <Grid Background="White">
+    <Grid>
         <Panel Width="320" Height="320" HorizontalAlignment="Center" VerticalAlignment="Center">
 
             <Ellipse Classes="spin" Width="210" Height="210"

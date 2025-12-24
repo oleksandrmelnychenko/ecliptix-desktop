@@ -23,6 +23,7 @@
               RowSpacing="{StaticResource Spacing.Authentication}"
               RowDefinitions="Auto,Auto,Auto,Auto,Auto"
               HorizontalAlignment="Stretch"
+              Margin="0 -5 0 0"
               Width="{StaticResource Content.MaxWidth}">
 
             <!-- Header Section -->
@@ -48,7 +49,8 @@
                 Grid.Row="1"
                 x:Name="MobileTextBox"
                 IsPhoneNumberMode="True"
-                CountryCode="US +1"
+                CountryFlagPath="{Binding CountryFlag}"
+                PhonePrefix="{Binding PhonePrefix}"
                 CountryCodeCommand="{Binding OpenCountryPickerCommand}"
                 Watermark="{Binding LocalizationService[Authentication.SignIn.MobilePlaceholder]}"
                 Hint="{Binding LocalizationService[Authentication.SignIn.MobileHint]}"
@@ -95,7 +97,7 @@
             <!-- Action Buttons -->
             <Grid Grid.Row="3"
                   HorizontalAlignment="Stretch"
-                  ColumnDefinitions="*,*"
+                  ColumnDefinitions="208*,176*"
                   ColumnSpacing="{StaticResource Button.Spacing}">
                 <Button Grid.Column="0"
                         Content="{Binding LocalizationService[Authentication.SignIn.AccountRecovery]}"

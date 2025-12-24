@@ -84,6 +84,19 @@ public static class LocalizationKeys
             }
         }
 
+        public static class WelcomeBack
+        {
+            public const string TITLE = "Authentication.WelcomeBack.Title";
+            public const string DESCRIPTION_VERIFIED = "Authentication.WelcomeBack.Description.Verified";
+            public const string DESCRIPTION_SETUP = "Authentication.WelcomeBack.Description.Setup";
+            public const string BUTTON_LATER = "Authentication.WelcomeBack.Button.Later";
+            public const string BUTTON_CONTINUE = "Authentication.WelcomeBack.Button.Continue";
+
+            public const string ERROR_SESSION_MISSING = "Authentication.WelcomeBack.Error.SessionMissing";
+            public const string ERROR_TITLE = "Authentication.WelcomeBack.Error.Title";
+            public const string ERROR_SUBTITLE = "Authentication.WelcomeBack.Error.Subtitle";
+        }
+
         public static class SecureKeyRecovery
         {
             public static class RecoveryMobileVerification
@@ -147,6 +160,29 @@ public static class LocalizationKeys
             public const string VERIFICATION_FAILED = "Verification.ERROR.VerificationFailed";
             public const string SESSION_NOT_FOUND = "Verification.ERROR.SessionNotFound";
             public const string GLOBAL_RATE_LIMIT_EXCEEDED = "Verification.ERROR.GlobalRateLimitExceeded";
+        }
+
+        public static class Redirect
+        {
+            public static class Title
+            {
+                public const string MAX_ATTEMPTS = "Verification.Redirect.Title.MaxAttempts";
+                public const string SESSION_EXPIRED = "Verification.Redirect.Title.SessionExpired";
+                public const string SESSION_NOT_FOUND = "Verification.Redirect.Title.SessionNotFound";
+                public const string SERVER_ERROR = "Verification.Redirect.Title.ServerError";
+                public const string GENERIC_ERROR = "Verification.Redirect.Title.GenericError";
+            }
+
+            public static class Subtitle
+            {
+                public const string SECURITY_LIMIT = "Verification.Redirect.Subtitle.SecurityLimit";
+                public const string TIMEOUT = "Verification.Redirect.Subtitle.Timeout";
+                public const string INVALID_STATE = "Verification.Redirect.Subtitle.InvalidState";
+                public const string TRY_AGAIN = "Verification.Redirect.Subtitle.TryAgain";
+                public const string RETURNING = "Verification.Redirect.Subtitle.Returning";
+            }
+
+            public const string AUTO_REQUEST_PREFIX = "Verification.Redirect.AutoRequestPrefix";
         }
 
         public static class Info
@@ -295,6 +331,8 @@ public static class LocalizationKeys
             }
         }
     }
+
+
 
     public static class Footer
     {

@@ -13,6 +13,7 @@
                     <!-- Primary Brand Colors -->
                     <Color x:Key="Primary">#8200db</Color>
                     <Color x:Key="PrimaryBrightVariant">#9810fa</Color>
+                    <Color x:Key="PrimaryUltraBrightVariant">#c27aff</Color>
                     <Color x:Key="PrimaryDarkVariant">#553c9a</Color>
                     <Color x:Key="OnPrimary">#FFFFFF</Color>
 
