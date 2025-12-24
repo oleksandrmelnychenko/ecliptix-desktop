@@ -54,6 +54,7 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
     private Border? _scrimBorder;
     private Grid? _rootGrid;
     private ViewModelViewHost? _contentHost;
+    private Canvas? _measureContainer;
 
     private Animation? _showAnimation;
     private Animation? _hideAnimation;
@@ -187,6 +188,7 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
         _sheetBorder = this.FindControl<Border>("SheetBorder");
         _scrimBorder = this.FindControl<Border>("ScrimBorder");
         _contentHost = this.FindControl<ViewModelViewHost>("ContentHost");
+        _measureContainer = this.FindControl<Canvas>("HiddenMeasureContainer");
 
         if (_sheetBorder != null && _scrimBorder != null && _rootGrid != null)
         {
@@ -349,11 +351,19 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
 
     private void UpdateSheetHeight()
     {
-        if (_contentHost == null || _sheetBorder == null)
+        if (ViewModel?.Content == null || _sheetBorder == null || _measureContainer == null)
         {
             _sheetHeight = MinHeight;
             return;
         }
+
+        Control? viewToMeasure = CreateViewForViewModel(ViewModel.Content);
+        if (viewToMeasure == null)
+        {
+            return;
+        }
+
+        _measureContainer.Children.Add(viewToMeasure);
 
         double sheetWidth = _sheetBorder.Width;
         if (double.IsNaN(sheetWidth) || sheetWidth <= 0)
@@ -362,28 +372,35 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
         }
 
         Thickness padding = _sheetBorder.Padding;
-        Thickness borderThickness = _sheetBorder.BorderThickness;
-
-        double verticalExtras = padding.Top + padding.Bottom + borderThickness.Top + borderThickness.Bottom;
-        double horizontalExtras = padding.Left + padding.Right + borderThickness.Left + borderThickness.Right;
+        Thickness border = _sheetBorder.BorderThickness;
+        double verticalExtras = padding.Top + padding.Bottom + border.Top + border.Bottom;
+        double horizontalExtras = padding.Left + padding.Right + border.Left + border.Right;
 
         double availableWidth = sheetWidth - horizontalExtras;
         double availableHeight = MaxHeight - verticalExtras;
 
-        Size availableSize = new(availableWidth, double.PositiveInfinity);
-        _contentHost.Measure(availableSize);
+        viewToMeasure.Measure(new Size(availableWidth, double.PositiveInfinity));
+        double contentHeight = viewToMeasure.DesiredSize.Height;
 
-        double contentHeight = _contentHost.DesiredSize.Height;
-
-        if (double.IsNaN(contentHeight) || contentHeight <= 0)
-        {
-            contentHeight = MinHeight;
-        }
+        _measureContainer.Children.Remove(viewToMeasure);
 
         double maxContentHeight = Math.Max(MinHeight, availableHeight);
-
-        _sheetHeight = Math.Clamp(contentHeight, MinHeight, maxContentHeight);
+        _sheetHeight = Math.Clamp(contentHeight + verticalExtras, MinHeight, maxContentHeight);
         _sheetBorder.Height = _sheetHeight;
+    }
+
+
+    private Control? CreateViewForViewModel(object viewModel)
+    {
+        IViewLocator viewLocator = ViewLocator.Current;
+        IViewFor? view = viewLocator.ResolveView(viewModel);
+        if (view is Control control)
+        {
+            control.DataContext = viewModel;
+            view.ViewModel = viewModel;
+            return control;
+        }
+        return null;
     }
 
     private async Task ShowBottomSheet()

@@ -6,11 +6,118 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ecliptix.Core.Controls.Modals.CountryCodeView"
              x:DataType="modals:CountryCodeViewModel"
-             MinWidth="200"
+             MinWidth="250"
              MinHeight="200">
-    Choose your country code
-    - Ukraine
-    - USA
+   <UserControl.Styles>
+        <Style Selector="Button.close-button">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.15"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.close-button:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#f3f4f6"/>
+        </Style>
+    </UserControl.Styles>
 
+    <Grid RowDefinitions="Auto, *" Margin="16">
+
+        <Grid ColumnDefinitions="*, Auto" Margin="0,0,0,20">
+            <StackPanel Grid.Column="0" Spacing="2">
+                <TextBlock Text="Country Code"
+                           FontFamily="{StaticResource SegoeUI}"
+                           FontSize="16" FontWeight="Bold"
+                           Foreground="{DynamicResource OnSurface}"/>
+                <TextBlock Text="Select country for phone number"
+                           FontFamily="{StaticResource SegoeUI}"
+                           FontSize="12" FontWeight="Normal"
+                           Foreground="#6B7280"/>
+            </StackPanel>
+            <Button Grid.Column="1" Command="{Binding CloseCommand}"
+                    Width="22" Height="22"
+                    CornerRadius="8"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Cursor="Hand"
+                    Classes="close-button">
+                <PathIcon Data="M13.41,12l4.3-4.29a1,1,0,1,0-1.42-1.42L12,10.59,7.71,6.29A1,1,0,0,0,6.29,7.71L10.59,12l-4.3,4.29a1,1,0,0,0,0,1.42,1,1,0,0,0,1.42,0L12,13.41l4.29,4.3a1,1,0,0,0,1.42,0,1,1,0,0,0,0-1.42Z"
+                          Width="10" Height="10"
+                          Foreground="#4b5563"/>
+            </Button>
+        </Grid>
+
+        <ListBox Grid.Row="1"
+                 x:Name="CountryList"
+                 ItemsSource="{Binding Countries}"
+                 Background="Transparent"
+                 BorderThickness="0"
+                 Padding="4"
+                 ClipToBounds="False"
+                 SelectionMode="Single">
+
+            <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Vertical" />
+                </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+
+            <ListBox.Styles>
+                <Style Selector="ListBoxItem" x:DataType="modals:CountryPickerItemViewModel">
+                    <Setter Property="Classes.SidebarItem" Value="True"/>
+
+                    <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                </Style>
+            </ListBox.Styles>
+
+            <Interaction.Behaviors>
+                <EventTriggerBehavior EventName="SelectionChanged">
+                    <InvokeCommandAction Command="{Binding SelectCountryCommand}"
+                                         CommandParameter="{Binding #CountryList.SelectedItem}" />
+                </EventTriggerBehavior>
+            </Interaction.Behaviors>
+
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="modals:CountryPickerItemViewModel">
+                    <Grid ColumnDefinitions="Auto, *, Auto">
+
+                        <Svg Grid.Column="0"
+                             Path="{Binding Model.FlagImagePath}"
+                             Width="28" Height="28"
+                             Margin="0,0,16,0"
+                             VerticalAlignment="Center"/>
+
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="{Binding Model.DisplayName}"
+                                       FontFamily="{StaticResource SegoeUI}"
+                                       FontSize="14"
+                                       FontWeight="Medium"
+                                       Foreground="{DynamicResource OnSurface}"/>
+
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="{Binding Model.IsoCode}"
+                                           FontFamily="{StaticResource SegoeUI}"
+                                           FontSize="12"
+                                           Foreground="#6B7280"/>
+                                <TextBlock Text="{Binding Model.PhonePrefix}"
+                                           FontFamily="{StaticResource SegoeUI}"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="#6B7280"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <PathIcon Grid.Column="2"
+                                  Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"
+                                  Width="16" Height="16"
+                                  Foreground="#9333ea"
+                                  IsVisible="{Binding IsSelected}"
+                                  VerticalAlignment="Center"
+                                  Margin="8,0,0,0"/>
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </Grid>
 </UserControl>
 

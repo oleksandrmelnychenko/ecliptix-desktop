@@ -8,52 +8,52 @@
              x:DataType="welcome:WelcomeBackViewModel">
     <Grid RowDefinitions="*,Auto,Auto,Auto,*"
           HorizontalAlignment="Stretch"
-          VerticalAlignment="Stretch"
-          Margin="{StaticResource Welcome.Container.Margin}"
+          VerticalAlignment="Top"
           Width="{StaticResource Content.MaxWidth}">
 
         <Border Grid.Row="1"
-                Width="80" Height="80"
-                CornerRadius="40"
-                Margin="0,0,0,24"
+                Width="64" Height="64"
+                CornerRadius="32"
+                Margin="0,0,0,16"
                 HorizontalAlignment="Center">
             <Border.Background>
-                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
-                    <GradientStop Offset="0" Color="#FFF4E0"/>
-                    <GradientStop Offset="1" Color="#F8BBD0"/>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Offset="0.0" Color="#FFEDD5"/>
+                    <GradientStop Offset="0.5" Color="#FCE7F3"/>
+                    <GradientStop Offset="1.0" Color="#F3E8FF"/>
                 </LinearGradientBrush>
             </Border.Background>
             <TextBlock Text="👋"
-                       FontSize="40"
+                       FontSize="30"
                        HorizontalAlignment="Center"
-                       VerticalAlignment="Center"
-                       Margin="4,0,0,4"/>
+                       VerticalAlignment="Center"/>
         </Border>
 
         <StackPanel Grid.Row="2"
                     Spacing="16"
-                    HorizontalAlignment="Center"
+                    HorizontalAlignment="Stretch"
                     Margin="0,0,0,40">
 
-            <TextBlock Text="Welcome Back!"
+            <TextBlock Text="{Binding LocalizationService[Authentication.WelcomeBack.Title]}"
                        FontSize="24"
-                       FontWeight="Bold"
+                       FontWeight="SemiBold"
                        TextAlignment="Center"
                        Foreground="{DynamicResource TextControlForeground}"/>
 
-            <TextBlock Text="Your mobile number is already verified."
-                       FontSize="15"
+            <TextBlock FontSize="16"
                        TextAlignment="Center"
                        TextWrapping="Wrap"
-                       Foreground="{DynamicResource TextControlForegroundDisabled}"/>
+                       Foreground="#6B7280"
+                       Margin="16,0"
+                       LineHeight="24">
+                <Run Text="{Binding LocalizationService[Authentication.WelcomeBack.Description.Verified]}"/>
+                <LineBreak/>
+                <LineBreak/>
+                <Run Text="{Binding LocalizationService[Authentication.WelcomeBack.Description.Setup]}"/>
+            </TextBlock>
 
-            <TextBlock Text="Let's finish setting up your secure key to protect your account."
-                       FontSize="15"
-                       TextAlignment="Center"
-                       TextWrapping="Wrap"
-                       Foreground="{DynamicResource TextControlForegroundDisabled}"
-                       MaxWidth="300"/>
         </StackPanel>
+
 
         <Grid Grid.Row="3"
               ColumnDefinitions="*,*"
@@ -61,17 +61,23 @@
               HorizontalAlignment="Center">
 
             <Button Grid.Column="0"
-                    Content="Continue Later"
                     Command="{Binding ContinueLaterCommand}"
                     Classes="secondary large"
-                    MinWidth="{StaticResource Button.MinWidth}" />
+                    MinWidth="{StaticResource Button.MinWidth}">
+                <TextBlock Text="{Binding LocalizationService[Authentication.WelcomeBack.Button.Later]}"
+                           TextWrapping="Wrap"
+                           TextAlignment="Center"/>
+            </Button>
 
             <Button Grid.Column="1"
-                    Content="Continue to Setup"
                     Command="{Binding ContinueToSetupCommand}"
                     Classes="primary large glow"
                     Classes.is-busy="{Binding IsBusy}"
-                    MinWidth="{StaticResource Button.MinWidth}" />
+                    MinWidth="{StaticResource Button.MinWidth}">
+                <TextBlock Text="{Binding LocalizationService[Authentication.WelcomeBack.Button.Continue]}"
+                           TextWrapping="Wrap"
+                           TextAlignment="Center"/>
+            </Button>
         </Grid>
 
     </Grid>

@@ -551,7 +551,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             if (IsServerUnavailableError(error))
             {
                 PublishError(error);
-                StartAutoRedirectAsync(5, MembershipViewType.WELCOME_VIEW, error).ContinueWith(
+                StartAutoRedirectAsync(10, MembershipViewType.WELCOME_VIEW, error).ContinueWith(
                     task =>
                     {
                         if (task is { IsFaulted: true, Exception: not null })
@@ -631,7 +631,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
     private uint HandleMaxAttemptsStatus()
     {
         IsMaxAttemptsReached = true;
-        StartAutoRedirectAsync(5, MembershipViewType.WELCOME_VIEW).ContinueWith(
+        StartAutoRedirectAsync(10, MembershipViewType.WELCOME_VIEW).ContinueWith(
             task =>
             {
                 if (task is { IsFaulted: true, Exception: not null })
@@ -646,7 +646,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
     private uint HandleNotFoundStatus()
     {
         string message = _localizationService[AuthenticationConstants.SESSION_NOT_FOUND_KEY];
-        StartAutoRedirectAsync(5, MembershipViewType.WELCOME_VIEW, message).ContinueWith(
+        StartAutoRedirectAsync(10, MembershipViewType.WELCOME_VIEW, message).ContinueWith(
             task =>
             {
                 if (task is { IsFaulted: true, Exception: not null })
@@ -661,7 +661,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
     private uint HandleSessionExpiredStatus()
     {
         string message = _localizationService[AuthenticationConstants.VERIFICATION_SESSION_EXPIRED_KEY];
-        StartAutoRedirectAsync(5, MembershipViewType.WELCOME_VIEW, message).ContinueWith(
+        StartAutoRedirectAsync(10, MembershipViewType.WELCOME_VIEW, message).ContinueWith(
             task =>
             {
                 if (task is { IsFaulted: true, Exception: not null })
@@ -677,8 +677,8 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
     private uint HandleFailedStatus(string? error)
     {
         Task redirectTask = !string.IsNullOrEmpty(error)
-            ? StartAutoRedirectAsync(5, MembershipViewType.WELCOME_VIEW, error)
-            : StartAutoRedirectAsync(5, MembershipViewType.WELCOME_VIEW);
+            ? StartAutoRedirectAsync(10, MembershipViewType.WELCOME_VIEW, error)
+            : StartAutoRedirectAsync(10, MembershipViewType.WELCOME_VIEW);
 
         redirectTask.ContinueWith(
             task =>
@@ -702,7 +702,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             ? message
             : _localizationService[LocalizationKeys.Common.SERVER_UNAVAILABLE];
 
-        StartAutoRedirectAsync(5, MembershipViewType.WELCOME_VIEW, errorMessage).ContinueWith(
+        StartAutoRedirectAsync(10, MembershipViewType.WELCOME_VIEW, errorMessage).ContinueWith(
             task =>
             {
                 if (task is { IsFaulted: true, Exception: not null })
@@ -765,6 +765,35 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             message = _localizationService.GetString(key);
         }
 
+        string title;
+        string subtitle;
+
+        if (IsMaxAttemptsReached)
+        {
+            title = _localizationService[LocalizationKeys.Verification.Redirect.Title.MAX_ATTEMPTS];
+            subtitle = _localizationService[LocalizationKeys.Verification.Redirect.Subtitle.SECURITY_LIMIT];
+        }
+        else if (IsServerUnavailableError(message))
+        {
+            title = _localizationService[LocalizationKeys.Verification.Redirect.Title.SERVER_ERROR];
+            subtitle = _localizationService[LocalizationKeys.Verification.Redirect.Subtitle.TRY_AGAIN];
+        }
+        else if (CurrentStatus == VerificationCountdownUpdate.Types.CountdownUpdateStatus.SessionExpired)
+        {
+            title = _localizationService[LocalizationKeys.Verification.Redirect.Title.SESSION_EXPIRED];
+            subtitle = _localizationService[LocalizationKeys.Verification.Redirect.Subtitle.TIMEOUT];
+        }
+        else if (CurrentStatus == VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound)
+        {
+            title = _localizationService[LocalizationKeys.Verification.Redirect.Title.SESSION_NOT_FOUND];
+            subtitle = _localizationService[LocalizationKeys.Verification.Redirect.Subtitle.INVALID_STATE];
+        }
+        else
+        {
+            title = _localizationService[LocalizationKeys.Verification.Redirect.Title.GENERIC_ERROR];
+            subtitle = _localizationService[LocalizationKeys.Verification.Redirect.Subtitle.RETURNING];
+        }
+
         await StartAutoRedirectSequenceAsync(
             HostScreen,
             message,
@@ -772,9 +801,11 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             (hostViewModel) =>
             {
                 CancelCurrentOperation();
-
                 CleanupAndNavigate(hostViewModel, targetView);
-            });
+            },
+            title,
+            subtitle
+        );
     }
 
     private void CancelCurrentOperation()

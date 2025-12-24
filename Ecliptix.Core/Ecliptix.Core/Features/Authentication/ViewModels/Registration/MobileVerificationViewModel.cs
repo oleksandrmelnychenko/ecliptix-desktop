@@ -17,6 +17,7 @@ using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Core.Services.Membership;
 using Ecliptix.Core.Settings;
+using Ecliptix.Core.Settings.Constants;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
@@ -27,6 +28,7 @@ using Serilog;
 using Splat;
 using Keys = Ecliptix.Core.Services.Authentication.Constants.AuthenticationConstants.MobileVerificationKeys;
 using Unit = System.Reactive.Unit;
+using IMessageBus = Ecliptix.Core.Core.Messaging.IMessageBus;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
@@ -39,6 +41,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
     private readonly IConnectivityService _connectivityService;
     private readonly CompositeDisposable _disposables = new();
     private readonly DefaultSystemSettings _settings;
+    private readonly IMessageBus? _messageBus;
 
     private CancellationTokenSource? _cancellationTokenSource;
     private bool _hasMobileNumberBeenTouched;
@@ -59,7 +62,8 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         ISecureKeyRecoveryService secureKeyRecoveryService,
         AuthenticationFlowContext flowContext,
         DefaultSystemSettings settings,
-        IGlobalModalService globalModalService) : base(networkProvider, localizationService, globalModalService,
+        IGlobalModalService globalModalService,
+        IMessageBus messageBus) : base(networkProvider, localizationService, globalModalService,
         connectivityService)
     {
         _registrationService = registrationService;
@@ -69,9 +73,12 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         HostScreen = hostScreen;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _settings = settings;
+        _messageBus = messageBus;
 
         IObservable<bool> isFormLogicallyValid = SetupValidation();
         SetupCommands(isFormLogicallyValid);
+
+        SetupSubscriptions();
     }
 
     public string? UrlPathSegment { get; } = "/mobile-verification";
@@ -105,9 +112,13 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
 
     public ReactiveCommand<Unit, Unit> OpenTermsOfServiceCommand { get; private set; } = null!;
 
-    [Reactive] public string MobileNumber { get; set; } = string.Empty;
+    [Reactive] public string RawMobileNumber { get; set; } = string.Empty;
     [Reactive] public string? MobileNumberError { get; private set; }
     [Reactive] public bool HasMobileNumberError { get; private set; }
+
+    [Reactive] public string CountryFlag { get; set; } = AppCultureSettingsConstants.UNITED_STATES_FLAG_PATH;
+    [Reactive] public string PhonePrefix { get; set; } = "+1";
+    [Reactive] public string CountryIso { get; set; } = "US";
 
     [ObservableAsProperty] public bool IsBusy { get; }
 
@@ -132,7 +143,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         }
 
         CancelCurrentOperation();
-        MobileNumber = string.Empty;
+        RawMobileNumber = string.Empty;
         _hasMobileNumberBeenTouched = false;
         HasMobileNumberError = false;
         MobileNumberError = string.Empty;
@@ -155,7 +166,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
             .DisposeWith(_disposables);
 
         IObservable<Unit> mobileTrigger = this
-            .WhenAnyValue(x => x.MobileNumber)
+            .WhenAnyValue(x => x.RawMobileNumber)
             .Select(_ => Unit.Default);
 
         IObservable<Unit> validationTrigger =
@@ -163,11 +174,11 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
                 .Merge(languageTrigger);
 
         IObservable<string> mobileValidation = validationTrigger
-            .Select(_ => MobileNumberValidator.Validate(MobileNumber, LocalizationService))
+            .Select(_ => MobileNumberValidator.Validate(RawMobileNumber, LocalizationService))
             .Replay(1)
             .RefCount();
 
-        IObservable<string> mobileErrorStream = this.WhenAnyValue(x => x.MobileNumber)
+        IObservable<string> mobileErrorStream = this.WhenAnyValue(x => x.RawMobileNumber)
             .CombineLatest(mobileValidation, (mobile, validationError) =>
             {
                 if (!_hasMobileNumberBeenTouched && !string.IsNullOrWhiteSpace(mobile))
@@ -193,6 +204,22 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
             .DistinctUntilChanged();
     }
 
+    private void SetupSubscriptions()
+    {
+        if (_messageBus != null)
+        {
+            _messageBus.Subscribe<CountryCodeSelectedEvent>(evt =>
+                {
+                    CountryFlag = evt.SelectedCountry.FlagImagePath;
+                    PhonePrefix = evt.SelectedCountry.PhonePrefix;
+                    CountryIso = evt.SelectedCountry.IsoCode;
+                    return Task.CompletedTask;
+                })
+                .DisposeWith(_disposables);
+        }
+
+    }
+
     private void SetupCommands(IObservable<bool> isFormLogicallyValid)
     {
         IObservable<bool> canVerify = this.WhenAnyValue(x => x.IsBusy, x => x.IsInNetworkOutage,
@@ -207,43 +234,32 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         OpenCountryPickerCommand = ReactiveCommand.CreateFromTask(async () =>
         {
             await GlobalModalService.ShowRightAsync(
-                new CountryCodeViewModel(),
+                new CountryCodeViewModel(_messageBus, CountryIso),
                 showScrim: true,
                 isDismissable: true
             );
         });
 
-        OpenPrivacyPolicyCommand = ReactiveCommand.Create(() => OpenUrl(_settings.PrivacyPolicyUrl));
-        OpenTermsOfServiceCommand = ReactiveCommand.Create(() => OpenUrl(_settings.TermsOfServiceUrl));
+        OpenPrivacyPolicyCommand = ReactiveCommand.Create(() =>
+        {
+            bool success = BrowserHelper.OpenUrl(_settings.PrivacyPolicyUrl);
+            if (!success)
+            {
+                Log.Warning("Failed to open privacy policy URL: {Url}", _settings.PrivacyPolicyUrl);
+            }
+        });
+
+        OpenTermsOfServiceCommand = ReactiveCommand.Create(() =>
+        {
+            bool success = BrowserHelper.OpenUrl(_settings.TermsOfServiceUrl);
+            if (!success)
+            {
+                Log.Warning("Failed to open privacy policy URL: {Url}", _settings.TermsOfServiceUrl);
+            }
+        });
 
         _disposables.Add(VerifyMobileNumberCommand);
     }
-
-    //TODO move to helpers
-    private static void OpenUrl(string url)
-    {
-        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform
-                .Windows))
-        {
-            System.Diagnostics.Process.Start(
-                new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
-        }
-        else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices
-                     .OSPlatform.OSX))
-        {
-            System.Diagnostics.Process.Start("open", url);
-        }
-        else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices
-                     .OSPlatform.Linux))
-        {
-            System.Diagnostics.Process.Start("xdg-open", url);
-        }
-        else
-        {
-            Log.Warning("Unsupported platform for opening URL: {Url}", url);
-        }
-    }
-
 
     private async Task<Unit> ExecuteVerificationAsync()
     {
@@ -284,8 +300,10 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
 
     private async Task ExecuteRegistrationFlowAsync(uint connectId, CancellationToken operationToken)
     {
+        string fullNumber = PhoneNumberHelper.CombineWithPrefix(PhonePrefix, RawMobileNumber);
+
         Task<Result<ValidateMobileNumberResponse, string>> validationTask =
-            _registrationService.ValidateMobileNumberAsync(MobileNumber, connectId, operationToken);
+            _registrationService.ValidateMobileNumberAsync(fullNumber, connectId, operationToken);
 
         Result<ValidateMobileNumberResponse, string> result = await validationTask;
 
@@ -432,8 +450,10 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
 
     private async Task ExecuteRecoveryFlowAsync(uint connectId, CancellationToken operationToken)
     {
+        string fullNumber = PhoneNumberHelper.CombineWithPrefix(PhonePrefix, RawMobileNumber);
+
         Task<Result<ByteString, string>> recoveryValidationTask =
-            _secureKeyRecoveryService!.ValidateMobileForRecoveryAsync(MobileNumber, connectId, operationToken);
+            _secureKeyRecoveryService!.ValidateMobileForRecoveryAsync(fullNumber, connectId, operationToken);
 
         Result<ByteString, string> result = await recoveryValidationTask;
 
@@ -450,13 +470,21 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
 
         ByteString mobileNumberIdentifier = result.Unwrap();
 
-        VerificationCodeEntryViewModel vm = new(_connectivityService, NetworkProvider, LocalizationService, HostScreen,
-            (mobileNumberIdentifier, MobileNumber), _applicationSecureStorageProvider, _registrationService, GlobalModalService,
-            _flowContext, _secureKeyRecoveryService);
+        VerificationCodeEntryViewModel vm = new(
+            _connectivityService,
+            NetworkProvider,
+            LocalizationService,
+            HostScreen,
+            (mobileNumberIdentifier, fullNumber),
+            _applicationSecureStorageProvider,
+            _registrationService,
+            GlobalModalService,
+            _flowContext,
+            _secureKeyRecoveryService);
 
         if (HostScreen is AuthenticationViewModel hostWindow)
         {
-            hostWindow.RecoveryMobileNumber = MobileNumber;
+            hostWindow.RecoveryMobileNumber = fullNumber;
             hostWindow.NavigateToViewModel(vm);
         }
     }
@@ -475,16 +503,24 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         {
             return Task.CompletedTask;
         }
+        string fullNumber = PhoneNumberHelper.CombineWithPrefix(PhonePrefix, RawMobileNumber);
 
-        VerificationCodeEntryViewModel vm = new(_connectivityService, NetworkProvider, LocalizationService, HostScreen,
-            (mobileNumberIdentifier, MobileNumber), _applicationSecureStorageProvider, _registrationService, GlobalModalService);
+        VerificationCodeEntryViewModel vm = new(
+            _connectivityService,
+            NetworkProvider,
+            LocalizationService,
+            HostScreen,
+            (mobileNumberIdentifier, fullNumber),
+            _applicationSecureStorageProvider,
+            _registrationService,
+            GlobalModalService);
 
         if (HostScreen is not AuthenticationViewModel hostWindow)
         {
             return Task.CompletedTask;
         }
 
-        hostWindow.RegistrationMobileNumber = MobileNumber;
+        hostWindow.RegistrationMobileNumber = fullNumber;
         hostWindow.NavigateToViewModel(vm);
 
         return Task.CompletedTask;
@@ -497,7 +533,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
             return Task.CompletedTask;
         }
 
-        hostWindow.RegistrationMobileNumber = MobileNumber;
+        hostWindow.RegistrationMobileNumber = RawMobileNumber;
         hostWindow.Navigate.Execute(MembershipViewType.SECURE_KEY_CONFIRMATION_VIEW).Subscribe();
 
         return Task.CompletedTask;

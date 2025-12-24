@@ -12,16 +12,15 @@ public static partial class MobileNumberValidator
     {
         List<(Func<string, bool> IsInvalid, string ErrorMessageKey, object[]? Args)> validationRules =
         [
-            (string.IsNullOrWhiteSpace, MobileNumberValidatorConstants.LocalizationKeys.CANNOT_BE_EMPTY, null),
-            (s => !s.StartsWith(MobileNumberValidatorConstants.ValidationRules.COUNTRY_CODE_PREFIX),
-                MobileNumberValidatorConstants.LocalizationKeys.MUST_START_WITH_COUNTRY_CODE, null),
-            (s => s.Length > 1 && ContainsNonDigitsRegex().IsMatch(s[1..]),
+            (string.IsNullOrWhiteSpace,
+                MobileNumberValidatorConstants.LocalizationKeys.CANNOT_BE_EMPTY, null),
+            (s => !IsValidFormatRegex().IsMatch(s),
                 MobileNumberValidatorConstants.LocalizationKeys.CONTAINS_NON_DIGITS, null),
-            (s => s.Length is < MobileNumberValidatorConstants.ValidationRules.MIN_DIGITS + 1
-                or > MobileNumberValidatorConstants.ValidationRules.MAX_DIGITS + 1,
+            (s => s.Length < MobileNumberValidatorConstants.ValidationRules.MIN_DIGITS
+                  || s.Length > MobileNumberValidatorConstants.ValidationRules.MAX_DIGITS + 5,
                 MobileNumberValidatorConstants.LocalizationKeys.INCORRECT_LENGTH,
                 [MobileNumberValidatorConstants.ValidationRules.MIN_DIGITS,
-                 MobileNumberValidatorConstants.ValidationRules.MAX_DIGITS])
+                    MobileNumberValidatorConstants.ValidationRules.MAX_DIGITS])
         ];
 
         foreach ((Func<string, bool> isInvalid, string errorMessageKey, object[]? args) in validationRules)
@@ -36,6 +35,6 @@ public static partial class MobileNumberValidator
         return string.Empty;
     }
 
-    [GeneratedRegex(@"\D")]
-    private static partial Regex ContainsNonDigitsRegex();
+    [GeneratedRegex(@"^\+?[0-9]+$")]
+    private static partial Regex IsValidFormatRegex();
 }

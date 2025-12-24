@@ -50,11 +50,17 @@
                 Background="White"
                 IsHitTestVisible="True"
                 Opacity="0"
-                RenderTransform="scale(0.8)">
+                RenderTransform="scale(0.8)"
+                MaxWidth="380">
             <reactiveUi:ViewModelViewHost
                 x:Name="ContentHost"
                 ViewModel="{Binding Content}"
                 IsHitTestVisible="True" />
         </Border>
+
+        <Canvas x:Name="HiddenMeasureContainer"
+                Opacity="0"
+                IsHitTestVisible="False"
+                Width="0" Height="0"/>
     </Grid>
 </UserControl>
