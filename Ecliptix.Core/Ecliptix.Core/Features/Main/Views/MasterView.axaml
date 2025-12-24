@@ -55,7 +55,7 @@
 							   VerticalAlignment="Stretch"
 							   ZIndex="1000" />
 
-		<ContentControl Grid.Column="2" Content="{Binding SuggestionsContent}" IsVisible="True">
+		<ContentControl Grid.Column="2" Content="{Binding SuggestionsContent}" IsVisible="False">
 			<ContentControl.DataTemplates>
 
 				<DataTemplate DataType="{x:Type suggestionsVm:SuggestionsViewModel}">
