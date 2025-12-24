@@ -8,6 +8,8 @@
 			 xmlns:transitions="clr-namespace:Ecliptix.Core.Shared.Transitions"
 			 xmlns:views="clr-namespace:Ecliptix.Core.Features.NewContent.Views"
 			 xmlns:viewModels="clr-namespace:Ecliptix.Core.Features.NewContent.ViewModels"
+			 xmlns:suggestions="clr-namespace:Ecliptix.Core.Features.Suggestions.Views"
+			 xmlns:suggestionsVm="clr-namespace:Ecliptix.Core.Features.Suggestions.ViewModels"
 			 mc:Ignorable="d"
 			 d:DesignWidth="1200"
 			 d:DesignHeight="800"
@@ -53,14 +55,15 @@
 							   VerticalAlignment="Stretch"
 							   ZIndex="1000" />
 
-		<Grid Grid.Column="2"
-			  Width="320"
-			  Background="Red"
-			  IsVisible="False">
-			<Grid Margin="24" Background="LightGray">
+		<ContentControl Grid.Column="2" Content="{Binding SuggestionsContent}" IsVisible="True">
+			<ContentControl.DataTemplates>
 
-			</Grid>
-		</Grid>
+				<DataTemplate DataType="{x:Type suggestionsVm:SuggestionsViewModel}">
+					<suggestions:SuggestionsView />
+				</DataTemplate>
+
+			</ContentControl.DataTemplates>
+		</ContentControl>
 
 		<Border Grid.Column="1"
 				VerticalAlignment="Stretch"

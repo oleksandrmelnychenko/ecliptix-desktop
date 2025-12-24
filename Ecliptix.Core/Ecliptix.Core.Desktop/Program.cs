@@ -82,6 +82,7 @@ using Serilog;
 using Serilog.Core;
 using Splat.Microsoft.Extensions.DependencyInjection;
 using IViewLocator = Ecliptix.Core.Core.Abstractions.IViewLocator;
+using Ecliptix.Core.Features.Suggestions.ViewModels;
 
 namespace Ecliptix.Core.Desktop;
 
@@ -533,6 +534,7 @@ public static class Program
         services.AddTransient<Ecliptix.Core.Features.Chats.ViewModels.ChatsViewModel>();
         services.AddTransient<Ecliptix.Core.Features.Settings.ViewModels.SettingsViewModel>();
         services.AddTransient<Ecliptix.Core.Features.Profile.ViewModels.ProfileViewModel>();
+        services.AddTransient<SuggestionsViewModel>();
 
         services.AddSingleton<LanguagePickerViewModel>();
         services.AddTransient<LanguageCycleButtonViewModel>();
