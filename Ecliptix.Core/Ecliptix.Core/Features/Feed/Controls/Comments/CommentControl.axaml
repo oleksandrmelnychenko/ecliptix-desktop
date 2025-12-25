@@ -80,7 +80,7 @@
 			  ColumnDefinitions="Auto,Auto"
 			  VerticalAlignment="Top"
 			  HorizontalAlignment="Right"
-			  ColumnSpacing="5">
+			  ColumnSpacing="7">
 
 			<Button Grid.Column="0"
 					Grid.Row="0"

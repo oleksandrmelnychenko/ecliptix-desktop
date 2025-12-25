@@ -52,6 +52,7 @@ public sealed class MasterViewModel : ViewModelBase
     [Reactive] public bool IsOverlayOpen { get; set; }
 
     [Reactive] public object? OverlayContent { get; set; }
+    [Reactive] public object? SuggestionsContent { get; set; }
     [Reactive] public bool IsTransitioning { get; set; }
 
     public ConnectivityNotificationViewModel ConnectivityNotification { get; }
@@ -71,10 +72,11 @@ public sealed class MasterViewModel : ViewModelBase
     {
         _moduleViewFactory = moduleViewFactory;
         ConnectivityNotification = mainWindowViewModel.ConnectivityNotification;
+        SuggestionsContent = mainWindowViewModel.SuggestionsViewModel;
         NavigationSidebar = new NavigationSidebarViewModel(networkProvider, localizationService, logoutService, profileMenuService, storageProvider);
         _messageBus = Locator.Current?.GetService<IMessageBus>();
 
-        LoadInitialView();
+        //LoadInitialView();
 
         Dispatcher.UIThread.Post(() =>
         {

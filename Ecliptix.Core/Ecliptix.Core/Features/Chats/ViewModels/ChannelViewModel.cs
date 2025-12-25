@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using Avalonia.Threading;
 using Ecliptix.Core.Features.Chats.Services;
 using Ecliptix.Core.Features.Chats.ViewModels.Messages;
+using Ecliptix.Core.Utilities;
 using ReactiveUI;
+using Serilog;
 
 namespace Ecliptix.Core.Features.Chats.ViewModels;
 
@@ -22,12 +25,12 @@ public class ChannelViewModel : ReactiveObject
         _chatId = chatId;
         Name = name;
         _chatService = chatService;
-        LoadPosts();
+        LoadPostsAsync().DoSafeAsync(ex => Log.Error(ex, "Error load posts."));
     }
 
     public ChannelViewModel() { } // Design-time
 
-    private async void LoadPosts()
+    private async Task LoadPostsAsync()
     {
         Posts.Clear();
         await foreach (IEnumerable<MessageViewModelBase> batch in _chatService.GetMessagesStreamAsync(_chatId))

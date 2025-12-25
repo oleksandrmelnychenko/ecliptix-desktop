@@ -12,6 +12,25 @@
              x:Class="Ecliptix.Core.Features.Authentication.Views.Welcome.WelcomeView"
              x:DataType="vm:WelcomeViewModel">
 
+        <UserControl.Styles>
+
+                <Style Selector="EcliptixIcon">
+                        <Setter Property="Cursor" Value="Hand" />
+                        <Setter Property="Transitions">
+                                <Transitions>
+                                        <BrushTransition Property="Stroke" Duration="0:0:0.2"/>
+                                        <DoubleTransition Property="StrokeThickness" Duration="0:0:0.2"/>
+                                        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1"/>
+                                </Transitions>
+                        </Setter>
+                </Style>
+
+                <Style Selector="EcliptixIcon:pointerover">
+                        <Setter Property="Stroke" Value="#3B82F6" /> <Setter Property="StrokeThickness" Value="2.5" />
+                        <Setter Property="RenderTransform" Value="scale(1.1)" /> </Style>
+
+        </UserControl.Styles>
+
     <Grid RowDefinitions="Auto,Auto,Auto, Auto"
           HorizontalAlignment="Stretch"
           VerticalAlignment="Stretch"
@@ -25,9 +44,9 @@
                                   HtmlUrl="avares://Ecliptix.Core/Assets/WelcomeContent.html" />
 
         <Grid Grid.Row="2"
-              ColumnDefinitions="Auto,Auto"
+              ColumnDefinitions="208*,176*"
               ColumnSpacing="12"
-              HorizontalAlignment="Center"
+              HorizontalAlignment="Stretch"
               VerticalAlignment="Top"
               Margin="0,0,0,16">
 
@@ -66,6 +85,20 @@
                         Foreground="white"
                         Content="Welcome Back"
                         Command="{Binding NavToWelcomeBackCommand}">
+                </Button>
+
+                <EcliptixIcon Kind="ImagePlus" Height="24" Width="24" Stroke="Black"/>
+                <EcliptixIcon Kind="ImagePlus" Height="24" Width="24" Stroke="Black"/>
+
+                <Button Background="Transparent" Padding="4" Foreground="Black">
+
+                        <EcliptixIcon Kind="ImagePlus" Height="24" Width="24"/>
+
+                        <Button.Styles>
+                                <Style Selector="Button:pressed EcliptixIcon">
+                                        <Setter Property="Stroke" Value="Red"/>
+                                </Style>
+                        </Button.Styles>
                 </Button>
 
         </StackPanel>

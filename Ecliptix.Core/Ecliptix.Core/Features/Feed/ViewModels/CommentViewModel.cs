@@ -56,6 +56,7 @@ public sealed class CommentViewModel : ReactiveObject
     private void CopyLink() => IsFlyoutOpen = false;
 
     private void Reply()=> WeakReferenceMessenger.Default.Send(new ReplyCommentMessage(Comment));
+
     private void HideReplies()
     {
         HasReplies = OrigonalReplies.Count > 0;

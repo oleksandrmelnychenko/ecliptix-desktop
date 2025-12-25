@@ -1,35 +1,257 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:converters="clr-namespace:Ecliptix.Core.Shared.Converters"
                     x:ClassModifier="internal">
 
-    <Design.PreviewWith>
-        <StackPanel>
-            <EcliptixIcon Kind="ImagePlus" Height="15" Width="15" StrokeThickness="1.5" Stroke="Gray"/>
-        </StackPanel>
-    </Design.PreviewWith>
+<Design.PreviewWith>
+    <Border Padding="20" Background="White">
+        <Border.Resources>
+            <ResourceDictionary>
+                <ResourceDictionary.MergedDictionaries>
+                    <ResourceInclude Source="avares://Ecliptix.Core/Controls/Core/Icons/Resources/LucideIconResources.axaml"/>
+                </ResourceDictionary.MergedDictionaries>
+            </ResourceDictionary>
+        </Border.Resources>
 
+        <ScrollViewer>
+            <StackPanel Spacing="20">
+
+                <StackPanel Spacing="10">
+                    <TextBlock Text="✓ Custom Style Classes (WORKS in Designer)"
+                               FontWeight="Bold" FontSize="16" Foreground="Green"/>
+
+                    <StackPanel.Styles>
+                        <Style Selector="EcliptixIcon.primary">
+                            <Setter Property="Stroke" Value="#3B82F6" />
+                            <Setter Property="StrokeThickness" Value="2" />
+                        </Style>
+
+                        <Style Selector="EcliptixIcon.success">
+                            <Setter Property="Stroke" Value="#10B981" />
+                            <Setter Property="StrokeThickness" Value="2.5" />
+                        </Style>
+
+                        <Style Selector="EcliptixIcon.danger">
+                            <Setter Property="Stroke" Value="#EF4444" />
+                            <Setter Property="StrokeThickness" Value="3" />
+                        </Style>
+
+                        <Style Selector="EcliptixIcon.large">
+                            <Setter Property="Height" Value="48" />
+                            <Setter Property="Width" Value="48" />
+                        </Style>
+
+                        <Style Selector="EcliptixIcon.small">
+                            <Setter Property="Height" Value="20" />
+                            <Setter Property="Width" Value="20" />
+                        </Style>
+                    </StackPanel.Styles>
+
+                    <StackPanel Orientation="Horizontal" Spacing="15">
+                        <EcliptixIcon Kind="ChevronDown" Classes="primary large"/>
+                        <EcliptixIcon Kind="ChevronUp" Classes="success large"/>
+                        <EcliptixIcon Kind="Send" Classes="danger large"/>
+                        <EcliptixIcon Kind="ImagePlus" Classes="primary small"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Inline Styles -->
+                <StackPanel Spacing="10">
+                    <TextBlock Text="✓ Inline Property Settings (WORKS in Designer)"
+                               FontWeight="Bold" FontSize="16" Foreground="Green"/>
+                    <StackPanel Orientation="Horizontal" Spacing="15">
+                        <EcliptixIcon Kind="PaperClip" Height="48" Width="48"
+                                    Stroke="Purple" StrokeThickness="2"/>
+                        <EcliptixIcon Kind="Send" Height="48" Width="48"
+                                    Stroke="Orange" StrokeThickness="3"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- THESE DON'T WORK IN DESIGNER (Need Runtime Testing) -->
+                <Border BorderBrush="Orange" BorderThickness="2" Padding="10" CornerRadius="4">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="⚠ Interactive States (ONLY work at Runtime - not in Designer)"
+                                   FontWeight="Bold" FontSize="16" Foreground="Orange"/>
+                        <TextBlock TextWrapping="Wrap" Foreground="Gray" FontSize="12">
+                            These icons have hover/press styles defined, but you won't see them in the designer.
+                            Run the application to test interactive behavior.
+                        </TextBlock>
+
+                        <!-- Show both normal and "simulated hover" state side by side -->
+                        <Grid ColumnDefinitions="Auto,20,Auto" RowDefinitions="Auto,Auto,Auto,Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Normal State:"
+                                     FontSize="12" Margin="0,0,0,5"/>
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="Hover State (simulated):"
+                                     FontSize="12" Margin="0,0,0,5"/>
+
+                            <!-- Example 1 -->
+                            <EcliptixIcon Grid.Row="1" Grid.Column="0"
+                                        Kind="ImagePlus" Height="48" Width="48" Stroke="Black">
+                                <EcliptixIcon.Styles>
+                                    <Style Selector="EcliptixIcon:pointerover">
+                                        <Setter Property="Stroke" Value="Blue"/>
+                                    </Style>
+                                </EcliptixIcon.Styles>
+                            </EcliptixIcon>
+                            <EcliptixIcon Grid.Row="1" Grid.Column="2"
+                                        Kind="ImagePlus" Height="48" Width="48" Stroke="Blue"/>
+
+                            <!-- Example 2 -->
+                            <EcliptixIcon Grid.Row="2" Grid.Column="0"
+                                        Kind="Send" Height="48" Width="48"
+                                        Stroke="Gray" StrokeThickness="2">
+                                <EcliptixIcon.Styles>
+                                    <Style Selector="EcliptixIcon:pointerover">
+                                        <Setter Property="Stroke" Value="Orange"/>
+                                        <Setter Property="StrokeThickness" Value="3"/>
+                                    </Style>
+                                </EcliptixIcon.Styles>
+                            </EcliptixIcon>
+                            <EcliptixIcon Grid.Row="2" Grid.Column="2"
+                                        Kind="Send" Height="48" Width="48"
+                                        Stroke="Orange" StrokeThickness="3"/>
+
+                            <!-- Example 3 -->
+                            <EcliptixIcon Grid.Row="3" Grid.Column="0"
+                                        Kind="PaperClip" Height="48" Width="48"
+                                        Stroke="Purple" StrokeThickness="2">
+                                <EcliptixIcon.Styles>
+                                    <Style Selector="EcliptixIcon:pointerover">
+                                        <Setter Property="Stroke" Value="Magenta"/>
+                                        <Setter Property="StrokeThickness" Value="3"/>
+                                    </Style>
+                                    <Style Selector="EcliptixIcon:pressed">
+                                        <Setter Property="Stroke" Value="Red"/>
+                                    </Style>
+                                </EcliptixIcon.Styles>
+                            </EcliptixIcon>
+                            <EcliptixIcon Grid.Row="3" Grid.Column="2"
+                                        Kind="PaperClip" Height="48" Width="48"
+                                        Stroke="Magenta" StrokeThickness="3"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Testing Page Example -->
+                <Border BorderBrush="Blue" BorderThickness="2" Padding="10" CornerRadius="4">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="💡 Create a Test Page for Interactive States"
+                                   FontWeight="Bold" FontSize="16" Foreground="Blue"/>
+                        <TextBlock TextWrapping="Wrap" FontSize="12">
+                            Copy this code to a test page in your app to see hover/press effects:
+                        </TextBlock>
+
+                        <Border Background="#F3F4F6" Padding="10" CornerRadius="4">
+                            <StackPanel Spacing="15">
+                                <TextBlock Text="Hover Test:" FontWeight="SemiBold"/>
+                                <StackPanel Orientation="Horizontal" Spacing="15">
+                                    <EcliptixIcon Kind="ImagePlus" Height="64" Width="64" Stroke="Black">
+                                        <EcliptixIcon.Styles>
+                                            <Style Selector="EcliptixIcon">
+                                                <Setter Property="Transitions">
+                                                    <Transitions>
+                                                        <BrushTransition Property="Stroke" Duration="0:0:0.2"/>
+                                                        <DoubleTransition Property="StrokeThickness" Duration="0:0:0.2"/>
+                                                    </Transitions>
+                                                </Setter>
+                                            </Style>
+                                            <Style Selector="EcliptixIcon:pointerover">
+                                                <Setter Property="Stroke" Value="#3B82F6"/>
+                                                <Setter Property="StrokeThickness" Value="3"/>
+                                            </Style>
+                                        </EcliptixIcon.Styles>
+                                    </EcliptixIcon>
+
+                                    <EcliptixIcon Kind="Send" Height="64" Width="64" Stroke="Gray">
+                                        <EcliptixIcon.Styles>
+                                            <Style Selector="EcliptixIcon">
+                                                <Setter Property="Transitions">
+                                                    <Transitions>
+                                                        <BrushTransition Property="Stroke" Duration="0:0:0.2"/>
+                                                    </Transitions>
+                                                </Setter>
+                                            </Style>
+                                            <Style Selector="EcliptixIcon:pointerover">
+                                                <Setter Property="Stroke" Value="#10B981"/>
+                                            </Style>
+                                        </EcliptixIcon.Styles>
+                                    </EcliptixIcon>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- Button Examples (These work but need runtime) -->
+                <StackPanel Spacing="10">
+                    <TextBlock Text="🎯 Real-World Button Examples (Test at Runtime)"
+                               FontWeight="Bold" FontSize="16"/>
+
+                    <StackPanel Spacing="10">
+                        <Button Padding="12,8" Background="#F3F4F6" BorderThickness="0">
+                            <Button.Styles>
+                                <Style Selector="Button:pointerover">
+                                    <Setter Property="Background" Value="#3B82F6"/>
+                                </Style>
+                                <Style Selector="Button:pointerover EcliptixIcon">
+                                    <Setter Property="Stroke" Value="White"/>
+                                </Style>
+                            </Button.Styles>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <EcliptixIcon Kind="Send" Height="20" Width="20" Stroke="#3B82F6"/>
+                                <TextBlock Text="Send Message" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Padding="12,8" Background="Transparent"
+                                BorderBrush="#E5E7EB" BorderThickness="1">
+                            <Button.Styles>
+                                <Style Selector="Button:pointerover">
+                                    <Setter Property="BorderBrush" Value="#10B981"/>
+                                </Style>
+                                <Style Selector="Button:pointerover EcliptixIcon">
+                                    <Setter Property="Stroke" Value="#10B981"/>
+                                </Style>
+                            </Button.Styles>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <EcliptixIcon Kind="ImagePlus" Height="20" Width="20" Stroke="#6B7280"/>
+                                <TextBlock Text="Upload Image" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Border>
+</Design.PreviewWith>
+
+    <converters:IconToDrawingConverter x:Key="IconToDrawingConverter" />
 
     <ControlTheme x:Key="{x:Type EcliptixIcon}" TargetType="EcliptixIcon">
-        <Setter Property="Foreground" Value="{DynamicResource TextControlForeground}" />
+        <Setter Property="Width" Value="24" />
+        <Setter Property="Height" Value="24" />
+        <Setter Property="Stroke" Value="Black" />
+        <Setter Property="StrokeThickness" Value="2" />
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Height" Value="{DynamicResource IconElementThemeHeight}" />
-        <Setter Property="Width" Value="{DynamicResource IconElementThemeWidth}" />
+
         <Setter Property="Template">
             <ControlTemplate>
-                <Border Background="{TemplateBinding Background}">
-                    <Viewbox>
-                        <Canvas Height="24" Width="24">
-                            <Path
-                                Data="{Binding Kind,
-                                RelativeSource={RelativeSource TemplatedParent},
-                                Converter={StaticResource ResourceConverter}}"
-                                Stroke="{TemplateBinding Stroke}"
-                                StrokeThickness="{TemplateBinding StrokeThickness}"
-                                StrokeJoin="Round"
-                                StrokeLineCap="Round" />
-                        </Canvas>
-                    </Viewbox>
-                </Border>
+                <Image Width="{TemplateBinding Width}"
+                       Height="{TemplateBinding Height}"
+                       Stretch="Uniform">
+                    <Image.Source>
+                        <DrawingImage>
+                            <DrawingImage.Drawing>
+                                <MultiBinding Converter="{StaticResource IconToDrawingConverter}">
+                                    <Binding Path="Kind" RelativeSource="{RelativeSource TemplatedParent}"/>
+                                    <Binding Path="Stroke" RelativeSource="{RelativeSource TemplatedParent}"/>
+                                    <Binding Path="StrokeThickness" RelativeSource="{RelativeSource TemplatedParent}"/>
+                                </MultiBinding>
+                            </DrawingImage.Drawing>
+                        </DrawingImage>
+                    </Image.Source>
+                </Image>
             </ControlTemplate>
         </Setter>
     </ControlTheme>

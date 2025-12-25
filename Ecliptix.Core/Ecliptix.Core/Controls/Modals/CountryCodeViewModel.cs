@@ -50,7 +50,7 @@ public class CountryCodeViewModel : ReactiveObject, IActivatableViewModel, IDisp
     public ReactiveCommand<Unit, Unit> CloseCommand { get; }
     public ReactiveCommand<CountryPickerItemViewModel, Unit> SelectCountryCommand { get; }
 
-    public CountryCodeViewModel(IMessageBus messageBus, string currentIsoCode = "US")
+    public CountryCodeViewModel(IMessageBus? messageBus, string currentIsoCode = "US")
     {
         _sideSheetService = Locator.Current.GetService<ISideSheetService>();
         _messageBus = messageBus;

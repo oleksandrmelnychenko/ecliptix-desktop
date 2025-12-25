@@ -95,7 +95,7 @@
 
             <!-- Special Layout Margins -->
             <Thickness x:Key="Container.Margin">0,16,0,16</Thickness>
-            <Thickness x:Key="Welcome.Container.Margin">0,-35,0,10</Thickness>
+            <Thickness x:Key="Welcome.Container.Margin">0,-38,0,10</Thickness>
             <Thickness x:Key="Welcome.Footer.Margin">0,0,0,16</Thickness>
             <Thickness x:Key="Content.Padding">20,0</Thickness>
             <Thickness x:Key="Header.Padding">0,12,0,0</Thickness>

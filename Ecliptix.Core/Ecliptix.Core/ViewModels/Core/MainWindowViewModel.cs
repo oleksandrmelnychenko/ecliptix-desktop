@@ -29,6 +29,7 @@ using Ecliptix.Utilities;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Serilog;
+using Ecliptix.Core.Features.Suggestions.ViewModels;
 
 namespace Ecliptix.Core.ViewModels.Core;
 
@@ -72,6 +73,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     public LanguageCycleButtonViewModel LanguageSelector { get; }
 
     public TitleBarViewModel TitleBarViewModel { get; }
+    public SuggestionsViewModel SuggestionsViewModel { get; }
     public ConnectivityNotificationViewModel ConnectivityNotification { get; }
 
     public Func<Rect>? GetPrimaryScreenWorkingArea { get; set; }
@@ -111,6 +113,8 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
         TitleBarViewModel = new TitleBarViewModel();
 
+        SuggestionsViewModel = Track(_viewModelFactory.Create<SuggestionsViewModel>());
+
         LanguageSelector = new LanguageCycleButtonViewModel(
             localizationService,
             storageProvider,
@@ -140,14 +144,14 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
             case null:
                 throw new ArgumentNullException(nameof(obj));
             case IDisposable disposable:
-            {
-                lock (_trackedDisposables)
                 {
-                    _trackedDisposables.Add(disposable);
-                }
+                    lock (_trackedDisposables)
+                    {
+                        _trackedDisposables.Add(disposable);
+                    }
 
-                break;
-            }
+                    break;
+                }
         }
 
         return obj;
