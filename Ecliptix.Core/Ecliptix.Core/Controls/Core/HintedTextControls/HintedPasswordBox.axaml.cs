@@ -764,6 +764,17 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
             return;
         }
 
+        if (_mainTextBox != null)
+        {
+            if (_mainTextBox.SelectionStart != _mainTextBox.SelectionEnd ||
+                _mainTextBox.CaretIndex != (_mainTextBox.Text?.Length ?? 0))
+            {
+                _mainTextBox.SelectionStart = _mainTextBox.Text?.Length ?? 0;
+                _mainTextBox.SelectionEnd = _mainTextBox.Text?.Length ?? 0;
+                _mainTextBox.CaretIndex = _mainTextBox.Text?.Length ?? 0;
+            }
+        }
+
         if (e.Text.Length > 1)
         {
             e.Handled = true;
@@ -817,6 +828,11 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
 
     private bool IsAllowedCharacter(char c)
     {
+        if (char.IsWhiteSpace(c))
+        {
+            return false;
+        }
+
         if (char.IsDigit(c))
         {
             return true;
@@ -859,6 +875,19 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
             return;
         }
 
+        if (e.Key == Key.Space)
+        {
+            e.Handled = true;
+
+            CharacterRejectedEventArgs args = new(CharacterWarningType.INVALID_CHARACTER)
+            {
+                RoutedEvent = CharacterRejectedEvent
+            };
+            RaiseEvent(args);
+            StartWarningTimer();
+            return;
+        }
+
         if (HandleNavigationKeys(e))
         {
             return;
@@ -877,17 +906,23 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
         ResetCaretToEnd();
     }
 
-    private static bool HandleClipboardShortcuts(KeyEventArgs e)
+    private bool HandleClipboardShortcuts(KeyEventArgs e)
     {
-        if ((e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta)) &&
-            IsClipboardKey(e.Key))
+        bool isCtrl = e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta);
+
+        if (!isCtrl)
+        {
+            return false;
+        }
+
+        if (e.Key == Key.V)
         {
             e.Handled = true;
+            HandlePasteAsync();
             return true;
         }
 
-        if (e.Key == Key.Insert &&
-            (e.KeyModifiers.HasFlag(KeyModifiers.Shift) || e.KeyModifiers.HasFlag(KeyModifiers.Control)))
+        if (IsClipboardKey(e.Key) || e.Key == Key.A)
         {
             e.Handled = true;
             return true;
@@ -895,8 +930,66 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
 
         return false;
     }
+    private static bool IsClipboardKey(Key key) =>
+        key is Key.C or Key.X or Key.Z or Key.Y or Key.Insert;
 
-    private static bool IsClipboardKey(Key key) => key is Key.V or Key.C or Key.X or Key.Z or Key.Y;
+    private async void HandlePasteAsync()
+    {
+        if (_mainTextBox == null || _isDisposed)
+        {
+            return;
+        }
+
+        try
+        {
+            TopLevel? topLevel = TopLevel.GetTopLevel(this);
+            if (topLevel?.Clipboard == null)
+            {
+                return;
+            }
+
+            string? clipboardText = await topLevel.Clipboard.GetTextAsync();
+
+            if (_mainTextBox == null || _isDisposed)
+            {
+                return;
+            }
+
+            if (string.IsNullOrEmpty(clipboardText))
+            {
+                return;
+            }
+
+            foreach (char c in clipboardText)
+            {
+                if (!IsAllowedCharacter(c))
+                {
+                    CharacterRejectedEventArgs args = new(GetWarningType(c))
+                    {
+                        RoutedEvent = CharacterRejectedEvent
+                    };
+                    RaiseEvent(args);
+                    StartWarningTimer();
+                    return;
+                }
+            }
+
+            int currentLength = _mainTextBox.Text?.Length ?? 0;
+            if (currentLength + clipboardText.Length > MaxLength)
+            {
+                StartWarningTimer();
+                return;
+            }
+
+            _mainTextBox.Text += clipboardText;
+
+            _mainTextBox.CaretIndex = _mainTextBox.Text?.Length ?? 0;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Paste failed: {ex.Message}");
+        }
+    }
 
     private bool HandleNavigationKeys(KeyEventArgs e)
     {
