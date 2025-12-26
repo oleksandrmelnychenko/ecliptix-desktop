@@ -57,8 +57,7 @@
             IsPhoneNumberMode="False"
             Text="{Binding VerificationCode, Mode=TwoWay}"
             Hint="{Binding TimerHintText, Mode=OneWay}"
-            HasError="{Binding HasError, Mode=OneWay}"
-            ErrorText="{Binding ErrorMessage, Mode=OneWay}"
+
             TextForeground="{DynamicResource OnSurface}"
             HintForeground="{DynamicResource Primary}"
             FocusBorderBrush="{DynamicResource Primary}"
@@ -71,13 +70,14 @@
             HorizontalAlignment="Stretch"
             VisualIcon="{DynamicResource __square_chart_gantt}"/>
 
-       <TextBlock Grid.Row="2"
-               HorizontalAlignment="Center"
-               TextAlignment="Center"
-               TextWrapping="Wrap"
-               Padding="0 0 4 0"
-               FontSize="{StaticResource Font.M}"
-               Foreground="{DynamicResource OnSurface}">
+       <TextBlock
+            Grid.Row="2"
+            HorizontalAlignment="Center"
+            TextAlignment="Center"
+            TextWrapping="Wrap"
+            Padding="0 0 4 0"
+            FontSize="{StaticResource Font.M}"
+            Foreground="{DynamicResource OnSurface}">
 
         <Run Text="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Text.NotReceived], Mode=OneWay}"/>
         <Run Text=" " />

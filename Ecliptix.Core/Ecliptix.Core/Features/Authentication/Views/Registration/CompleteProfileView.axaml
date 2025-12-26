@@ -16,7 +16,7 @@
 
     <Grid VerticalAlignment="Top"
           RowSpacing="{StaticResource Spacing.Authentication}"
-          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
           HorizontalAlignment="Stretch"
           Width="{StaticResource Content.MaxWidth}">
 
@@ -85,24 +85,8 @@
             HorizontalAlignment="Stretch"
             VisualIcon="{DynamicResource __square_pen}"/>
 
-        <hintedTextControls:HintedDatePicker
-            Grid.Row="3"
-            Watermark="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.DateOfBirth.Watermark]}"
-            Hint="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.DateOfBirth.Hint]}"
-            SelectedDate="{Binding DateOfBirth, Mode=TwoWay}"
-            ErrorText="{Binding DateOfBirthError, Mode=OneWay}"
-            HasError="{Binding HasDateOfBirthError, Mode=OneWay}"
-            Background="{DynamicResource Surface}"
-            FocusBorderBrush="{DynamicResource Primary}"
-            MainBorderBrush="Transparent"
-            Height="{StaticResource Input.Height}"
-            CornerRadius="{StaticResource Radius.L}"
-            FontSize="{StaticResource Input.FontSize}"
-            HorizontalAlignment="Stretch"
-            HintForeground="{DynamicResource Primary}"
-            VisualIcon="{DynamicResource __calendar}"/>
 
-        <Button Grid.Row="4"
+        <Button Grid.Row="3"
                 Content="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.Button.Complete]}"
                 Command="{Binding CompleteSetupCommand}"
                 IsEnabled="{Binding CompleteSetupCommand.CanExecute}"
@@ -111,7 +95,7 @@
                 Margin="0,16,0,0"/>
 
         <core:ErrorNotificationView
-            Grid.Row="5"
+            Grid.Row="4"
             x:Name="ErrorNotification"
             VerticalAlignment="Top"
             HorizontalAlignment="Stretch"
