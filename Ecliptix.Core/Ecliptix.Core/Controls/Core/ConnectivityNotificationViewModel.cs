@@ -200,6 +200,7 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         ).StartWith(false);
 
         IObservable<bool> isVisible = snapshots
+            .DistinctUntilChanged(x => new { x.Status, x.Reason })
             .Select(MapSnapshotToVisibility)
             .Switch()
             .StartWith(false);
@@ -240,11 +241,15 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         {
             if (_requiresRestorationFeedback || forceRestored)
             {
-                _requiresRestorationFeedback = false;
                 return Observable.Timer(RestoredStateDuration, RxApp.TaskpoolScheduler)
-                    .Select(_ => false)
+                    .Select(_ =>
+                    {
+                        _requiresRestorationFeedback = false;
+                        return false;
+                    })
                     .StartWith(true);
             }
+
             return Observable.Return(false);
         });
     }

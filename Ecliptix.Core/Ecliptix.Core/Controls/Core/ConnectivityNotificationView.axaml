@@ -35,8 +35,8 @@
         <Style Selector="Border.ServerIssue EcliptixIcon">
             <Setter Property="Kind" Value="CircleAlert" />
             <Setter Property="Stroke" Value="#DC2626" />
-            <Setter Property="Width" Value="20" />
-            <Setter Property="Height" Value="20" />
+            <Setter Property="Width" Value="22" />
+            <Setter Property="Height" Value="22" />
         </Style>
 
         <Style Selector="Border.Restored EcliptixIcon">
