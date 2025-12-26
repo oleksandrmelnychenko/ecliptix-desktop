@@ -71,7 +71,7 @@ public static class LocalizationData
             "Re-enter the secure key to confirm",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.ERROR_SECURE_KEY_MISMATCH] =
             "Secure keys do not match.",
-        [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.BUTTON] = "Set Secure Key",
+        [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.BUTTON] = "Continue",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.REQUIREMENTS_SUCCESS_TITLE] = "All minimum requirements are met",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.REQUIREMENTS_TITLE] = "Security Requirements:",
         [LocalizationKeys.Authentication.SecureKeyRecovery.Reset.TITLE] = "Reset Secure Key",
@@ -333,7 +333,7 @@ public static class LocalizationData
             "Введіть ключ ще раз для підтвердження",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.ERROR_SECURE_KEY_MISMATCH] =
             "Ключі безпеки не збігаються.",
-        [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.BUTTON] = "Встановити ключ безпеки",
+        [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.BUTTON] = "Продовжити",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.REQUIREMENTS_SUCCESS_TITLE] = "Усі мінімальні вимоги виконано",
         [LocalizationKeys.Authentication.SignUp.SecureKeyConfirmation.REQUIREMENTS_TITLE] = "Вимоги безпеки:",
         [LocalizationKeys.Authentication.SecureKeyRecovery.Reset.TITLE] = "Скидання ключа безпеки",
@@ -454,7 +454,7 @@ public static class LocalizationData
         [LocalizationKeys.Authentication.WelcomeBack.DESCRIPTION_VERIFIED] = "Ваш номер мобільного телефону вже підтверджено.",
         [LocalizationKeys.Authentication.WelcomeBack.DESCRIPTION_SETUP] = "Завершіть налаштування ключа безпеки для захисту вашого акаунту.",
         [LocalizationKeys.Authentication.WelcomeBack.BUTTON_LATER] = "Продовжити пізніше",
-        [LocalizationKeys.Authentication.WelcomeBack.BUTTON_CONTINUE] = "Продовжити налаштування",
+        [LocalizationKeys.Authentication.WelcomeBack.BUTTON_CONTINUE] = "Продовжити",
         [LocalizationKeys.Authentication.WelcomeBack.ERROR_SESSION_MISSING] = "Не вдалося знайти дані вашої сесії. Будь ласка, розпочніть процес реєстрації заново.",
         [LocalizationKeys.Authentication.WelcomeBack.ERROR_TITLE] = "Сесія відсутня",
         [LocalizationKeys.Authentication.WelcomeBack.ERROR_SUBTITLE] = "Потрібна автентифікація",
