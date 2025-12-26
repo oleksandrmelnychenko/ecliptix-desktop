@@ -232,7 +232,14 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>, IDisposab
         {
             if (!_isDisposed)
             {
-                Close();
+                if (!Dispatcher.UIThread.CheckAccess())
+                {
+                    Dispatcher.UIThread.Post(() => Close());
+                }
+                else
+                {
+                    Close();
+                }
             }
         }
     }

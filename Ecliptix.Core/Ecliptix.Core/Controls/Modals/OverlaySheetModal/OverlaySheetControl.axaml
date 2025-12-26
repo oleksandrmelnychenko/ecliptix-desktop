@@ -51,7 +51,9 @@
                 IsHitTestVisible="True"
                 Opacity="0"
                 RenderTransform="scale(0.8)"
-                MaxWidth="380">
+                MaxWidth="380"
+                MinWidth="320"
+                MinHeight="240">
             <reactiveUi:ViewModelViewHost
                 x:Name="ContentHost"
                 ViewModel="{Binding Content}"
