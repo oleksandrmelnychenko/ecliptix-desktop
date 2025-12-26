@@ -8,15 +8,15 @@
              x:Class="Ecliptix.Core.Controls.Core.NetworkBadgeView">
     <UserControl.Styles>
         <Style Selector="core|StatusBadge.gray">
-            <Setter Property="Icon" Value="{DynamicResource __wifi_off}"/>
+            <Setter Property="Icon" Value="WifiOff"/>
         </Style>
 
         <Style Selector="core|StatusBadge.red">
-            <Setter Property="Icon" Value="{DynamicResource __circle_alert}"/>
+            <Setter Property="Icon" Value="CircleAlert"/>
         </Style>
 
         <Style Selector="core|StatusBadge.green">
-            <Setter Property="Icon" Value="{DynamicResource __wifi}"/>
+            <Setter Property="Icon" Value="Wifi"/>
         </Style>
     </UserControl.Styles>
 

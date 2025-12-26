@@ -165,8 +165,6 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         IObservable<string> statusDescription = detailedStatus.CombineLatest(languageTrigger, (status, _) => GetStatusDescription(status));
         IObservable<string> retryButtonText = languageTrigger.Select(_ => _localizationService["NetworkNotification.Button.Retry"]);
 
-        // (Іконки видалено - вони тепер у XAML)
-
         return new StatusObservables(detailedStatus, statusText, statusDescription, retryButtonText);
     }
 

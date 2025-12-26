@@ -93,8 +93,8 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
     public static readonly StyledProperty<DrawingImage?> IconErrorSourceProperty =
         AvaloniaProperty.Register<HintedPasswordBox, DrawingImage?>(nameof(IconErrorSource));
 
-    public static readonly StyledProperty<Drawing?> VisualIconProperty =
-        AvaloniaProperty.Register<HintedPasswordBox, Drawing?>(nameof(VisualIcon));
+    public static readonly StyledProperty<IconKind> VisualIconProperty =
+        AvaloniaProperty.Register<HintedPasswordBox, IconKind>(nameof(VisualIcon));
 
     public static readonly StyledProperty<IBrush> SecureKeyStrengthTextBrushProperty =
         AvaloniaProperty.Register<HintedPasswordBox, IBrush>(nameof(SecureKeyStrengthTextBrush),
@@ -224,7 +224,7 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
         set => SetValue(IconErrorSourceProperty, value);
     }
 
-    public Drawing? VisualIcon
+    public IconKind VisualIcon
     {
         get => GetValue(VisualIconProperty);
         set => SetValue(VisualIconProperty, value);
@@ -570,7 +570,7 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
             .DisposeWith(_disposables);
 
         this.WhenAnyValue(x => x.VisualIcon)
-            .Select(icon => icon != null)
+            .Select(kind => kind != IconKind.None)
             .DistinctUntilChanged()
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(hasIcon =>

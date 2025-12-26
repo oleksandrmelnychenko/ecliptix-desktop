@@ -9,11 +9,6 @@
              x:Class="Ecliptix.Core.Features.Authentication.Views.Registration.CompleteProfileView"
              x:DataType="registration:CompleteProfileViewModel">
 
-    <UserControl.Styles>
-        <StyleInclude Source="avares://Ecliptix.Core/Controls/Core/HintedTextControls/Shared/CompleteProfileIcons.axaml"></StyleInclude>
-
-    </UserControl.Styles>
-
     <Grid VerticalAlignment="Top"
           RowSpacing="{StaticResource Spacing.Authentication}"
           RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
@@ -63,7 +58,7 @@
             Background="{DynamicResource Surface}"
             FontWeight="Light"
             HorizontalAlignment="Stretch"
-            VisualIcon="{DynamicResource __user_round}"/>
+            VisualIcon="UserRound"/>
 
         <hintedTextControls:HintedTextBox
             Grid.Row="2"
@@ -83,7 +78,7 @@
             Background="{DynamicResource Surface}"
             FontWeight="Light"
             HorizontalAlignment="Stretch"
-            VisualIcon="{DynamicResource __square_pen}"/>
+            VisualIcon="SquarePen"/>
 
 
         <Button Grid.Row="3"

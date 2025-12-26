@@ -13,11 +13,6 @@
              MinWidth="{StaticResource Content.MaxWidth}"
              Width="{StaticResource Content.MaxWidth}">
 
-    <UserControl.Styles>
-        <StyleInclude Source="avares://Ecliptix.Core/Controls/Core/HintedTextControls/Shared/LucideIcons.axaml"></StyleInclude>
-    </UserControl.Styles>
-
-
    <Grid VerticalAlignment="Top"
           RowSpacing="{StaticResource Spacing.Authentication}"
           RowDefinitions="Auto,Auto,Auto,Auto,Auto"
@@ -68,7 +63,7 @@
             WatermarkFontSize="{StaticResource Input.WatermarkFontSize}"
             Background="{DynamicResource Surface}"
             HorizontalAlignment="Stretch"
-            VisualIcon="{DynamicResource __square_chart_gantt}"/>
+            VisualIcon="SquareChartGantt"/>
 
        <TextBlock
             Grid.Row="2"

@@ -1,5 +1,6 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DrawingImage x:Key="None" />
     <DrawingImage x:Key="Dice3">
         <DrawingImage.Drawing>
             <DrawingGroup ClipGeometry="M 0,0 L 24,0 24,24 0,24 Z">
