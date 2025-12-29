@@ -20,7 +20,7 @@ public partial class MobileVerificationView : ReactiveUserControl<MobileVerifica
     private const string ERROR_NOTIFICATION_CONTROL_NAME = "ErrorNotification";
 
     private bool _handlersAttached;
-    private CompositeDisposable? _subscriptions; // Додано CompositeDisposable
+    private CompositeDisposable? _subscriptions;
     public MobileVerificationView()
     {
         InitializeComponent();

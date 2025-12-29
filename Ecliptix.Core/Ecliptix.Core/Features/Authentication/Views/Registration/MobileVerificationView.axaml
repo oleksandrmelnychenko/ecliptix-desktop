@@ -27,7 +27,7 @@
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <TextBlock Text="{Binding Title}"
                            FontSize="{StaticResource Font.XL}"
-                           FontWeight="Normal"
+                           FontWeight="Medium"
                            Foreground="{DynamicResource OnSurface}"
                            LineHeight="{StaticResource LineHeight.Loose}" />
                 <coreControls:StepBadgeView Text="{Binding StepBadgeText}"
@@ -39,8 +39,8 @@
                        FontSize="{StaticResource Font.XL}"
                        LineHeight="{StaticResource LineHeight.Subtitle}"
                        FontWeight="Normal"
-                       Foreground="{DynamicResource OnSurface}"
-                       Opacity="1" />
+                       Foreground="{DynamicResource OnSurfaceVariant}"
+                       />
         </StackPanel>
 
         <hintedTextControls:HintedTextBox
@@ -65,7 +65,8 @@
             WatermarkFontSize="{StaticResource Input.WatermarkFontSize}"
             Background="{DynamicResource Surface}"
             FontWeight="Light"
-            HorizontalAlignment="Stretch" />
+            HorizontalAlignment="Stretch"
+            MaxLength="25"/>
 
         <Button Grid.Row="2"
                 Content="{Binding ButtonText}"
@@ -80,33 +81,27 @@
                    HorizontalAlignment="Center"
                    TextAlignment="Center"
                    FontSize="10"
-                   Foreground="#6B7280">
-
-            <Run Text="{Binding LocalizationService[Footer.AgreementPrefix], Mode=OneWay}" /><InlineUIContainer BaselineAlignment="Center">
+                   Foreground="#6B7280"
+                   ClipToBounds="False"><Run Text="{Binding LocalizationService[Footer.AgreementPrefix], Mode=OneWay}" /><InlineUIContainer>
                 <Button Content="{Binding LocalizationService[Footer.TermsOfService]}"
                         Command="{Binding OpenTermsOfServiceCommand}"
                         Classes="ghost footer-link"
-                        Padding="0,0,4,0"
                         Margin="0"
+                        Padding="0"
                         MinHeight="0"
                         Cursor="Hand"
-                        VerticalContentAlignment="Center">
-                    <Button.RenderTransform>
-                        <TranslateTransform Y="1" />
-                    </Button.RenderTransform>
-                </Button>
-            </InlineUIContainer><Run Text="{Binding LocalizationService[Footer.AgreementConjunction], Mode=OneWay}" /><InlineUIContainer BaselineAlignment="Center">
+                        VerticalContentAlignment="Center"
+                        ClipToBounds="False">
+                </Button></InlineUIContainer><Run Text="{Binding LocalizationService[Footer.AgreementConjunction], Mode=OneWay}" /><InlineUIContainer>
                 <Button Content="{Binding LocalizationService[Footer.PrivacyPolicy]}"
                         Command="{Binding OpenPrivacyPolicyCommand}"
                         Classes="ghost footer-link"
-                        Padding="0,0,4,0"
+                        Padding="0"
                         Margin="0"
                         MinHeight="0"
                         Cursor="Hand"
-                        VerticalContentAlignment="Center">
-                    <Button.RenderTransform>
-                        <TranslateTransform Y="1" />
-                    </Button.RenderTransform>
+                        VerticalContentAlignment="Center"
+                        ClipToBounds="False">
                 </Button>
             </InlineUIContainer>
 
