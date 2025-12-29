@@ -17,7 +17,6 @@
 
         <StackPanel Grid.Row="0"
                     Spacing="{StaticResource Spacing.S}"
-                    MaxWidth="{StaticResource Header.MaxWidth}"
                     HorizontalAlignment="Left">
 
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
