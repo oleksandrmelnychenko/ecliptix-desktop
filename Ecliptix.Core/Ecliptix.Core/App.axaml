@@ -44,7 +44,6 @@
     <Application.Styles>
         <SimpleTheme />
 
-        <StyleInclude Source="/Controls/Core/HintedTextControls/Shared/LucideIcons.axaml"/>
         <StyleInclude Source="/Styles/Core/Colors.axaml" />
         <StyleInclude Source="/Styles/Core/Dimensions.axaml" />
         <StyleInclude Source="/Styles/Components/ScrollBar.axaml"/>

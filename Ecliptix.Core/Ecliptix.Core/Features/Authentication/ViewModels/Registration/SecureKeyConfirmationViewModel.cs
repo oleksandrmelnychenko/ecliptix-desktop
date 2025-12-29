@@ -517,7 +517,18 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModel
 
                 if (_flowContext == AuthenticationFlowContext.REGISTRATION)
                 {
-                    hostViewModel.Navigate.Execute(MembershipViewType.COMPLETE_PROFILE_VIEW).Subscribe();
+                    Option<string> mobileNumberOpt = Option<string>.Some(hostViewModel.RegistrationMobileNumber!);
+
+                    if (mobileNumberOpt.IsSome)
+                    {
+                        bool signedIn = await SignInAsync(mobileNumberOpt.Value!, connectId, operationToken, navigateToMain: false);
+
+                        if (signedIn)
+                        {
+                            hostViewModel.Navigate.Execute(MembershipViewType.COMPLETE_PROFILE_VIEW).Subscribe();
+                        }
+                    }
+                    //TODO we are currently signin in, after restart we are gonna be authenticated, we should provide new statuses
                     //TODO disable navigation back
                     //TODO test logic on recovery
                     return SystemU.Default;
@@ -580,7 +591,7 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModel
             cancellationToken);
     }
 
-    private async Task SignInAsync(string mobileNumber, uint connectId, CancellationToken cancellationToken)
+    private async Task<bool> SignInAsync(string mobileNumber, uint connectId, CancellationToken cancellationToken, bool navigateToMain = true)
     {
         Result<Unit, AuthenticationFailure> signInResult = await _authenticationService.SignInAsync(
             mobileNumber,
@@ -588,24 +599,30 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModel
             connectId,
             cancellationToken);
 
-        if (signInResult.IsOk && HostScreen is AuthenticationViewModel hostViewModel)
+        if (signInResult.IsOk)
         {
-            try
+            if (navigateToMain && HostScreen is AuthenticationViewModel hostViewModel)
             {
-                await hostViewModel.SwitchToMainWindowCommand.Execute();
+                try
+                {
+                    await hostViewModel.SwitchToMainWindowCommand.Execute();
+                }
+                catch
+                {
+                    SetServerError($"{LocalizationService[AuthenticationConstants.NAVIGATION_FAILURE_KEY]}");
+                }
             }
-            catch
-            {
-                SetServerError($"{LocalizationService[AuthenticationConstants.NAVIGATION_FAILURE_KEY]}");
-            }
+            return true;
         }
         else if (signInResult.IsErr)
         {
             AuthenticationFailure failure = signInResult.UnwrapErr();
             SetServerError(failure.Message);
+            return false;
         }
-    }
 
+        return false;
+    }
     protected override void Dispose(bool disposing)
     {
         if (_isDisposed)

@@ -12,8 +12,6 @@
              Width="{StaticResource Content.MaxWidth}">
 
     <UserControl.Styles>
-        <StyleInclude Source="avares://Ecliptix.Core/Controls/Core/HintedTextControls/Shared/CompleteProfileIcons.axaml"></StyleInclude>
-
         <Style Selector="Ellipse.success">
             <Setter Property="Fill" Value="#22C55E"/> </Style>
         <Style Selector="Ellipse.default">
@@ -69,7 +67,7 @@
             TextForeground="{DynamicResource OnSurface}"
             HintForeground="{DynamicResource Primary}"
             MaxLength="28"
-            VisualIcon="{DynamicResource __lock}"/>
+            VisualIcon="Lock"/>
 
         <hintedTextControls:HintedPasswordBox
             Grid.Row="2"
@@ -86,7 +84,7 @@
             TextForeground="{DynamicResource OnSurface}"
             HintForeground="{DynamicResource Primary}"
             MaxLength="28"
-            VisualIcon="{DynamicResource __lock_keyhole}"/>
+            VisualIcon="LockKeyhole"/>
 
         <Border Grid.Row="3"
                 Classes="tipsBlock"

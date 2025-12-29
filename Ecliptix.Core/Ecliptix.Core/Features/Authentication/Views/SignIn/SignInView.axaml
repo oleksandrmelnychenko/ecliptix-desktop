@@ -13,11 +13,6 @@
                  MinWidth="{StaticResource Content.MaxWidth}"
                  Width="{StaticResource Content.MaxWidth}">
 
-    <UserControl.Styles>
-        <StyleInclude Source="avares://Ecliptix.Core/Controls/Core/HintedTextControls/Shared/CompleteProfileIcons.axaml"></StyleInclude>
-
-    </UserControl.Styles>
-
         <!-- Main Layout -->
         <Grid VerticalAlignment="Top"
               RowSpacing="{StaticResource Spacing.Authentication}"
@@ -92,7 +87,7 @@
                 IconErrorSource="{StaticResource LampIconDrawingError}"
                 IsEnabled="{Binding !IsBusy}"
                 FocusBorderBrush="{DynamicResource Primary}"
-                VisualIcon="{DynamicResource __lock}"/>
+                VisualIcon="Lock"/>
 
             <!-- Action Buttons -->
             <Grid Grid.Row="3"

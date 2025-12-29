@@ -16,6 +16,10 @@ public interface IConnectivityService : IDisposable
 
     IObservable<ConnectivitySnapshot> ConnectivityStream { get; }
 
+    IObservable<ConnectivityStatus> InternetStatus { get; }
+
+    IObservable<ConnectivityStatus> ServerStatus { get; }
+
     Task PublishAsync(ConnectivityIntent intent, CancellationToken cancellationToken = default);
 
     Task RequestManualRetryAsync(uint? connectId = null);

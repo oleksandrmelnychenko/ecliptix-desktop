@@ -12,10 +12,9 @@ using Splat;
 
 namespace Ecliptix.Core.Controls.Core;
 
-public class NetworkBadgeViewModel : ReactiveObject, IDisposable
+public sealed class NetworkBadgeViewModel : ReactiveObject, IDisposable
 {
     private readonly CompositeDisposable _disposables = new();
-    private readonly IConnectivityService _connectivityService;
     private readonly ILocalizationService? _localizationService;
 
     [ObservableAsProperty] public string Text { get; }
@@ -31,14 +30,12 @@ public class NetworkBadgeViewModel : ReactiveObject, IDisposable
    {
        _localizationService = localizationService;
 
-       _connectivityService = connectivityService;
-
-        ConnectivityStatus initialInternetState = _connectivityService.LastKnownInternetStatus;
-        ConnectivityStatus initialServerState = _connectivityService.LastKnownServerStatus;
+       ConnectivityStatus initialInternetState = connectivityService.LastKnownInternetStatus;
+        ConnectivityStatus initialServerState = connectivityService.LastKnownServerStatus;
 
         Log.Information("[BadgeVM] Init State: Internet={Internet}, Server={Server}", initialInternetState, initialServerState);
 
-        IObservable<ConnectivitySnapshot> sharedStream = _connectivityService.ConnectivityStream
+        IObservable<ConnectivitySnapshot> sharedStream = connectivityService.ConnectivityStream
             .Do(s => Log.Debug("[BadgeVM] Stream Event: {Source} -> {Status}", s.Source, s.Status))
             .Publish()
             .RefCount();
@@ -57,9 +54,10 @@ public class NetworkBadgeViewModel : ReactiveObject, IDisposable
             .Do(s => Log.Debug("[BadgeVM] Server Status Update: {Status}", s))
             .DistinctUntilChanged();
 
+
         IObservable<NetworkBadgeState> badgeState = Observable.CombineLatest(
-                internetStatus,
-                serverStatus,
+                connectivityService.InternetStatus, // <-- Гарантує актуальний статус
+                connectivityService.ServerStatus,   // <-- Гарантує актуальний статус
                 DetermineBadgeState)
             .Do(state => Log.Information("[BadgeVM] Final Calculated State: {State}", state))
             .DistinctUntilChanged();

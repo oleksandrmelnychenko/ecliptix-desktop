@@ -8,6 +8,7 @@ using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Ecliptix.Core.Controls.Common;
 
 namespace Ecliptix.Core.Controls.Core;
 
@@ -28,8 +29,8 @@ public partial class StatusBadge : UserControl
     public static readonly StyledProperty<FontWeight> TooltipTitleFontWeightProperty =
         AvaloniaProperty.Register<StatusBadge, FontWeight>(nameof(TooltipTitleFontWeight), FontWeight.Medium);
 
-    public static readonly StyledProperty<object?> IconProperty =
-        AvaloniaProperty.Register<StatusBadge, object?>(nameof(Icon));
+    public static readonly StyledProperty<IconKind> IconProperty =
+        AvaloniaProperty.Register<StatusBadge, IconKind>(nameof(Icon));
 
     public static readonly StyledProperty<IBrush> BadgeBrushProperty =
         AvaloniaProperty.Register<StatusBadge, IBrush>(nameof(BadgeBrush), Brushes.Gray);
@@ -58,7 +59,7 @@ public partial class StatusBadge : UserControl
     public string? TooltipFeature1 { get => GetValue(TooltipFeature1Property); set => SetValue(TooltipFeature1Property, value); }
     public string? TooltipFeature2 { get => GetValue(TooltipFeature2Property); set => SetValue(TooltipFeature2Property, value); }
     public string? TooltipFeature3 { get => GetValue(TooltipFeature3Property); set => SetValue(TooltipFeature3Property, value); }
-    public object? Icon { get => GetValue(IconProperty); set => SetValue(IconProperty, value); }
+    public IconKind Icon { get => GetValue(IconProperty); set => SetValue(IconProperty, value); }
     public IBrush BadgeBrush { get => GetValue(BadgeBrushProperty); set => SetValue(BadgeBrushProperty, value); }
     public IBrush BadgeBackground { get => GetValue(BadgeBackgroundProperty); set => SetValue(BadgeBackgroundProperty, value); }
     public double BadgeFontSize { get => GetValue(BadgeFontSizeProperty); set => SetValue(BadgeFontSizeProperty, value); }
@@ -80,6 +81,22 @@ public partial class StatusBadge : UserControl
         _infoPopup = this.FindControl<Popup>("InfoPopup");
         _popupContentBorder = this.FindControl<Border>("PopupContentBorder");
         _containerBorder = this.FindControl<Border>("ContainerBorder");
+        UpdateIconPseudoClass(Icon);
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (change.Property == IconProperty)
+        {
+            UpdateIconPseudoClass(change.GetNewValue<IconKind>());
+        }
+    }
+
+    private void UpdateIconPseudoClass(IconKind kind)
+    {
+        PseudoClasses.Set(":empty-icon", kind == IconKind.None);
     }
 
     private void InitializeComponent()

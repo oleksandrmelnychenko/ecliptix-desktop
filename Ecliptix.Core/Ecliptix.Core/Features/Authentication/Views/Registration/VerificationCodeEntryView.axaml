@@ -13,11 +13,6 @@
              MinWidth="{StaticResource Content.MaxWidth}"
              Width="{StaticResource Content.MaxWidth}">
 
-    <UserControl.Styles>
-        <StyleInclude Source="avares://Ecliptix.Core/Controls/Core/HintedTextControls/Shared/LucideIcons.axaml"></StyleInclude>
-    </UserControl.Styles>
-
-
    <Grid VerticalAlignment="Top"
           RowSpacing="{StaticResource Spacing.Authentication}"
           RowDefinitions="Auto,Auto,Auto,Auto,Auto"
@@ -57,8 +52,7 @@
             IsPhoneNumberMode="False"
             Text="{Binding VerificationCode, Mode=TwoWay}"
             Hint="{Binding TimerHintText, Mode=OneWay}"
-            HasError="{Binding HasError, Mode=OneWay}"
-            ErrorText="{Binding ErrorMessage, Mode=OneWay}"
+
             TextForeground="{DynamicResource OnSurface}"
             HintForeground="{DynamicResource Primary}"
             FocusBorderBrush="{DynamicResource Primary}"
@@ -69,15 +63,16 @@
             WatermarkFontSize="{StaticResource Input.WatermarkFontSize}"
             Background="{DynamicResource Surface}"
             HorizontalAlignment="Stretch"
-            VisualIcon="{DynamicResource __square_chart_gantt}"/>
+            VisualIcon="SquareChartGantt"/>
 
-       <TextBlock Grid.Row="2"
-               HorizontalAlignment="Center"
-               TextAlignment="Center"
-               TextWrapping="Wrap"
-               Padding="0 0 4 0"
-               FontSize="{StaticResource Font.M}"
-               Foreground="{DynamicResource OnSurface}">
+       <TextBlock
+            Grid.Row="2"
+            HorizontalAlignment="Center"
+            TextAlignment="Center"
+            TextWrapping="Wrap"
+            Padding="0 0 4 0"
+            FontSize="{StaticResource Font.M}"
+            Foreground="{DynamicResource OnSurface}">
 
         <Run Text="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Text.NotReceived], Mode=OneWay}"/>
         <Run Text=" " />
