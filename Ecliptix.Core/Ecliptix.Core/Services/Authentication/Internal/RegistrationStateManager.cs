@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Concurrent;
-using Ecliptix.Opaque.Protocol;
+using Ecliptix.OPAQUE.Client;
 using Google.Protobuf;
 
 namespace Ecliptix.Core.Services.Authentication.Internal;

@@ -9,7 +9,7 @@ using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.Security;
 using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Core.Services.Network.Rpc;
-using Ecliptix.Opaque.Protocol;
+using Ecliptix.OPAQUE.Client;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
@@ -240,23 +240,19 @@ internal sealed class SecureKeyRecoveryService(
     {
         byte[]? serverRecoveryResponse = null;
         byte[]? recoveryRecord = null;
-        byte[]? masterKey = null;
 
         try
         {
             serverRecoveryResponse =
                 SecureByteStringInterop.WithByteStringAsSpan(initResponse.PeerOprf, span => span.ToArray());
 
-            (byte[] record, byte[] generatedMasterKey) =
-                opaqueClient.FinalizeRegistration(serverRecoveryResponse, registrationResult);
-            recoveryRecord = record;
-            masterKey = generatedMasterKey;
+            // Master key is now derived during authentication, not generated during registration/recovery
+            recoveryRecord = opaqueClient.FinalizeRegistration(serverRecoveryResponse, registrationResult);
 
             OpaqueRecoverySecretKeyCompleteRequest completeRequest = new()
             {
                 PeerRecoveryRecord = ByteString.CopyFrom(recoveryRecord),
-                MembershipIdentifier = membershipIdentifier,
-                MasterKey = ByteString.CopyFrom(masterKey)
+                MembershipIdentifier = membershipIdentifier
             };
 
             TaskCompletionSource<OpaqueRecoverySecretKeyCompleteResponse> responseSource = new();
@@ -284,7 +280,7 @@ internal sealed class SecureKeyRecoveryService(
         }
         finally
         {
-            CleanupSensitiveRecoveryData(null, serverRecoveryResponse, recoveryRecord, masterKey);
+            CleanupSensitiveRecoveryData(null, serverRecoveryResponse, recoveryRecord, null);
         }
     }
 

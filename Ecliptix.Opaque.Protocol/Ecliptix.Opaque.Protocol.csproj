@@ -7,34 +7,13 @@
         <LangVersion>14</LangVersion>
     </PropertyGroup>
 
-  <!-- Native OPAQUE client library - Platform-specific -->
-  <ItemGroup>
-    <Content Include="NativeLibraries\macos\libopaque_client.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX')) AND Exists('NativeLibraries\macos\libopaque_client.dylib')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <TargetPath>libopaque_client.dylib</TargetPath>
-    </Content>
-    <Content Include="NativeLibraries\linux\libopaque_client.so" Condition="$([MSBuild]::IsOSPlatform('Linux')) AND Exists('NativeLibraries\linux\libopaque_client.so')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <TargetPath>libopaque_client.so</TargetPath>
-    </Content>
-    <Content Include="NativeLibraries\windows\libopaque_client.dll" Condition="$([MSBuild]::IsOSPlatform('Windows')) AND Exists('NativeLibraries\windows\libopaque_client.dll')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <TargetPath>libopaque_client.dll</TargetPath>
-    </Content>
-      <Content Include="NativeLibraries\dependencies\libsodium.dll"
-               Condition="('$(RuntimeIdentifier)' == 'win-x64' OR ('$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Windows')))) AND Exists('NativeLibraries\windows\libopaque_client.dll')">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-          <TargetPath>libsodium.dll</TargetPath>
-      </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="NativeLibraries\linux\" />
-    <Folder Include="NativeLibraries\windows\" />
-  </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Ecliptix.Utilities\Ecliptix.Utilities.csproj" />
+  </ItemGroup>
+
+  <!-- NuGet package provides native libraries for all platforms -->
+  <ItemGroup>
+    <PackageReference Include="Ecliptix.OPAQUE.Client" Version="1.0.0-ci.11" />
   </ItemGroup>
 
 </Project>

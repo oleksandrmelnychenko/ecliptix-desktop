@@ -13,7 +13,7 @@ using Ecliptix.Core.Services.Abstractions.Security;
 using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Core.Services.Authentication.Internal;
 using Ecliptix.Core.Services.Network.Rpc;
-using Ecliptix.Opaque.Protocol;
+using Ecliptix.OPAQUE.Client;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protocol.System.Utilities;
@@ -23,6 +23,7 @@ using Ecliptix.Utilities.Failures.Sodium;
 using Google.Protobuf;
 using Grpc.Core;
 using ReactiveUI;
+using Serilog;
 using Unit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.Services.Authentication;
@@ -425,6 +426,23 @@ internal sealed class OpaqueRegistrationService(
         return Result<byte[], RegistrationAttemptResult>.Ok(secureKeyCopy);
     }
 
+    private static void LogSecureKeyForDebug(string context, ByteString membershipIdentifier, ReadOnlySpan<byte> secureKey)
+    {
+        string membershipHex = membershipIdentifier.IsEmpty
+            ? string.Empty
+            : Convert.ToHexString(membershipIdentifier.ToByteArray());
+        string keyHex = secureKey.Length > 0 ? Convert.ToHexString(secureKey) : string.Empty;
+        string keyHashHex = secureKey.Length > 0 ? Convert.ToHexString(SHA256.HashData(secureKey)) : string.Empty;
+
+        Log.Information(
+            "[OPAQUE-CLIENT-SECURE-KEY] context={Context} membership={Membership} len={Length} hex={Hex} sha256={Hash}",
+            context,
+            membershipHex,
+            secureKey.Length,
+            keyHex,
+            keyHashHex);
+    }
+
     private Result<RegistrationResult, RegistrationAttemptResult> CreateAndTrackRegistrationState(
         OpaqueClient opaqueClient,
         byte[] secureKeyCopy,
@@ -448,11 +466,16 @@ internal sealed class OpaqueRegistrationService(
         OpaqueRegistrationInitResponse initResponse,
         RegistrationResult registrationState)
     {
+        Log.Information("[ECLIPTIX-OPAQUE-REGISTRATION] ProcessInitializationResponse: Result={Result}, PeerOprfLength={PeerOprfLength}",
+            initResponse.Result, initResponse.PeerOprf?.Length ?? 0);
+
         if (initResponse.Result == OpaqueRegistrationInitResponse.Types.UpdateResult.Succeeded)
         {
+            Log.Information("[ECLIPTIX-OPAQUE-REGISTRATION] Result is Succeeded, proceeding to finalization");
             return Result<Unit, RegistrationAttemptResult>.Ok(Unit.Value);
         }
 
+        Log.Warning("[ECLIPTIX-OPAQUE-REGISTRATION] Result is NOT Succeeded: {Result}", initResponse.Result);
         registrationState.Dispose();
 
         string errorMessage = initResponse.Result switch
@@ -469,8 +492,7 @@ internal sealed class OpaqueRegistrationService(
     private static void CleanupSensitiveRegistrationData(
         byte[]? secureKeyCopy,
         byte[]? serverRegistrationResponse,
-        byte[]? registrationRecord,
-        byte[]? masterKey)
+        byte[]? registrationRecord)
     {
         if (secureKeyCopy is { Length: > 0 })
         {
@@ -486,11 +508,6 @@ internal sealed class OpaqueRegistrationService(
         {
             CryptographicOperations.ZeroMemory(registrationRecord);
         }
-
-        if (masterKey is { Length: > 0 })
-        {
-            CryptographicOperations.ZeroMemory(masterKey);
-        }
     }
 
     private async Task<RegistrationAttemptResult>
@@ -503,24 +520,25 @@ internal sealed class OpaqueRegistrationService(
             RpcRequestContext requestContext,
             CancellationToken cancellationToken)
     {
+        Log.Information("[ECLIPTIX-OPAQUE-REGISTRATION] FinalizeAndCompleteRegistrationAsync: PeerOprf.Length={Length}, Expected=64",
+            initResponse.PeerOprf?.Length ?? 0);
+
         byte[] serverRegistrationResponse = new byte[initResponse.PeerOprf.Length];
         byte[]? registrationRecord = null;
-        byte[]? masterKey = null;
 
         try
         {
             initResponse.PeerOprf.Span.CopyTo(serverRegistrationResponse);
 
-            (byte[] record, byte[] generatedMasterKey) =
-                opaqueClient.FinalizeRegistration(serverRegistrationResponse, trackedRegistrationResult);
-            registrationRecord = record;
-            masterKey = generatedMasterKey;
+            Log.Information("[ECLIPTIX-OPAQUE-REGISTRATION] Calling FinalizeRegistration with response length={Length}",
+                serverRegistrationResponse.Length);
+
+            registrationRecord = opaqueClient.FinalizeRegistration(serverRegistrationResponse, trackedRegistrationResult);
 
             OpaqueRegistrationCompleteRequest completeRequest = new()
             {
                 PeerRegistrationRecord = ByteString.CopyFrom(registrationRecord),
-                MembershipIdentifier = membershipIdentifier,
-                MasterKey = ByteString.CopyFrom(masterKey)
+                MembershipIdentifier = membershipIdentifier
             };
 
             TaskCompletionSource<OpaqueRegistrationCompleteResponse> responseSource =
@@ -572,7 +590,7 @@ internal sealed class OpaqueRegistrationService(
         }
         finally
         {
-            CleanupSensitiveRegistrationData(null, serverRegistrationResponse, registrationRecord, masterKey);
+            CleanupSensitiveRegistrationData(null, serverRegistrationResponse, registrationRecord);
         }
     }
 
@@ -637,6 +655,7 @@ internal sealed class OpaqueRegistrationService(
             }
 
             secureKeyCopy = prepareResult.Unwrap().SecureKeyCopy;
+            LogSecureKeyForDebug("registration", membershipIdentifier, secureKeyCopy);
 
             Result<RegistrationResult, RegistrationAttemptResult> stateResult =
                 CreateAndTrackRegistrationState(opaqueClient, secureKeyCopy, membershipIdentifier);
@@ -673,7 +692,7 @@ internal sealed class OpaqueRegistrationService(
         finally
         {
             registrationResult?.Dispose();
-            CleanupSensitiveRegistrationData(secureKeyCopy, null, null, null);
+            CleanupSensitiveRegistrationData(secureKeyCopy, null, null);
         }
     }
 

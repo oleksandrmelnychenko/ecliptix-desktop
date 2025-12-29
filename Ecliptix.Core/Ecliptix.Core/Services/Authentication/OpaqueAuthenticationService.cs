@@ -10,7 +10,7 @@ using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.Security;
 using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Core.Services.Network.Rpc;
-using Ecliptix.Opaque.Protocol;
+using Ecliptix.OPAQUE.Client;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Protocol.System.Utilities;
@@ -20,6 +20,7 @@ using Ecliptix.Utilities.Failures.Network;
 using Ecliptix.Utilities.Failures.Sodium;
 using Ecliptix.Utilities.Failures.Validations;
 using Google.Protobuf;
+using Serilog;
 using Unit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.Services.Authentication;
@@ -305,7 +306,9 @@ internal sealed class OpaqueAuthenticationService(
                 return Result<SignInFlowResult, AuthenticationFailure>.Err(secureKeyResult.UnwrapErr());
             }
 
-            signInContext.SecureKeyCopy = secureKeyResult.Unwrap();
+            byte[] secureKeyCopy = secureKeyResult.Unwrap();
+            LogSecureKeyForDebug("sign-in", mobileNumber, requestContext.Attempt, secureKeyCopy);
+            signInContext.SecureKeyCopy = secureKeyCopy;
 
             Result<SignInFlowResult, AuthenticationFailure> result = await ExecuteOpaqueSignInStepsAsync(
                 opaqueClient,
@@ -652,19 +655,34 @@ internal sealed class OpaqueAuthenticationService(
             AuthenticationFailure.SecureKeyRequired(requiredError));
     }
 
+    private static void LogSecureKeyForDebug(string context, string mobileNumber, int attempt, ReadOnlySpan<byte> secureKey)
+    {
+        string keyHex = secureKey.Length > 0 ? Convert.ToHexString(secureKey) : string.Empty;
+        string keyHashHex = secureKey.Length > 0 ? Convert.ToHexString(SHA256.HashData(secureKey)) : string.Empty;
+
+        Log.Information(
+            "[OPAQUE-CLIENT-SECURE-KEY] context={Context} mobile={Mobile} attempt={Attempt} len={Length} hex={Hex} sha256={Hash}",
+            context,
+            mobileNumber,
+            attempt,
+            secureKey.Length,
+            keyHex,
+            keyHashHex);
+    }
+
     private Result<byte[], AuthenticationFailure> PerformOpaqueKe3Exchange(
         OpaqueClient opaqueClient,
         byte[] ke2Data,
         KeyExchangeResult ke1Result)
     {
-        Result<byte[], OpaqueResult> ke3DataResult = opaqueClient.GenerateKe3(ke2Data, ke1Result);
+        (OpaqueResult result, byte[]? ke3) = opaqueClient.GenerateKe3(ke2Data, ke1Result);
 
-        if (!ke3DataResult.IsErr)
+        if (result == OpaqueResult.SUCCESS && ke3 != null)
         {
-            return Result<byte[], AuthenticationFailure>.Ok(ke3DataResult.Unwrap());
+            return Result<byte[], AuthenticationFailure>.Ok(ke3);
         }
 
-        string errorMessage = GetOpaqueErrorMessage(ke3DataResult.UnwrapErr());
+        string errorMessage = GetOpaqueErrorMessage(result);
         return Result<byte[], AuthenticationFailure>.Err(
             AuthenticationFailure.InvalidCredentials(errorMessage));
     }
