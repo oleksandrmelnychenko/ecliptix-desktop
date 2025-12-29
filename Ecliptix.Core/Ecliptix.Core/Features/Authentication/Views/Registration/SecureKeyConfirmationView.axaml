@@ -46,8 +46,8 @@
                        FontSize="{StaticResource Font.XL}"
                        LineHeight="{StaticResource LineHeight.Subtitle}"
                        FontWeight="Normal"
-                       Foreground="{DynamicResource OnSurface}"
-                       Opacity="1" />
+                       Foreground="{DynamicResource OnSurfaceVariant}"
+                       />
         </StackPanel>
         <hintedTextControls:HintedPasswordBox
             Grid.Row="1"

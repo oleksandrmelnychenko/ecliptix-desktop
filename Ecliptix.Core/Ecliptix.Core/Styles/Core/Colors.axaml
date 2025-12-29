@@ -26,7 +26,7 @@
                     <Color x:Key="Surface">#f8f8f8</Color>
                     <Color x:Key="SurfaceVariant">#eaeaea</Color>
                     <Color x:Key="OnSurface">#0c0c0c</Color>
-                    <Color x:Key="OnSurfaceVariant">#5E5D5D</Color>
+                    <Color x:Key="OnSurfaceVariant">#6a7282</Color>
 
                     <!-- Background Colors -->
                     <Color x:Key="Background">#ffffff</Color>

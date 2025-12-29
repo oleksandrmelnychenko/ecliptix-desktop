@@ -47,7 +47,7 @@ public readonly record struct ConnectivityIntent(
         new(ConnectivityStatus.UNAVAILABLE, ConnectivityReason.NO_INTERNET, ConnectivitySource.INTERNET_PROBE);
 
     public static ConnectivityIntent InternetRecovered() =>
-        new(ConnectivityStatus.CONNECTING, ConnectivityReason.INTERNET_RECOVERED, ConnectivitySource.INTERNET_PROBE);
+        new(ConnectivityStatus.CONNECTED, ConnectivityReason.INTERNET_RECOVERED, ConnectivitySource.INTERNET_PROBE);
 
     public static ConnectivityIntent ManualRetry(uint? connectId = null) =>
         new(ConnectivityStatus.CONNECTING, ConnectivityReason.MANUAL_RETRY, ConnectivitySource.MANUAL_ACTION, null, connectId);

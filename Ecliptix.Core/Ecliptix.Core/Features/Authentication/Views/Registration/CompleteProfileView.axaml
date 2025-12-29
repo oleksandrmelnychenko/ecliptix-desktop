@@ -22,8 +22,8 @@
 
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.Title]}"
-                           FontSize="{StaticResource Font.XXL}"
-                           FontWeight="Light"
+                           FontSize="{StaticResource Font.XL}"
+                           FontWeight="Medium"
                            Foreground="{DynamicResource OnSurface}"
                            LineHeight="{StaticResource LineHeight.Loose}" />
 
@@ -33,11 +33,11 @@
 
             <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.Description]}"
                        TextWrapping="Wrap"
-                       FontSize="{StaticResource Font.XXXL}"
+                       FontSize="{StaticResource Font.XL}"
                        LineHeight="{StaticResource LineHeight.Subtitle}"
-                       FontWeight="Light"
-                       Foreground="{DynamicResource OnSurface}"
-                       Opacity="0.8" />
+                       FontWeight="Normal"
+                       Foreground="{DynamicResource OnSurfaceVariant}"
+                       />
         </StackPanel>
 
         <hintedTextControls:HintedTextBox

@@ -13,33 +13,30 @@
                  MinWidth="{StaticResource Content.MaxWidth}"
                  Width="{StaticResource Content.MaxWidth}">
 
-        <!-- Main Layout -->
-        <Grid VerticalAlignment="Top"
-              RowSpacing="{StaticResource Spacing.Authentication}"
-              RowDefinitions="Auto,Auto,Auto,Auto,Auto"
-              HorizontalAlignment="Stretch"
-              Margin="0 -5 0 0"
-              Width="{StaticResource Content.MaxWidth}">
+    <Grid VerticalAlignment="Top"
+          RowSpacing="{StaticResource Spacing.Authentication}"
+          RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+          HorizontalAlignment="Stretch"
+          Margin="0 -5 0 0"
+          Width="{StaticResource Content.MaxWidth}">
 
-            <!-- Header Section -->
             <StackPanel Grid.Row="0"
                         Spacing="{StaticResource Spacing.S+}"
                         HorizontalAlignment="Left"
                         Margin="0 0 0 5">
                 <TextBlock Text="{Binding LocalizationService[Authentication.SignIn.Title]}"
-                           FontSize="{StaticResource Font.Title.L}"
+                           FontSize="{StaticResource Font.XL}"
                            FontWeight="Medium"
                            Foreground="{DynamicResource OnSurface}"/>
                 <TextBlock Text="{Binding LocalizationService[Authentication.SignIn.Welcome]}"
                            TextWrapping="Wrap"
+                           FontWeight="Normal"
                            FontSize="{StaticResource Font.XL}"
                            LineHeight="{StaticResource LineHeight.Subtitle}"
-                           FontWeight="Normal"
-                           Foreground="{DynamicResource OnSurface}"
-                           Opacity="1" />
+                           Foreground="{DynamicResource OnSurfaceVariant}"
+                           />
             </StackPanel>
 
-            <!-- Mobile Number Input -->
             <hintedTextControls:HintedTextBox
                 Grid.Row="1"
                 x:Name="MobileTextBox"
@@ -64,7 +61,6 @@
                 FocusBorderBrush="{DynamicResource Primary}"
                 />
 
-            <!-- SecureKey Input -->
             <hintedTextControls:HintedPasswordBox
                 Grid.Row="2"
                 x:Name="SecureKeyTextBox"
@@ -89,7 +85,6 @@
                 FocusBorderBrush="{DynamicResource Primary}"
                 VisualIcon="Lock"/>
 
-            <!-- Action Buttons -->
             <Grid Grid.Row="3"
                   HorizontalAlignment="Stretch"
                   ColumnDefinitions="208*,176*"

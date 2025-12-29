@@ -27,7 +27,7 @@
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <TextBlock Text="{Binding Title}"
                            FontSize="{StaticResource Font.XL}"
-                           FontWeight="Normal"
+                           FontWeight="Medium"
                            Foreground="{DynamicResource OnSurface}"
                            LineHeight="{StaticResource LineHeight.Loose}" />
                 <coreControls:StepBadgeView Text="{Binding StepBadgeText}"
@@ -39,8 +39,8 @@
                        FontSize="{StaticResource Font.XL}"
                        LineHeight="{StaticResource LineHeight.Subtitle}"
                        FontWeight="Normal"
-                       Foreground="{DynamicResource OnSurface}"
-                       Opacity="1" />
+                       Foreground="{DynamicResource OnSurfaceVariant}"
+                       />
         </StackPanel>
 
         <hintedTextControls:HintedTextBox

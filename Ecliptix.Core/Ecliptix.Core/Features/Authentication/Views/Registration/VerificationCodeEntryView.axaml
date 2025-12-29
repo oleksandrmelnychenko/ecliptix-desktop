@@ -26,7 +26,7 @@
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Title]}"
                            FontSize="{StaticResource Font.XL}"
-                           FontWeight="Normal"
+                           FontWeight="Medium"
                            Foreground="{DynamicResource OnSurface}"
                            LineHeight="{StaticResource LineHeight.Loose}" />
                 <coreControls:StepBadgeView Text="{Binding StepBadgeText}"
@@ -36,8 +36,8 @@
             <TextBlock TextWrapping="Wrap"
                        FontSize="{StaticResource Font.XL}"
                        LineHeight="{StaticResource LineHeight.Subtitle}"
-                       FontWeight="Light"
-                       Foreground="{DynamicResource OnSurface}">
+                       FontWeight="Normal"
+                       Foreground="{DynamicResource OnSurfaceVariant}">
 
                 <Run Text="{Binding DescriptionPreText, Mode=OneWay}" /><Run Text="{Binding FormattedMobileNumber, Mode=OneWay}" FontWeight="SemiBold" Foreground="{DynamicResource OnSurface}" /><Run Text="{Binding DescriptionPostText, Mode=OneWay}" />
             </TextBlock>
