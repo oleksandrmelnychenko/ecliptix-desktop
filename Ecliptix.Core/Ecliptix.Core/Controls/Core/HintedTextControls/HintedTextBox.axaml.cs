@@ -370,24 +370,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             }, "HasError subscription"))
             .DisposeWith(_disposables);
 
-        IObservable<bool> showPhoneButtonObs = this.WhenAnyValue(
-                x => x.IsPhoneNumberMode,
-                x => x.Text)
-            .Select(tuple =>
-            {
-                (bool isPhoneMode, string text) = tuple;
-                if (!isPhoneMode)
-                {
-                    return false;
-                }
-
-                if (string.IsNullOrEmpty(text))
-                {
-                    return true;
-                }
-
-                return !text.StartsWith("+");
-            });
+        IObservable<bool> showPhoneButtonObs = this.WhenAnyValue(x => x.IsPhoneNumberMode);
 
         IObservable<bool> showVisualIconObs = Observable.CombineLatest(
             showPhoneButtonObs,

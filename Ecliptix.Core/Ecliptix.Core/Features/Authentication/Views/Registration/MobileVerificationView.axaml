@@ -65,7 +65,8 @@
             WatermarkFontSize="{StaticResource Input.WatermarkFontSize}"
             Background="{DynamicResource Surface}"
             FontWeight="Light"
-            HorizontalAlignment="Stretch" />
+            HorizontalAlignment="Stretch"
+            MaxLength="25"/>
 
         <Button Grid.Row="2"
                 Content="{Binding ButtonText}"

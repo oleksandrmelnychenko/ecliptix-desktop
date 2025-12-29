@@ -59,6 +59,7 @@
                 HorizontalAlignment="Stretch"
                 IsEnabled="{Binding !IsBusy}"
                 FocusBorderBrush="{DynamicResource Primary}"
+                MaxLength="25"
                 />
 
             <hintedTextControls:HintedPasswordBox
