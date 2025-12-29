@@ -55,8 +55,16 @@
         <StyleInclude Source="/Styles/Components/Buttons.axaml" />
         <StyleInclude Source="/Styles/Main/MainStyles.axaml" />
 
-        <Style Selector="TextElement">
+        <Style Selector=":is(TemplatedControl)">
             <Setter Property="FontFamily" Value="{StaticResource SegoeUI}" />
+        </Style>
+
+        <Style Selector="TextBlock, AccessText">
+            <Setter Property="FontFamily" Value="{StaticResource SegoeUI}" />
+        </Style>
+
+        <Style Selector="Run, InlineUIContainer">
+            <Setter Property="BaselineAlignment" Value="TextBottom" />
         </Style>
 
         <Style Selector=":is(UserControl)">

@@ -68,10 +68,6 @@
 
         <TextBlock Text="{Binding LocalizationService[Footer.Copyright]}"
                    Classes="footer"
-                   Foreground="#0a0a0a"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   TextAlignment="Center"
                    Grid.Row="2"
                    Margin="0 0 0 8"/>
     </Grid>
