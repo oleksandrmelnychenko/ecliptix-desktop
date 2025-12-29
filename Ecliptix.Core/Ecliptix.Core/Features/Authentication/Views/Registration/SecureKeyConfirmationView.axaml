@@ -10,28 +10,43 @@
              x:Class="Ecliptix.Core.Features.Authentication.Views.Registration.SecureKeyConfirmationView"
              MinWidth="{StaticResource Content.MaxWidth}"
              Width="{StaticResource Content.MaxWidth}">
-    <UserControl.Styles>
+  <UserControl.Styles>
         <Style Selector="Border.tipsBlock">
-            <Setter Property="Background" Value="#F8F0FF"/> <Setter Property="BorderBrush" Value="#EAD5FF"/> <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="#F8F8F8"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.4" Easing="CubicEaseOut"/>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.4" Easing="CubicEaseOut"/>
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Border.tipsBlock.successState">
+            <!-- <Setter Property="Background" Value="#F0FDF4"/> -->
+            <Setter Property="BorderBrush" Value="#BBF7D0"/>
         </Style>
 
         <Style Selector="TextBlock.requirement">
             <Setter Property="Foreground" Value="#5A5A5A"/>
             <Setter Property="Transitions">
                 <Transitions>
-                    <BrushTransition Property="Foreground" Duration="0:0:0.4" Easing="CubicEaseOut"/>
+                    <BrushTransition Property="Foreground" Duration="0:0:0.3" Easing="CubicEaseOut"/>
                 </Transitions>
             </Setter>
         </Style>
 
         <Style Selector="TextBlock.requirement.met">
-            <Setter Property="Foreground" Value="#16A34A"/> </Style>
+            <Setter Property="Foreground" Value="#10B981"/>
+        </Style>
 
         <Style Selector="PathIcon.status-icon">
             <Setter Property="Transitions">
                 <Transitions>
-                    <DoubleTransition Property="Opacity" Duration="0:0:0.4" Easing="CubicEaseOut"/>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.25"/>
                     <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.4" Easing="BackEaseOut"/>
+                    <BrushTransition Property="Foreground" Duration="0:0:0.3"/>
                 </Transitions>
             </Setter>
         </Style>
@@ -53,7 +68,6 @@
             <Setter Property="Opacity" Value="1"/>
             <Setter Property="RenderTransform" Value="scale(1)"/>
         </Style>
-
     </UserControl.Styles>
 
 
@@ -130,7 +144,7 @@
                                   Width="16" Height="16"
                                   IsVisible="{Binding !IsSecureKeySuccess}"/>
                         <PathIcon Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"
-                                  Foreground="#16A34A"
+                                  Foreground="#10B981"
                                   Width="16" Height="16"
                                   IsVisible="{Binding IsSecureKeySuccess}"/>
                     </Panel>
@@ -144,7 +158,7 @@
 
                     <TextBlock IsVisible="{Binding IsSecureKeySuccess}"
                                Text="{Binding RequirementsSuccessTitle}"
-                               Foreground="#16A34A"
+                               Foreground="#10B981"
                                FontWeight="SemiBold"
                                FontSize="13"
                                VerticalAlignment="Center"/>
@@ -179,7 +193,7 @@
                                     <PathIcon Classes="status-icon check"
                                               Classes.met="{Binding IsMet}"
                                               Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"
-                                              Foreground="#16A34A"
+                                              Foreground="#10B981"
                                               Width="10" Height="10"/>
                                 </Panel>
 

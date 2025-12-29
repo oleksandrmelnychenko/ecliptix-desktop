@@ -101,7 +101,7 @@
 
                                 <TextBlock Text="{Binding PhonePrefix, ElementName=Control}"
                                            Foreground="{Binding TextForeground, ElementName=Control}"
-                                           FontWeight="Medium"
+                                           FontWeight="Light"
                                            FontSize="{Binding FontSize, ElementName=Control}"
                                            VerticalAlignment="Center"/>
 
