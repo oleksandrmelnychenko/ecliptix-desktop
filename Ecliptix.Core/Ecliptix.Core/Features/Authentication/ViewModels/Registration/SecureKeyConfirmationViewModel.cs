@@ -33,7 +33,18 @@ using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
-public record RequirementItem(string Text, bool IsMet);
+public class RequirementItem : ReactiveObject
+{
+    public string Text { get; }
+
+    [Reactive] public bool IsMet { get; set; }
+
+    public RequirementItem(string text, bool isMet)
+    {
+        Text = text;
+        IsMet = isMet;
+    }
+}
 
 public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
 {
@@ -49,6 +60,7 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModel
     private readonly ISecureKeyRecoveryService _secureKeyRecoveryService;
     private readonly AuthenticationFlowContext _flowContext;
 
+    private readonly CompositeDisposable _disposables = new();
     private CancellationTokenSource? _currentOperationCts;
     private bool _hasSecureKeyBeenTouched;
     private bool _hasVerifySecureKeyBeenTouched;
@@ -76,6 +88,11 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModel
         _authenticationService = authenticationService;
         _secureKeyRecoveryService = secureKeyRecoveryService;
         _flowContext = flowContext;
+
+        ValidationTips = SecureKeyValidator.GetChecklistStatus(string.Empty, localizationService)
+            .Select(x => new RequirementItem(x.Description, false))
+            .ToList()
+            .AsReadOnly();
 
         IObservable<bool> isFormLogicallyValid = SetupValidation();
         SetupCommands(isFormLogicallyValid);
@@ -120,7 +137,7 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModel
     [Reactive] public bool HasServerError { get; private set; }
     [ObservableAsProperty] public bool CanSubmit { get; }
 
-    [ObservableAsProperty] public IReadOnlyList<RequirementItem> ValidationTips { get; private set; }
+    public IReadOnlyList<RequirementItem> ValidationTips { get; }
     [ObservableAsProperty] public bool IsSecureKeySuccess { get; private set; }
     [ObservableAsProperty] public SecureKeyStrength CurrentSecureKeyStrength { get; private set; }
     [ObservableAsProperty] public string? SecureKeyStrengthMessage { get; private set; }
@@ -334,13 +351,23 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModel
 
     private IObservable<bool> SetupSecureKeyValidation(IObservable<SystemU> validationTrigger)
     {
-        IObservable<(string? ERROR, IReadOnlyList<RequirementItem> Checklist, SecureKeyStrength Strength, bool IsSuccess)> validationResult = validationTrigger
+        IObservable<(string? ERROR, List<(string Text, bool IsMet)> Checklist, SecureKeyStrength Strength, bool IsSuccess)> validationResult = validationTrigger
             .StartWith(SystemU.Default)
-            .Select(_ => ValidateSecureKeyWithStrength())
+            .Select(_ => ValidateSecureKeyInternal())
             .Replay(1)
             .RefCount();
 
-        validationResult.Select(v => v.Checklist).ToPropertyEx(this, x => x.ValidationTips);
+        validationResult
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(v =>
+            {
+                for (int i = 0; i < v.Checklist.Count && i < ValidationTips.Count; i++)
+                {
+                    ValidationTips[i].IsMet = v.Checklist[i].IsMet;
+                }
+            })
+            .DisposeWith(_disposables); // Використовуємо _disposables
+
         validationResult.Select(v => v.IsSuccess).ToPropertyEx(this, x => x.IsSecureKeySuccess);
         validationResult.Select(v => v.Strength).ToPropertyEx(this, x => x.CurrentSecureKeyStrength);
 
@@ -351,12 +378,7 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModel
                 return v.ERROR;
             }
 
-            if (_hasSecureKeyBeenTouched)
-            {
-                return FormatSecureKeyStrengthMessage(v.Strength, null, null);
-            }
-
-            return string.Empty;
+            return _hasSecureKeyBeenTouched ? FormatSecureKeyStrengthMessage(v.Strength, null, null) : string.Empty;
         }).ToPropertyEx(this, x => x.SecureKeyStrengthMessage);
 
         this.WhenAnyValue(x => x.CurrentSecureKeyLength)
@@ -364,11 +386,8 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModel
             .ToPropertyEx(this, x => x.HasSecureKeyBeenTouched);
 
         this.WhenAnyValue(x => x.SecureKeyStrengthMessage)
-            .Subscribe(message => SecureKeyError = message);
-
-        this.WhenAnyValue(x => x.SecureKeyError)
-            .Select(e => !string.IsNullOrEmpty(e))
-            .Subscribe(flag => HasSecureKeyError = flag);
+            .Subscribe(m => SecureKeyError = m)
+            .DisposeWith(_disposables); // Додаємо DisposeWith сюди також
 
         return validationResult.Select(v => v.IsSuccess);
     }
@@ -384,7 +403,6 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModel
             .Select(match =>
             {
                 bool shouldShowError = _hasVerifySecureKeyBeenTouched && !match;
-
                 return shouldShowError
                     ? LocalizationService[AuthenticationConstants.VERIFY_SECURE_KEY_DOES_NOT_MATCH_KEY]
                     : string.Empty;
@@ -396,38 +414,29 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModel
             .RefCount();
 
         verifySecureKeyErrorStream
-            .DistinctUntilChanged()
-            .Subscribe(error => VerifySecureKeyError = error);
-
+            .Subscribe(error => VerifySecureKeyError = error)
+            .DisposeWith(_disposables);
         this.WhenAnyValue(x => x.VerifySecureKeyError)
             .Select(e => !string.IsNullOrEmpty(e))
-            .Subscribe(flag => HasVerifySecureKeyError = flag);
+            .Subscribe(flag => HasVerifySecureKeyError = flag)
+            .DisposeWith(_disposables);
 
         return secureKeysMatch;
     }
 
-    private (string? ERROR, IReadOnlyList<RequirementItem> Checklist, SecureKeyStrength Strength, bool IsSuccess) ValidateSecureKeyWithStrength()
+    private (string? ERROR, List<(string Text, bool IsMet)> Checklist, SecureKeyStrength Strength, bool IsSuccess) ValidateSecureKeyInternal()
     {
         string? error = null;
-        List<RequirementItem> checklist = new();
+        List<(string Description, bool IsMet)> checklist = new();
         SecureKeyStrength strength = SecureKeyStrength.INVALID;
         bool isSuccess = false;
 
         _secureKeyBuffer.WithSecureBytes(bytes =>
         {
             string secureKey = Encoding.UTF8.GetString(bytes);
-
-            List<(string Description, bool IsMet)> rawStatuses = SecureKeyValidator.GetChecklistStatus(secureKey, LocalizationService);
-            checklist = rawStatuses.Select(x => new RequirementItem(x.Description, x.IsMet)).ToList();
-
+            checklist = SecureKeyValidator.GetChecklistStatus(secureKey, LocalizationService);
             strength = SecureKeyValidator.EstimateSecureKeyStrength(secureKey, LocalizationService);
-
-            List<string> qualityTips = SecureKeyValidator.GetQualityRecommendations(secureKey, LocalizationService);
-
-            if (checklist.All(x => x.IsMet))
-            {
-                isSuccess = true;
-            }
+            isSuccess = checklist.All(x => x.IsMet);
         });
 
         return (error, checklist, strength, isSuccess);
@@ -636,6 +645,7 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModel
             _secureKeyBuffer.Dispose();
             _verifySecureKeyBuffer.Dispose();
             _executionErrorSubject.Dispose();
+            _disposables.Dispose();
         }
 
         _isDisposed = true;
