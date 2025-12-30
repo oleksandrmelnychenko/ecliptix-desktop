@@ -47,21 +47,23 @@
             </Grid>
             <Grid
                 Grid.Row="3"
-                ColumnDefinitions="*,*"
-                ColumnSpacing="12"
+                ColumnDefinitions="*,12,*"
                 >
                 <Button
                     Grid.Column="0"
                     x:Name="DeclineButton"
                     Content="{Binding DeclineButtonText}"
                     Command="{Binding DeclineCommand}"
-                    Classes="secondary large" />
+                    Classes="secondary large"
+                    MinWidth="0"/>
+                <!-- <Border Grid.Column="1"/> -->
                 <Button
-                    Grid.Column="1"
+                    Grid.Column="2"
                     x:Name="ConfirmButton"
                     Content="{Binding ConfirmButtonText}"
                     Command="{Binding ConfirmCommand}"
-                    Classes="primary large glow" />
+                    Classes="primary large glow"
+                    MinWidth="0"/>
             </Grid>
         </Grid>
     </Border>

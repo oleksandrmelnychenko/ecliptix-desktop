@@ -23,7 +23,9 @@ public record CountryPhoneModel(
 }
 
 
-public record CountryCodeSelectedEvent(CountryPhoneModel SelectedCountry);
+public record CountryCodeSelectedEvent(
+    CountryPhoneModel SelectedCountry,
+    string RequestorContext);
 
 public class CountryPickerItemViewModel : ReactiveObject
 {
@@ -44,16 +46,18 @@ public class CountryCodeViewModel : ReactiveObject, IActivatableViewModel, IDisp
     private readonly ISideSheetService? _sideSheetService;
     private readonly IMessageBus? _messageBus;
     private bool _isDisposed;
+    private readonly string _requestorContext;
 
     public ViewModelActivator Activator { get; } = new();
     public ObservableCollection<CountryPickerItemViewModel> Countries { get; }
     public ReactiveCommand<Unit, Unit> CloseCommand { get; }
     public ReactiveCommand<CountryPickerItemViewModel, Unit> SelectCountryCommand { get; }
 
-    public CountryCodeViewModel(IMessageBus? messageBus, string currentIsoCode = "US")
+    public CountryCodeViewModel(IMessageBus? messageBus, string currentIsoCode = "US", string requestorContext = "None")
     {
         _sideSheetService = Locator.Current.GetService<ISideSheetService>();
         _messageBus = messageBus;
+        _requestorContext = requestorContext;
 
         CountryPhoneModel[] supportedCountries = new[]
         {
@@ -88,7 +92,7 @@ public class CountryCodeViewModel : ReactiveObject, IActivatableViewModel, IDisp
 
         if (_messageBus != null)
         {
-            await _messageBus.PublishAsync(new CountryCodeSelectedEvent(selectedItem.Model));
+            await _messageBus.PublishAsync(new CountryCodeSelectedEvent(selectedItem.Model, _requestorContext));
         }
 
         if (_sideSheetService != null)

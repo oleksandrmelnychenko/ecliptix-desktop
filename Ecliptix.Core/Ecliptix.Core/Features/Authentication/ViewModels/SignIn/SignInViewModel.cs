@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
@@ -15,6 +16,7 @@ using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Authentication;
 using Ecliptix.Core.Services.Membership;
 using Ecliptix.Core.Services.Membership.Constants;
+using Ecliptix.Core.Settings;
 using Ecliptix.Core.Settings.Constants;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
@@ -42,6 +44,7 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
     private bool _hasMobileNumberBeenTouched;
     private bool _hasSecureKeyBeenTouched;
     private bool _isDisposed;
+    private bool _hasManualCountrySelection;
 
     private readonly IMessageBus? _messageBus;
 
@@ -62,6 +65,7 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
         IObservable<bool> isFormLogicallyValid = SetupValidation();
         SetupCommands(isFormLogicallyValid);
         SetupSubscriptions();
+        AttemptAutoSwitchCountry();
     }
 
     public string UrlPathSegment => "/sign-in";
@@ -85,8 +89,8 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
     [Reactive] public bool HasServerError { get; set; }
 
     [Reactive] public string CountryFlag { get; set; } = AppCultureSettingsConstants.UNITED_STATES_FLAG_PATH;
-    [Reactive] public string PhonePrefix { get; set; } = "+1";
-    [Reactive] public string CountryIso { get; set; } = "US";
+    [Reactive] public string PhonePrefix { get; set; } = AppCultureSettingsConstants.UNITED_STATES_PHONE_PREFIX;
+    [Reactive] public string CountryIso { get; set; } = AppCultureSettingsConstants.UNITED_STATES_COUNTRY_CODE;
 
     public int CurrentSecureKeyLength => _secureKeyBuffer.Length;
 
@@ -305,7 +309,7 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
         OpenCountryPickerCommand = ReactiveCommand.CreateFromTask(async () =>
         {
             await GlobalModalService.ShowRightAsync(
-                new CountryCodeViewModel(_messageBus, CountryIso),
+                new CountryCodeViewModel(_messageBus, CountryIso, "SignIn"),
                 showScrim: true,
                 isDismissable: true
             );
@@ -315,6 +319,12 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
 
     private void SetupSubscriptions()
     {
+        LanguageChanged
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(_ => AttemptAutoSwitchCountry())
+            .DisposeWith(_disposables);
+
+
         SignInCommand?
             .Where(result => result.IsErr)
             .Select(result => result.UnwrapErr())
@@ -346,6 +356,12 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
         {
             _messageBus.Subscribe<CountryCodeSelectedEvent>(evt =>
                 {
+                    if (evt.RequestorContext != "SignIn")
+                    {
+                        return Task.CompletedTask;
+                    }
+
+                    _hasManualCountrySelection = true;
                     CountryFlag = evt.SelectedCountry.FlagImagePath;
                     PhonePrefix = evt.SelectedCountry.PhonePrefix;
                     CountryIso = evt.SelectedCountry.IsoCode;
@@ -353,7 +369,38 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
                 })
                 .DisposeWith(_disposables);
         }
+    }
 
+    private void AttemptAutoSwitchCountry()
+    {
+        if (_hasManualCountrySelection)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(MobileNumber))
+        {
+            return;
+        }
+
+        try
+        {
+            CultureInfo culture = LocalizationService.CurrentCultureInfo;
+
+            (string Iso, string Prefix, string FlagPath)? countryData =
+                AppCultureSettings.Default.ResolveCountryFromCulture(culture);
+
+            if (countryData != null)
+            {
+                CountryIso = countryData.Value.Iso;
+                PhonePrefix = countryData.Value.Prefix;
+                CountryFlag = countryData.Value.FlagPath;
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Warning("Failed to auto-switch country context: " + ex.Message);
+        }
     }
 
     private string ValidateSecureKey() =>

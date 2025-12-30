@@ -40,6 +40,7 @@
         </StackPanel>
 
         <hintedTextControls:HintedTextBox
+            x:Name="ProfileNameTextBox"
             Grid.Row="1"
             Watermark="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.ProfileName.Watermark]}"
             Hint="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.ProfileName.Hint]}"
@@ -60,6 +61,7 @@
             VisualIcon="UserRound"/>
 
         <hintedTextControls:HintedTextBox
+            x:Name="DisplayNameTextBox"
             Grid.Row="2"
             Watermark="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.DisplayName.Watermark]}"
             Hint="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.DisplayName.Hint]}"
