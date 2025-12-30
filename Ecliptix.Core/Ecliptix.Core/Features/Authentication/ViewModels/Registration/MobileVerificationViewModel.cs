@@ -49,6 +49,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
     private bool _isDisposed;
     private bool _hasManualCountrySelection;
     private const int CURRENT_STEP = 1;
+    private string CountryPickerContext => $"MobileVerification.{_flowContext}";
 
     private readonly Subject<string> _executionErrorSubject = new();
     public IObservable<string> ExecutionError => _executionErrorSubject.AsObservable();
@@ -217,7 +218,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         {
             _messageBus.Subscribe<CountryCodeSelectedEvent>(evt =>
                 {
-                    if (evt.RequestorContext != "MobileVerification")
+                    if (evt.RequestorContext != CountryPickerContext)
                     {
                         return Task.CompletedTask;
                     }
@@ -278,7 +279,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         OpenCountryPickerCommand = ReactiveCommand.CreateFromTask(async () =>
         {
             await GlobalModalService.ShowRightAsync(
-                new CountryCodeViewModel(_messageBus, CountryIso, "MobileVerification"),
+                new CountryCodeViewModel(_messageBus, CountryIso, CountryPickerContext),
                 showScrim: true,
                 isDismissable: true
             );
