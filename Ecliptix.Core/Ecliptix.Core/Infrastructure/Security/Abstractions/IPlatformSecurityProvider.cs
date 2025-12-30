@@ -1,9 +1,10 @@
+using System;
 using System.Threading.Tasks;
 using Ecliptix.Utilities;
 
 namespace Ecliptix.Core.Infrastructure.Security.Abstractions;
 
-public interface IPlatformSecurityProvider
+public interface IPlatformSecurityProvider : IDisposable
 {
     Task<byte[]> GenerateSecureRandomAsync(int length);
 

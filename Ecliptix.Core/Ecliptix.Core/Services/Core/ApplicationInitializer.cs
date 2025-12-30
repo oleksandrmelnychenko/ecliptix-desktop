@@ -131,11 +131,12 @@ public sealed class ApplicationInitializer(
                 PubKeyExchangeType.DataCenterEphemeralConnect);
 
         Option<string> membershipId = ExtractMembershipId(applicationInstanceSettings);
+        Option<string> accountId = ExtractAccountId(applicationInstanceSettings);
 
         if (!isNewInstance)
         {
             Result<uint, NetworkFailure>? restoreResult =
-                await TryRestoreExistingSessionAsync(connectId, applicationInstanceSettings, membershipId)
+                await TryRestoreExistingSessionAsync(connectId, applicationInstanceSettings, membershipId, accountId)
                     .ConfigureAwait(false);
 
             if (restoreResult.HasValue)
@@ -144,7 +145,7 @@ public sealed class ApplicationInitializer(
             }
         }
 
-        return await EstablishNewSecrecyChannelAsync(applicationInstanceSettings, connectId, membershipId)
+        return await EstablishNewSecrecyChannelAsync(applicationInstanceSettings, connectId, membershipId, accountId)
             .ConfigureAwait(false);
     }
 
@@ -154,10 +155,16 @@ public sealed class ApplicationInitializer(
                 .ToString())
             : Option<string>.None;
 
+    private static Option<string> ExtractAccountId(ApplicationInstanceSettings applicationInstanceSettings) =>
+        applicationInstanceSettings.CurrentAccountId is { IsEmpty: false }
+            ? Option<string>.Some(Helpers.FromByteStringToGuid(applicationInstanceSettings.CurrentAccountId).ToString())
+            : Option<string>.None;
+
     private async Task<Result<uint, NetworkFailure>?> TryRestoreExistingSessionAsync(
         uint connectId,
         ApplicationInstanceSettings applicationInstanceSettings,
-        Option<string> membershipId)
+        Option<string> membershipId,
+        Option<string> accountId)
     {
         Result<bool, NetworkFailure> restoreResult =
             await TryRestoreSessionStateAsync(connectId, applicationInstanceSettings).ConfigureAwait(false);
@@ -172,10 +179,11 @@ public sealed class ApplicationInitializer(
             return null;
         }
 
-        if (membershipId.IsSome)
+        if (membershipId.IsSome && accountId.IsSome)
         {
             string membershipIdValue = membershipId.Value!;
-            if (await identityService.HasStoredIdentityAsync(membershipIdValue).ConfigureAwait(false))
+            string accountIdValue = accountId.Value!;
+            if (await identityService.HasStoredIdentityAsync(accountIdValue).ConfigureAwait(false))
             {
                 await stateManager.TransitionToAuthenticatedAsync(membershipIdValue).ConfigureAwait(false);
             }
@@ -187,15 +195,16 @@ public sealed class ApplicationInitializer(
     private async Task<Result<uint, NetworkFailure>> EstablishNewSecrecyChannelAsync(
         ApplicationInstanceSettings applicationInstanceSettings,
         uint connectId,
-        Option<string> membershipId)
+        Option<string> membershipId,
+        Option<string> accountId)
     {
         Option<SodiumSecureMemoryHandle> masterKeyHandle =
-            await PrepareMasterKeyHandleAsync(membershipId, applicationInstanceSettings)
+            await PrepareMasterKeyHandleAsync(accountId, applicationInstanceSettings)
                 .ConfigureAwait(false);
 
         try
         {
-            bool shouldUseAuthenticatedProtocol = masterKeyHandle.IsSome;
+            bool shouldUseAuthenticatedProtocol = masterKeyHandle.IsSome && membershipId.IsSome && accountId.IsSome;
 
             if (shouldUseAuthenticatedProtocol)
             {
@@ -204,6 +213,7 @@ public sealed class ApplicationInitializer(
                             applicationInstanceSettings,
                             connectId,
                             membershipId.Value!,
+                            accountId.Value!,
                             masterKeyHandle.Value!)
                         .ConfigureAwait(false);
 
@@ -228,22 +238,22 @@ public sealed class ApplicationInitializer(
     }
 
     private async Task<Option<SodiumSecureMemoryHandle>> PrepareMasterKeyHandleAsync(
-        Option<string> membershipId,
+        Option<string> accountId,
         ApplicationInstanceSettings applicationInstanceSettings)
     {
-        if (!membershipId.IsSome)
+        if (!accountId.IsSome)
         {
             return Option<SodiumSecureMemoryHandle>.None;
         }
 
-        string membershipIdValue = membershipId.Value!;
-        bool hasStoredIdentity = await identityService.HasStoredIdentityAsync(membershipIdValue).ConfigureAwait(false);
+        string accountIdValue = accountId.Value!;
+        bool hasStoredIdentity = await identityService.HasStoredIdentityAsync(accountIdValue).ConfigureAwait(false);
         if (!hasStoredIdentity)
         {
             return Option<SodiumSecureMemoryHandle>.None;
         }
 
-        return await TryReconstructMasterKeyAsync(membershipIdValue, applicationInstanceSettings)
+        return await TryReconstructMasterKeyAsync(accountIdValue, applicationInstanceSettings)
             .ConfigureAwait(false);
     }
 
@@ -251,6 +261,7 @@ public sealed class ApplicationInitializer(
         ApplicationInstanceSettings applicationInstanceSettings,
         uint connectId,
         string membershipId,
+        string accountId,
         SodiumSecureMemoryHandle masterKeyHandle)
     {
         if (applicationInstanceSettings.Membership?.UniqueIdentifier == null)
@@ -260,15 +271,24 @@ public sealed class ApplicationInitializer(
                     "Membership information is missing for authenticated protocol"));
         }
 
+        if (applicationInstanceSettings.CurrentAccountId == null ||
+            applicationInstanceSettings.CurrentAccountId.IsEmpty)
+        {
+            return Result<uint, NetworkFailure>.Err(
+                NetworkFailure.InvalidRequestType(
+                    "Account information is missing for authenticated protocol"));
+        }
+
         ByteString membershipByteString = applicationInstanceSettings.Membership.UniqueIdentifier;
+        ByteString accountByteString = applicationInstanceSettings.CurrentAccountId;
 
         Result<Unit, NetworkFailure> recreateResult =
             await networkProvider.RecreateProtocolWithMasterKeyAsync(
-                masterKeyHandle, membershipByteString, connectId).ConfigureAwait(false);
+                masterKeyHandle, membershipByteString, accountByteString, connectId).ConfigureAwait(false);
 
         if (recreateResult.IsErr)
         {
-            await HandleAuthenticatedProtocolFailureAsync(recreateResult.UnwrapErr(), membershipId,
+            await HandleAuthenticatedProtocolFailureAsync(recreateResult.UnwrapErr(), membershipId, accountId,
                     applicationInstanceSettings, connectId)
                 .ConfigureAwait(false);
             return null;
@@ -281,12 +301,13 @@ public sealed class ApplicationInitializer(
     private async Task HandleAuthenticatedProtocolFailureAsync(
         NetworkFailure failure,
         string membershipId,
+        string accountId,
         ApplicationInstanceSettings applicationInstanceSettings,
         uint connectId)
     {
         if (failure.FailureType == NetworkFailureType.CRITICAL_AUTHENTICATION_FAILURE)
         {
-            await CleanupCorruptedIdentityDataAsync(membershipId, applicationInstanceSettings)
+            await CleanupCorruptedIdentityDataAsync(accountId, applicationInstanceSettings)
                 .ConfigureAwait(false);
         }
 
@@ -418,10 +439,10 @@ public sealed class ApplicationInitializer(
         return Result<bool, NetworkFailure>.Ok(false);
     }
 
-    private async Task<Option<SodiumSecureMemoryHandle>> TryLoadMasterKeyFromStorageAsync(string membershipId)
+    private async Task<Option<SodiumSecureMemoryHandle>> TryLoadMasterKeyFromStorageAsync(string accountId)
     {
         Result<SodiumSecureMemoryHandle, AuthenticationFailure> loadResult =
-            await identityService.LoadMasterKeyHandleAsync(membershipId).ConfigureAwait(false);
+            await identityService.LoadMasterKeyHandleAsync(accountId).ConfigureAwait(false);
 
         if (loadResult.IsErr)
         {
@@ -444,18 +465,18 @@ public sealed class ApplicationInitializer(
     }
 
     private async Task<Option<SodiumSecureMemoryHandle>> TryReconstructMasterKeyAsync(
-        string membershipId,
+        string accountId,
         ApplicationInstanceSettings applicationInstanceSettings)
     {
         Option<SodiumSecureMemoryHandle> storageHandle =
-            await TryLoadMasterKeyFromStorageAsync(membershipId).ConfigureAwait(false);
+            await TryLoadMasterKeyFromStorageAsync(accountId).ConfigureAwait(false);
 
         if (storageHandle.IsSome)
         {
             return storageHandle;
         }
 
-        await CleanupCorruptedIdentityDataAsync(membershipId, applicationInstanceSettings).ConfigureAwait(false);
+        await CleanupCorruptedIdentityDataAsync(accountId, applicationInstanceSettings).ConfigureAwait(false);
 
         return Option<SodiumSecureMemoryHandle>.None;
     }
@@ -490,7 +511,7 @@ public sealed class ApplicationInitializer(
     }
 
     private async Task CleanupCorruptedIdentityDataAsync(
-        string membershipId,
+        string accountId,
         ApplicationInstanceSettings applicationInstanceSettings)
     {
         uint connectId = NetworkProvider.ComputeUniqueConnectId(
@@ -498,8 +519,10 @@ public sealed class ApplicationInitializer(
             PubKeyExchangeType.DataCenterEphemeralConnect);
 
         Result<Unit, Exception> cleanupResult =
-            await identityService.CleanupMembershipStateWithKeysAsync(membershipId, connectId)
+            await identityService.CleanupMembershipStateWithKeysAsync(accountId, connectId)
                 .ConfigureAwait(false);
+
+        networkProvider.ClearConnection(connectId);
 
         if (cleanupResult.IsErr)
         {

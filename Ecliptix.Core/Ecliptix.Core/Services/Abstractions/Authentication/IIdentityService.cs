@@ -8,10 +8,10 @@ namespace Ecliptix.Core.Services.Abstractions.Authentication;
 
 public interface IIdentityService
 {
-    Task<bool> HasStoredIdentityAsync(string membershipId);
+    Task<bool> HasStoredIdentityAsync(string accountId);
 
-    Task<Result<Unit, AuthenticationFailure>> StoreIdentityAsync(SodiumSecureMemoryHandle masterKeyHandle, string membershipId);
-    Task<Result<SodiumSecureMemoryHandle, AuthenticationFailure>> LoadMasterKeyHandleAsync(string membershipId);
+    Task<Result<Unit, AuthenticationFailure>> StoreIdentityAsync(SodiumSecureMemoryHandle masterKeyHandle, string accountId);
+    Task<Result<SodiumSecureMemoryHandle, AuthenticationFailure>> LoadMasterKeyHandleAsync(string accountId);
 
-    Task<Result<Unit, Exception>> CleanupMembershipStateWithKeysAsync(string membershipId, uint connectId);
+    Task<Result<Unit, Exception>> CleanupMembershipStateWithKeysAsync(string accountId, uint connectId);
 }

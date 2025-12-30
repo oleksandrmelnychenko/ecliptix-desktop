@@ -968,7 +968,7 @@ public sealed class RetryStrategy : IRetryStrategy
 
     private NetworkProvider GetNetworkProvider()
     {
-        if (_lazyNetworkProvider == null || !_lazyNetworkProvider.IsValueCreated)
+        if (_lazyNetworkProvider == null)
         {
             throw new InvalidOperationException("NetworkProvider has not been initialized");
         }

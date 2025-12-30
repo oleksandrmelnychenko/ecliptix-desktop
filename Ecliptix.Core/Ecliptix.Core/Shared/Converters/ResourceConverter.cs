@@ -17,9 +17,14 @@ public class ResourceConverter : IValueConverter
 
         string? key = value.ToString();
 
-        object? resource =  Application.Current.FindResource(key);
+        if (key != null)
+        {
+            object? resource = Application.Current!.FindResource(key);
 
-        return resource;
+            return resource;
+        }
+
+        return null;
     }
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)

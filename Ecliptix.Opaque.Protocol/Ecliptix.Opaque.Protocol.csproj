@@ -11,9 +11,8 @@
     <ProjectReference Include="..\Ecliptix.Utilities\Ecliptix.Utilities.csproj" />
   </ItemGroup>
 
-  <!-- NuGet package provides native libraries for all platforms -->
   <ItemGroup>
-    <PackageReference Include="Ecliptix.OPAQUE.Client" Version="1.0.0-ci.11" />
+    <PackageReference Include="Ecliptix.OPAQUE.Client" Version="1.0.0-ci.16" />
   </ItemGroup>
 
 </Project>

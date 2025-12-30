@@ -69,6 +69,14 @@ public static class GrpcErrorClassifier
         ex.StatusCode == StatusCode.Unauthenticated &&
         (ex.Status.Detail?.Contains("IDENTITY_KEY_DERIVATION_FAILED", System.StringComparison.Ordinal) is true);
 
+    public static bool IsMasterKeySharesNotFound(RpcException ex) =>
+        ex.StatusCode == StatusCode.Internal &&
+        (ex.Status.Detail?.Contains("master_key_shares_not_found", StringComparison.OrdinalIgnoreCase) is true);
+
+    public static bool IsMasterKeyMismatch(RpcException ex) =>
+        ex.StatusCode == StatusCode.FailedPrecondition &&
+        (ex.Status.Detail?.Contains("master_key_mismatch", StringComparison.OrdinalIgnoreCase) is true);
+
     public static bool IsAuthFlowMissing(RpcException ex)
     {
         if (ex.StatusCode != StatusCode.NotFound)

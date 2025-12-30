@@ -53,8 +53,16 @@ internal sealed class LogoutService(
 
         string membershipId = membershipResult.Unwrap();
 
+        Result<string, LogoutFailure> accountResult = await ValidateAndGetAccountAsync().ConfigureAwait(false);
+        if (accountResult.IsErr)
+        {
+            return Result<Unit, LogoutFailure>.Err(accountResult.UnwrapErr());
+        }
+
+        string accountId = accountResult.Unwrap();
+
         Result<(LogoutRequest request, uint connectId), LogoutFailure> prepareResult =
-            await PrepareLogoutRequestAsync(membershipId, reason).ConfigureAwait(false);
+            await PrepareLogoutRequestAsync(membershipId, accountId, reason).ConfigureAwait(false);
 
         if (prepareResult.IsErr)
         {
@@ -68,13 +76,13 @@ internal sealed class LogoutService(
 
         if (logoutResult.IsErr)
         {
-            return await HandleFailedLogoutAsync(logoutRequest, membershipId, reason, connectId,
+            return await HandleFailedLogoutAsync(logoutRequest, membershipId, accountId, reason, connectId,
                 cancellationToken).ConfigureAwait(false);
         }
 
         LogoutResponse response = logoutResult.Unwrap();
 
-        return await ProcessSuccessfulLogoutAsync(response, membershipId, reason, connectId, cancellationToken)
+        return await ProcessSuccessfulLogoutAsync(response, membershipId, accountId, reason, connectId, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -88,13 +96,14 @@ internal sealed class LogoutService(
     private async Task<Result<Unit, LogoutFailure>> HandleFailedLogoutAsync(
         LogoutRequest logoutRequest,
         string membershipId,
+        string accountId,
         LogoutReason reason,
         uint connectId,
         CancellationToken cancellationToken)
     {
         await TryStorePendingLogoutAsync(logoutRequest).ConfigureAwait(false);
 
-        await CompleteLogoutWithCleanupAsync(membershipId, reason, connectId, KEEP_PENDING_LOGOUT, cancellationToken)
+        await CompleteLogoutWithCleanupAsync(membershipId, accountId, reason, connectId, KEEP_PENDING_LOGOUT, cancellationToken)
             .ConfigureAwait(false);
 
         return Result<Unit, LogoutFailure>.Ok(Unit.Value);
@@ -123,8 +132,32 @@ internal sealed class LogoutService(
         return Result<string, LogoutFailure>.Ok(membershipId);
     }
 
+    private async Task<Result<string, LogoutFailure>> ValidateAndGetAccountAsync()
+    {
+        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
+            await applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync().ConfigureAwait(false);
+
+        if (settingsResult.IsErr)
+        {
+            return Result<string, LogoutFailure>.Err(
+                LogoutFailure.InvalidMembershipIdentifier("No active session found"));
+        }
+
+        ApplicationInstanceSettings settings = settingsResult.Unwrap();
+
+        if (settings.CurrentAccountId == null || settings.CurrentAccountId.IsEmpty)
+        {
+            return Result<string, LogoutFailure>.Err(
+                LogoutFailure.InvalidMembershipIdentifier("No active account found"));
+        }
+
+        string accountId = Helpers.FromByteStringToGuid(settings.CurrentAccountId).ToString();
+        return Result<string, LogoutFailure>.Ok(accountId);
+    }
+
     private async Task<Result<(LogoutRequest request, uint connectId), LogoutFailure>> PrepareLogoutRequestAsync(
         string membershipId,
+        string accountId,
         LogoutReason reason)
     {
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
@@ -152,7 +185,7 @@ internal sealed class LogoutService(
         };
 
         Result<Unit, LogoutFailure> hmacResult =
-            await _logoutProofHandler.GenerateLogoutHmacProofAsync(logoutRequest, membershipId);
+            await _logoutProofHandler.GenerateLogoutHmacProofAsync(logoutRequest, membershipId, accountId);
 
         if (hmacResult.IsErr)
         {
@@ -216,12 +249,13 @@ internal sealed class LogoutService(
     private async Task<Result<Unit, LogoutFailure>> ProcessSuccessfulLogoutAsync(
         LogoutResponse response,
         string membershipId,
+        string accountId,
         LogoutReason reason,
         uint connectId,
         CancellationToken cancellationToken)
     {
         Result<Unit, LogoutFailure> proofVerification =
-            await _logoutProofHandler.VerifyRevocationProofAsync(response, membershipId, connectId);
+            await _logoutProofHandler.VerifyRevocationProofAsync(response, membershipId, accountId, connectId);
 
         if (proofVerification.IsErr)
         {
@@ -229,7 +263,7 @@ internal sealed class LogoutService(
                 membershipId);
         }
 
-        await CompleteLogoutWithCleanupAsync(membershipId, reason, connectId, CLEAR_PENDING_LOGOUT, cancellationToken)
+        await CompleteLogoutWithCleanupAsync(membershipId, accountId, reason, connectId, CLEAR_PENDING_LOGOUT, cancellationToken)
             .ConfigureAwait(false);
 
         return Result<Unit, LogoutFailure>.Ok(Unit.Value);
@@ -296,11 +330,13 @@ internal sealed class LogoutService(
         };
     }
 
-    private async Task CompleteLogoutWithCleanupAsync(string membershipId, LogoutReason reason, uint connectId,
+    private async Task CompleteLogoutWithCleanupAsync(string membershipId, string accountId, LogoutReason reason, uint connectId,
         bool keepPendingLogout, CancellationToken cancellationToken)
     {
-        await identityService.CleanupMembershipStateWithKeysAsync(membershipId, connectId)
+        await identityService.CleanupMembershipStateWithKeysAsync(accountId, connectId)
             .ConfigureAwait(false);
+
+        networkProvider.ClearConnection(connectId);
 
         LogoutProofHandler.ClearRevocationProof(applicationSecureStorageProvider, membershipId);
 

@@ -279,7 +279,8 @@ public static class Program
             sp.GetRequiredService<IRpcServiceManager>(),
             sp.GetRequiredService<IApplicationSecureStorageProvider>(),
             sp.GetRequiredService<ISecureProtocolStateStorage>(),
-            sp.GetRequiredService<IRpcMetaDataProvider>()));
+            sp.GetRequiredService<IRpcMetaDataProvider>(),
+            sp.GetRequiredService<IIdentityService>()));
 
         services.AddSingleton<NetworkProviderServices>(sp => new NetworkProviderServices(
             sp.GetRequiredService<IConnectivityService>(),

@@ -23,6 +23,7 @@ using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Protocol.System.Native;
 using Ecliptix.Security.Certificate.Pinning.Services;
 using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures.Authentication;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Utilities.Failures.Network;
 using Ecliptix.Utilities.Failures.Sodium;
@@ -159,6 +160,70 @@ public sealed class NetworkProvider(
         PubKeyExchange peerPubKeyExchange = PubKeyExchange.Parser.ParseFrom(decryptResult.Unwrap());
         Result<Unit, EcliptixProtocolFailure> completeResult =
             nativeSessionResult.Unwrap().CompleteHandshakeAuto(peerPubKeyExchange.ToByteArray());
+        return completeResult.IsErr
+            ? Result<PubKeyExchange, NetworkFailure>.Err(completeResult.UnwrapErr().ToNetworkFailure())
+            : Result<PubKeyExchange, NetworkFailure>.Ok(peerPubKeyExchange);
+    }
+
+    /// <summary>
+    /// Derives root key from OPAQUE master key matching server-side derivation (MasterKeyService.DeriveRootKeyAsync).
+    /// Uses HKDF-SHA512 with accountId as salt and versioned info string for identity binding.
+    /// </summary>
+    private static byte[] DeriveRootKeyFromMasterKey(byte[] masterKey, Guid accountId)
+    {
+        const string rootKeyInfo = "ecliptix-protocol-root-key";
+        byte[] saltBytes = accountId.ToByteArray();
+        byte[] infoBytes = System.Text.Encoding.UTF8.GetBytes($"{rootKeyInfo}:v1:{accountId}");
+        byte[] rootKey = new byte[32]; // Same size as master key
+
+        HKDF.DeriveKey(
+            HashAlgorithmName.SHA512,
+            ikm: masterKey,
+            output: rootKey,
+            salt: saltBytes,
+            info: infoBytes);
+
+        return rootKey;
+    }
+
+    private static byte[] DeriveMasterKeyFingerprint(byte[] masterKey, Guid accountId)
+    {
+        const string fingerprintInfo = "ecliptix-master-key-fingerprint";
+        byte[] infoBytes = System.Text.Encoding.UTF8.GetBytes($"{fingerprintInfo}:v1:{accountId}");
+        using HMACSHA256 hmac = new(masterKey);
+        return hmac.ComputeHash(infoBytes);
+    }
+
+    /// <summary>
+    /// Process handshake response for authenticated channels. Uses externally derived root key
+    /// instead of X3DH-derived key to match server's OPAQUE-based derivation.
+    /// </summary>
+    private Result<PubKeyExchange, NetworkFailure> ProcessAuthenticatedHandshakeResponse(
+        SecureEnvelope responseEnvelope,
+        CertificatePinningService certificatePinningService,
+        uint connectId,
+        byte[] rootKey)
+    {
+        Result<NativeProtocolSession, EcliptixProtocolFailure> nativeSessionResult =
+            _nativeSessions.Get(connectId);
+        if (nativeSessionResult.IsErr)
+        {
+            return Result<PubKeyExchange, NetworkFailure>.Err(nativeSessionResult.UnwrapErr().ToNetworkFailure());
+        }
+
+        Result<byte[], NetworkFailure> decryptResult =
+            security.RsaChunkEncryptor.DecryptInChunks(certificatePinningService,
+                responseEnvelope.EncryptedPayload.ToByteArray());
+        if (decryptResult.IsErr)
+        {
+            return Result<PubKeyExchange, NetworkFailure>.Err(decryptResult.UnwrapErr());
+        }
+
+        PubKeyExchange peerPubKeyExchange = PubKeyExchange.Parser.ParseFrom(decryptResult.Unwrap());
+
+        // Use CompleteHandshake with OPAQUE-derived root key (matching server derivation)
+        Result<Unit, EcliptixProtocolFailure> completeResult =
+            nativeSessionResult.Unwrap().CompleteHandshake(peerPubKeyExchange.ToByteArray(), rootKey);
         return completeResult.IsErr
             ? Result<PubKeyExchange, NetworkFailure>.Err(completeResult.UnwrapErr().ToNetworkFailure())
             : Result<PubKeyExchange, NetworkFailure>.Ok(peerPubKeyExchange);
@@ -940,20 +1005,20 @@ public sealed class NetworkProvider(
         return response.Status switch
         {
             RestoreChannelResponse.Types.Status.SessionRestored =>
-                HandleSessionRestored(response, sessionState, enablePendingRegistration),
+                await HandleSessionRestoredAsync(response, sessionState, enablePendingRegistration).ConfigureAwait(false),
             RestoreChannelResponse.Types.Status.SessionNotFound =>
                 await HandleSessionNotFoundAsync(sessionState.ConnectId),
             _ => Result<bool, NetworkFailure>.Ok(false)
         };
     }
 
-    private Result<bool, NetworkFailure> HandleSessionRestored(
+    private async Task<Result<bool, NetworkFailure>> HandleSessionRestoredAsync(
         RestoreChannelResponse response,
         EcliptixSessionState sessionState,
         bool enablePendingRegistration)
     {
         Result<Unit, EcliptixProtocolFailure> syncResult =
-            SyncSecrecyChannel(sessionState, response);
+            await SyncSecrecyChannelAsync(sessionState, response).ConfigureAwait(false);
 
         if (syncResult.IsErr)
         {
@@ -1131,11 +1196,12 @@ public sealed class NetworkProvider(
         return await EstablishSecrecyChannelInternalAsync(request).ConfigureAwait(false);
     }
 
-    private Result<Unit, EcliptixProtocolFailure> SyncSecrecyChannel(
+    private async Task<Result<Unit, EcliptixProtocolFailure>> SyncSecrecyChannelAsync(
         EcliptixSessionState currentState,
         RestoreChannelResponse peerSecrecyChannelState)
     {
-        Result<Unit, EcliptixProtocolFailure> restoreResult = RestoreNativeSessionFromState(currentState);
+        Result<Unit, EcliptixProtocolFailure> restoreResult =
+            await RestoreNativeSessionFromStateAsync(currentState).ConfigureAwait(false);
         if (restoreResult.IsErr)
         {
             return restoreResult;
@@ -1190,38 +1256,135 @@ public sealed class NetworkProvider(
         return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
     }
 
-    private Result<Unit, EcliptixProtocolFailure> RestoreNativeSessionFromState(EcliptixSessionState state)
+    private static bool TryResolveMembershipGuid(string membershipId, out Guid membershipGuid)
     {
-        if (state.NativeState.Length == 0 ||
-            state.OpaqueMasterKey.Length != CryptographicConstants.AES_KEY_SIZE ||
-            string.IsNullOrWhiteSpace(state.MembershipId))
+        if (Guid.TryParse(membershipId, out membershipGuid))
+        {
+            return true;
+        }
+
+        try
+        {
+            byte[] decoded = Convert.FromBase64String(membershipId);
+            membershipGuid = Helpers.FromByteStringToGuid(ByteString.CopyFrom(decoded));
+            return true;
+        }
+        catch
+        {
+            membershipGuid = Guid.Empty;
+            return false;
+        }
+    }
+
+    private async Task<Result<Unit, EcliptixProtocolFailure>> RestoreNativeSessionFromStateAsync(
+        EcliptixSessionState state)
+    {
+        if (state.NativeState.Length == 0)
         {
             return Result<Unit, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.InvalidInput("Missing native state for restoration"));
         }
 
-        byte[] nativeStateBytes = state.NativeState.ToByteArray();
-        byte[] masterKeyBytes = state.OpaqueMasterKey.ToByteArray();
-        Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure> nativeIdentityResult =
-            NativeProtocolSystem.CreateIdentityFromSeed(masterKeyBytes, state.MembershipId);
-        if (nativeIdentityResult.IsErr)
+        bool resolvedFromState = TryResolveMembershipGuid(state.MembershipId, out Guid membershipGuid);
+        if (!resolvedFromState)
         {
-            return Result<Unit, EcliptixProtocolFailure>.Err(nativeIdentityResult.UnwrapErr());
+            if (_applicationInstanceSettings.IsSome &&
+                _applicationInstanceSettings.Value!.Membership?.UniqueIdentifier != null)
+            {
+                membershipGuid =
+                    Helpers.FromByteStringToGuid(_applicationInstanceSettings.Value!.Membership!.UniqueIdentifier);
+            }
+            else
+            {
+                return Result<Unit, EcliptixProtocolFailure>.Err(
+                    EcliptixProtocolFailure.InvalidInput("Invalid membership identifier for restoration"));
+            }
         }
 
-        EcliptixIdentityKeysWrapper nativeIdentity = nativeIdentityResult.Unwrap();
-        Result<NativeProtocolSession, EcliptixProtocolFailure> nativeImportResult =
-            _nativeSessions.CreateOrReplaceFromState(
-                state.ConnectId,
-                nativeIdentity,
-                nativeStateBytes,
-                this.OnProtocolStateChanged);
-        if (nativeImportResult.IsErr)
+        if (resolvedFromState &&
+            _applicationInstanceSettings.IsSome &&
+            _applicationInstanceSettings.Value!.Membership?.UniqueIdentifier != null)
         {
-            return Result<Unit, EcliptixProtocolFailure>.Err(nativeImportResult.UnwrapErr());
+            Guid expectedMembershipId =
+                Helpers.FromByteStringToGuid(_applicationInstanceSettings.Value!.Membership!.UniqueIdentifier);
+            if (expectedMembershipId != membershipGuid)
+            {
+                return Result<Unit, EcliptixProtocolFailure>.Err(
+                    EcliptixProtocolFailure.InvalidInput("Membership identifier mismatch for restoration"));
+            }
         }
 
-        return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
+        Guid accountGuid;
+        if (!state.AccountId.IsEmpty)
+        {
+            accountGuid = Helpers.FromByteStringToGuid(state.AccountId);
+        }
+        else if (_applicationInstanceSettings.IsSome &&
+                 _applicationInstanceSettings.Value!.CurrentAccountId != null &&
+                 !_applicationInstanceSettings.Value!.CurrentAccountId.IsEmpty)
+        {
+            accountGuid = Helpers.FromByteStringToGuid(_applicationInstanceSettings.Value!.CurrentAccountId);
+        }
+        else
+        {
+            return Result<Unit, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.InvalidInput("Account identifier missing for restoration"));
+        }
+
+        Result<SodiumSecureMemoryHandle, AuthenticationFailure> masterKeyResult =
+            await dependencies.IdentityService.LoadMasterKeyHandleAsync(accountGuid.ToString())
+                .ConfigureAwait(false);
+
+        if (masterKeyResult.IsErr)
+        {
+            return Result<Unit, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.InvalidInput(
+                    $"Missing master key for restoration: {masterKeyResult.UnwrapErr().Message}"));
+        }
+
+        byte[]? masterKeyBytes = null;
+        using SodiumSecureMemoryHandle masterKeyHandle = masterKeyResult.Unwrap();
+
+        try
+        {
+            Result<byte[], SodiumFailure> readResult = masterKeyHandle.ReadBytes(masterKeyHandle.Length);
+            if (readResult.IsErr)
+            {
+                return Result<Unit, EcliptixProtocolFailure>.Err(
+                    EcliptixProtocolFailure.InvalidInput(
+                        $"Failed to read master key for restoration: {readResult.UnwrapErr().Message}"));
+            }
+
+            masterKeyBytes = readResult.Unwrap();
+            byte[] nativeStateBytes = state.NativeState.ToByteArray();
+            Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure> nativeIdentityResult =
+                NativeProtocolSystem.CreateIdentityFromSeed(masterKeyBytes, accountGuid.ToString());
+            if (nativeIdentityResult.IsErr)
+            {
+                return Result<Unit, EcliptixProtocolFailure>.Err(nativeIdentityResult.UnwrapErr());
+            }
+
+            EcliptixIdentityKeysWrapper nativeIdentity = nativeIdentityResult.Unwrap();
+            Result<NativeProtocolSession, EcliptixProtocolFailure> nativeImportResult =
+                _nativeSessions.CreateOrReplaceFromState(
+                    state.ConnectId,
+                    nativeIdentity,
+                    nativeStateBytes,
+                    this.OnProtocolStateChanged);
+            if (nativeImportResult.IsErr)
+            {
+                return Result<Unit, EcliptixProtocolFailure>.Err(nativeImportResult.UnwrapErr());
+            }
+
+            return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
+        }
+        finally
+        {
+            if (masterKeyBytes != null)
+            {
+                CryptographicOperations.ZeroMemory(masterKeyBytes);
+            }
+        }
     }
 
     private static uint GenerateLogicalOperationId(uint connectId, RpcServiceType serviceType, byte[] plainBuffer)
@@ -2119,23 +2282,23 @@ public sealed class NetworkProvider(
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(existingState.MembershipId) &&
-            existingState.OpaqueMasterKey.Length != CryptographicConstants.AES_KEY_SIZE)
-        {
-            Log.Warning(
-                "[CLIENT-STATE-PERSIST] Skipping state update because stored master key is missing/invalid. ConnectId: {ConnectId}",
-                connectId);
-            return;
-        }
-
         EcliptixSessionState state = existingState.Clone();
         state.ConnectId = connectId;
         state.NativeState = ByteString.CopyFrom(exportResult.Unwrap());
+        state.OpaqueMasterKey = ByteString.Empty;
 
         if (_applicationInstanceSettings.IsSome && string.IsNullOrWhiteSpace(state.MembershipId))
         {
             state.MembershipId = _applicationInstanceSettings.Value!.Membership?.UniqueIdentifier.ToBase64() ??
                                  string.Empty;
+        }
+
+        if (_applicationInstanceSettings.IsSome &&
+            _applicationInstanceSettings.Value!.CurrentAccountId != null &&
+            _applicationInstanceSettings.Value!.CurrentAccountId.Length > 0 &&
+            state.AccountId.IsEmpty)
+        {
+            state.AccountId = _applicationInstanceSettings.Value!.CurrentAccountId;
         }
 
         await PersistSessionStateAsync(state, connectId, membershipId).ConfigureAwait(false);
@@ -2677,6 +2840,7 @@ public sealed class NetworkProvider(
     public async Task<Result<Unit, NetworkFailure>> RecreateProtocolWithMasterKeyAsync(
         SodiumSecureMemoryHandle masterKeyHandle,
         ByteString membershipIdentifier,
+        ByteString accountIdentifier,
         uint connectId)
     {
         RetryBehavior retryBehavior =
@@ -2685,12 +2849,33 @@ public sealed class NetworkProvider(
             async (_, _) => await RecreateProtocolWithMasterKeyAsyncInternal(
                 masterKeyHandle,
                 membershipIdentifier,
+                accountIdentifier,
                 connectId).ConfigureAwait(false),
             "RecreateProtocolWithMasterKey",
             connectId,
             serviceType: RpcServiceType.EstablishAuthenticatedSecureChannel,
             maxRetries: retryBehavior.MaxAttempts - 1,
             cancellationToken: CancellationToken.None).ConfigureAwait(false);
+
+        // If server doesn't have master key shares (fresh server), fallback to fresh handshake
+        if (networkResult.IsErr &&
+            networkResult.UnwrapErr().FailureType == NetworkFailureType.MASTER_KEY_SHARES_NOT_FOUND)
+        {
+            Log.Warning("[RecreateProtocolWithMasterKey] Server missing master key shares, falling back to fresh handshake");
+            Result<EcliptixSessionState, NetworkFailure> freshResult =
+                await EstablishSecrecyChannelAsync(connectId).ConfigureAwait(false);
+
+            if (freshResult.IsOk)
+            {
+                if (Volatile.Read(ref _outageState) == 1)
+                {
+                    ExitOutage();
+                }
+                return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+            }
+
+            return Result<Unit, NetworkFailure>.Err(freshResult.UnwrapErr());
+        }
 
         if (networkResult.IsOk && Volatile.Read(ref _outageState) == 1)
         {
@@ -2703,9 +2888,11 @@ public sealed class NetworkProvider(
     private async Task<Result<Unit, NetworkFailure>> RecreateProtocolWithMasterKeyAsyncInternal(
         SodiumSecureMemoryHandle masterKeyHandle,
         ByteString membershipIdentifier,
+        ByteString accountIdentifier,
         uint connectId)
     {
         byte[]? masterKeyBytes = null;
+        byte[]? masterKeyFingerprint = null;
         EcliptixIdentityKeysWrapper? nativeIdentity = null;
 
         try
@@ -2719,10 +2906,19 @@ public sealed class NetworkProvider(
             }
 
             masterKeyBytes = readResult.Unwrap();
-            string membershipId = Helpers.FromByteStringToGuid(membershipIdentifier).ToString();
+
+            if (accountIdentifier.IsEmpty)
+            {
+                return Result<Unit, NetworkFailure>.Err(
+                    NetworkFailure.InvalidRequestType("Missing account identifier for authenticated protocol"));
+            }
+
+            Guid accountGuid = Helpers.FromByteStringToGuid(accountIdentifier);
+            string accountId = accountGuid.ToString();
+            masterKeyFingerprint = DeriveMasterKeyFingerprint(masterKeyBytes, accountGuid);
 
             Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure> nativeIdentityResult =
-                NativeProtocolSystem.CreateIdentityFromSeed(masterKeyBytes, membershipId);
+                NativeProtocolSystem.CreateIdentityFromSeed(masterKeyBytes, accountId);
             if (nativeIdentityResult.IsErr)
             {
                 return Result<Unit, NetworkFailure>.Err(
@@ -2752,16 +2948,15 @@ public sealed class NetworkProvider(
                     nativeHandshake.UnwrapErr().ToNetworkFailure());
             }
 
-            PubKeyExchange clientExchange = new()
-            {
-                State = PubKeyExchangeState.Init,
-                OfType = exchangeType,
-                Payload = ByteString.CopyFrom(nativeHandshake.Unwrap())
-            };
+            // Parse the native output as PubKeyExchange (it already contains the full bundle with Kyber key)
+            PubKeyExchange clientExchange = PubKeyExchange.Parser.ParseFrom(nativeHandshake.Unwrap());
 
             AuthenticatedEstablishRequest authenticatedRequest = new()
             {
-                MembershipUniqueId = membershipIdentifier, ClientPubKeyExchange = clientExchange
+                MembershipUniqueId = membershipIdentifier,
+                AccountUniqueId = accountIdentifier,
+                ClientPubKeyExchange = clientExchange,
+                MasterKeyFingerprint = ByteString.CopyFrom(masterKeyFingerprint)
             };
 
             Result<SecureEnvelope, NetworkFailure> serverResponseResult =
@@ -2785,15 +2980,18 @@ public sealed class NetworkProvider(
                     NetworkFailure.RsaEncryption("Failed to initialize certificate pinning service"));
             }
 
+            // Derive root key from OPAQUE master key (matching server-side derivation)
+            byte[] rootKey = DeriveRootKeyFromMasterKey(masterKeyBytes, accountGuid);
+
             Result<PubKeyExchange, NetworkFailure> processResult =
-                ProcessNativeHandshakeResponse(serverResponseResult.Unwrap(), certificatePinningService.Value!,
-                    new SecrecyChannelRequest(
-                        connectId,
-                        exchangeType,
-                        null,
-                        true,
-                        false,
-                        CancellationToken.None));
+                ProcessAuthenticatedHandshakeResponse(
+                    serverResponseResult.Unwrap(),
+                    certificatePinningService.Value!,
+                    connectId,
+                    rootKey);
+
+            // Wipe derived root key after use
+            CryptographicOperations.ZeroMemory(rootKey);
 
             if (processResult.IsErr)
             {
@@ -2827,7 +3025,7 @@ public sealed class NetworkProvider(
                 NativeState = ByteString.CopyFrom(nativeExport.Unwrap()),
                 NativePeerBundle = processResult.Unwrap().Payload,
                 NativeIsInitiator = true,
-                OpaqueMasterKey = ByteString.CopyFrom(masterKeyBytes),
+                AccountId = accountIdentifier,
                 MembershipId = _applicationInstanceSettings.IsSome
                     ? _applicationInstanceSettings.Value!.Membership?.UniqueIdentifier.ToBase64() ?? string.Empty
                     : string.Empty
@@ -2848,6 +3046,10 @@ public sealed class NetworkProvider(
             if (masterKeyBytes != null)
             {
                 CryptographicOperations.ZeroMemory(masterKeyBytes);
+            }
+            if (masterKeyFingerprint != null)
+            {
+                CryptographicOperations.ZeroMemory(masterKeyFingerprint);
             }
         }
     }

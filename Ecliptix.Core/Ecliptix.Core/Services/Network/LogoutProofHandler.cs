@@ -24,12 +24,14 @@ public class LogoutProofHandler(
     public async Task<Result<Unit, LogoutFailure>> VerifyRevocationProofAsync(
         LogoutResponse response,
         string membershipId,
+        string accountId,
         uint connectId) =>
         await VerifyRevocationProofInternalAsync(
             identityService,
             applicationSecureStorageProvider,
             response,
             membershipId,
+            accountId,
             connectId);
 
     private static async Task<Result<Unit, LogoutFailure>> VerifyRevocationProofInternalAsync(
@@ -37,6 +39,7 @@ public class LogoutProofHandler(
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         LogoutResponse response,
         string membershipId,
+        string accountId,
         uint connectId)
     {
         Result<byte[], LogoutFailure> proofValidation = ValidateRevocationProofFormat(response);
@@ -59,6 +62,7 @@ public class LogoutProofHandler(
             identityService,
             applicationSecureStorageProvider,
             membershipId,
+            accountId,
             connectId,
             response.ServerTimestamp,
             parsed,
@@ -222,6 +226,7 @@ public class LogoutProofHandler(
         IIdentityService identityService,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         string membershipId,
+        string accountId,
         uint connectId,
         long serverTimestamp,
         ParsedProof parsed,
@@ -231,7 +236,7 @@ public class LogoutProofHandler(
 
         try
         {
-            Result<byte[], LogoutFailure> proofKeyResult = await LoadProofKeyAsync(identityService, membershipId);
+            Result<byte[], LogoutFailure> proofKeyResult = await LoadProofKeyAsync(identityService, accountId);
             if (proofKeyResult.IsErr)
             {
                 return Result<Unit, LogoutFailure>.Err(proofKeyResult.UnwrapErr());
@@ -269,10 +274,10 @@ public class LogoutProofHandler(
 
     private static async Task<Result<byte[], LogoutFailure>> LoadProofKeyAsync(
         IIdentityService identityService,
-        string membershipId)
+        string accountId)
     {
         Result<SodiumSecureMemoryHandle, AuthenticationFailure> handleResult =
-            await identityService.LoadMasterKeyHandleAsync(membershipId).ConfigureAwait(false);
+            await identityService.LoadMasterKeyHandleAsync(accountId).ConfigureAwait(false);
 
         if (handleResult.IsErr)
         {
@@ -374,7 +379,8 @@ public class LogoutProofHandler(
 
     public async Task<Result<Unit, LogoutFailure>> GenerateLogoutHmacProofAsync(
         LogoutRequest request,
-        string membershipId)
+        string membershipId,
+        string accountId)
     {
         SodiumSecureMemoryHandle? masterKeyHandle = null;
         byte[]? hmacKey = null;
@@ -382,7 +388,7 @@ public class LogoutProofHandler(
         try
         {
             Result<SodiumSecureMemoryHandle, AuthenticationFailure> handleResult =
-                await identityService.LoadMasterKeyHandleAsync(membershipId).ConfigureAwait(false);
+                await identityService.LoadMasterKeyHandleAsync(accountId).ConfigureAwait(false);
 
             if (handleResult.IsErr)
             {

@@ -51,7 +51,8 @@ internal sealed class OpaqueAuthenticationService(
 
     private sealed record SignInFlowResult(
         SodiumSecureMemoryHandle MasterKeyHandle,
-        ByteString MembershipIdentifier) : IDisposable
+        ByteString MembershipIdentifier,
+        ByteString AccountIdentifier) : IDisposable
     {
         public void Dispose() => MasterKeyHandle.Dispose();
     }
@@ -124,6 +125,7 @@ internal sealed class OpaqueAuthenticationService(
                 Result<Unit, AuthenticationFailure> protocolResult = await RecreateAuthenticatedProtocolAsync(
                     signInFlowResult.MasterKeyHandle,
                     signInFlowResult.MembershipIdentifier,
+                    signInFlowResult.AccountIdentifier,
                     connectId).ConfigureAwait(false);
 
                 if (protocolResult.IsOk)
@@ -190,7 +192,7 @@ internal sealed class OpaqueAuthenticationService(
         };
     }
 
-    private static bool ValidateMembershipIdentifier(ByteString identifier)
+    private static bool ValidateGuidIdentifier(ByteString identifier)
     {
         if (identifier.Length != CryptographicConstants.GUID_BYTE_LENGTH)
         {
@@ -492,14 +494,30 @@ internal sealed class OpaqueAuthenticationService(
         if (!signInResult.Membership.IsSome)
         {
             return Result<SignInFlowResult, AuthenticationFailure>.Ok(
-                new SignInFlowResult(masterKeyHandle, ByteString.Empty));
+                new SignInFlowResult(masterKeyHandle, ByteString.Empty, ByteString.Empty));
         }
 
         Ecliptix.Protobuf.Membership.Membership membership = signInResult.Membership.Value!;
         ByteString membershipIdentifier = membership.UniqueIdentifier;
 
+        ByteString? accountIdentifier = signInResult.ActiveAccount.Match(
+            account => account.UniqueIdentifier ?? null,
+            () => null);
+
+        if (accountIdentifier == null && membership.AccountUniqueIdentifier != null &&
+            membership.AccountUniqueIdentifier.Length > 0)
+        {
+            accountIdentifier = membership.AccountUniqueIdentifier;
+        }
+
+        if (accountIdentifier == null || accountIdentifier.IsEmpty)
+        {
+            return Result<SignInFlowResult, AuthenticationFailure>.Err(
+                AuthenticationFailure.UnexpectedError("Missing account identifier for authenticated session"));
+        }
+
         Result<SodiumSecureMemoryHandle, AuthenticationFailure> masterKeyValidationResult =
-            DeriveMasterKeyForMembership(masterKeyHandle, membershipIdentifier);
+            ValidateAccountIdentifierForMasterKey(masterKeyHandle, accountIdentifier);
 
         if (masterKeyValidationResult.IsErr)
         {
@@ -507,14 +525,15 @@ internal sealed class OpaqueAuthenticationService(
         }
 
         Result<Unit, AuthenticationFailure> storeResult =
-            await StoreIdentityAndMembershipAsync(masterKeyHandle, signInResult).ConfigureAwait(false);
+            await StoreIdentityAndMembershipAsync(masterKeyHandle, signInResult, accountIdentifier)
+                .ConfigureAwait(false);
 
         if (storeResult.IsErr)
         {
             return Result<SignInFlowResult, AuthenticationFailure>.Err(storeResult.UnwrapErr());
         }
 
-        SignInFlowResult flowResult = new(masterKeyHandle, membershipIdentifier);
+        SignInFlowResult flowResult = new(masterKeyHandle, membershipIdentifier, accountIdentifier);
 
         return Result<SignInFlowResult, AuthenticationFailure>.Ok(flowResult);
     }
@@ -725,11 +744,18 @@ internal sealed class OpaqueAuthenticationService(
     private async Task<Result<Unit, AuthenticationFailure>> RecreateAuthenticatedProtocolAsync(
         SodiumSecureMemoryHandle masterKeyHandle,
         ByteString membershipIdentifier,
+        ByteString accountIdentifier,
         uint connectId)
     {
+        if (membershipIdentifier.IsEmpty || accountIdentifier.IsEmpty)
+        {
+            return Result<Unit, AuthenticationFailure>.Err(
+                AuthenticationFailure.UnexpectedError("Missing membership or account identifier for authentication"));
+        }
+
         Result<Unit, NetworkFailure> recreateProtocolResult =
             await networkProvider.RecreateProtocolWithMasterKeyAsync(
-                masterKeyHandle, membershipIdentifier, connectId).ConfigureAwait(false);
+                masterKeyHandle, membershipIdentifier, accountIdentifier, connectId).ConfigureAwait(false);
 
         if (recreateProtocolResult.IsErr)
         {
@@ -750,11 +776,11 @@ internal sealed class OpaqueAuthenticationService(
         return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);
     }
 
-    private Result<SodiumSecureMemoryHandle, AuthenticationFailure> DeriveMasterKeyForMembership(
+    private Result<SodiumSecureMemoryHandle, AuthenticationFailure> ValidateAccountIdentifierForMasterKey(
         SodiumSecureMemoryHandle masterKeyHandle,
-        ByteString membershipIdentifier)
+        ByteString accountIdentifier)
     {
-        if (!ValidateMembershipIdentifier(membershipIdentifier))
+        if (!ValidateGuidIdentifier(accountIdentifier))
         {
             return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
                 AuthenticationFailure.InvalidMembershipIdentifier(
@@ -776,14 +802,15 @@ internal sealed class OpaqueAuthenticationService(
 
     private async Task<Result<Unit, AuthenticationFailure>> StoreIdentityAndMembershipAsync(
         SodiumSecureMemoryHandle masterKeyHandle,
-        SignInResult signInResult)
+        SignInResult signInResult,
+        ByteString accountIdentifier)
     {
         Ecliptix.Protobuf.Membership.Membership membership = signInResult.Membership.Value!;
         ByteString membershipIdentifier = membership.UniqueIdentifier;
-        Guid membershipId = Helpers.FromByteStringToGuid(membershipIdentifier);
+        Guid accountId = Helpers.FromByteStringToGuid(accountIdentifier);
 
         Result<Unit, AuthenticationFailure> storeResult = await identityService
-            .StoreIdentityAsync(masterKeyHandle, membershipId.ToString()).ConfigureAwait(false);
+            .StoreIdentityAsync(masterKeyHandle, accountId.ToString()).ConfigureAwait(false);
 
         if (storeResult.IsErr)
         {
@@ -794,23 +821,8 @@ internal sealed class OpaqueAuthenticationService(
             .SetApplicationMembershipAsync(membership)
             .ConfigureAwait(false);
 
-        ByteString? accountIdToStore = signInResult.ActiveAccount.Match(
-            account => account.UniqueIdentifier ?? null,
-            () => null);
-
-        if (accountIdToStore == null && membership.AccountUniqueIdentifier != null &&
-            membership.AccountUniqueIdentifier.Length > 0)
-        {
-            accountIdToStore = membership.AccountUniqueIdentifier;
-        }
-
-        if (accountIdToStore == null)
-        {
-            return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);
-        }
-
         await applicationSecureStorageProvider
-            .SetCurrentAccountIdAsync(accountIdToStore)
+            .SetCurrentAccountIdAsync(accountIdentifier)
             .ConfigureAwait(false);
 
         return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);

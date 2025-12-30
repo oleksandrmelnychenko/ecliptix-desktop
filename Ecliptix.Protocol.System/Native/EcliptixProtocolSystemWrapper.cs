@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.InteropServices;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
@@ -17,7 +16,7 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
     public static Result<EcliptixProtocolSystemWrapper, EcliptixProtocolFailure> Create(
         EcliptixIdentityKeysWrapper identityKeys)
     {
-        if (identityKeys == null || identityKeys.IsDisposed)
+        if (identityKeys.IsDisposed)
         {
             return Result<EcliptixProtocolSystemWrapper, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.InvalidInput("Identity keys are null or disposed"));
@@ -28,16 +27,16 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
             out IntPtr handle,
             out EcliptixError error);
 
-        if (result != EcliptixErrorCode.Success)
+        if (result == EcliptixErrorCode.SUCCESS)
         {
-            string errorMessage = error.GetMessage();
-            EcliptixNativeInterop.ecliptix_error_free(ref error);
-            return Result<EcliptixProtocolSystemWrapper, EcliptixProtocolFailure>.Err(
-                ConvertError(result, errorMessage));
+            return Result<EcliptixProtocolSystemWrapper, EcliptixProtocolFailure>.Ok(
+                new EcliptixProtocolSystemWrapper(handle, identityKeys));
         }
 
-        return Result<EcliptixProtocolSystemWrapper, EcliptixProtocolFailure>.Ok(
-            new EcliptixProtocolSystemWrapper(handle, identityKeys));
+        string errorMessage = error.GetMessage();
+        EcliptixNativeInterop.ecliptix_error_free(ref error);
+        return Result<EcliptixProtocolSystemWrapper, EcliptixProtocolFailure>.Err(
+            ConvertError(result, errorMessage));
     }
 
     public static Result<EcliptixProtocolSystemWrapper, EcliptixProtocolFailure> CreateFromRoot(
@@ -46,17 +45,17 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
         byte[] peerBundle,
         bool isInitiator)
     {
-        if (identityKeys == null || identityKeys.IsDisposed)
+        if (identityKeys.IsDisposed)
         {
             return Result<EcliptixProtocolSystemWrapper, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.InvalidInput("Identity keys are null or disposed"));
         }
-        if (rootKey == null || rootKey.Length != 32)
+        if (rootKey.Length != 32)
         {
             return Result<EcliptixProtocolSystemWrapper, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.InvalidInput("Root key must be 32 bytes"));
         }
-        if (peerBundle == null || peerBundle.Length == 0)
+        if (peerBundle.Length == 0)
         {
             return Result<EcliptixProtocolSystemWrapper, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.InvalidInput("Peer bundle is missing"));
@@ -72,7 +71,7 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
             out IntPtr handle,
             out EcliptixError error);
 
-        if (result != EcliptixErrorCode.Success)
+        if (result != EcliptixErrorCode.SUCCESS)
         {
             string errorMessage = error.GetMessage();
             EcliptixNativeInterop.ecliptix_error_free(ref error);
@@ -120,7 +119,7 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
                 in _callbacks,
                 out EcliptixError error);
 
-            if (result != EcliptixErrorCode.Success)
+            if (result != EcliptixErrorCode.SUCCESS)
             {
                 string errorMessage = error.GetMessage();
                 EcliptixNativeInterop.ecliptix_error_free(ref error);
@@ -148,12 +147,6 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
     {
         ThrowIfDisposed();
 
-        if (plaintext == null)
-        {
-            return Result<byte[], EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.InvalidInput("Plaintext is null"));
-        }
-
         IntPtr bufferPtr = EcliptixNativeInterop.ecliptix_buffer_allocate(0);
         if (bufferPtr == IntPtr.Zero)
         {
@@ -168,7 +161,7 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
             bufferPtr,
             out EcliptixError error);
 
-        if (result != EcliptixErrorCode.Success)
+        if (result != EcliptixErrorCode.SUCCESS)
         {
             string errorMessage = error.GetMessage();
             EcliptixNativeInterop.ecliptix_error_free(ref error);
@@ -194,12 +187,6 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
     {
         ThrowIfDisposed();
 
-        if (encryptedEnvelope == null)
-        {
-            return Result<byte[], EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.InvalidInput("Encrypted envelope is null"));
-        }
-
         IntPtr bufferPtr = EcliptixNativeInterop.ecliptix_buffer_allocate(0);
         if (bufferPtr == IntPtr.Zero)
         {
@@ -214,7 +201,7 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
             bufferPtr,
             out EcliptixError error);
 
-        if (result != EcliptixErrorCode.Success)
+        if (result != EcliptixErrorCode.SUCCESS)
         {
             string errorMessage = error.GetMessage();
             EcliptixNativeInterop.ecliptix_error_free(ref error);
@@ -256,7 +243,7 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
             bufferPtr,
             out EcliptixError error);
 
-        if (result != EcliptixErrorCode.Success)
+        if (result != EcliptixErrorCode.SUCCESS)
         {
             string errorMessage = error.GetMessage();
             EcliptixNativeInterop.ecliptix_error_free(ref error);
@@ -312,7 +299,7 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
             bufferPtr,
             out EcliptixError error);
 
-        if (result != EcliptixErrorCode.Success)
+        if (result != EcliptixErrorCode.SUCCESS)
         {
             string errorMessage = error.GetMessage();
             EcliptixNativeInterop.ecliptix_error_free(ref error);
@@ -338,12 +325,6 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
     {
         ThrowIfDisposed();
 
-        if (peerHandshakeMessage == null || rootKey == null)
-        {
-            return Result<Unit, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.InvalidInput("Handshake or root key is null"));
-        }
-
         EcliptixErrorCode result = EcliptixNativeInterop.ecliptix_protocol_system_complete_handshake(
             _handle,
             peerHandshakeMessage,
@@ -352,7 +333,7 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
             (nuint)rootKey.Length,
             out EcliptixError error);
 
-        if (result != EcliptixErrorCode.Success)
+        if (result != EcliptixErrorCode.SUCCESS)
         {
             string errorMessage = error.GetMessage();
             EcliptixNativeInterop.ecliptix_error_free(ref error);
@@ -367,19 +348,13 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
     {
         ThrowIfDisposed();
 
-        if (peerHandshakeMessage == null)
-        {
-            return Result<Unit, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.InvalidInput("Handshake is null"));
-        }
-
         EcliptixErrorCode result = EcliptixNativeInterop.ecliptix_protocol_system_complete_handshake_auto(
             _handle,
             peerHandshakeMessage,
             (nuint)peerHandshakeMessage.Length,
             out EcliptixError error);
 
-        if (result != EcliptixErrorCode.Success)
+        if (result != EcliptixErrorCode.SUCCESS)
         {
             string errorMessage = error.GetMessage();
             EcliptixNativeInterop.ecliptix_error_free(ref error);
@@ -398,7 +373,7 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
             out bool hasConn,
             out EcliptixError error);
 
-        if (result != EcliptixErrorCode.Success)
+        if (result != EcliptixErrorCode.SUCCESS)
         {
             string errorMessage = error.GetMessage();
             EcliptixNativeInterop.ecliptix_error_free(ref error);
@@ -417,7 +392,7 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
             out uint id,
             out EcliptixError error);
 
-        if (result != EcliptixErrorCode.Success)
+        if (result != EcliptixErrorCode.SUCCESS)
         {
             string errorMessage = error.GetMessage();
             EcliptixNativeInterop.ecliptix_error_free(ref error);
@@ -426,6 +401,26 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
         }
 
         return Result<uint, EcliptixProtocolFailure>.Ok(id);
+    }
+
+    public Result<uint?, EcliptixProtocolFailure> GetSelectedOpkId()
+    {
+        ThrowIfDisposed();
+        EcliptixErrorCode result = EcliptixNativeInterop.ecliptix_protocol_system_get_selected_opk_id(
+            _handle,
+            out bool hasOpkId,
+            out uint opkId,
+            out EcliptixError error);
+
+        if (result != EcliptixErrorCode.SUCCESS)
+        {
+            string errorMessage = error.GetMessage();
+            EcliptixNativeInterop.ecliptix_error_free(ref error);
+            return Result<uint?, EcliptixProtocolFailure>.Err(
+                ConvertError(result, errorMessage));
+        }
+
+        return Result<uint?, EcliptixProtocolFailure>.Ok(hasOpkId ? opkId : null);
     }
 
     public Result<(uint SendingIndex, uint ReceivingIndex), EcliptixProtocolFailure> GetChainIndices()
@@ -446,7 +441,7 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
                 out uint receivingIndex,
                 out EcliptixError error);
 
-            if (result != EcliptixErrorCode.Success)
+            if (result != EcliptixErrorCode.SUCCESS)
             {
                 string errorMessage = error.GetMessage();
                 EcliptixNativeInterop.ecliptix_error_free(ref error);
@@ -477,7 +472,7 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
             bufferPtr,
             out EcliptixError error);
 
-        if (result != EcliptixErrorCode.Success)
+        if (result != EcliptixErrorCode.SUCCESS)
         {
             string errorMessage = error.GetMessage();
             EcliptixNativeInterop.ecliptix_error_free(ref error);
@@ -502,12 +497,12 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
         EcliptixIdentityKeysWrapper identityKeys,
         byte[] stateBytes)
     {
-        if (identityKeys == null || identityKeys.IsDisposed)
+        if (identityKeys.IsDisposed)
         {
             return Result<EcliptixProtocolSystemWrapper, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.InvalidInput("Identity keys are null or disposed"));
         }
-        if (stateBytes == null || stateBytes.Length == 0)
+        if (stateBytes.Length == 0)
         {
             return Result<EcliptixProtocolSystemWrapper, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.InvalidInput("State bytes are missing"));
@@ -520,7 +515,7 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
             out IntPtr handle,
             out EcliptixError error);
 
-        if (result != EcliptixErrorCode.Success)
+        if (result != EcliptixErrorCode.SUCCESS)
         {
             string errorMessage = error.GetMessage();
             EcliptixNativeInterop.ecliptix_error_free(ref error);
@@ -534,18 +529,12 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
 
     public static Result<Unit, EcliptixProtocolFailure> ValidateEnvelopeHybridRequirements(byte[] encryptedEnvelope)
     {
-        if (encryptedEnvelope == null)
-        {
-            return Result<Unit, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.InvalidInput("Encrypted envelope is null"));
-        }
-
         EcliptixErrorCode result = EcliptixNativeInterop.ecliptix_envelope_validate_hybrid_requirements(
             encryptedEnvelope,
             (nuint)encryptedEnvelope.Length,
             out EcliptixError error);
 
-        if (result != EcliptixErrorCode.Success)
+        if (result != EcliptixErrorCode.SUCCESS)
         {
             string errorMessage = error.GetMessage();
             EcliptixNativeInterop.ecliptix_error_free(ref error);
@@ -560,12 +549,7 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
         byte[] opaqueSessionKey,
         byte[] userContext)
     {
-        if (opaqueSessionKey == null)
-        {
-            return Result<byte[], EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.InvalidInput("OPAQUE session key is null"));
-        }
-        if (userContext == null || userContext.Length == 0)
+        if (userContext.Length == 0)
         {
             return Result<byte[], EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.InvalidInput("OPAQUE user context is missing"));
@@ -581,7 +565,7 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
             (nuint)rootKey.Length,
             out EcliptixError error);
 
-        if (result != EcliptixErrorCode.Success)
+        if (result != EcliptixErrorCode.SUCCESS)
         {
             string errorMessage = error.GetMessage();
             EcliptixNativeInterop.ecliptix_error_free(ref error);
@@ -596,17 +580,17 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
     {
         return code switch
         {
-            EcliptixErrorCode.ErrorInvalidInput => EcliptixProtocolFailure.InvalidInput(message),
-            EcliptixErrorCode.ErrorKeyGeneration => EcliptixProtocolFailure.KeyGeneration(message),
-            EcliptixErrorCode.ErrorDeriveKey => EcliptixProtocolFailure.DeriveKey(message),
-            EcliptixErrorCode.ErrorHandshake => EcliptixProtocolFailure.Handshake(message),
-            EcliptixErrorCode.ErrorEncryption => EcliptixProtocolFailure.Generic(message),
-            EcliptixErrorCode.ErrorDecryption => EcliptixProtocolFailure.Generic(message),
-            EcliptixErrorCode.ErrorDecode => EcliptixProtocolFailure.Decode(message),
-            EcliptixErrorCode.ErrorPqMissing => EcliptixProtocolFailure.Decode(message),
-            EcliptixErrorCode.ErrorBufferTooSmall => EcliptixProtocolFailure.BUFFER_TOO_SMALL(message),
-            EcliptixErrorCode.ErrorObjectDisposed => EcliptixProtocolFailure.OBJECT_DISPOSED(message),
-            EcliptixErrorCode.ErrorPrepareLocal => EcliptixProtocolFailure.PrepareLocal(message),
+            EcliptixErrorCode.ERROR_INVALID_INPUT => EcliptixProtocolFailure.InvalidInput(message),
+            EcliptixErrorCode.ERROR_KEY_GENERATION => EcliptixProtocolFailure.KeyGeneration(message),
+            EcliptixErrorCode.ERROR_DERIVE_KEY => EcliptixProtocolFailure.DeriveKey(message),
+            EcliptixErrorCode.ERROR_HANDSHAKE => EcliptixProtocolFailure.Handshake(message),
+            EcliptixErrorCode.ERROR_ENCRYPTION => EcliptixProtocolFailure.Generic(message),
+            EcliptixErrorCode.ERROR_DECRYPTION => EcliptixProtocolFailure.Generic(message),
+            EcliptixErrorCode.ERROR_DECODE => EcliptixProtocolFailure.Decode(message),
+            EcliptixErrorCode.ERROR_PQ_MISSING => EcliptixProtocolFailure.Decode(message),
+            EcliptixErrorCode.ERROR_BUFFER_TOO_SMALL => EcliptixProtocolFailure.BUFFER_TOO_SMALL(message),
+            EcliptixErrorCode.ERROR_OBJECT_DISPOSED => EcliptixProtocolFailure.OBJECT_DISPOSED(message),
+            EcliptixErrorCode.ERROR_PREPARE_LOCAL => EcliptixProtocolFailure.PrepareLocal(message),
             _ => EcliptixProtocolFailure.Generic(message)
         };
     }
@@ -661,7 +645,7 @@ public sealed class EcliptixIdentityKeysWrapper : IDisposable
             out IntPtr handle,
             out EcliptixError error);
 
-        if (result != EcliptixErrorCode.Success)
+        if (result != EcliptixErrorCode.SUCCESS)
         {
             string errorMessage = error.GetMessage();
             EcliptixNativeInterop.ecliptix_error_free(ref error);
@@ -687,7 +671,7 @@ public sealed class EcliptixIdentityKeysWrapper : IDisposable
             out IntPtr handle,
             out EcliptixError error);
 
-        if (result != EcliptixErrorCode.Success)
+        if (result != EcliptixErrorCode.SUCCESS)
         {
             string errorMessage = error.GetMessage();
             EcliptixNativeInterop.ecliptix_error_free(ref error);
@@ -701,30 +685,30 @@ public sealed class EcliptixIdentityKeysWrapper : IDisposable
 
     public static Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure> CreateFromSeed(
         byte[] seed,
-        string membershipId)
+        string accountId)
     {
         if (seed == null)
         {
             return Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.InvalidInput("Seed is null"));
         }
-        if (string.IsNullOrWhiteSpace(membershipId))
+        if (string.IsNullOrWhiteSpace(accountId))
         {
             return Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.InvalidInput("Membership id is missing"));
+                EcliptixProtocolFailure.InvalidInput("Account id is missing"));
         }
 
-        byte[] membershipBytes = global::System.Text.Encoding.UTF8.GetBytes(membershipId);
+        byte[] accountBytes = global::System.Text.Encoding.UTF8.GetBytes(accountId);
 
         EcliptixErrorCode result = EcliptixNativeInterop.ecliptix_identity_keys_create_from_seed_with_context(
             seed,
             (nuint)seed.Length,
-            membershipId,
-            (nuint)membershipBytes.Length,
+            accountId,
+            (nuint)accountBytes.Length,
             out IntPtr handle,
             out EcliptixError error);
 
-        if (result != EcliptixErrorCode.Success)
+        if (result != EcliptixErrorCode.SUCCESS)
         {
             string errorMessage = error.GetMessage();
             EcliptixNativeInterop.ecliptix_error_free(ref error);
@@ -753,7 +737,7 @@ public sealed class EcliptixIdentityKeysWrapper : IDisposable
             (nuint)publicKey.Length,
             out EcliptixError error);
 
-        if (result != EcliptixErrorCode.Success)
+        if (result != EcliptixErrorCode.SUCCESS)
         {
             string errorMessage = error.GetMessage();
             EcliptixNativeInterop.ecliptix_error_free(ref error);
@@ -775,7 +759,7 @@ public sealed class EcliptixIdentityKeysWrapper : IDisposable
             (nuint)publicKey.Length,
             out EcliptixError error);
 
-        if (result != EcliptixErrorCode.Success)
+        if (result != EcliptixErrorCode.SUCCESS)
         {
             string errorMessage = error.GetMessage();
             EcliptixNativeInterop.ecliptix_error_free(ref error);

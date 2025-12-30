@@ -115,6 +115,20 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
                     UserError = userError
                 };
             }
+            else if (GrpcErrorClassifier.IsMasterKeySharesNotFound(rpcEx))
+            {
+                failure = new NetworkFailure(
+                    NetworkFailureType.MASTER_KEY_SHARES_NOT_FOUND,
+                    "Server does not have master key shares - fresh handshake required",
+                    rpcEx);
+            }
+            else if (GrpcErrorClassifier.IsMasterKeyMismatch(rpcEx))
+            {
+                failure = new NetworkFailure(
+                    NetworkFailureType.CRITICAL_AUTHENTICATION_FAILURE,
+                    "Master key mismatch - re-authentication required",
+                    rpcEx);
+            }
 
             await connectivityService.PublishAsync(
                     ConnectivityIntent.Disconnected(failure))

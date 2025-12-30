@@ -4,25 +4,25 @@ namespace Ecliptix.Protocol.System.Native;
 
 public enum EcliptixErrorCode
 {
-    Success = 0,
-    ErrorGeneric = 1,
-    ErrorInvalidInput = 2,
-    ErrorKeyGeneration = 3,
-    ErrorDeriveKey = 4,
-    ErrorHandshake = 5,
-    ErrorEncryption = 6,
-    ErrorDecryption = 7,
-    ErrorDecode = 8,
-    ErrorBufferTooSmall = 9,
-    ErrorObjectDisposed = 10,
-    ErrorPrepareLocal = 11,
-    ErrorOutOfMemory = 12,
-    ErrorSodiumFailure = 13,
-    ErrorNullPointer = 14,
-    ErrorInvalidState = 15,
-    ErrorReplayAttack = 16,
-    ErrorSessionExpired = 17,
-    ErrorPqMissing = 19
+    SUCCESS = 0,
+    ERROR_GENERIC = 1,
+    ERROR_INVALID_INPUT = 2,
+    ERROR_KEY_GENERATION = 3,
+    ERROR_DERIVE_KEY = 4,
+    ERROR_HANDSHAKE = 5,
+    ERROR_ENCRYPTION = 6,
+    ERROR_DECRYPTION = 7,
+    ERROR_DECODE = 8,
+    ERROR_BUFFER_TOO_SMALL = 9,
+    ERROR_OBJECT_DISPOSED = 10,
+    ERROR_PREPARE_LOCAL = 11,
+    ERROR_OUT_OF_MEMORY = 12,
+    ERROR_SODIUM_FAILURE = 13,
+    ERROR_NULL_POINTER = 14,
+    ERROR_INVALID_STATE = 15,
+    ERROR_REPLAY_ATTACK = 16,
+    ERROR_SESSION_EXPIRED = 17,
+    ERROR_PQ_MISSING = 19
 }
 
 [StructLayout(LayoutKind.Sequential)]
@@ -38,10 +38,7 @@ public struct EcliptixError
     public EcliptixErrorCode Code;
     public IntPtr Message;
 
-    public readonly string GetMessage()
-    {
-        return Message != IntPtr.Zero ? Marshal.PtrToStringAnsi(Message) ?? string.Empty : string.Empty;
-    }
+    public readonly string GetMessage() => Message != IntPtr.Zero ? Marshal.PtrToStringAnsi(Message) ?? string.Empty : string.Empty;
 }
 
 [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -87,8 +84,8 @@ public static class EcliptixNativeInterop
     public static extern EcliptixErrorCode ecliptix_identity_keys_create_from_seed_with_context(
         [In] byte[] seed,
         nuint seedLength,
-        string membershipId,
-        nuint membershipIdLength,
+        string accountId,
+        nuint accountIdLength,
         out IntPtr outHandle,
         out EcliptixError outError);
 
@@ -183,6 +180,13 @@ public static class EcliptixNativeInterop
         out EcliptixError outError);
 
     [DllImport(LIBRARY_NAME, CallingConvention = CallingConvention.Cdecl)]
+    public static extern EcliptixErrorCode ecliptix_protocol_system_get_selected_opk_id(
+        IntPtr handle,
+        [MarshalAs(UnmanagedType.I1)] out bool outHasOpkId,
+        out uint outOpkId,
+        out EcliptixError outError);
+
+    [DllImport(LIBRARY_NAME, CallingConvention = CallingConvention.Cdecl)]
     public static extern EcliptixErrorCode ecliptix_protocol_system_receive_message(
         IntPtr handle,
         [In] byte[] encryptedEnvelope,
@@ -245,11 +249,6 @@ public static class EcliptixNativeInterop
 
     [DllImport(LIBRARY_NAME, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern IntPtr ecliptix_error_code_to_string(EcliptixErrorCode code);
-
-    [DllImport(LIBRARY_NAME, CallingConvention = CallingConvention.Cdecl)]
-    public static extern EcliptixErrorCode ecliptix_secure_wipe(
-        [In, Out] byte[] data,
-        nuint length);
 
     public static string GetVersion()
     {

@@ -3,10 +3,6 @@ using Ecliptix.Utilities.Failures.EcliptixProtocol;
 
 namespace Ecliptix.Protocol.System.Native;
 
-/// <summary>
-/// Thin adapter over the native interop surface; hides handle plumbing and provides a single place to wire
-/// desktop/mobile handshake and message flow.
-/// </summary>
 public sealed class NativeProtocolSession : IDisposable
 {
     private readonly EcliptixProtocolSystemWrapper _wrapper;
@@ -17,7 +13,8 @@ public sealed class NativeProtocolSession : IDisposable
         _wrapper = wrapper;
     }
 
-    public static Result<NativeProtocolSession, EcliptixProtocolFailure> Create(EcliptixIdentityKeysWrapper identityKeys)
+    public static Result<NativeProtocolSession, EcliptixProtocolFailure> Create(
+        EcliptixIdentityKeysWrapper identityKeys)
     {
         Result<EcliptixProtocolSystemWrapper, EcliptixProtocolFailure> result =
             EcliptixProtocolSystemWrapper.Create(identityKeys);
@@ -25,6 +22,7 @@ public sealed class NativeProtocolSession : IDisposable
         {
             return Result<NativeProtocolSession, EcliptixProtocolFailure>.Err(result.UnwrapErr());
         }
+
         return Result<NativeProtocolSession, EcliptixProtocolFailure>.Ok(
             new NativeProtocolSession(result.Unwrap()));
     }
@@ -93,10 +91,13 @@ public sealed class NativeProtocolSession : IDisposable
 
     public Result<uint, EcliptixProtocolFailure> GetConnectionId() => _wrapper.GetConnectionId();
 
+    public Result<uint?, EcliptixProtocolFailure> GetSelectedOpkId() => _wrapper.GetSelectedOpkId();
+
     public Result<(uint SendingIndex, uint ReceivingIndex), EcliptixProtocolFailure> GetChainIndices() =>
         _wrapper.GetChainIndices();
 
-    public void SetEventHandler(Action<uint>? onProtocolStateChanged) => _wrapper.SetEventHandler(onProtocolStateChanged);
+    public void SetEventHandler(Action<uint>? onProtocolStateChanged) =>
+        _wrapper.SetEventHandler(onProtocolStateChanged);
 
     public void Dispose()
     {

@@ -21,7 +21,8 @@ internal static class SecureStorageConstants
     internal static class Header
     {
         public const string MAGIC_HEADER = "ECLIPTIX_SECURE_V1";
-        public const int CURRENT_VERSION = 1;
+        public const int LEGACY_VERSION = 1;
+        public const int CURRENT_VERSION = 2;
     }
 
     internal static class Identity
@@ -29,6 +30,7 @@ internal static class SecureStorageConstants
         public const string MASTER_KEY_STORAGE_PREFIX = "master_";
         public const string KEYCHAIN_WRAP_KEY_PREFIX = "ecliptix_master_wrap_";
         public const string REVOCATION_PROOF_PREFIX = "revocation_proof_";
+        public const string WRAPPED_KEY_MAGIC_HEADER = "ECLIPTIX_MK_V2";
         public const int AES_KEY_SIZE = 32;
         public const int AES_IV_SIZE = 16;
     }

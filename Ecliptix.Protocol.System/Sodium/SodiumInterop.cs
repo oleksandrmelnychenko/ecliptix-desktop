@@ -47,8 +47,8 @@ internal static partial class SodiumInterop
             () =>
             {
                 int result = sodium_init();
-                const int DLL_IMPORT_SUCCESS = ProtocolSystemConstants.Numeric.DLL_IMPORT_SUCCESS;
-                if (result < DLL_IMPORT_SUCCESS)
+                const int dllImportSuccess = ProtocolSystemConstants.Numeric.DLL_IMPORT_SUCCESS;
+                if (result < dllImportSuccess)
                 {
                     throw new InvalidOperationException(SodiumFailureMessages.SODIUM_INIT_FAILED);
                 }

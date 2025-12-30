@@ -1,8 +1,8 @@
 using System;
 using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
-using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Infrastructure.Security.Abstractions;
 using Ecliptix.Core.Infrastructure.Security.Storage;
 using Ecliptix.Core.Services.Abstractions.Authentication;
@@ -17,39 +17,39 @@ namespace Ecliptix.Core.Services.Authentication;
 
 internal sealed class IdentityService : IIdentityService
 {
+    private static readonly byte[] WrappedKeyMagic =
+        Encoding.ASCII.GetBytes(SecureStorageConstants.Identity.WRAPPED_KEY_MAGIC_HEADER);
+
     private readonly ISecureProtocolStateStorage _storage;
     private readonly IPlatformSecurityProvider _platformProvider;
     private readonly Lazy<bool> _hardwareSecurityAvailable;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
-    private readonly NetworkProvider _networkProvider;
 
     public IdentityService(
         ISecureProtocolStateStorage storage,
         IPlatformSecurityProvider platformProvider,
-        IApplicationSecureStorageProvider applicationSecureStorageProvider,
-        NetworkProvider networkProvider)
+        IApplicationSecureStorageProvider applicationSecureStorageProvider)
     {
         _storage = storage;
         _platformProvider = platformProvider;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
-        _networkProvider = networkProvider;
         _hardwareSecurityAvailable = new Lazy<bool>(() => _platformProvider.IsHardwareSecurityAvailable());
     }
 
-    public async Task<bool> HasStoredIdentityAsync(string membershipId)
+    public async Task<bool> HasStoredIdentityAsync(string accountId)
     {
-        IdentityContext context = new(membershipId);
+        IdentityContext context = new(accountId);
 
         Result<byte[], SecureStorageFailure> result =
-            await _storage.LoadStateAsync(context.StorageKey, context.MembershipBytes).ConfigureAwait(false);
+            await _storage.LoadStateAsync(context.StorageKey, context.AccountBytes).ConfigureAwait(false);
         bool exists = result.IsOk;
 
         return exists;
     }
 
-    public async Task<Result<Unit, AuthenticationFailure>> StoreIdentityAsync(SodiumSecureMemoryHandle masterKeyHandle, string membershipId)
+    public async Task<Result<Unit, AuthenticationFailure>> StoreIdentityAsync(SodiumSecureMemoryHandle masterKeyHandle, string accountId)
     {
-        IdentityContext context = new(membershipId);
+        IdentityContext context = new(accountId);
 
         try
         {
@@ -106,11 +106,12 @@ internal sealed class IdentityService : IIdentityService
         }
     }
 
-    public async Task<Result<SodiumSecureMemoryHandle, AuthenticationFailure>> LoadMasterKeyHandleAsync(string membershipId) => await LoadMasterKeyAsync(new IdentityContext(membershipId)).ConfigureAwait(false);
+    public async Task<Result<SodiumSecureMemoryHandle, AuthenticationFailure>> LoadMasterKeyHandleAsync(string accountId) =>
+        await LoadMasterKeyAsync(new IdentityContext(accountId)).ConfigureAwait(false);
 
-    public async Task<Result<Unit, AuthenticationFailure>> ClearAllCacheAsync(string membershipId)
+    public async Task<Result<Unit, AuthenticationFailure>> ClearAllCacheAsync(string accountId)
     {
-        IdentityContext context = new(membershipId);
+        IdentityContext context = new(accountId);
 
         try
         {
@@ -137,7 +138,7 @@ internal sealed class IdentityService : IIdentityService
         }
     }
 
-    public async Task<Result<Unit, Exception>> CleanupMembershipStateWithKeysAsync(string membershipId, uint connectId)
+    public async Task<Result<Unit, Exception>> CleanupMembershipStateWithKeysAsync(string accountId, uint connectId)
     {
         Result<Unit, SecureStorageFailure> deleteResult =
             await _storage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
@@ -149,7 +150,7 @@ internal sealed class IdentityService : IIdentityService
         }
 
         Result<Unit, AuthenticationFailure> clearResult =
-            await ClearAllCacheAsync(membershipId).ConfigureAwait(false);
+            await ClearAllCacheAsync(accountId).ConfigureAwait(false);
 
         if (clearResult.IsErr)
         {
@@ -164,8 +165,6 @@ internal sealed class IdentityService : IIdentityService
             Log.Warning("[STATE-CLEANUP-FULL] Failed to clear membership state: {Error}",
                 membershipClearResult.UnwrapErr().Message);
         }
-
-        _networkProvider.ClearConnection(connectId);
 
         return Result<Unit, Exception>.Ok(Unit.Value);
     }
@@ -182,7 +181,7 @@ internal sealed class IdentityService : IIdentityService
             wrappingKey = returnedWrappingKey;
 
             Result<Unit, SecureStorageFailure> saveResult =
-                await _storage.SaveStateAsync(protectedKey, storageKey, context.MembershipBytes).ConfigureAwait(false);
+                await _storage.SaveStateAsync(protectedKey, storageKey, context.AccountBytes).ConfigureAwait(false);
 
             if (saveResult.IsErr)
             {
@@ -225,7 +224,7 @@ internal sealed class IdentityService : IIdentityService
         try
         {
             Result<byte[], SecureStorageFailure> result =
-                await _storage.LoadStateAsync(storageKey, context.MembershipBytes).ConfigureAwait(false);
+                await _storage.LoadStateAsync(storageKey, context.AccountBytes).ConfigureAwait(false);
 
             if (result.IsErr)
             {
@@ -234,9 +233,21 @@ internal sealed class IdentityService : IIdentityService
             }
 
             byte[] protectedKey = result.Unwrap();
-            Result<SodiumSecureMemoryHandle, AuthenticationFailure> unwrapResult = await UnwrapMasterKeyAsync(protectedKey, context).ConfigureAwait(false);
+            Result<(SodiumSecureMemoryHandle Handle, bool NeedsUpgrade), AuthenticationFailure> unwrapResult =
+                await UnwrapMasterKeyAsync(protectedKey, context).ConfigureAwait(false);
 
-            return unwrapResult;
+            if (unwrapResult.IsErr)
+            {
+                return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(unwrapResult.UnwrapErr());
+            }
+
+            (SodiumSecureMemoryHandle handle, bool needsUpgrade) = unwrapResult.Unwrap();
+            if (needsUpgrade)
+            {
+                await TryUpgradeWrappedKeyAsync(handle, context).ConfigureAwait(false);
+            }
+
+            return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Ok(handle);
         }
         catch (Exception ex)
         {
@@ -266,28 +277,44 @@ internal sealed class IdentityService : IIdentityService
                 return (masterKeyBytes.AsSpan().ToArray(), null);
             }
 
-            byte[]? encryptedKey = null;
+            byte[]? ciphertext = null;
+            byte[]? nonce = null;
+            byte[]? tag = null;
             try
             {
                 byte[] wrappingKey = await GenerateWrappingKeyAsync().ConfigureAwait(false);
 
-                using Aes aes = Aes.Create();
-                aes.Key = wrappingKey;
-                aes.GenerateIV();
+                nonce = RandomNumberGenerator.GetBytes(SecureStorageConstants.Encryption.NONCE_SIZE);
+                ciphertext = new byte[masterKeyBytes.Length];
+                tag = new byte[SecureStorageConstants.Encryption.TAG_SIZE];
 
-                encryptedKey = aes.EncryptCbc(masterKeyBytes, aes.IV);
+                using AesGcm aes = new(wrappingKey);
+                aes.Encrypt(nonce, masterKeyBytes, ciphertext, tag);
 
-                byte[] wrappedData = new byte[aes.IV.Length + encryptedKey.Length];
-                aes.IV.CopyTo(wrappedData, 0);
-                encryptedKey.CopyTo(wrappedData, aes.IV.Length);
+                byte[] wrappedData = new byte[WrappedKeyMagic.Length + nonce.Length + tag.Length + ciphertext.Length];
+                Buffer.BlockCopy(WrappedKeyMagic, 0, wrappedData, 0, WrappedKeyMagic.Length);
+                Buffer.BlockCopy(nonce, 0, wrappedData, WrappedKeyMagic.Length, nonce.Length);
+                Buffer.BlockCopy(tag, 0, wrappedData, WrappedKeyMagic.Length + nonce.Length, tag.Length);
+                Buffer.BlockCopy(ciphertext, 0, wrappedData,
+                    WrappedKeyMagic.Length + nonce.Length + tag.Length, ciphertext.Length);
 
                 return (wrappedData, wrappingKey);
             }
             finally
             {
-                if (encryptedKey != null)
+                if (ciphertext != null)
                 {
-                    CryptographicOperations.ZeroMemory(encryptedKey);
+                    CryptographicOperations.ZeroMemory(ciphertext);
+                }
+
+                if (nonce != null)
+                {
+                    CryptographicOperations.ZeroMemory(nonce);
+                }
+
+                if (tag != null)
+                {
+                    CryptographicOperations.ZeroMemory(tag);
                 }
             }
         }
@@ -312,12 +339,14 @@ internal sealed class IdentityService : IIdentityService
         }
     }
 
-    private async Task<Result<SodiumSecureMemoryHandle, AuthenticationFailure>> UnwrapMasterKeyAsync(byte[] protectedKey, IdentityContext context)
+    private async Task<Result<(SodiumSecureMemoryHandle Handle, bool NeedsUpgrade), AuthenticationFailure>>
+        UnwrapMasterKeyAsync(byte[] protectedKey, IdentityContext context)
     {
         byte[]? masterKeyBytes = null;
         byte[]? wrappingKey = null;
         byte[]? encryptedKey = null;
         byte[]? iv = null;
+        byte[]? tag = null;
         bool hardwareSecurityAvailable = IsHardwareSecurityAvailable();
 
         try
@@ -328,24 +357,33 @@ internal sealed class IdentityService : IIdentityService
 
             if (unwrapResult.Result.IsErr)
             {
-                return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(unwrapResult.Result.UnwrapErr());
+                return Result<(SodiumSecureMemoryHandle, bool), AuthenticationFailure>.Err(
+                    unwrapResult.Result.UnwrapErr());
             }
 
             masterKeyBytes = unwrapResult.Result.Unwrap();
             wrappingKey = unwrapResult.WrappingKey;
             encryptedKey = unwrapResult.EncryptedKey;
             iv = unwrapResult.Iv;
+            tag = unwrapResult.Tag;
 
-            return WriteToSecureMemory(masterKeyBytes);
+            Result<SodiumSecureMemoryHandle, AuthenticationFailure> handleResult = WriteToSecureMemory(masterKeyBytes);
+            if (handleResult.IsErr)
+            {
+                return Result<(SodiumSecureMemoryHandle, bool), AuthenticationFailure>.Err(handleResult.UnwrapErr());
+            }
+
+            return Result<(SodiumSecureMemoryHandle, bool), AuthenticationFailure>.Ok(
+                (handleResult.Unwrap(), unwrapResult.IsLegacy));
         }
         catch (Exception ex)
         {
-            return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
+            return Result<(SodiumSecureMemoryHandle, bool), AuthenticationFailure>.Err(
                 AuthenticationFailure.IdentityStorageFailed($"Failed to unwrap master key: {ex.Message}", ex));
         }
         finally
         {
-            CleanupSensitiveData(masterKeyBytes, wrappingKey, encryptedKey, iv);
+            CleanupSensitiveData(masterKeyBytes, wrappingKey, encryptedKey, iv, tag);
         }
     }
 
@@ -355,7 +393,9 @@ internal sealed class IdentityService : IIdentityService
             Result<byte[], AuthenticationFailure>.Ok(protectedKey.AsSpan().ToArray()),
             null,
             null,
-            null);
+            null,
+            null,
+            false);
     }
 
     private async Task<UnwrapResult> UnwrapWithHardwareSecurityAsync(byte[] protectedKey, IdentityContext context)
@@ -367,7 +407,7 @@ internal sealed class IdentityService : IIdentityService
         if (wrappingKey == null)
         {
             Result<byte[], AuthenticationFailure> result = HandleMissingWrappingKey(protectedKey);
-            return new UnwrapResult(result, null, null, null);
+            return new UnwrapResult(result, null, null, null, null, false);
         }
 
         return DecryptWithWrappingKey(protectedKey, wrappingKey);
@@ -377,7 +417,9 @@ internal sealed class IdentityService : IIdentityService
         Result<byte[], AuthenticationFailure> Result,
         byte[]? WrappingKey,
         byte[]? EncryptedKey,
-        byte[]? Iv);
+        byte[]? Iv,
+        byte[]? Tag,
+        bool IsLegacy);
 
     private static Result<byte[], AuthenticationFailure> HandleMissingWrappingKey(byte[] protectedKey)
     {
@@ -396,12 +438,26 @@ internal sealed class IdentityService : IIdentityService
         return Result<byte[], AuthenticationFailure>.Ok(protectedKey.AsSpan().ToArray());
     }
 
+    private static bool HasWrappedKeyMagic(ReadOnlySpan<byte> protectedKey) =>
+        protectedKey.Length > WrappedKeyMagic.Length &&
+        protectedKey[..WrappedKeyMagic.Length].SequenceEqual(WrappedKeyMagic);
+
     private static UnwrapResult DecryptWithWrappingKey(byte[] protectedKey, byte[] wrappingKey)
+    {
+        ReadOnlySpan<byte> protectedSpan = protectedKey.AsSpan();
+
+        if (HasWrappedKeyMagic(protectedSpan))
+        {
+            return DecryptWithAesGcm(protectedSpan, wrappingKey);
+        }
+
+        return DecryptWithLegacyCbc(protectedSpan, wrappingKey);
+    }
+
+    private static UnwrapResult DecryptWithLegacyCbc(ReadOnlySpan<byte> protectedSpan, byte[] wrappingKey)
     {
         using Aes aes = Aes.Create();
         aes.Key = wrappingKey;
-
-        ReadOnlySpan<byte> protectedSpan = protectedKey.AsSpan();
 
         if (protectedSpan.Length <= SecureStorageConstants.Identity.AES_IV_SIZE)
         {
@@ -420,7 +476,41 @@ internal sealed class IdentityService : IIdentityService
             Result<byte[], AuthenticationFailure>.Ok(masterKeyBytes),
             wrappingKey,
             encryptedKey,
-            iv);
+            iv,
+            null,
+            true);
+    }
+
+    private static UnwrapResult DecryptWithAesGcm(ReadOnlySpan<byte> protectedSpan, byte[] wrappingKey)
+    {
+        int headerSize = WrappedKeyMagic.Length;
+        int nonceSize = SecureStorageConstants.Encryption.NONCE_SIZE;
+        int tagSize = SecureStorageConstants.Encryption.TAG_SIZE;
+        int minSize = headerSize + nonceSize + tagSize + 1;
+
+        if (protectedSpan.Length < minSize)
+        {
+            Log.Error(
+                "[IDENTITY-UNWRAP] Protected key too small to contain AEAD payload, expected >= {Expected}, got {Actual}",
+                minSize, protectedSpan.Length);
+            throw new InvalidOperationException($"Protected key size invalid: {protectedSpan.Length} bytes");
+        }
+
+        ReadOnlySpan<byte> nonce = protectedSpan.Slice(headerSize, nonceSize);
+        ReadOnlySpan<byte> tag = protectedSpan.Slice(headerSize + nonceSize, tagSize);
+        ReadOnlySpan<byte> ciphertext = protectedSpan.Slice(headerSize + nonceSize + tagSize);
+
+        byte[] plaintext = new byte[ciphertext.Length];
+        using AesGcm aes = new(wrappingKey);
+        aes.Decrypt(nonce, ciphertext, tag, plaintext);
+
+        return new UnwrapResult(
+            Result<byte[], AuthenticationFailure>.Ok(plaintext),
+            wrappingKey,
+            ciphertext.ToArray(),
+            nonce.ToArray(),
+            tag.ToArray(),
+            false);
     }
 
     private static Result<SodiumSecureMemoryHandle, AuthenticationFailure> WriteToSecureMemory(byte[] masterKeyBytes)
@@ -445,7 +535,8 @@ internal sealed class IdentityService : IIdentityService
         return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Ok(handle);
     }
 
-    private static void CleanupSensitiveData(byte[]? masterKeyBytes, byte[]? wrappingKey, byte[]? encryptedKey, byte[]? iv)
+    private static void CleanupSensitiveData(byte[]? masterKeyBytes, byte[]? wrappingKey, byte[]? encryptedKey,
+        byte[]? iv, byte[]? tag)
     {
         if (masterKeyBytes != null)
         {
@@ -466,6 +557,23 @@ internal sealed class IdentityService : IIdentityService
         {
             CryptographicOperations.ZeroMemory(iv);
         }
+
+        if (tag != null)
+        {
+            CryptographicOperations.ZeroMemory(tag);
+        }
+    }
+
+    private async Task TryUpgradeWrappedKeyAsync(SodiumSecureMemoryHandle masterKeyHandle, IdentityContext context)
+    {
+        try
+        {
+            await StoreIdentityInternalAsync(masterKeyHandle, context).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "[IDENTITY-UPGRADE] Failed to upgrade wrapped master key format");
+        }
     }
 
     private async Task<byte[]> GenerateWrappingKeyAsync() => await _platformProvider.GenerateSecureRandomAsync(SecureStorageConstants.Identity.AES_KEY_SIZE).ConfigureAwait(false);
@@ -477,7 +585,7 @@ internal sealed class IdentityService : IIdentityService
         try
         {
             Result<byte[], SecureStorageFailure> loadResult =
-                await _storage.LoadStateAsync(context.StorageKey, context.MembershipBytes).ConfigureAwait(false);
+                await _storage.LoadStateAsync(context.StorageKey, context.AccountBytes).ConfigureAwait(false);
 
             if (loadResult.IsErr)
             {
@@ -525,18 +633,18 @@ internal sealed class IdentityService : IIdentityService
         }
     }
 
-    private sealed class IdentityContext(string membershipId)
+    private sealed class IdentityContext(string accountId)
     {
-        private byte[]? _membershipBytes;
-        public string MembershipId { get; } = membershipId;
-        public string StorageKey { get; } = GetMasterKeyStorageKey(membershipId);
-        public string KeychainKey { get; } = GetKeychainWrapKey(membershipId);
-        public byte[] MembershipBytes => _membershipBytes ??= Guid.Parse(MembershipId).ToByteArray();
+        private byte[]? _accountBytes;
+        public string AccountId { get; } = accountId;
+        public string StorageKey { get; } = GetMasterKeyStorageKey(accountId);
+        public string KeychainKey { get; } = GetKeychainWrapKey(accountId);
+        public byte[] AccountBytes => _accountBytes ??= Guid.Parse(AccountId).ToByteArray();
 
-        private static string GetMasterKeyStorageKey(string membershipId) =>
-            string.Concat(SecureStorageConstants.Identity.MASTER_KEY_STORAGE_PREFIX, membershipId);
+        private static string GetMasterKeyStorageKey(string accountId) =>
+            string.Concat(SecureStorageConstants.Identity.MASTER_KEY_STORAGE_PREFIX, accountId);
 
-        private static string GetKeychainWrapKey(string membershipId) =>
-            string.Concat(SecureStorageConstants.Identity.KEYCHAIN_WRAP_KEY_PREFIX, membershipId);
+        private static string GetKeychainWrapKey(string accountId) =>
+            string.Concat(SecureStorageConstants.Identity.KEYCHAIN_WRAP_KEY_PREFIX, accountId);
     }
 }
