@@ -17,6 +17,7 @@ namespace Ecliptix.Core.Features.Authentication.Views.SignIn;
 
 public partial class SignInView : ReactiveUserControl<SignInViewModel>
 {
+    private const string MOBILE_TEXT_BOX_CONTROL_NAME = "MobileTextBox";
     private const string SECURE_KEY_TEXT_BOX_CONTROL_NAME = "SecureKeyTextBox";
     private const string ERROR_NOTIFICATION_CONTROL_NAME = "ErrorNotification";
 
@@ -49,11 +50,16 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
             return;
         }
 
+        if (this.FindControl<HintedTextBox>(MOBILE_TEXT_BOX_CONTROL_NAME) is { } mobileBox)
+        {
+            mobileBox.KeyDown += OnInputControlKeyDown;
+        }
+
         if (this.FindControl<HintedPasswordBox>(SECURE_KEY_TEXT_BOX_CONTROL_NAME) is { } secureKeyBox)
         {
             secureKeyBox.SecureKeyCharactersAdded += OnSecureKeyCharactersAdded;
             secureKeyBox.SecureKeyCharactersRemoved += OnSecureKeyCharactersRemoved;
-            secureKeyBox.KeyDown += OnSecureKeyBoxKeyDown;
+            secureKeyBox.KeyDown += OnInputControlKeyDown;
             secureKeyBox.CharacterRejected += OnCharacterRejected;
             _handlersAttached = true;
         }
@@ -66,11 +72,16 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
             return;
         }
 
+        if (this.FindControl<HintedTextBox>(MOBILE_TEXT_BOX_CONTROL_NAME) is { } mobileBox)
+        {
+            mobileBox.KeyDown -= OnInputControlKeyDown;
+        }
+
         if (this.FindControl<HintedPasswordBox>(SECURE_KEY_TEXT_BOX_CONTROL_NAME) is { } secureKeyBox)
         {
             secureKeyBox.SecureKeyCharactersAdded -= OnSecureKeyCharactersAdded;
             secureKeyBox.SecureKeyCharactersRemoved -= OnSecureKeyCharactersRemoved;
-            secureKeyBox.KeyDown -= OnSecureKeyBoxKeyDown;
+            secureKeyBox.KeyDown -= OnInputControlKeyDown;
             secureKeyBox.CharacterRejected -= OnCharacterRejected;
         }
 
@@ -146,7 +157,7 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
         tb.SyncSecureKeyState(vm.CurrentSecureKeyLength);
     }
 
-    private void OnSecureKeyBoxKeyDown(object? sender, KeyEventArgs e)
+    private void OnInputControlKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key != Key.Enter && e.Key != Key.Return)
         {
@@ -158,6 +169,8 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
             return;
         }
 
+        e.Handled = true;
+
         vm.HandleEnterKeyPressAsync().ContinueWith(
             task =>
             {
@@ -167,6 +180,5 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
                 }
             },
             TaskScheduler.Default);
-        e.Handled = true;
     }
 }
