@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
@@ -46,7 +47,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
     private CancellationTokenSource? _cancellationTokenSource;
     private bool _hasMobileNumberBeenTouched;
     private bool _isDisposed;
-
+    private bool _hasManualCountrySelection;
     private const int CURRENT_STEP = 1;
 
     private readonly Subject<string> _executionErrorSubject = new();
@@ -79,6 +80,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         SetupCommands(isFormLogicallyValid);
 
         SetupSubscriptions();
+        AttemptAutoSwitchCountry();
     }
 
     public string? UrlPathSegment { get; } = "/mobile-verification";
@@ -117,8 +119,8 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
     [Reactive] public bool HasMobileNumberError { get; private set; }
 
     [Reactive] public string CountryFlag { get; set; } = AppCultureSettingsConstants.UNITED_STATES_FLAG_PATH;
-    [Reactive] public string PhonePrefix { get; set; } = "+1";
-    [Reactive] public string CountryIso { get; set; } = "US";
+    [Reactive] public string PhonePrefix { get; set; } = AppCultureSettingsConstants.UNITED_STATES_PHONE_PREFIX;
+    [Reactive] public string CountryIso { get; set; } = AppCultureSettingsConstants.UNITED_STATES_COUNTRY_CODE;
 
     [ObservableAsProperty] public bool IsBusy { get; }
 
@@ -206,10 +208,21 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
 
     private void SetupSubscriptions()
     {
+        LanguageChanged
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(_ => AttemptAutoSwitchCountry())
+            .DisposeWith(_disposables);
+
         if (_messageBus != null)
         {
             _messageBus.Subscribe<CountryCodeSelectedEvent>(evt =>
                 {
+                    if (evt.RequestorContext != "MobileVerification")
+                    {
+                        return Task.CompletedTask;
+                    }
+
+                    _hasManualCountrySelection = true;
                     CountryFlag = evt.SelectedCountry.FlagImagePath;
                     PhonePrefix = evt.SelectedCountry.PhonePrefix;
                     CountryIso = evt.SelectedCountry.IsoCode;
@@ -218,6 +231,37 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
                 .DisposeWith(_disposables);
         }
 
+    }
+
+    private void AttemptAutoSwitchCountry()
+    {
+        if (_hasManualCountrySelection)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(RawMobileNumber))
+        {
+            return;
+        }
+
+        try
+        {
+            CultureInfo culture = LocalizationService.CurrentCultureInfo;
+
+            (string Iso, string Prefix, string FlagPath)? countryData = AppCultureSettings.Default.ResolveCountryFromCulture(culture);
+
+            if (countryData != null)
+            {
+                CountryIso = countryData.Value.Iso;
+                PhonePrefix = countryData.Value.Prefix;
+                CountryFlag = countryData.Value.FlagPath;
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Warning("Failed to auto-switch country context: " + ex.Message);
+        }
     }
 
     private void SetupCommands(IObservable<bool> isFormLogicallyValid)
@@ -234,7 +278,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         OpenCountryPickerCommand = ReactiveCommand.CreateFromTask(async () =>
         {
             await GlobalModalService.ShowRightAsync(
-                new CountryCodeViewModel(_messageBus, CountryIso),
+                new CountryCodeViewModel(_messageBus, CountryIso, "MobileVerification"),
                 showScrim: true,
                 isDismissable: true
             );

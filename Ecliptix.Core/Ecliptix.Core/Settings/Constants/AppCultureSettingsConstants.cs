@@ -8,6 +8,9 @@ public static class AppCultureSettingsConstants
     public const string UNITED_STATES_COUNTRY_CODE = "US";
     public const string UKRAINE_COUNTRY_CODE = "UA";
 
+    public const string UNITED_STATES_PHONE_PREFIX = "+1";
+    public const string UKRAINE_PHONE_PREFIX = "+380";
+
     public const string UNITED_STATES_FLAG_PATH = "avares://Ecliptix.Core/Assets/Icons/Flags/usa_flag_rect.svg";
     public const string UKRAINE_FLAG_PATH = "avares://Ecliptix.Core/Assets/Icons/Flags/ukraine_flag_rect.svg";
 

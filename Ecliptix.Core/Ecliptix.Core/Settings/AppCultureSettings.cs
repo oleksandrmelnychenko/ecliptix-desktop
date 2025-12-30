@@ -83,4 +83,67 @@ public sealed class AppCultureSettings
                 }
             });
     }
+
+    public (string Iso, string Prefix, string FlagPath)? ResolveCountryFromCulture(CultureInfo culture)
+    {
+        if (culture.IsNeutralCulture || culture.Equals(CultureInfo.InvariantCulture))
+        {
+            if (culture.TwoLetterISOLanguageName.Equals("en", StringComparison.OrdinalIgnoreCase))
+            {
+                return (
+                    AppCultureSettingsConstants.UNITED_STATES_COUNTRY_CODE,
+                    AppCultureSettingsConstants.UNITED_STATES_PHONE_PREFIX,
+                    AppCultureSettingsConstants.UNITED_STATES_FLAG_PATH);
+            }
+
+            if (culture.TwoLetterISOLanguageName.Equals("uk", StringComparison.OrdinalIgnoreCase))
+            {
+                return (
+                    AppCultureSettingsConstants.UKRAINE_COUNTRY_CODE,
+                    AppCultureSettingsConstants.UKRAINE_PHONE_PREFIX,
+                    AppCultureSettingsConstants.UKRAINE_FLAG_PATH);
+            }
+
+            return (
+                AppCultureSettingsConstants.UNITED_STATES_COUNTRY_CODE,
+                AppCultureSettingsConstants.UNITED_STATES_PHONE_PREFIX,
+                AppCultureSettingsConstants.UNITED_STATES_FLAG_PATH);
+        }
+
+        try
+        {
+            RegionInfo region = new(culture.Name);
+            string iso = region.TwoLetterISORegionName;
+
+            return GetCountryDetailsByIso(iso);
+        }
+        catch
+        {
+            return (
+                AppCultureSettingsConstants.UNITED_STATES_COUNTRY_CODE,
+                AppCultureSettingsConstants.UNITED_STATES_PHONE_PREFIX,
+                AppCultureSettingsConstants.UNITED_STATES_FLAG_PATH);
+        }
+    }
+
+    private (string Iso, string Prefix, string FlagPath) GetCountryDetailsByIso(string isoCode)
+    {
+        return isoCode.ToUpperInvariant() switch
+        {
+            AppCultureSettingsConstants.UNITED_STATES_COUNTRY_CODE => (
+                AppCultureSettingsConstants.UNITED_STATES_COUNTRY_CODE,
+                AppCultureSettingsConstants.UNITED_STATES_PHONE_PREFIX,
+                AppCultureSettingsConstants.UNITED_STATES_FLAG_PATH),
+
+            AppCultureSettingsConstants.UKRAINE_COUNTRY_CODE => (
+                AppCultureSettingsConstants.UKRAINE_COUNTRY_CODE,
+                AppCultureSettingsConstants.UKRAINE_PHONE_PREFIX,
+                AppCultureSettingsConstants.UKRAINE_FLAG_PATH),
+
+            _ => (
+                AppCultureSettingsConstants.UNITED_STATES_COUNTRY_CODE,
+                AppCultureSettingsConstants.UNITED_STATES_PHONE_PREFIX,
+                AppCultureSettingsConstants.UNITED_STATES_FLAG_PATH)
+        };
+    }
 }
