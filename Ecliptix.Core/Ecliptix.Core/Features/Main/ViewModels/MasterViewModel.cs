@@ -54,6 +54,7 @@ public sealed class MasterViewModel : ViewModelBase
     [Reactive] public object? OverlayContent { get; set; }
     [Reactive] public object? SuggestionsContent { get; set; }
     [Reactive] public bool IsTransitioning { get; set; }
+    [Reactive] public bool ShowSuggestions { get; set; }
 
     public ConnectivityNotificationViewModel ConnectivityNotification { get; }
     public NavigationSidebarViewModel NavigationSidebar { get; }
@@ -76,8 +77,6 @@ public sealed class MasterViewModel : ViewModelBase
         NavigationSidebar = new NavigationSidebarViewModel(networkProvider, localizationService, logoutService, profileMenuService, storageProvider);
         _messageBus = Locator.Current?.GetService<IMessageBus>();
 
-        //LoadInitialView();
-
         Dispatcher.UIThread.Post(() =>
         {
             ConversationView dummy = new();
@@ -87,7 +86,6 @@ public sealed class MasterViewModel : ViewModelBase
         {
             _messageBus?.PublishAsync(new CloseOverlayEvent());
         });
-
 
         if (_messageBus != null)
         {
@@ -151,13 +149,6 @@ public sealed class MasterViewModel : ViewModelBase
         IsOverlayOpen = true;
     }
 
-
-    private async void LoadInitialView()
-    {
-        _currentViewIndex = _moduleOrder[ModuleIdentifier.FEED];
-        await LoadModuleViewAsync(ModuleIdentifier.FEED);
-    }
-
     private async Task LoadModuleViewAsync(ModuleIdentifier moduleId)
     {
         IsLoadingView = true;
@@ -169,6 +160,15 @@ public sealed class MasterViewModel : ViewModelBase
             if (viewOption.IsSome)
             {
                 CurrentView = viewOption.Value;
+
+                if (moduleId == ModuleIdentifier.FEED)
+                {
+                    ShowSuggestions = true;
+                }
+                else
+                {
+                    ShowSuggestions = false;
+                }
             }
         }
         catch (Exception ex)
@@ -190,7 +190,6 @@ public sealed class MasterViewModel : ViewModelBase
             _currentViewIndex = nextIndex;
         }
     }
-
 
     protected override void Dispose(bool disposing)
     {
