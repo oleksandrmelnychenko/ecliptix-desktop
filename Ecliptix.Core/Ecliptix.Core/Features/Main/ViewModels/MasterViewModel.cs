@@ -54,6 +54,7 @@ public sealed class MasterViewModel : ViewModelBase
     [Reactive] public object? OverlayContent { get; set; }
     [Reactive] public object? SuggestionsContent { get; set; }
     [Reactive] public bool IsTransitioning { get; set; }
+    [Reactive] public bool ShowSuggestions { get; set; }
 
     public ConnectivityNotificationViewModel ConnectivityNotification { get; }
     public NavigationSidebarViewModel NavigationSidebar { get; }
@@ -169,6 +170,15 @@ public sealed class MasterViewModel : ViewModelBase
             if (viewOption.IsSome)
             {
                 CurrentView = viewOption.Value;
+
+                if (moduleId == ModuleIdentifier.FEED)
+                {
+                    ShowSuggestions = true;
+                }
+                else
+                {
+                    ShowSuggestions = false;
+                }
             }
         }
         catch (Exception ex)
