@@ -101,7 +101,7 @@
 
                                 <TextBlock Text="{Binding PhonePrefix, ElementName=Control}"
                                            Foreground="{Binding TextForeground, ElementName=Control}"
-                                           FontWeight="Medium"
+                                           FontWeight="Light"
                                            FontSize="{Binding FontSize, ElementName=Control}"
                                            VerticalAlignment="Center"/>
 
@@ -115,30 +115,17 @@
                             </StackPanel>
                         </Button>
 
-                        <Image Grid.Column="0"
-                               IsVisible="{Binding ShowVisualIcon, ElementName=Control}"
-                               Width="13"
-                               Height="13"
-                               Margin="8,0,8,0"
-                               VerticalAlignment="Center"
-                               HorizontalAlignment="Center"
-                               Opacity="0.5">
-                            <Image.Source>
-                                <DrawingImage>
-                                    <DrawingImage.Drawing>
-                                        <MultiBinding Converter="{StaticResource DrawingColorConverter}">
-
-                                            <Binding Path="VisualIcon" ElementName="Control" />
-
-                                            <Binding Path="TextForeground" ElementName="Control" />
-
-                                            <Binding Path="VisualIconStrokeThickness" ElementName="Control" />
-
-                                        </MultiBinding>
-                                    </DrawingImage.Drawing>
-                                </DrawingImage>
-                            </Image.Source>
-                        </Image>
+                        <EcliptixIcon Grid.Column="0"
+                                            IsVisible="{Binding ShowVisualIcon, ElementName=Control}"
+                                            Kind="{Binding VisualIcon, ElementName=Control}"
+                                            Stroke="{Binding TextForeground, ElementName=Control}"
+                                            StrokeThickness="{Binding VisualIconStrokeThickness, ElementName=Control}"
+                                            Width="16"
+                                            Height="16"
+                                            Margin="8,0,8,0"
+                                            VerticalAlignment="Center"
+                                            HorizontalAlignment="Center"
+                                            Opacity="0.5" />
 
                         <Border Grid.Column="1"
                                 IsVisible="{Binding ShowLeftSeparator, ElementName=Control}"

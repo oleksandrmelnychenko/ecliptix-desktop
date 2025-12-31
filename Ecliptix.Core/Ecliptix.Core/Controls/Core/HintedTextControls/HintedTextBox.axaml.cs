@@ -8,6 +8,7 @@ using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+using Ecliptix.Core.Controls.Common;
 using Ecliptix.Core.Controls.Constants;
 using ReactiveUI;
 
@@ -51,8 +52,8 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     public static readonly StyledProperty<DrawingImage?> IconErrorSourceProperty =
         AvaloniaProperty.Register<HintedTextBox, DrawingImage?>(nameof(IconErrorSource));
 
-    public static readonly StyledProperty<Drawing?> VisualIconProperty =
-        AvaloniaProperty.Register<HintedTextBox, Drawing?>(nameof(VisualIcon));
+    public static readonly StyledProperty<IconKind> VisualIconProperty =
+        AvaloniaProperty.Register<HintedTextBox, IconKind>(nameof(VisualIcon));
 
     public static readonly StyledProperty<IBrush> FocusBorderBrushProperty =
         AvaloniaProperty.Register<HintedTextBox, IBrush>(
@@ -164,7 +165,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         set => SetValue(CountryCodeCommandProperty, value);
     }
 
-    public Drawing? VisualIcon
+    public IconKind VisualIcon
     {
         get => GetValue(VisualIconProperty);
         set => SetValue(VisualIconProperty, value);
@@ -369,29 +370,14 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             }, "HasError subscription"))
             .DisposeWith(_disposables);
 
-        IObservable<bool> showPhoneButtonObs = this.WhenAnyValue(
-                x => x.IsPhoneNumberMode,
-                x => x.Text)
-            .Select(tuple =>
-            {
-                (bool isPhoneMode, string text) = tuple;
-                if (!isPhoneMode)
-                {
-                    return false;
-                }
-
-                if (string.IsNullOrEmpty(text))
-                {
-                    return true;
-                }
-
-                return !text.StartsWith("+");
-            });
+        IObservable<bool> showPhoneButtonObs = this.WhenAnyValue(x => x.IsPhoneNumberMode);
 
         IObservable<bool> showVisualIconObs = Observable.CombineLatest(
             showPhoneButtonObs,
             this.WhenAnyValue(x => x.VisualIcon),
-            (isPhoneBtnVisible, icon) => !isPhoneBtnVisible && icon != null
+            (isPhoneBtnVisible, iconKind) =>
+                !isPhoneBtnVisible &&
+                iconKind != IconKind.None
         );
 
         showPhoneButtonObs

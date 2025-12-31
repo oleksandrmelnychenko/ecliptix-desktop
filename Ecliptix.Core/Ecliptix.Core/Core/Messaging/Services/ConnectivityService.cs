@@ -1,4 +1,6 @@
 using System;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging.Connectivity;
@@ -13,32 +15,44 @@ internal sealed class ConnectivityService : IConnectivityService
     private readonly IDisposable _internalSubscription;
     private bool _disposed;
 
-    private ConnectivityStatus _lastInternetStatus = ConnectivityStatus.UNAVAILABLE;
-    private ConnectivityStatus _lastServerStatus = ConnectivityStatus.DISCONNECTED;
+    private readonly BehaviorSubject<ConnectivityStatus> _internetSubject
+        = new(ConnectivityStatus.UNAVAILABLE);
+
+    private readonly BehaviorSubject<ConnectivityStatus> _serverSubject
+        = new(ConnectivityStatus.DISCONNECTED);
 
     public ConnectivitySnapshot CurrentSnapshot => _connectivityPublisher.CurrentSnapshot;
-    public ConnectivityStatus LastKnownInternetStatus => _lastInternetStatus;
 
-    public ConnectivityStatus LastKnownServerStatus => _lastServerStatus;
+    public ConnectivityStatus LastKnownInternetStatus => _internetSubject.Value;
+    public ConnectivityStatus LastKnownServerStatus => _serverSubject.Value;
 
     public IObservable<ConnectivitySnapshot> ConnectivityStream => _connectivityPublisher.ConnectivityStream;
+
+    public IObservable<ConnectivityStatus> InternetStatus => _internetSubject.AsObservable();
+    public IObservable<ConnectivityStatus> ServerStatus => _serverSubject.AsObservable();
 
     public ConnectivityService(IMessageBus messageBus)
     {
         _messageBus = messageBus;
 
-        _internalSubscription = _connectivityPublisher.ConnectivityStream.Subscribe(UpdateInternalCache);
+        _internalSubscription = _connectivityPublisher.ConnectivityStream.Subscribe(UpdateInternalState);
     }
 
-    private void UpdateInternalCache(ConnectivitySnapshot snapshot)
+    private void UpdateInternalState(ConnectivitySnapshot snapshot)
     {
         if (snapshot.Source == ConnectivitySource.INTERNET_PROBE)
         {
-            _lastInternetStatus = snapshot.Status;
+            if (_internetSubject.Value != snapshot.Status)
+            {
+                _internetSubject.OnNext(snapshot.Status);
+            }
         }
         else if (snapshot.Source == ConnectivitySource.DATA_CENTER)
         {
-            _lastServerStatus = snapshot.Status;
+            if (_serverSubject.Value != snapshot.Status)
+            {
+                _serverSubject.OnNext(snapshot.Status);
+            }
         }
     }
 
@@ -79,7 +93,15 @@ internal sealed class ConnectivityService : IConnectivityService
         }
 
         _disposed = true;
+
         _internalSubscription.Dispose();
+
+        _internetSubject.OnCompleted();
+        _internetSubject.Dispose();
+
+        _serverSubject.OnCompleted();
+        _serverSubject.Dispose();
+
         _connectivityPublisher.Dispose();
     }
 }

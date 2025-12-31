@@ -99,12 +99,10 @@ public static partial class SecureKeyValidator
         string[] checklistKeys = new[]
         {
             SecureKeyValidatorConstants.LocalizationKeys.MIN_LENGTH,
-            SecureKeyValidatorConstants.LocalizationKeys.NO_SPACES,
             SecureKeyValidatorConstants.LocalizationKeys.NO_UPPERCASE,
             SecureKeyValidatorConstants.LocalizationKeys.NO_LOWERCASE,
             SecureKeyValidatorConstants.LocalizationKeys.NO_SPECIAL_CHAR,
             SecureKeyValidatorConstants.LocalizationKeys.NO_DIGIT,
-            SecureKeyValidatorConstants.LocalizationKeys.NON_ENGLISH_LETTERS
         };
 
         foreach (string key in checklistKeys)

@@ -45,10 +45,12 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
     private CancellationTokenSource? _cancellationTokenSource;
     private volatile bool _isDisposed;
 
+    private uint? _initialTotalSeconds;
     private readonly Subject<string> _executionErrorSubject = new();
     private readonly IGlobalModalService _globalModalService;
     public IObservable<string> ExecutionError => _executionErrorSubject.AsObservable();
 
+    [Reactive] public double ProgressValue { get; private set; } = 1.0;
     private const int CURRENT_STEP = 2;
 
     public VerificationCodeEntryViewModel(
@@ -482,6 +484,8 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
     {
         ErrorMessage = string.Empty;
         HasError = false;
+        _initialTotalSeconds = null;
+        ProgressValue = 1.0;
 
         CancellationTokenSource cancellationToken = CreateNewCancellationToken();
 
@@ -828,6 +832,21 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             return;
         }
 
+        if (_initialTotalSeconds == null && seconds > 0 && status == VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active)
+        {
+            _initialTotalSeconds = seconds;
+        }
+
+        if (_initialTotalSeconds.HasValue && _initialTotalSeconds.Value > 0)
+        {
+            ProgressValue = (double)seconds / _initialTotalSeconds.Value;
+        }
+        else
+        {
+            ProgressValue = seconds > 0 ? 1.0 : 0.0;
+        }
+
+
         SecondsRemaining = ProcessCountdownStatus(status, seconds, message);
         CurrentStatus = status;
     }
@@ -922,6 +941,8 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
 
             await _globalModalService.CloseAllAsync();
 
+            _initialTotalSeconds = null;
+            ProgressValue = 1.0;
             VerificationCode = string.Empty;
             ErrorMessage = string.Empty;
             HasError = false;

@@ -78,6 +78,19 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
 
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> CompleteSetupCommand { get; private set; } = null!;
 
+    public async Task HandleEnterKeyPressAsync()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        if (await CompleteSetupCommand.CanExecute.FirstOrDefaultAsync())
+        {
+            CompleteSetupCommand.Execute().Subscribe().DisposeWith(_disposables);
+        }
+    }
+
     public void ResetState()
     {
         ProfileName = string.Empty;

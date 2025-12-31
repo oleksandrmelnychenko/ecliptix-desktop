@@ -3,6 +3,7 @@ namespace Ecliptix.Core.Controls.Common;
 
 public enum IconKind
 {
+    None,
     Dice3,
     DraftingCompass,
     Heading6,

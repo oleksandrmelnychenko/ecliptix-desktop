@@ -14,92 +14,92 @@
         <converters:DrawingColorConverter x:Key="DrawingColorConverter" />
     </UserControl.Resources>
 
-  <UserControl.Styles>
+    <UserControl.Styles>
         <Style Selector="Border.Offline Border#IconWrapper">
-            <Setter Property="Background" Value="#F3F4F6"/>
+            <Setter Property="Background" Value="#F3F4F6" />
         </Style>
         <Style Selector="Border.ServerIssue Border#IconWrapper">
-            <Setter Property="Background" Value="#FEF2F2"/> </Style>
+            <Setter Property="Background" Value="#FEF2F2" />
+        </Style>
         <Style Selector="Border.Restored Border#IconWrapper">
-            <Setter Property="Background" Value="#ECFDF5"/>
+            <Setter Property="Background" Value="#ECFDF5" />
         </Style>
 
-        <Style Selector="Border.Offline Viewbox#InnerIconViewbox">
-            <Setter Property="Width" Value="26"/>
-            <Setter Property="Height" Value="26"/>
-        </Style>
-        <Style Selector="Border.ServerIssue Viewbox#InnerIconViewbox">
-            <Setter Property="Width" Value="20"/>
-            <Setter Property="Height" Value="20"/>
-        </Style>
-        <Style Selector="Border.Restored Viewbox#InnerIconViewbox">
-            <Setter Property="Width" Value="20"/>
-            <Setter Property="Height" Value="20"/>
+        <Style Selector="Border.Offline EcliptixIcon">
+            <Setter Property="Kind" Value="WifiOff" />
+            <Setter Property="Stroke" Value="#4B5563" />
+            <Setter Property="Width" Value="21" />
+            <Setter Property="Height" Value="21" />
         </Style>
 
-        <Style Selector="Border.Offline Image#StatusIcon">
-            <Setter Property="Tag" Value="{DynamicResource __wifi_off}"/>
-            <Setter Property="TextElement.Foreground" Value="#4B5563"/>
+        <Style Selector="Border.ServerIssue EcliptixIcon">
+            <Setter Property="Kind" Value="CircleAlert" />
+            <Setter Property="Stroke" Value="#DC2626" />
+            <Setter Property="Width" Value="22" />
+            <Setter Property="Height" Value="22" />
         </Style>
-        <Style Selector="Border.ServerIssue Image#StatusIcon">
-            <Setter Property="Tag" Value="{DynamicResource __circle_alert}"/>
-            <Setter Property="TextElement.Foreground" Value="#DC2626"/>
-            <Setter Property="Opacity" Value="1.0"/>
+
+        <Style Selector="Border.Restored EcliptixIcon">
+            <Setter Property="Kind" Value="Wifi" />
+            <Setter Property="Stroke" Value="#16A34A" />
+            <Setter Property="Width" Value="20" />
+            <Setter Property="Height" Value="20" />
         </Style>
-        <Style Selector="Border.Restored Image#StatusIcon">
-            <Setter Property="Tag" Value="{DynamicResource __wifi}"/>
-            <Setter Property="TextElement.Foreground" Value="#16A34A"/>
+
+        <Style Selector="EcliptixIcon">
+            <Setter Property="StrokeThickness" Value="2" />
         </Style>
 
         <Style Selector="Border.Offline">
-            <Setter Property="Background" Value="#E5E7EB"/>
+            <Setter Property="Background" Value="#E5E7EB" />
         </Style>
-
         <Style Selector="Border.ServerIssue">
-            <Setter Property="Background" Value="#FFC9C9"/>
-
-            </Style>
-
-        <Style Selector="Border.Restored">
-             <Setter Property="Background" Value="#B9F8CF"/>
+            <Setter Property="Background" Value="#FFC9C9" />
         </Style>
-
+        <Style Selector="Border.Restored">
+            <Setter Property="Background" Value="#B9F8CF" />
+        </Style>
 
         <Style Selector="Border#MainBorder">
-            <Setter Property="Opacity" Value="0"/>
-            <Setter Property="RenderTransform" Value="translateY(-20px)"/>
-            <Setter Property="IsHitTestVisible" Value="False"/>
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="RenderTransform" Value="translateY(-20px)" />
+            <Setter Property="IsHitTestVisible" Value="False" />
             <Setter Property="Transitions">
                 <Transitions>
-                    <DoubleTransition Property="Opacity" Duration="0:0:0.3" Easing="QuadraticEaseOut"/>
-                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3" Easing="QuadraticEaseOut"/>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.3" Easing="QuadraticEaseOut" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3"
+                                                   Easing="QuadraticEaseOut" />
                 </Transitions>
             </Setter>
         </Style>
         <Style Selector="Border#MainBorder.Visible">
-            <Setter Property="Opacity" Value="1"/>
-            <Setter Property="RenderTransform" Value="translateY(0px)"/>
-            <Setter Property="IsHitTestVisible" Value="True"/>
+            <Setter Property="Opacity" Value="1" />
+            <Setter Property="RenderTransform" Value="translateY(0px)" />
+            <Setter Property="IsHitTestVisible" Value="True" />
         </Style>
 
         <Style Selector="Border.ServerIssue TextBlock#StatusText">
-            <Setter Property="Foreground" Value="#DC2626"/>
+            <Setter Property="Foreground" Value="#DC2626" />
         </Style>
         <Style Selector="Border.ServerIssue TextBlock#DescriptionText">
-            <Setter Property="Foreground" Value="#EF4444"/>
+            <Setter Property="Foreground" Value="#EF4444" />
         </Style>
 
         <Style Selector="Border#TimerBar">
-            <Setter Property="Opacity" Value="0"/>
-            <Setter Property="RenderTransform" Value="scaleX(1)"/>
-            <Setter Property="Background" Value="#16A34A"/>
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="RenderTransform" Value="scaleX(1)" />
+            <Setter Property="Background" Value="#16A34A" />
         </Style>
         <Style Selector="Border.Restored Border#TimerBar">
-            <Setter Property="Opacity" Value="1"/>
+            <Setter Property="Opacity" Value="1" />
             <Style.Animations>
                 <Animation Duration="{Binding RestoredStateDuration}" FillMode="Forward" Easing="LinearEasing">
-                    <KeyFrame Cue="0%"><Setter Property="ScaleTransform.ScaleX" Value="1"/></KeyFrame>
-                    <KeyFrame Cue="100%"><Setter Property="ScaleTransform.ScaleX" Value="0"/></KeyFrame>
+                    <KeyFrame Cue="0%">
+                        <Setter Property="ScaleTransform.ScaleX" Value="1" />
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="ScaleTransform.ScaleX" Value="0" />
+                    </KeyFrame>
                 </Animation>
             </Style.Animations>
         </Style>
@@ -129,26 +129,9 @@
                             VerticalAlignment="Center"
                             HorizontalAlignment="Center">
 
-                        <Viewbox x:Name="InnerIconViewbox"
-                                 VerticalAlignment="Center"
-                                 HorizontalAlignment="Center">
-
-                            <Canvas Width="24" Height="24">
-                                <Image x:Name="StatusIcon"
-                                       Width="24" Height="24">
-                                    <Image.Source>
-                                        <DrawingImage>
-                                            <DrawingImage.Drawing>
-                                                <MultiBinding Converter="{StaticResource DrawingColorConverter}">
-                                                    <Binding Path="Tag" ElementName="StatusIcon" />
-                                                    <Binding Path="(TextElement.Foreground)" ElementName="StatusIcon" />
-                                                </MultiBinding>
-                                            </DrawingImage.Drawing>
-                                        </DrawingImage>
-                                    </Image.Source>
-                                </Image>
-                            </Canvas>
-                        </Viewbox>
+                        <EcliptixIcon x:Name="StatusIcon"
+                                    VerticalAlignment="Center"
+                                    HorizontalAlignment="Center" />
                     </Border>
 
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">

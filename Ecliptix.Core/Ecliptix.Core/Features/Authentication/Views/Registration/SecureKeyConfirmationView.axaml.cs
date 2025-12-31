@@ -17,6 +17,8 @@ namespace Ecliptix.Core.Features.Authentication.Views.Registration;
 
 public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyConfirmationViewModel>
 {
+    private const string SECURE_KEY_TEXT_BOX_CONTROL_NAME = "SecureKeyTextBox";
+    private const string VERIFY_SECURE_KEY_TEXT_BOX_CONTROL_NAME = "VerifySecureKeyTextBox";
     private const string ERROR_NOTIFICATION_CONTROL_NAME = "ErrorNotification";
     private bool _handlersAttached;
     private CompositeDisposable? _subscriptions;
@@ -87,20 +89,20 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyCo
             return;
         }
 
-        if (this.FindControl<HintedPasswordBox>("SecureKeyTextBox") is { } secureKeyBox)
+        if (this.FindControl<HintedPasswordBox>(SECURE_KEY_TEXT_BOX_CONTROL_NAME) is { } secureKeyBox)
         {
             secureKeyBox.SecureKeyCharactersAdded += OnSecureKeyCharactersAdded;
             secureKeyBox.SecureKeyCharactersRemoved += OnSecureKeyCharactersRemoved;
-            secureKeyBox.KeyDown += OnSecureKeyTextBoxKeyDown;
             secureKeyBox.CharacterRejected += OnCharacterRejected;
+            secureKeyBox.KeyDown += OnInputControlKeyDown;
         }
 
-        if (this.FindControl<HintedPasswordBox>("VerifySecureKeyTextBox") is { } verifySecureKeyBox)
+        if (this.FindControl<HintedPasswordBox>(VERIFY_SECURE_KEY_TEXT_BOX_CONTROL_NAME) is { } verifySecureKeyBox)
         {
             verifySecureKeyBox.SecureKeyCharactersAdded += OnVerifySecureKeyCharactersAdded;
             verifySecureKeyBox.SecureKeyCharactersRemoved += OnVerifySecureKeyCharactersRemoved;
-            verifySecureKeyBox.KeyDown += OnSecureKeyTextBoxKeyDown;
             verifySecureKeyBox.CharacterRejected += OnCharacterRejected;
+            verifySecureKeyBox.KeyDown += OnInputControlKeyDown;
         }
 
         _handlersAttached = true;
@@ -113,20 +115,20 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyCo
             return;
         }
 
-        if (this.FindControl<HintedPasswordBox>("SecureKeyTextBox") is HintedPasswordBox secureKeyBox)
+        if (this.FindControl<HintedPasswordBox>(SECURE_KEY_TEXT_BOX_CONTROL_NAME) is { } secureKeyBox)
         {
             secureKeyBox.SecureKeyCharactersAdded -= OnSecureKeyCharactersAdded;
             secureKeyBox.SecureKeyCharactersRemoved -= OnSecureKeyCharactersRemoved;
-            secureKeyBox.KeyDown -= OnSecureKeyTextBoxKeyDown;
             secureKeyBox.CharacterRejected -= OnCharacterRejected;
+            secureKeyBox.KeyDown -= OnInputControlKeyDown;
         }
 
-        if (this.FindControl<HintedPasswordBox>("VerifySecureKeyTextBox") is HintedPasswordBox verifySecureKeyBox)
+        if (this.FindControl<HintedPasswordBox>(VERIFY_SECURE_KEY_TEXT_BOX_CONTROL_NAME) is { } verifySecureKeyBox)
         {
             verifySecureKeyBox.SecureKeyCharactersAdded -= OnVerifySecureKeyCharactersAdded;
             verifySecureKeyBox.SecureKeyCharactersRemoved -= OnVerifySecureKeyCharactersRemoved;
-            verifySecureKeyBox.KeyDown -= OnSecureKeyTextBoxKeyDown;
             verifySecureKeyBox.CharacterRejected -= OnCharacterRejected;
+            verifySecureKeyBox.KeyDown -= OnInputControlKeyDown;
         }
 
         _handlersAttached = false;
@@ -176,7 +178,7 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyCo
         tb.SyncSecureKeyState(vm.CurrentVerifySecureKeyLength);
     }
 
-    private void OnSecureKeyTextBoxKeyDown(object? sender, KeyEventArgs e)
+    private void OnInputControlKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key != Key.Enter && e.Key != Key.Return)
         {
@@ -188,6 +190,8 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyCo
             return;
         }
 
+        e.Handled = true;
+
         vm.HandleEnterKeyPressAsync().ContinueWith(
             task =>
             {
@@ -198,7 +202,6 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyCo
                 }
             },
             TaskScheduler.Default);
-        e.Handled = true;
     }
 
     private void OnCharacterRejected(object? sender, CharacterRejectedEventArgs e)

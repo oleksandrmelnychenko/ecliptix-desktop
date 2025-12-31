@@ -13,38 +13,30 @@
                  MinWidth="{StaticResource Content.MaxWidth}"
                  Width="{StaticResource Content.MaxWidth}">
 
-    <UserControl.Styles>
-        <StyleInclude Source="avares://Ecliptix.Core/Controls/Core/HintedTextControls/Shared/CompleteProfileIcons.axaml"></StyleInclude>
+    <Grid VerticalAlignment="Top"
+          RowSpacing="{StaticResource Spacing.Authentication}"
+          RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+          HorizontalAlignment="Stretch"
+          Margin="0 -5 0 0"
+          Width="{StaticResource Content.MaxWidth}">
 
-    </UserControl.Styles>
-
-        <!-- Main Layout -->
-        <Grid VerticalAlignment="Top"
-              RowSpacing="{StaticResource Spacing.Authentication}"
-              RowDefinitions="Auto,Auto,Auto,Auto,Auto"
-              HorizontalAlignment="Stretch"
-              Margin="0 -5 0 0"
-              Width="{StaticResource Content.MaxWidth}">
-
-            <!-- Header Section -->
             <StackPanel Grid.Row="0"
                         Spacing="{StaticResource Spacing.S+}"
                         HorizontalAlignment="Left"
                         Margin="0 0 0 5">
                 <TextBlock Text="{Binding LocalizationService[Authentication.SignIn.Title]}"
-                           FontSize="{StaticResource Font.Title.L}"
+                           FontSize="{StaticResource Font.XL}"
                            FontWeight="Medium"
                            Foreground="{DynamicResource OnSurface}"/>
                 <TextBlock Text="{Binding LocalizationService[Authentication.SignIn.Welcome]}"
                            TextWrapping="Wrap"
+                           FontWeight="Normal"
                            FontSize="{StaticResource Font.XL}"
                            LineHeight="{StaticResource LineHeight.Subtitle}"
-                           FontWeight="Normal"
-                           Foreground="{DynamicResource OnSurface}"
-                           Opacity="1" />
+                           Foreground="{DynamicResource OnSurfaceVariant}"
+                           />
             </StackPanel>
 
-            <!-- Mobile Number Input -->
             <hintedTextControls:HintedTextBox
                 Grid.Row="1"
                 x:Name="MobileTextBox"
@@ -67,9 +59,9 @@
                 HorizontalAlignment="Stretch"
                 IsEnabled="{Binding !IsBusy}"
                 FocusBorderBrush="{DynamicResource Primary}"
+                MaxLength="25"
                 />
 
-            <!-- SecureKey Input -->
             <hintedTextControls:HintedPasswordBox
                 Grid.Row="2"
                 x:Name="SecureKeyTextBox"
@@ -92,9 +84,8 @@
                 IconErrorSource="{StaticResource LampIconDrawingError}"
                 IsEnabled="{Binding !IsBusy}"
                 FocusBorderBrush="{DynamicResource Primary}"
-                VisualIcon="{DynamicResource __lock}"/>
+                VisualIcon="Lock"/>
 
-            <!-- Action Buttons -->
             <Grid Grid.Row="3"
                   HorizontalAlignment="Stretch"
                   ColumnDefinitions="208*,176*"

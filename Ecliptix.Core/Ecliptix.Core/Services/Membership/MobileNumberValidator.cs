@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Membership.Constants;
+using Ecliptix.Utilities;
 
 namespace Ecliptix.Core.Services.Membership;
 
@@ -14,10 +15,10 @@ public static partial class MobileNumberValidator
         [
             (string.IsNullOrWhiteSpace,
                 MobileNumberValidatorConstants.LocalizationKeys.CANNOT_BE_EMPTY, null),
-            (s => !IsValidFormatRegex().IsMatch(s),
+            (s => !IsAllowedCharactersRegex().IsMatch(s),
                 MobileNumberValidatorConstants.LocalizationKeys.CONTAINS_NON_DIGITS, null),
-            (s => s.Length < MobileNumberValidatorConstants.ValidationRules.MIN_DIGITS
-                  || s.Length > MobileNumberValidatorConstants.ValidationRules.MAX_DIGITS + 5,
+            (s => PhoneNumberHelper.Normalize(s).Length < MobileNumberValidatorConstants.ValidationRules.MIN_DIGITS
+                  || PhoneNumberHelper.Normalize(s).Length > MobileNumberValidatorConstants.ValidationRules.MAX_DIGITS,
                 MobileNumberValidatorConstants.LocalizationKeys.INCORRECT_LENGTH,
                 [MobileNumberValidatorConstants.ValidationRules.MIN_DIGITS,
                     MobileNumberValidatorConstants.ValidationRules.MAX_DIGITS])
@@ -35,6 +36,6 @@ public static partial class MobileNumberValidator
         return string.Empty;
     }
 
-    [GeneratedRegex(@"^\+?[0-9]+$")]
-    private static partial Regex IsValidFormatRegex();
+    [GeneratedRegex(@"^[0-9\s-]+$")]
+    private static partial Regex IsAllowedCharactersRegex();
 }

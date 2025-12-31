@@ -17,65 +17,74 @@
         <sys:Double x:Key="BadgeIconSpacing">4</sys:Double>
     </UserControl.Resources>
 
-   <UserControl.Styles>
-        <Style Selector="local|StatusBadge Border#ContainerBorder">
-             <Setter Property="BorderThickness" Value="{StaticResource BadgeBorderThickness}"/>
+ <UserControl.Styles>
+     <Style Selector="local|StatusBadge Border#ContainerBorder">
+            <Setter Property="BorderThickness" Value="{StaticResource BadgeBorderThickness}" />
         </Style>
 
+         <Style Selector="local|StatusBadge:empty-icon EcliptixIcon">
+             <Setter Property="IsVisible" Value="False" />
+         </Style>
+
+         <Style Selector="local|StatusBadge:not(:empty-icon) EcliptixIcon">
+             <Setter Property="IsVisible" Value="True" />
+         </Style>
+
         <Style Selector="local|StatusBadge">
-            <Setter Property="Height" Value="28"/>
-            <Setter Property="BadgeBrush" Value="#6B7280"/>
-            <Setter Property="BadgeBackground" Value="#F3F4F6"/>
-            <Setter Property="BadgeBorderBrush" Value="Transparent"/>
-            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="Height" Value="28" />
+            <Setter Property="BadgeBrush" Value="#6B7280" />
+            <Setter Property="BadgeBackground" Value="#F3F4F6" />
+            <Setter Property="BadgeBorderBrush" Value="Transparent" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
         </Style>
 
         <Style Selector="local|StatusBadge.purple">
-            <Setter Property="BadgeBrush" Value="#7e22ce"/>
-            <Setter Property="BadgeBackground" Value="#f3e8ff"/>
+            <Setter Property="BadgeBrush" Value="#7e22ce" />
+            <Setter Property="BadgeBackground" Value="#f3e8ff" />
         </Style>
         <Style Selector="local|StatusBadge.purple Border#ContainerBorder">
-             <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="BorderThickness" Value="0" />
         </Style>
 
-        <Style Selector="local|StatusBadge.gray">
-            <Setter Property="BadgeBrush" Value="#4B5563"/>
-            <Setter Property="BadgeBackground" Value="#F3F4F6"/>
-            <Setter Property="BadgeBorderBrush" Value="#E5E7EB"/> </Style>
+         <Style Selector="local|StatusBadge.gray EcliptixIcon">
+             <Setter Property="Width" Value="15" />
+             <Setter Property="Height" Value="15" />
+             <Setter Property="Margin" Value="-1" />
+         </Style>
+
         <Style Selector="local|StatusBadge.red">
-            <Setter Property="BadgeBrush" Value="#DC2626"/>
-            <Setter Property="BadgeBackground" Value="#FEF2F2"/>
-            <Setter Property="BadgeBorderBrush" Value="#FECACA"/> </Style>
+            <Setter Property="BadgeBrush" Value="#DC2626" />
+            <Setter Property="BadgeBackground" Value="#FEF2F2" />
+            <Setter Property="BadgeBorderBrush" Value="#FECACA" />
+        </Style>
 
         <Style Selector="local|StatusBadge.green">
-            <Setter Property="BadgeBrush" Value="#16A34A"/>
-            <Setter Property="BadgeBackground" Value="#ECFDF5"/>
-            <Setter Property="BadgeBorderBrush" Value="#BBF7D0"/> </Style>
-
-        <Style Selector="local|StatusBadge Viewbox#IconBox">
-            <Setter Property="Width" Value="{StaticResource BadgeIconSize}"/>
-            <Setter Property="Height" Value="{StaticResource BadgeIconSize}"/>
-            <Setter Property="Margin" Value="0"/>
+            <Setter Property="BadgeBrush" Value="#16A34A" />
+            <Setter Property="BadgeBackground" Value="#ECFDF5" />
+            <Setter Property="BadgeBorderBrush" Value="#BBF7D0" />
         </Style>
-        <Style Selector="local|StatusBadge.gray Viewbox#IconBox">
-            <Setter Property="Width" Value="18"/>
-            <Setter Property="Height" Value="18"/>
-            <Setter Property="Margin" Value="-2"/>
+
+        <Style Selector="local|StatusBadge EcliptixIcon">
+            <Setter Property="Width" Value="{StaticResource BadgeIconSize}" />
+            <Setter Property="Height" Value="{StaticResource BadgeIconSize}" />
+            <Setter Property="StrokeThickness" Value="2" />
         </Style>
 
         <Style Selector="Border.popupContent">
-            <Setter Property="Opacity" Value="0"/>
-            <Setter Property="RenderTransform" Value="scale(0.9)"/>
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="RenderTransform" Value="scale(0.9)" />
             <Setter Property="Transitions">
                 <Transitions>
-                    <DoubleTransition Property="Opacity" Duration="{StaticResource FlyoutAnimDuration}" Easing="CubicEaseOut"/>
-                    <TransformOperationsTransition Property="RenderTransform" Duration="{StaticResource FlyoutAnimDuration}" Easing="BackEaseOut"/>
+                    <DoubleTransition Property="Opacity" Duration="{StaticResource FlyoutAnimDuration}"
+                                      Easing="CubicEaseOut" />
+                    <TransformOperationsTransition Property="RenderTransform"
+                                                   Duration="{StaticResource FlyoutAnimDuration}" Easing="BackEaseOut" />
                 </Transitions>
             </Setter>
         </Style>
         <Style Selector="Border.popupContent.visible">
-            <Setter Property="Opacity" Value="1"/>
-            <Setter Property="RenderTransform" Value="scale(1)"/>
+            <Setter Property="Opacity" Value="1" />
+            <Setter Property="RenderTransform" Value="scale(1)" />
         </Style>
     </UserControl.Styles>
 
@@ -95,22 +104,8 @@
                         Spacing="{StaticResource BadgeIconSpacing}"
                         VerticalAlignment="Center">
 
-                <Viewbox x:Name="IconBox"
-                         IsVisible="{Binding Icon, ElementName=Root, Converter={x:Static ObjectConverters.IsNotNull}}">
-
-                    <Image>
-                        <Image.Source>
-                            <DrawingImage>
-                                <DrawingImage.Drawing>
-                                    <MultiBinding Converter="{StaticResource DrawingColorConverter}">
-                                        <Binding Path="Icon" ElementName="Root" />
-                                        <Binding Path="BadgeBrush" ElementName="Root" />
-                                    </MultiBinding>
-                                </DrawingImage.Drawing>
-                            </DrawingImage>
-                        </Image.Source>
-                    </Image>
-                </Viewbox>
+                <EcliptixIcon Kind="{Binding Icon, ElementName=Root}"
+                              Stroke="{Binding BadgeBrush, ElementName=Root}"/>
 
                 <TextBlock Text="{Binding Text, ElementName=Root}"
                            Foreground="{Binding BadgeBrush, ElementName=Root}"

@@ -87,20 +87,6 @@
                         Command="{Binding NavToWelcomeBackCommand}">
                 </Button>
 
-                <EcliptixIcon Kind="ImagePlus" Height="24" Width="24" Stroke="Black"/>
-                <EcliptixIcon Kind="ImagePlus" Height="24" Width="24" Stroke="Black"/>
-
-                <Button Background="Transparent" Padding="4" Foreground="Black">
-
-                        <EcliptixIcon Kind="ImagePlus" Height="24" Width="24"/>
-
-                        <Button.Styles>
-                                <Style Selector="Button:pressed EcliptixIcon">
-                                        <Setter Property="Stroke" Value="Red"/>
-                                </Style>
-                        </Button.Styles>
-                </Button>
-
         </StackPanel>
 
 

@@ -9,11 +9,6 @@
              x:Class="Ecliptix.Core.Features.Authentication.Views.Registration.CompleteProfileView"
              x:DataType="registration:CompleteProfileViewModel">
 
-    <UserControl.Styles>
-        <StyleInclude Source="avares://Ecliptix.Core/Controls/Core/HintedTextControls/Shared/CompleteProfileIcons.axaml"></StyleInclude>
-
-    </UserControl.Styles>
-
     <Grid VerticalAlignment="Top"
           RowSpacing="{StaticResource Spacing.Authentication}"
           RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
@@ -22,13 +17,12 @@
 
         <StackPanel Grid.Row="0"
                     Spacing="{StaticResource Spacing.S}"
-                    MaxWidth="{StaticResource Header.MaxWidth}"
                     HorizontalAlignment="Left">
 
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.Title]}"
-                           FontSize="{StaticResource Font.XXL}"
-                           FontWeight="Light"
+                           FontSize="{StaticResource Font.XL}"
+                           FontWeight="Medium"
                            Foreground="{DynamicResource OnSurface}"
                            LineHeight="{StaticResource LineHeight.Loose}" />
 
@@ -38,14 +32,15 @@
 
             <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.Description]}"
                        TextWrapping="Wrap"
-                       FontSize="{StaticResource Font.XXXL}"
+                       FontSize="{StaticResource Font.XL}"
                        LineHeight="{StaticResource LineHeight.Subtitle}"
-                       FontWeight="Light"
-                       Foreground="{DynamicResource OnSurface}"
-                       Opacity="0.8" />
+                       FontWeight="Normal"
+                       Foreground="{DynamicResource OnSurfaceVariant}"
+                       />
         </StackPanel>
 
         <hintedTextControls:HintedTextBox
+            x:Name="ProfileNameTextBox"
             Grid.Row="1"
             Watermark="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.ProfileName.Watermark]}"
             Hint="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.ProfileName.Hint]}"
@@ -63,9 +58,10 @@
             Background="{DynamicResource Surface}"
             FontWeight="Light"
             HorizontalAlignment="Stretch"
-            VisualIcon="{DynamicResource __user_round}"/>
+            VisualIcon="UserRound"/>
 
         <hintedTextControls:HintedTextBox
+            x:Name="DisplayNameTextBox"
             Grid.Row="2"
             Watermark="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.DisplayName.Watermark]}"
             Hint="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.DisplayName.Hint]}"
@@ -83,7 +79,7 @@
             Background="{DynamicResource Surface}"
             FontWeight="Light"
             HorizontalAlignment="Stretch"
-            VisualIcon="{DynamicResource __square_pen}"/>
+            VisualIcon="SquarePen"/>
 
 
         <Button Grid.Row="3"
