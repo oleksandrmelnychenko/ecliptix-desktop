@@ -70,11 +70,11 @@
                     <Border Name="PART_Glow"
                             Background="{DynamicResource ButtonGlowGradient}"
                             CornerRadius="{TemplateBinding CornerRadius}"
-                            Margin="-2"
+                            Margin="-4"
                             Opacity="0"
                             IsHitTestVisible="False">
                         <Border.Effect>
-                            <BlurEffect Radius="4"/>
+                            <BlurEffect Radius="20"/>
                         </Border.Effect>
                         <Border.Transitions>
                             <Transitions>
