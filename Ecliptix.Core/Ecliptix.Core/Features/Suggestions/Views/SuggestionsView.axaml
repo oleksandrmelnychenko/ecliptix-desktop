@@ -22,7 +22,6 @@
 
 				<Grid Width="40" Height="40">
 					<Path Stroke="#111827"
-
 						  VerticalAlignment="Center"
 						  HorizontalAlignment="Center"
 						  StrokeThickness="2"
@@ -96,10 +95,95 @@
 									</Border>
 								</Border>
 
-								<TextBlock Grid.Column="1"
-										   Text="{Binding Title}"
-										   VerticalAlignment="Center"
-										   Margin="0,0,0,0"/>
+								<Grid Grid.Column="1"
+									  RowDefinitions="Auto,Auto,Auto"
+									  ColumnDefinitions="*,Auto"
+									  ColumnSpacing="8">
+
+									<StackPanel Orientation="Vertical"
+												Height="40.5"
+												Width="88.28">
+
+										<TextBlock Text="{Binding Author.DisplayName}"
+												   FontSize="14"
+												   FontWeight="600"
+												   LineHeight="21"
+												   TextWrapping="NoWrap"
+												   TextTrimming="CharacterEllipsis"
+												   Foreground="#101828" />
+										<TextBlock Text="{Binding Author.Username, StringFormat='@{0}'}"
+												   FontSize="13"
+												   TextTrimming="CharacterEllipsis"
+												   TextWrapping="NoWrap"
+												   LineHeight="19.5"
+												   Foreground="#6a7282" />
+									</StackPanel>
+
+									<Button Grid.Column="1"
+											Grid.Row="0"
+											Content="Follow"
+											Height="28"
+											Width="67.72"
+											FontSize="12"
+											FontWeight="600"
+											VerticalAlignment="Top"
+											CornerRadius="20"
+											Foreground="#fff"
+											Background="#000">
+
+									</Button>
+
+									<TextBlock Grid.Column="0"
+											   Grid.Row="1"
+											   Grid.ColumnSpan="2"
+											   FontSize="12"
+											   Text="{Binding Title}"
+											   Foreground="#4a5565"
+											   VerticalAlignment="Center"
+											   Margin="0,6,0,0"/>
+
+									<StackPanel Grid.Column="0"
+												Grid.Row="2"
+												Grid.ColumnSpan="2"
+												Margin="0,8,0,0"
+												Spacing="6"
+												Orientation="Horizontal">
+
+										<Grid Width="12" Height="12">
+											<Path Stroke="#98A2B3"
+												  StrokeThickness="1"
+												  StrokeLineCap="Round"
+												  VerticalAlignment="Center"
+												  HorizontalAlignment="Center"
+												  Stretch="None"
+												  Data="
+												  M8 10.5
+												  v-0.5
+												  a2 2 0 0 0-2-2
+												  H3
+												  a2 2 0 0 0-2 2
+												  v1
+
+												  M8 1.564
+												  a2 2 0 0 1 0 3.872
+
+												  M11 10.5
+												  v-1
+												  a2 2 0 0 0-1.5-1.935
+
+												  M4.5 3.5
+												  a2 2 0 1 0 0.001 0
+												  "/>
+										</Grid>
+
+										<TextBlock FontSize="11"
+												   Foreground="#6a7282"
+												   TextWrapping="Wrap">
+											<Run Text="{Binding MutualConnectionsCount}"/>
+											<Run Text=" mutual connections"/>
+										</TextBlock>
+									</StackPanel>
+								</Grid>
 							</Grid>
 						</Border>
 					</DataTemplate>
