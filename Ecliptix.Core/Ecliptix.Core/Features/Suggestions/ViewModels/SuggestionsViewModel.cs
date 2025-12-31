@@ -10,7 +10,28 @@ namespace Ecliptix.Core.Features.Suggestions.ViewModels;
 
 public sealed class SuggestionsViewModel : ViewModelBase
 {
-    [Reactive] public ObservableCollection<Suggestion> TrendingItems { get; set; } = new()
+    [Reactive] public ObservableCollection<Suggestion> TrendingItems { get; set; } = GetData();
+
+    [Reactive] public ObservableCollection<Suggestion> Items { get; set; } = GetData();
+
+    /// <summary>
+    /// ctor().
+    /// </summary>
+    /// <param name="networkProvider"></param>
+    /// <param name="localizationService"></param>
+    /// <param name="globalModalService"></param>
+    /// <param name="connectivityService"></param>
+    public SuggestionsViewModel(
+        NetworkProvider networkProvider,
+        ILocalizationService localizationService,
+        IGlobalModalService globalModalService,
+        IConnectivityService? connectivityService = null)
+        : base(networkProvider, localizationService, globalModalService, connectivityService)
+    {
+
+    }
+
+    private static ObservableCollection<Suggestion> GetData() => new()
     {
         new Suggestion
         {
@@ -45,21 +66,4 @@ public sealed class SuggestionsViewModel : ViewModelBase
             IsFollowing = true
         }
     };
-
-    /// <summary>
-    /// ctor().
-    /// </summary>
-    /// <param name="networkProvider"></param>
-    /// <param name="localizationService"></param>
-    /// <param name="globalModalService"></param>
-    /// <param name="connectivityService"></param>
-    public SuggestionsViewModel(
-        NetworkProvider networkProvider,
-        ILocalizationService localizationService,
-        IGlobalModalService globalModalService,
-        IConnectivityService? connectivityService = null)
-        : base(networkProvider, localizationService, globalModalService, connectivityService)
-    {
-
-    }
 }
