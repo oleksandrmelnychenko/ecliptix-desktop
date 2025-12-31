@@ -27,7 +27,7 @@ public class LanguagePickerItemViewModel(LanguageItem model, bool isSelected) : 
 
 public class LanguagePickerViewModel : ReactiveObject, IActivatableViewModel, IDisposable
 {
-    private readonly ISideSheetService _sideSheetService;
+    private readonly IGlobalModalService _globalModalService;
     private readonly ILocalizationService _localizationService;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IRpcMetaDataProvider _rpcMetaDataProvider;
@@ -44,12 +44,12 @@ public class LanguagePickerViewModel : ReactiveObject, IActivatableViewModel, ID
     public ReactiveCommand<LanguagePickerItemViewModel, Unit> SelectLanguageCommand { get; }
 
     public LanguagePickerViewModel(
-        ISideSheetService sideSheetService,
+        IGlobalModalService globalModalService,
         ILocalizationService localizationService,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IRpcMetaDataProvider rpcMetaDataProvider)
     {
-        _sideSheetService = sideSheetService;
+        _globalModalService = globalModalService;
         _localizationService = localizationService;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _rpcMetaDataProvider = rpcMetaDataProvider;
@@ -63,7 +63,7 @@ public class LanguagePickerViewModel : ReactiveObject, IActivatableViewModel, ID
 
         CloseCommand = ReactiveCommand.CreateFromTask(async () =>
         {
-            await _sideSheetService.HideAsync();
+            await _globalModalService.CloseAllAsync();
         });
 
         SelectLanguageCommand = ReactiveCommand.CreateFromTask<LanguagePickerItemViewModel>(async (selectedItem) =>
@@ -81,7 +81,7 @@ public class LanguagePickerViewModel : ReactiveObject, IActivatableViewModel, ID
 
         if (_localizationService.CurrentCultureName == selectedItem.Model.Code)
         {
-            await _sideSheetService.HideAsync();
+            await _globalModalService.CloseAllAsync();
             return;
         }
 
@@ -90,7 +90,7 @@ public class LanguagePickerViewModel : ReactiveObject, IActivatableViewModel, ID
             HandleCultureChange(selectedItem.Model.Code);
         });
 
-        await _sideSheetService.HideAsync();
+        await _globalModalService.CloseAllAsync();
     }
 
     private void HandleCultureChange(string cultureCode)
