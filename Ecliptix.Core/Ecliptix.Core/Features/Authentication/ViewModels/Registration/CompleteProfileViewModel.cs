@@ -13,6 +13,7 @@ using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.Core.Localization;
+using Ecliptix.Core.Services.Membership;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Protobuf.Account;
 using Ecliptix.Protobuf.Device;
@@ -109,25 +110,25 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
     {
         this.WhenAnyValue(x => x.ProfileName)
             .Skip(1)
-            .Throttle(TimeSpan.FromMilliseconds(300))
+            .Throttle(TimeSpan.FromMilliseconds(50))
             .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(name =>
+            .Select(name => NameValidator.ValidateProfileName(name, LocalizationService))
+            .Subscribe(error =>
             {
-                bool isValid = !string.IsNullOrWhiteSpace(name) && name.Length >= 3;
-                ProfileNameError = isValid ? string.Empty : LocalizationService[LocalizationKeys.ValidationErrors.Profile.INVALID_NAME];
-                HasProfileNameError = !isValid;
+                ProfileNameError = error;
+                HasProfileNameError = !string.IsNullOrEmpty(error);
             })
             .DisposeWith(_disposables);
 
         this.WhenAnyValue(x => x.DisplayName)
             .Skip(1)
-            .Throttle(TimeSpan.FromMilliseconds(300))
+            .Throttle(TimeSpan.FromMilliseconds(50))
             .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(name =>
+            .Select(name => NameValidator.ValidateDisplayName(name, LocalizationService))
+            .Subscribe(error =>
             {
-                bool isValid = !string.IsNullOrWhiteSpace(name);
-                DisplayNameError = isValid ? string.Empty : LocalizationService[LocalizationKeys.ValidationErrors.Profile.INVALID_DISPLAY_NAME];
-                HasDisplayNameError = !isValid;
+                DisplayNameError = error;
+                HasDisplayNameError = !string.IsNullOrEmpty(error);
             })
             .DisposeWith(_disposables);
 
