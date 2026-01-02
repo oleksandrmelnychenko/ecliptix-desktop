@@ -8,18 +8,28 @@
 			 x:DataType="models:Suggestion"
 			 x:Class="Ecliptix.Core.Features.Suggestions.Controls.SuggestionControl">
 
-	<Border Margin="0,0,0,8"
+	<Border Classes="card" Margin="0,0,0,8"
 			Height="114.5"
 			Width="248"
 			CornerRadius="14"
 			Background="#fff">
+		<Border.Styles>
+			<Style Selector="Border.card:pointerover">
+				<Setter Property="BoxShadow" Value="0 3 8 0 #1A000000"/>
+			</Style>
+
+			<Style Selector="Border.card:pointerover Border.avatar">
+				<Setter Property="BoxShadow" Value="0 0 12 2 #80C37BFF"/>
+			</Style>
+		</Border.Styles>
 
 		<Grid Margin="12"
 			  ColumnDefinitions="Auto,Auto"
 			  ColumnSpacing="12"
 			  Background="#fff">
 
-			<Border Grid.Column="0"
+			<Border Classes="avatar"
+					Grid.Column="0"
 					VerticalAlignment="Top"
 					HorizontalAlignment="Center"
 					Width="48"
@@ -34,7 +44,7 @@
 						CornerRadius="30"
 						Background="#fff">
 
-					<Border	VerticalAlignment="Center"
+					<Border VerticalAlignment="Center"
 							HorizontalAlignment="Center"
 							Width="40"
 							Height="40"
