@@ -28,7 +28,7 @@ public class LanguageMenuButtonViewModel : ReactiveObject, IActivatableViewModel
     [Reactive] public LanguageItem? CurrentLanguage { get; set; }
 
     public LanguageMenuButtonViewModel(
-        ISideSheetService sideSheetService,
+        IGlobalModalService globalModalService,
         IApplicationSecureStorageProvider storageProvider,
         ILocalizationService localizationService,
         IRpcMetaDataProvider rpcMetaDataProvider
@@ -37,14 +37,14 @@ public class LanguageMenuButtonViewModel : ReactiveObject, IActivatableViewModel
         _localizationService = localizationService;
 
         _cachedLanguagePickerVm = new LanguagePickerViewModel(
-            sideSheetService,
+            globalModalService,
             localizationService,
             storageProvider,
             rpcMetaDataProvider);
 
         OpenLanguagePickerCommand = ReactiveCommand.CreateFromTask(async () =>
         {
-            await sideSheetService.ShowAsync(
+            await globalModalService.ShowRightAsync(
                 _cachedLanguagePickerVm,
                 showScrim: true,
                 isDismissable: true

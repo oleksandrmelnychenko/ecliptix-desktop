@@ -265,6 +265,10 @@ public static class LocalizationData
         [LocalizationKeys.ValidationErrors.Profile.INVALID_NAME] = "Name must be at least 3 characters",
         [LocalizationKeys.ValidationErrors.Profile.INVALID_DISPLAY_NAME] = "Display name must start with @",
         [LocalizationKeys.ValidationErrors.Profile.INVALID_AGE] = "You must be between 13 and 17 years old",
+        [LocalizationKeys.CountryPicker.TITLE] = "Country Code",
+        [LocalizationKeys.CountryPicker.SUBTITLE] = "Select country for phone number",
+        [LocalizationKeys.Countires.US] = "United States",
+        [LocalizationKeys.Countires.UA] = "Ukraine",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<string, string> UkrainianStrings = new Dictionary<string, string>
@@ -529,6 +533,10 @@ public static class LocalizationData
         [LocalizationKeys.ValidationErrors.Profile.INVALID_NAME] = "Ім'я має містити щонайменше 3 символи",
         [LocalizationKeys.ValidationErrors.Profile.INVALID_DISPLAY_NAME] = "Ім'я має починатися з @",
         [LocalizationKeys.ValidationErrors.Profile.INVALID_AGE] = "Вам має бути від 13 до 17 років",
+        [LocalizationKeys.CountryPicker.TITLE] = "Код країни",
+        [LocalizationKeys.CountryPicker.SUBTITLE] = "Оберіть країну для номера телефону",
+        [LocalizationKeys.Countires.US] = "Сполучені Штати",
+        [LocalizationKeys.Countires.UA] = "Україна",
     }.ToFrozenDictionary();
 
     public static readonly FrozenDictionary<string, FrozenDictionary<string, string>> AllLanguages =

@@ -464,4 +464,16 @@ public static class LocalizationKeys
         public const string TITLE = "LanguagePicker.Title";
         public const string SUBTITLE = "LanguagePicker.Subtitle";
     }
+
+    public static class CountryPicker
+    {
+        public const string TITLE = "Authentication.CountryPicker.Title";
+        public const string SUBTITLE = "Authentication.CountryPicker.Subtitle";
+    }
+
+    public static class Countires
+    {
+        public const string US = "Countries.UnitedStates";
+        public const string UA = "Countries.Ukraine";
+    }
 }

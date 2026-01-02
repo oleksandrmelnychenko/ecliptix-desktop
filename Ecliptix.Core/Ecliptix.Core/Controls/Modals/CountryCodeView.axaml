@@ -25,11 +25,11 @@
 
         <Grid ColumnDefinitions="*, Auto" Margin="0,0,0,20">
             <StackPanel Grid.Column="0" Spacing="2">
-                <TextBlock Text="Country Code"
+                <TextBlock Text="{Binding Title}"
                            FontFamily="{StaticResource SegoeUI}"
                            FontSize="16" FontWeight="Bold"
                            Foreground="{DynamicResource OnSurface}"/>
-                <TextBlock Text="Select country for phone number"
+                <TextBlock Text="{Binding Subtitle}"
                            FontFamily="{StaticResource SegoeUI}"
                            FontSize="12" FontWeight="Normal"
                            Foreground="#6B7280"/>

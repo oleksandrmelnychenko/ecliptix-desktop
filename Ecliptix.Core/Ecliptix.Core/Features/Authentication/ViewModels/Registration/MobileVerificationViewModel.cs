@@ -279,7 +279,7 @@ public sealed partial class MobileVerificationViewModel : Core.MVVM.ViewModelBas
         OpenCountryPickerCommand = ReactiveCommand.CreateFromTask(async () =>
         {
             await GlobalModalService.ShowRightAsync(
-                new CountryCodeViewModel(_messageBus, CountryIso, CountryPickerContext),
+                new CountryCodeViewModel(_messageBus, LocalizationService, GlobalModalService, CountryIso, CountryPickerContext),
                 showScrim: true,
                 isDismissable: true
             );
