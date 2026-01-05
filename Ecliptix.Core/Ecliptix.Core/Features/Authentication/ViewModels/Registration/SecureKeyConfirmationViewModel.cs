@@ -20,6 +20,7 @@ using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Authentication;
 using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Core.Services.Common;
+using Ecliptix.Core.Services.Core.Localization;
 using Ecliptix.Core.Services.Membership;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Protocol;
@@ -35,8 +36,7 @@ namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
 public class RequirementItem : ReactiveObject
 {
-    public string Text { get; }
-
+    [Reactive] public string Text { get; set; }
     [Reactive] public bool IsMet { get; set; }
 
     public RequirementItem(string text, bool isMet)
@@ -182,29 +182,21 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModel
 
     private void SetupSubscriptions()
     {
-    //  TODO commmented for a test purposes
+    // TODO commmented for a test purposes
         this.WhenActivated(disposables =>
         {
-            Observable.FromAsync(LoadMembershipAsync)
-                .Subscribe(
-                    result =>
-                    {
-                        IsMembershipLoading = false;
+            Observable.FromAsync(async () =>
+                {
+                    Result<Unit, InternalServiceApiFailure> result = await LoadMembershipAsync();
 
-                        if (!result.IsErr)
-                        {
-                            return;
-                        }
+                    IsMembershipLoading = false;
 
-                        ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
-                        ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.WELCOME_VIEW);
-                    },
-                    _ =>
+                    if (result.IsErr)
                     {
-                        IsMembershipLoading = false;
-                        ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
-                        ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.WELCOME_VIEW);
-                    })
+                        await HandleMissingMembershipAsync(result.UnwrapErr().Message);
+                    }
+                })
+                .Subscribe()
                 .DisposeWith(disposables);
 
             SubmitCommand
@@ -215,7 +207,41 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModel
                     ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.PIN_SET_VIEW);
                 })
                 .DisposeWith(disposables);
+
+            SetServerError("TEsting error notification placement");
         });
+    }
+
+    private async Task HandleMissingMembershipAsync(string errorMessage)
+    {
+        string title = LocalizationService[LocalizationKeys.Authentication.WelcomeBack.ERROR_TITLE]
+                       ?? "Error";
+        string subtitle = LocalizationService[LocalizationKeys.Authentication.WelcomeBack.ERROR_SUBTITLE]
+                          ?? "Session Error";
+        string message = LocalizationService[LocalizationKeys.Authentication.WelcomeBack.ERROR_SESSION_MISSING];
+
+        if (string.IsNullOrEmpty(message))
+        {
+            message = !string.IsNullOrEmpty(errorMessage)
+                ? errorMessage
+                : "Critical session data missing.";
+        }
+
+        await StartAutoRedirectSequenceAsync(
+            HostScreen,
+            message,
+            10,
+            (host) =>
+            {
+                if (host is { } authVm)
+                {
+                    authVm.ClearNavigationStack(preserveInitialWelcome: true);
+                    authVm.Navigate.Execute(MembershipViewType.WELCOME_VIEW).Subscribe();
+                }
+            },
+            title,
+            subtitle
+        );
     }
 
     public void InsertSecureKeyChars(int index, string chars)
@@ -364,9 +390,10 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModel
                 for (int i = 0; i < v.Checklist.Count && i < ValidationTips.Count; i++)
                 {
                     ValidationTips[i].IsMet = v.Checklist[i].IsMet;
+                    ValidationTips[i].Text = v.Checklist[i].Text;
                 }
             })
-            .DisposeWith(_disposables); // Використовуємо _disposables
+            .DisposeWith(_disposables);
 
         validationResult.Select(v => v.IsSuccess).ToPropertyEx(this, x => x.IsSecureKeySuccess);
         validationResult.Select(v => v.Strength).ToPropertyEx(this, x => x.CurrentSecureKeyStrength);
@@ -387,7 +414,7 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModel
 
         this.WhenAnyValue(x => x.SecureKeyStrengthMessage)
             .Subscribe(m => SecureKeyError = m)
-            .DisposeWith(_disposables); // Додаємо DisposeWith сюди також
+            .DisposeWith(_disposables);
 
         return validationResult.Select(v => v.IsSuccess);
     }
