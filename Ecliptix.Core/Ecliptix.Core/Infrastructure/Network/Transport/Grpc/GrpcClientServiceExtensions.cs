@@ -1,6 +1,6 @@
 using System;
 using Ecliptix.Core.Settings;
-using Ecliptix.Network.Network.Transport.Grpc.Interceptors;
+using Ecliptix.Network.Infrastructure.Network.Transport.Grpc.Interceptors;
 using Ecliptix.Protobuf.Transport.Gateway;
 using Grpc.Net.ClientFactory;
 using Microsoft.Extensions.DependencyInjection;

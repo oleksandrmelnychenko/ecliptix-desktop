@@ -3,7 +3,7 @@ using System.Linq;
 using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Feature.Profile.Profile.Domain.Models;
-using Ecliptix.Network.Network.Core.Providers;
+using Ecliptix.Network.Infrastructure.Network.Core.Providers;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using SystemU = System.Reactive.Unit;

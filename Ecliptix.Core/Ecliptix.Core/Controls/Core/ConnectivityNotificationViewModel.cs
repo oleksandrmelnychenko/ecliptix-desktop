@@ -8,7 +8,7 @@ using Ecliptix.Core.Messaging.Core.Messaging.Connectivity;
 using Ecliptix.Core.Messaging.Core.Messaging.Events;
 using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Core.Services.Abstractions.Core;
-using Ecliptix.Core.Services.Network.Infrastructure;
+using Ecliptix.Network.Services.Network.Infrastructure;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Serilog;

@@ -6,7 +6,7 @@ using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Settings;
-using Ecliptix.Network.Network.Core.Providers;
+using Ecliptix.Network.Infrastructure.Network.Core.Providers;
 using Ecliptix.Utilities;
 using ReactiveUI;
 using Unit = System.Reactive.Unit;

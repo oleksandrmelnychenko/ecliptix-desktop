@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecliptix.Network.Network.Core.Providers;
+using Ecliptix.Network.Infrastructure.Network.Core.Providers;
 using Ecliptix.Protobuf.Transport.Identity;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;

@@ -7,7 +7,8 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Services.Abstractions.External;
-using Ecliptix.Core.Services.Common;
+using Ecliptix.Network.Services.Common;
+using Ecliptix.Network.Services.External.IpGeolocation;
 using Ecliptix.Utilities;
 
 namespace Ecliptix.Core.Services.External.IpGeolocation;

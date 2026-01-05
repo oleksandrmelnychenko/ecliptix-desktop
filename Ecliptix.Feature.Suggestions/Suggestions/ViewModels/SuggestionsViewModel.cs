@@ -4,7 +4,7 @@ using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Core.Modularity.Abstractions.Suggestions;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Feature.Feed.Feed.Domain.Models;
-using Ecliptix.Network.Network.Core.Providers;
+using Ecliptix.Network.Infrastructure.Network.Core.Providers;
 using ReactiveUI.Fody.Helpers;
 
 namespace Ecliptix.Feature.Suggestions.Suggestions.ViewModels;

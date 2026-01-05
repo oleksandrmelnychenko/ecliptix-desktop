@@ -12,7 +12,7 @@ using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Core.Modularity.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Core.Localization;
-using Ecliptix.Network.Network.Core.Providers;
+using Ecliptix.Network.Infrastructure.Network.Core.Providers;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.Transport.Identity;
 using Ecliptix.Utilities;

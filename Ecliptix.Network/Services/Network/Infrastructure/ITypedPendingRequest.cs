@@ -1,0 +1,7 @@
+namespace Ecliptix.Network.Services.Network.Infrastructure;
+
+internal interface ITypedPendingRequest
+{
+    Task ExecuteAsync(CancellationToken cancellationToken);
+    void Cancel();
+}

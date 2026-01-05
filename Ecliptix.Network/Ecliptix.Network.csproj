@@ -27,29 +27,4 @@
     <PackageReference Include="System.Linq.Async" Version="6.0.3" />
     <PackageReference Include="System.Reactive" Version="6.0.1" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="..\Ecliptix.Core\Ecliptix.Core\Infrastructure\Network\**\*.cs"
-             Link="Infrastructure\Network\%(RecursiveDir)%(Filename)%(Extension)" />
-    <Compile Include="..\Ecliptix.Core\Ecliptix.Core\Services\Network\**\*.cs"
-             Link="Services\Network\%(RecursiveDir)%(Filename)%(Extension)" />
-    <Compile Include="..\Ecliptix.Core\Ecliptix.Core\Services\Abstractions\Network\**\*.cs"
-             Link="Services\Abstractions\Network\%(RecursiveDir)%(Filename)%(Extension)" />
-    <Compile Include="..\Ecliptix.Core\Ecliptix.Core\Services\Abstractions\Authentication\IIdentityService.cs"
-             Link="Services\Abstractions\Authentication\IIdentityService.cs" />
-    <Compile Include="..\Ecliptix.Core\Ecliptix.Core\Services\Common\**\*.cs"
-             Link="Services\Common\%(RecursiveDir)%(Filename)%(Extension)" />
-    <Compile Include="..\Ecliptix.Core\Ecliptix.Core\Services\External\IpGeolocation\IpCountry.cs"
-             Link="Services\External\IpGeolocation\IpCountry.cs" />
-    <Compile Include="..\Ecliptix.Core\Ecliptix.Core\Infrastructure\Security\**\*.cs"
-             Link="Infrastructure\Security\%(RecursiveDir)%(Filename)%(Extension)" />
-    <Compile Include="..\Ecliptix.Core\Ecliptix.Core\Infrastructure\Data\Abstractions\IApplicationSecureStorageProvider.cs"
-             Link="Infrastructure\Data\Abstractions\IApplicationSecureStorageProvider.cs" />
-    <Compile Include="..\Ecliptix.Core\Ecliptix.Core\Infrastructure\Data\PendingLogoutRequestStorage.cs"
-             Link="Infrastructure\Data\PendingLogoutRequestStorage.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Remove="..\Ecliptix.Core\Ecliptix.Core\Infrastructure\Network\Transport\Grpc\GrpcClientServiceExtensions.cs" />
-  </ItemGroup>
 </Project>

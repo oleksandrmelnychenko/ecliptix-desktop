@@ -12,7 +12,7 @@ using Ecliptix.Feature.Feed.Feed.Domain.Models;
 using Ecliptix.Feature.Feed.Feed.Services.Abstractions;
 using Ecliptix.Feature.Profile.Profile.Domain.Models;
 using Ecliptix.Feature.Profile.Profile.ViewModels;
-using Ecliptix.Network.Network.Core.Providers;
+using Ecliptix.Network.Infrastructure.Network.Core.Providers;
 using Ecliptix.Utilities;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;

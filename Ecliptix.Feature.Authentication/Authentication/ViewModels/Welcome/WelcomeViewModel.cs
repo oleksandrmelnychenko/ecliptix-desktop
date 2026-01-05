@@ -11,7 +11,7 @@ using Ecliptix.Core.Modularity.Abstractions;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Core.Localization;
 using Ecliptix.Feature.Authentication.Authentication.ViewModels.Hosts;
-using Ecliptix.Network.Network.Core.Providers;
+using Ecliptix.Network.Infrastructure.Network.Core.Providers;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using AuthenticationFlowContext = Ecliptix.Core.Modularity.Abstractions.Authentication.AuthenticationFlowContext;

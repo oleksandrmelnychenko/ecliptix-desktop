@@ -3,8 +3,8 @@ using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Settings;
 using Ecliptix.Feature.Authentication.Authentication.Domain.Abstractions;
-using Ecliptix.Network.Data.Abstractions;
-using Ecliptix.Network.Network.Core.Providers;
+using Ecliptix.Network.Infrastructure.Data.Abstractions;
+using Ecliptix.Network.Infrastructure.Network.Core.Providers;
 using AuthenticationFlowContext = Ecliptix.Core.Modularity.Abstractions.Authentication.AuthenticationFlowContext;
 
 namespace Ecliptix.Feature.Authentication.Authentication.ViewModels.Hosts;

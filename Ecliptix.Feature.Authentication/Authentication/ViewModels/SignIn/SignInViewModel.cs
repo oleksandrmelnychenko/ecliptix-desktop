@@ -16,7 +16,7 @@ using Ecliptix.Core.Settings;
 using Ecliptix.Core.Settings.Constants;
 using Ecliptix.Feature.Authentication.Authentication.Domain.Abstractions;
 using Ecliptix.Feature.Authentication.Authentication.ViewModels.Hosts;
-using Ecliptix.Network.Network.Core.Providers;
+using Ecliptix.Network.Infrastructure.Network.Core.Providers;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Authentication;

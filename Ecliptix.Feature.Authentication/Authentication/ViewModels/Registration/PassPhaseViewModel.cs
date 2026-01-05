@@ -4,7 +4,7 @@ using System.Reactive.Disposables;
 using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Core.Modularity.Abstractions;
 using Ecliptix.Core.Services.Abstractions.Core;
-using Ecliptix.Network.Network.Core.Providers;
+using Ecliptix.Network.Infrastructure.Network.Core.Providers;
 using ReactiveUI;
 
 namespace Ecliptix.Feature.Authentication.Authentication.ViewModels.Registration;

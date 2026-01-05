@@ -6,7 +6,7 @@ using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Feature.Feed.Feed.Domain.Models;
 using Ecliptix.Feature.Feed.Feed.Services.Abstractions;
-using Ecliptix.Network.Network.Core.Providers;
+using Ecliptix.Network.Infrastructure.Network.Core.Providers;
 using Ecliptix.Utilities;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;

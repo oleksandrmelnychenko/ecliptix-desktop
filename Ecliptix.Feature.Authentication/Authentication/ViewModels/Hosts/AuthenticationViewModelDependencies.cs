@@ -4,8 +4,8 @@ using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.ViewModels.Core;
 using Ecliptix.Feature.Authentication.Authentication.Domain.Abstractions;
-using Ecliptix.Network.Data.Abstractions;
-using Ecliptix.Network.Network.Core.Providers;
+using Ecliptix.Network.Infrastructure.Data.Abstractions;
+using Ecliptix.Network.Infrastructure.Network.Core.Providers;
 
 namespace Ecliptix.Feature.Authentication.Authentication.ViewModels.Hosts;
 

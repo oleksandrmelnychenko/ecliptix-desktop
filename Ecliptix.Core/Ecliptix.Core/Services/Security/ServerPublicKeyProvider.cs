@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
 using Ecliptix.Core.Services.Abstractions.Security;
-using Ecliptix.Network.Network.Core.Providers;
+using Ecliptix.Network.Infrastructure.Network.Core.Providers;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
 using Google.Protobuf;

@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Ecliptix.Core.Messaging.Core.Messaging.Connectivity;
 using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Core.Services.Abstractions.Core;
-using Ecliptix.Network.Network.Core.Providers;
+using Ecliptix.Network.Infrastructure.Network.Core.Providers;
 using ReactiveUI;
 
 namespace Ecliptix.Feature.Splash.Splash.ViewModels;
