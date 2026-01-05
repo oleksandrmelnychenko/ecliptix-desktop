@@ -301,6 +301,8 @@ public sealed class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
             ApplicationInstanceSettings applicationInstanceSettings = appSettings.Unwrap();
             if (!string.IsNullOrEmpty(applicationInstanceSettings.Country) && applicationInstanceSettings.IsNewInstance)
             {
+                await _applicationSecureStorageProvider.SetApplicationInstanceAsync(false);
+
                 _languageSubscription =
                     _languageDetectionService.OnLanguageDetectionRequested(HandleLanguageDetectionEvent,
                         SubscriptionLifetime.SCOPED);
