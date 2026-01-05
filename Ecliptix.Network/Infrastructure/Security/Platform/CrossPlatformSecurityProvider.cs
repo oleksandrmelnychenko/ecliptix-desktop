@@ -576,7 +576,7 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             KEYCHAIN_SERVICE_NAME,
             (uint)account.Length,
             account,
-            out uint passwordLength,
+            out uint _,
             out IntPtr passwordData,
             out IntPtr itemRef);
 

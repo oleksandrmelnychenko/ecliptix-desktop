@@ -26,6 +26,7 @@ message AppDevice {
 
 message DeviceRegistrationResponse {
   bytes server_public_key = 1;
+  bytes server_kyber_public_key = 2;  // ML-KEM-768 public key (1184 bytes)
 }
 
 message RestoreChannelRequest {}

@@ -130,6 +130,20 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         return await StoreSettingsAsync(settings);
     }
 
+    public async Task<Result<Unit, InternalServiceApiFailure>> SetServerKyberPublicKeyAsync(ByteString? serverKyberPublicKey)
+    {
+        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
+            await GetApplicationInstanceSettingsAsync();
+        if (settingsResult.IsErr)
+        {
+            return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
+        }
+
+        ApplicationInstanceSettings settings = settingsResult.Unwrap();
+        settings.ServerKyberPublicKey = serverKyberPublicKey ?? ByteString.Empty;
+        return await StoreSettingsAsync(settings);
+    }
+
     public async Task<Result<Unit, InternalServiceApiFailure>> SetWindowPlacementAsync(WindowPlacement windowPlacement)
     {
         try

@@ -15,6 +15,7 @@ public interface IApplicationSecureStorageProvider : IAsyncDisposable
     Task<Result<Unit, InternalServiceApiFailure>> SetApplicationMembershipAsync(ByteString? membershipId);
     Task<Result<Unit, InternalServiceApiFailure>> SetCurrentAccountIdAsync(ByteString? accountId);
     Task<Result<Unit, InternalServiceApiFailure>> SetServerPublicKeyAsync(ByteString? serverPublicKey);
+    Task<Result<Unit, InternalServiceApiFailure>> SetServerKyberPublicKeyAsync(ByteString? serverKyberPublicKey);
     Task<Result<ApplicationInstanceSettings, InternalServiceApiFailure>> GetApplicationInstanceSettingsAsync();
 
     Task<Result<InstanceSettingsResult, InternalServiceApiFailure>> InitApplicationInstanceSettingsAsync(

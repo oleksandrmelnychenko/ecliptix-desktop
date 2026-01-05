@@ -509,6 +509,15 @@ public sealed class ApplicationInitializer(
 
                 networkProvider.SetServerPublicKey(serverPublicKey);
 
+                // Store server's Kyber (ML-KEM-768) public key for post-quantum hybrid handshake
+                if (!reply.ServerKyberPublicKey.IsEmpty)
+                {
+                    ByteString serverKyberPublicKey = SecureByteStringInterop.WithByteStringAsSpan(
+                        reply.ServerKyberPublicKey, ByteString.CopyFrom);
+
+                    networkProvider.SetServerKyberPublicKey(serverKyberPublicKey);
+                }
+
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
             }, allowDuplicates: false, token: CancellationToken.None).ConfigureAwait(false);
     }

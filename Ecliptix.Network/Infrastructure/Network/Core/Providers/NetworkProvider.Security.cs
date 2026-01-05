@@ -24,8 +24,19 @@ public sealed partial class NetworkProvider
         }
 
         NativeProtocolSession nativeSession = nativeSessionResult.Unwrap();
-        Result<byte[], EcliptixProtocolFailure> handshakeResult =
-            nativeSession.BeginHandshake(connectId, (byte)exchangeType);
+
+        // Use BeginHandshakeWithPeerKyber if server's Kyber key is available
+        Result<byte[], EcliptixProtocolFailure> handshakeResult;
+        if (_applicationInstanceSettings.IsSome &&
+            !_applicationInstanceSettings.Value!.ServerKyberPublicKey.IsEmpty)
+        {
+            byte[] serverKyberKey = _applicationInstanceSettings.Value!.ServerKyberPublicKey.ToByteArray();
+            handshakeResult = nativeSession.BeginHandshakeWithPeerKyber(connectId, (byte)exchangeType, serverKyberKey);
+        }
+        else
+        {
+            handshakeResult = nativeSession.BeginHandshake(connectId, (byte)exchangeType);
+        }
 
         if (handshakeResult.IsErr)
         {

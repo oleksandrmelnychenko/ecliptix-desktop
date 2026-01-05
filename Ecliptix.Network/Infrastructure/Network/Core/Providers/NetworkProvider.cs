@@ -312,6 +312,22 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         }
     }
 
+    public void SetServerKyberPublicKey(ByteString serverKyberPublicKey)
+    {
+        lock (_appInstanceSetterLock)
+        {
+            if (!_applicationInstanceSettings.IsSome)
+            {
+                return;
+            }
+
+            ApplicationInstanceSettings current = _applicationInstanceSettings.Value!;
+            ApplicationInstanceSettings updated = current.Clone();
+            updated.ServerKyberPublicKey = serverKyberPublicKey;
+            _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(updated);
+        }
+    }
+
     public void InitiateEcliptixProtocolSystem(ApplicationInstanceSettings applicationInstanceSettings, uint connectId)
     {
         EnsureNativeInitialized();
