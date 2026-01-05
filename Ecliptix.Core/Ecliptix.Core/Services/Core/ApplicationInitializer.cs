@@ -60,6 +60,13 @@ public sealed class ApplicationInitializer(
 
         (ApplicationInstanceSettings settings, bool isNewInstance) = settingsResult.Unwrap();
 
+        uint initialConnectId = NetworkProvider.ComputeUniqueConnectId(
+            settings,
+            PubKeyExchangeType.DataCenterEphemeralConnect
+        );
+
+        networkProvider.InitiateEcliptixProtocolSystem(settings, initialConnectId);
+
         _ = Task.Run(async () =>
         {
             await applicationSecureStorageProvider.SetApplicationInstanceAsync(isNewInstance).ConfigureAwait(false);
@@ -85,7 +92,7 @@ public sealed class ApplicationInitializer(
         }
 
         Result<uint, NetworkFailure> connectIdResult =
-            await EnsureSecrecyChannelAsync(settings, isNewInstance).ConfigureAwait(false);
+            await EnsureSecrecyChannelAsync(settings, isNewInstance, initialConnectId).ConfigureAwait(false);
         if (connectIdResult.IsErr)
         {
             return false;
@@ -124,12 +131,8 @@ public sealed class ApplicationInitializer(
         });
 
     private async Task<Result<uint, NetworkFailure>> EnsureSecrecyChannelAsync(
-        ApplicationInstanceSettings applicationInstanceSettings, bool isNewInstance)
+        ApplicationInstanceSettings applicationInstanceSettings, bool isNewInstance, uint connectId)
     {
-        uint connectId =
-            NetworkProvider.ComputeUniqueConnectId(applicationInstanceSettings,
-                PubKeyExchangeType.DataCenterEphemeralConnect);
-
         Option<string> membershipId = ExtractMembershipId(applicationInstanceSettings);
 
         if (!isNewInstance)
