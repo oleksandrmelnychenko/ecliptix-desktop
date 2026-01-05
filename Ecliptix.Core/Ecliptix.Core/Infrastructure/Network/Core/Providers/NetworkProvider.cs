@@ -1185,7 +1185,15 @@ public sealed class NetworkProvider(
 
         _ = connection.ToProtoState();
 
-        _connections.TryAdd(currentState.ConnectId, system);
+        _connections.AddOrUpdate(
+            currentState.ConnectId,
+            system,
+            (key, existingSystem) =>
+            {
+                existingSystem.Dispose();
+                return system;
+            });
+
         return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
     }
 
@@ -2795,6 +2803,22 @@ public sealed class NetworkProvider(
             {
                 CryptographicOperations.ZeroMemory(rootKeyBytes);
             }
+        }
+    }
+
+    public void InitializeGlobalSettings(ApplicationInstanceSettings settings)
+    {
+        lock (_appInstanceSetterLock)
+        {
+            _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(settings);
+
+            Guid appInstanceId = Helpers.FromByteStringToGuid(settings.AppInstanceId);
+            Guid deviceId = Helpers.FromByteStringToGuid(settings.DeviceId);
+            string? culture = string.IsNullOrEmpty(settings.Culture)
+                ? AppCultureSettingsConstants.DEFAULT_CULTURE_CODE
+                : settings.Culture;
+
+            dependencies.RpcMetaDataProvider.SetAppInfo(appInstanceId, deviceId, culture);
         }
     }
 
