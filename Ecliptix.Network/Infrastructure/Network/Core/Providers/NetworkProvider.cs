@@ -1980,8 +1980,21 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
                     nativeSessionResult.UnwrapErr().ToNetworkFailure());
             }
 
-            Result<byte[], EcliptixProtocolFailure> nativeHandshake =
-                nativeSessionResult.Unwrap().BeginHandshake(connectId, (byte)exchangeType);
+            // Use BeginHandshakeWithPeerKyber if server's Kyber key is available
+            Result<byte[], EcliptixProtocolFailure> nativeHandshake;
+            if (_applicationInstanceSettings.IsSome &&
+                !_applicationInstanceSettings.Value!.ServerKyberPublicKey.IsEmpty)
+            {
+                byte[] serverKyberKey = _applicationInstanceSettings.Value!.ServerKyberPublicKey.ToByteArray();
+                nativeHandshake = nativeSessionResult.Unwrap()
+                    .BeginHandshakeWithPeerKyber(connectId, (byte)exchangeType, serverKyberKey);
+            }
+            else
+            {
+                nativeHandshake = nativeSessionResult.Unwrap()
+                    .BeginHandshake(connectId, (byte)exchangeType);
+            }
+
             if (nativeHandshake.IsErr)
             {
                 await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
