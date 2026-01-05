@@ -2,11 +2,11 @@ using System;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using Ecliptix.Core.Infrastructure.Data.Abstractions;
-using Ecliptix.Core.Infrastructure.Security.Abstractions;
-using Ecliptix.Core.Infrastructure.Security.Storage;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Common;
+using Ecliptix.Network.Data.Abstractions;
+using Ecliptix.Network.Security.Abstractions;
+using Ecliptix.Network.Security.Storage;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Authentication;
@@ -288,7 +288,7 @@ internal sealed class IdentityService : IIdentityService
                 ciphertext = new byte[masterKeyBytes.Length];
                 tag = new byte[SecureStorageConstants.Encryption.TAG_SIZE];
 
-                using AesGcm aes = new(wrappingKey);
+                using AesGcm aes = new(wrappingKey, SecureStorageConstants.Encryption.TAG_SIZE);
                 aes.Encrypt(nonce, masterKeyBytes, ciphertext, tag);
 
                 byte[] wrappedData = new byte[WrappedKeyMagic.Length + nonce.Length + tag.Length + ciphertext.Length];
@@ -501,7 +501,7 @@ internal sealed class IdentityService : IIdentityService
         ReadOnlySpan<byte> ciphertext = protectedSpan.Slice(headerSize + nonceSize + tagSize);
 
         byte[] plaintext = new byte[ciphertext.Length];
-        using AesGcm aes = new(wrappingKey);
+        using AesGcm aes = new(wrappingKey, SecureStorageConstants.Encryption.TAG_SIZE);
         aes.Decrypt(nonce, ciphertext, tag, plaintext);
 
         return new UnwrapResult(

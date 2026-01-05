@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
-using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.MVVM;
+using Ecliptix.Core.Modularity.Abstractions;
 using Ecliptix.Utilities;
 using Splat;
 
@@ -82,40 +82,7 @@ public sealed class ModuleContentControl : ContentControl
     {
         try
         {
-            Control? result = viewModel switch
-            {
-                Features.Authentication.ViewModels.Hosts.AuthenticationViewModel =>
-                    new Features.Authentication.Views.Hosts.AuthenticationView(),
-                Features.Main.ViewModels.MasterViewModel =>
-                    new Features.Main.Views.MasterView(),
-                Features.Authentication.ViewModels.SignIn.SignInViewModel => StaticViewMapper.CreateView(
-                    typeof(Features.Authentication.ViewModels.SignIn.SignInViewModel)),
-                Features.Authentication.ViewModels.Registration.MobileVerificationViewModel =>
-                    StaticViewMapper.CreateView(
-                        typeof(
-                            Features.Authentication.ViewModels.Registration.MobileVerificationViewModel)),
-                Features.Authentication.ViewModels.Registration.VerificationCodeEntryViewModel =>
-                    StaticViewMapper.CreateView(
-                        typeof(Features.Authentication.ViewModels.Registration.VerificationCodeEntryViewModel)),
-                Features.Authentication.ViewModels.Registration.SecureKeyConfirmationViewModel =>
-                    StaticViewMapper.CreateView(
-                        typeof(Features.Authentication.ViewModels.Registration.
-                            SecureKeyConfirmationViewModel)),
-                Features.Authentication.ViewModels.Registration.CompleteProfileViewModel =>
-                    StaticViewMapper.CreateView(
-                        typeof(Features.Authentication.ViewModels.Registration.
-                            CompleteProfileViewModel)),
-                Features.Authentication.ViewModels.Registration.PassPhaseViewModel =>
-                    StaticViewMapper.CreateView(
-                        typeof(Features.Authentication.ViewModels.Registration.PassPhaseViewModel)),
-                Features.Authentication.ViewModels.Welcome.WelcomeViewModel =>
-                    StaticViewMapper.CreateView(
-                        typeof(Ecliptix.Core.Features.Authentication.ViewModels.Welcome.WelcomeViewModel)),
-                Features.Authentication.ViewModels.Welcome.WelcomeBackViewModel =>
-                    StaticViewMapper.CreateView(
-                        typeof(Ecliptix.Core.Features.Authentication.ViewModels.Welcome.WelcomeBackViewModel)),
-                _ => null
-            };
+            Control? result = StaticViewMapper.CreateView(viewModel.GetType());
             return result;
         }
         catch

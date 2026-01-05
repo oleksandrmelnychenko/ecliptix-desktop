@@ -1,5 +1,3 @@
-using System;
-
-namespace Ecliptix.Core.Infrastructure.Network.Abstractions.Core;
+namespace Ecliptix.Network.Network.Abstractions.Core;
 
 public interface IInternetConnectivityObserver : IObservable<bool>, IDisposable;

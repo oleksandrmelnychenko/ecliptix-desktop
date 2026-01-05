@@ -103,7 +103,7 @@ public sealed class SharedAxisPageTransition : IPageTransition
         DateTime startTime = DateTime.UtcNow;
         double totalMs = Duration.TotalMilliseconds;
 
-        DispatcherTimer timer = new (
+        DispatcherTimer timer = new(
             TimeSpan.Zero,
             DispatcherPriority.Render,
             (sender, e) =>

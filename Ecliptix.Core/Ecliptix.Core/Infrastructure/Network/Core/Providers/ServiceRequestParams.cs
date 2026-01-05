@@ -1,11 +1,8 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 
-namespace Ecliptix.Core.Infrastructure.Network.Core.Providers;
+namespace Ecliptix.Network.Network.Core.Providers;
 
 internal readonly record struct ServiceRequestParams(
     uint ConnectId,

@@ -1,4 +1,4 @@
-﻿namespace Ecliptix.Utilities;
+namespace Ecliptix.Utilities;
 
 public static class PhoneNumberHelper
 {

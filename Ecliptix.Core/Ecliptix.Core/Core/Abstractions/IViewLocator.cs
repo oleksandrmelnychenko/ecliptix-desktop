@@ -1,9 +1,7 @@
-using System;
-using System.Collections.Generic;
 using Ecliptix.Utilities;
 using ReactiveUI;
 
-namespace Ecliptix.Core.Core.Abstractions;
+namespace Ecliptix.Core.Modularity.Abstractions;
 
 public interface IViewLocator
 {

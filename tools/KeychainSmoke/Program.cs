@@ -63,7 +63,7 @@ internal static class Program
     private static IPlatformSecurityProvider CreateProvider(string appDataPath)
     {
         const string typeName =
-            "Ecliptix.Core.Infrastructure.Security.Platform.CrossPlatformSecurityProvider, Ecliptix.Core";
+            "Ecliptix.Core.Infrastructure.Security.Platform.CrossPlatformSecurityProvider, Ecliptix.Network";
         Type type = Type.GetType(typeName, throwOnError: true)!;
         ConstructorInfo? constructor = type.GetConstructor(
             BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,

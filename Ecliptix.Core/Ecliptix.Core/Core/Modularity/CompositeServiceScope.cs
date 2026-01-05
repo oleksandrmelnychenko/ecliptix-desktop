@@ -1,7 +1,6 @@
-using System;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Ecliptix.Core.Core.Modularity;
+namespace Ecliptix.Core.Modularity.Modularity;
 
 internal class CompositeServiceScope : IServiceScope
 {

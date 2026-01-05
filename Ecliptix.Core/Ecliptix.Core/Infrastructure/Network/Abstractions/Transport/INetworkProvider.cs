@@ -1,3 +1,3 @@
-namespace Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
+namespace Ecliptix.Network.Network.Abstractions.Transport;
 
 public interface INetworkProvider;

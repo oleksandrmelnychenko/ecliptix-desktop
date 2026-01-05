@@ -1,14 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using Ecliptix.Core.Core.Messaging.Connectivity;
-using Ecliptix.Core.Core.Messaging.Services;
+using Ecliptix.Core.Messaging.Core.Messaging.Connectivity;
+using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Core.Services.Abstractions.Network;
-using Ecliptix.Protobuf.Account;
+using Ecliptix.Core.Services.Network.Resilience;
+using Ecliptix.Network.Network.Abstractions.Transport;
 using Ecliptix.Protobuf.Common;
-using Ecliptix.Protobuf.Device;
-using Ecliptix.Protobuf.Membership;
+using Ecliptix.Protobuf.Transport.Common;
+using Ecliptix.Protobuf.Transport.Gateway;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Grpc.Core;
@@ -17,421 +14,150 @@ namespace Ecliptix.Core.Services.Network.Rpc;
 
 public sealed class UnaryRpcServices : IUnaryRpcServices
 {
-    private readonly Dictionary<RpcServiceType, GrpcMethodDelegate> _serviceMethods;
-    private readonly MembershipServices.MembershipServicesClient _membershipServicesClient;
-    private readonly AccountServices.AccountServicesClient _accountServicesClient;
+    private readonly EventGateway.EventGatewayClient _gatewayClient;
     private readonly IGrpcErrorProcessor _errorProcessor;
     private readonly IGrpcCallOptionsFactory _callOptionsFactory;
-
-    private delegate Task<Result<SecureEnvelope, NetworkFailure>> GrpcMethodDelegate(
-        SecureEnvelope payload,
-        RpcRequestContext? requestContext,
-        IConnectivityService connectivityService,
-        CancellationToken token
-    );
+    private readonly IRpcMetaDataProvider _metaDataProvider;
 
     public UnaryRpcServices(
-        MembershipServices.MembershipServicesClient membershipServicesClient,
-        DeviceService.DeviceServiceClient deviceServiceClient,
-        AuthVerificationServices.AuthVerificationServicesClient authenticationServicesClient,
-        AccountServices.AccountServicesClient accountServicesClient,
+        EventGateway.EventGatewayClient gatewayClient,
         IGrpcErrorProcessor errorProcessor,
-        IGrpcCallOptionsFactory callOptionsFactory
-    )
+        IGrpcCallOptionsFactory callOptionsFactory,
+        IRpcMetaDataProvider metaDataProvider)
     {
-        _membershipServicesClient = membershipServicesClient;
-        _accountServicesClient = accountServicesClient;
+        _gatewayClient = gatewayClient;
         _errorProcessor = errorProcessor;
         _callOptionsFactory = callOptionsFactory;
-
-        _serviceMethods = new Dictionary<RpcServiceType, GrpcMethodDelegate>
-        {
-            [RpcServiceType.RegisterAppDevice] = RegisterDeviceAsync,
-            [RpcServiceType.ValidateMobileNumber] = ValidateMobileNumberAsync,
-            [RpcServiceType.CheckMobileNumberAvailability] = CheckMobileNumberAvailabilityAsync,
-            [RpcServiceType.RegistrationInit] = OpaqueRegistrationRecordRequestAsync,
-            [RpcServiceType.VerifyOtp] = VerifyCodeAsync,
-            [RpcServiceType.RegistrationComplete] = OpaqueRegistrationCompleteRequestAsync,
-            [RpcServiceType.RecoverySecretKeyInit] = OpaqueRecoveryInitRequestAsync,
-            [RpcServiceType.RecoverySecretKeyComplete] = OpaqueRecoveryCompleteRequestAsync,
-            [RpcServiceType.SignInInitRequest] = OpaqueSignInInitRequestAsync,
-            [RpcServiceType.SignInCompleteRequest] = OpaqueSignInCompleteRequestAsync,
-            [RpcServiceType.Logout] = LogoutAsync,
-            [RpcServiceType.AnonymousLogout] = AnonymousLogoutAsync,
-            [RpcServiceType.CheckProfileNameAvailability] = CheckProfileNameAvailabilityAsync,
-            [RpcServiceType.CreateOrUpdateProfile] = CreateOrUpdateProfileAsync,
-            [RpcServiceType.GetAccountProfile] = GetAccountProfile,
-        };
-        return;
-
-        async Task<Result<SecureEnvelope, NetworkFailure>> CheckProfileNameAvailabilityAsync(
-            SecureEnvelope payload,
-            RpcRequestContext? requestContext,
-            IConnectivityService connectivityService,
-            CancellationToken token
-        )
-        {
-            return await ExecuteGrpcCallAsync(
-                RpcServiceType.CheckProfileNameAvailability,
-                connectivityService,
-                requestContext,
-                token,
-                callOptions =>
-                    _accountServicesClient.CheckProfileNameAvailabilityAsync(
-                        payload,
-                        callOptions
-                    )
-            ).ConfigureAwait(false);
-        }
-
-        async Task<Result<SecureEnvelope, NetworkFailure>> CreateOrUpdateProfileAsync(
-            SecureEnvelope payload,
-            RpcRequestContext? requestContext,
-            IConnectivityService connectivityService,
-            CancellationToken token
-        )
-        {
-            return await ExecuteGrpcCallAsync(
-                RpcServiceType.CreateOrUpdateProfile,
-                connectivityService,
-                requestContext,
-                token,
-                callOptions =>
-                    _accountServicesClient.CreateOrUpdateProfileAsync(
-                        payload,
-                        callOptions
-                    )
-            ).ConfigureAwait(false);
-        }
-
-        async Task<Result<SecureEnvelope, NetworkFailure>> GetAccountProfile(
-            SecureEnvelope payload,
-            RpcRequestContext? requestContext,
-            IConnectivityService connectivityService,
-            CancellationToken token
-        )
-        {
-            return await ExecuteGrpcCallAsync(
-                RpcServiceType.GetAccountProfile,
-                connectivityService,
-                requestContext,
-                token,
-                callOptions =>
-                    _accountServicesClient.GetAccountProfileAsync(
-                        payload,
-                        callOptions
-                    )
-            ).ConfigureAwait(false);
-        }
-
-        async Task<Result<SecureEnvelope, NetworkFailure>> LogoutAsync(
-            SecureEnvelope payload,
-            RpcRequestContext? requestContext,
-            IConnectivityService connectivityService,
-            CancellationToken token
-        )
-        {
-            return await ExecuteGrpcCallAsync(
-                RpcServiceType.Logout,
-                connectivityService,
-                requestContext,
-                token,
-                callOptions =>
-                    _membershipServicesClient.LogoutAsync(
-                        payload,
-                        callOptions
-                    )
-            ).ConfigureAwait(false);
-        }
-
-        async Task<Result<SecureEnvelope, NetworkFailure>> AnonymousLogoutAsync(
-            SecureEnvelope payload,
-            RpcRequestContext? requestContext,
-            IConnectivityService connectivityService,
-            CancellationToken token
-        )
-        {
-            return await ExecuteGrpcCallAsync(
-                RpcServiceType.AnonymousLogout,
-                connectivityService,
-                requestContext,
-                token,
-                callOptions =>
-                    _membershipServicesClient.AnonymousLogoutAsync(
-                        payload,
-                        callOptions
-                    )
-            ).ConfigureAwait(false);
-        }
-
-        async Task<Result<SecureEnvelope, NetworkFailure>> RegisterDeviceAsync(
-            SecureEnvelope payload,
-            RpcRequestContext? requestContext,
-            IConnectivityService connectivityService,
-            CancellationToken token
-        )
-        {
-            return await ExecuteGrpcCallAsync(
-                RpcServiceType.RegisterAppDevice,
-                connectivityService,
-                requestContext,
-                token,
-                callOptions =>
-                    deviceServiceClient.RegisterDeviceAsync(
-                        payload,
-                        callOptions
-                    )
-            ).ConfigureAwait(false);
-        }
-
-        async Task<Result<SecureEnvelope, NetworkFailure>> ValidateMobileNumberAsync(
-            SecureEnvelope payload,
-            RpcRequestContext? requestContext,
-            IConnectivityService connectivityService,
-            CancellationToken token
-        )
-        {
-            return await ExecuteGrpcCallAsync(
-                RpcServiceType.ValidateMobileNumber,
-                connectivityService,
-                requestContext,
-                token,
-                callOptions =>
-                    authenticationServicesClient.ValidateMobileNumberAsync(
-                        payload,
-                        callOptions
-                    )
-            ).ConfigureAwait(false);
-        }
-
-        async Task<Result<SecureEnvelope, NetworkFailure>> CheckMobileNumberAvailabilityAsync(
-            SecureEnvelope payload,
-            RpcRequestContext? requestContext,
-            IConnectivityService connectivityService,
-            CancellationToken token
-        )
-        {
-            return await ExecuteGrpcCallAsync(
-                RpcServiceType.CheckMobileNumberAvailability,
-                connectivityService,
-                requestContext,
-                token,
-                callOptions =>
-                    authenticationServicesClient.CheckMobileNumberAvailabilityAsync(
-                        payload,
-                        callOptions
-                    )
-            ).ConfigureAwait(false);
-        }
-
-        async Task<Result<SecureEnvelope, NetworkFailure>> OpaqueRegistrationRecordRequestAsync(
-            SecureEnvelope payload,
-            RpcRequestContext? requestContext,
-            IConnectivityService connectivityService,
-            CancellationToken token
-        )
-        {
-            return await ExecuteGrpcCallAsync(
-                RpcServiceType.RegistrationInit,
-                connectivityService,
-                requestContext,
-                token,
-                callOptions =>
-                    membershipServicesClient.OpaqueRegistrationInitRequestAsync(
-                        payload,
-                        callOptions
-                    )
-            ).ConfigureAwait(false);
-        }
-
-        async Task<Result<SecureEnvelope, NetworkFailure>> VerifyCodeAsync(
-            SecureEnvelope payload,
-            RpcRequestContext? requestContext,
-            IConnectivityService connectivityService,
-            CancellationToken token
-        )
-        {
-            return await ExecuteGrpcCallAsync(
-                RpcServiceType.VerifyOtp,
-                connectivityService,
-                requestContext,
-                token,
-                callOptions =>
-                    authenticationServicesClient.VerifyOtpAsync(
-                        payload,
-                        callOptions
-                    )
-            ).ConfigureAwait(false);
-        }
-
-        async Task<Result<SecureEnvelope, NetworkFailure>> OpaqueRegistrationCompleteRequestAsync(
-            SecureEnvelope payload,
-            RpcRequestContext? requestContext,
-            IConnectivityService connectivityService,
-            CancellationToken token
-        )
-        {
-            return await ExecuteGrpcCallAsync(
-                RpcServiceType.RegistrationComplete,
-                connectivityService,
-                requestContext,
-                token,
-                callOptions =>
-                    membershipServicesClient.OpaqueRegistrationCompleteRequestAsync(
-                        payload,
-                        callOptions
-                    )
-            ).ConfigureAwait(false);
-        }
-
-        async Task<Result<SecureEnvelope, NetworkFailure>> OpaqueSignInInitRequestAsync(
-            SecureEnvelope payload,
-            RpcRequestContext? requestContext,
-            IConnectivityService connectivityService,
-            CancellationToken token
-        )
-        {
-            return await ExecuteGrpcCallAsync(
-                RpcServiceType.SignInInitRequest,
-                connectivityService,
-                requestContext,
-                token,
-                callOptions =>
-                    membershipServicesClient.OpaqueSignInInitRequestAsync(
-                        payload,
-                        callOptions
-                    )
-            ).ConfigureAwait(false);
-        }
-
-        async Task<Result<SecureEnvelope, NetworkFailure>> OpaqueSignInCompleteRequestAsync(
-            SecureEnvelope payload,
-            RpcRequestContext? requestContext,
-            IConnectivityService connectivityService,
-            CancellationToken token
-        )
-        {
-            return await ExecuteGrpcCallAsync(
-                RpcServiceType.SignInCompleteRequest,
-                connectivityService,
-                requestContext,
-                token,
-                callOptions =>
-                    membershipServicesClient.OpaqueSignInCompleteRequestAsync(
-                        payload,
-                        callOptions
-                    )
-            ).ConfigureAwait(false);
-        }
-
-        async Task<Result<SecureEnvelope, NetworkFailure>> OpaqueRecoveryInitRequestAsync(
-            SecureEnvelope payload,
-            RpcRequestContext? requestContext,
-            IConnectivityService connectivityService,
-            CancellationToken token
-        )
-        {
-            return await ExecuteGrpcCallAsync(
-                RpcServiceType.RecoverySecretKeyInit,
-                connectivityService,
-                requestContext,
-                token,
-                callOptions =>
-                    membershipServicesClient.OpaqueRecoverySecretKeyInitRequestAsync(
-                        payload,
-                        callOptions
-                    )
-            ).ConfigureAwait(false);
-        }
-
-        async Task<Result<SecureEnvelope, NetworkFailure>> OpaqueRecoveryCompleteRequestAsync(
-            SecureEnvelope payload,
-            RpcRequestContext? requestContext,
-            IConnectivityService connectivityService,
-            CancellationToken token
-        )
-        {
-            return await ExecuteGrpcCallAsync(
-                RpcServiceType.RecoverySecretKeyComplete,
-                connectivityService,
-                requestContext,
-                token,
-                callOptions =>
-                    membershipServicesClient.OpaqueRecoverySecretKeyCompleteRequestAsync(
-                        payload,
-                        callOptions
-                    )
-            ).ConfigureAwait(false);
-        }
+        _metaDataProvider = metaDataProvider;
     }
 
     public async Task<Result<RpcFlow, NetworkFailure>> InvokeRequestAsync(
         ServiceRequest request,
         IConnectivityService connectivityService,
-        CancellationToken token
-    )
+        CancellationToken token)
     {
-        if (_serviceMethods.TryGetValue(request.RpcServiceMethod, out GrpcMethodDelegate? method))
+        if (!GatewayRouteCatalog.TryGetRoute(request.RpcServiceMethod, out GatewayRoute? route))
         {
-            Result<SecureEnvelope, NetworkFailure> result = await method(
-                request.Payload,
-                request.RequestContext,
-                connectivityService,
-                token
-            ).ConfigureAwait(false);
-
-            if (result.IsOk)
-            {
-                return Result<RpcFlow, NetworkFailure>.Ok(
-                    new RpcFlow.SingleCall(Task.FromResult(result))
-                );
-            }
-
-            return Result<RpcFlow, NetworkFailure>.Err(result.UnwrapErr());
+            NetworkFailure failure = NetworkFailure.InvalidRequestType(
+                $"Unsupported RPC service type: {request.RpcServiceMethod}");
+            await connectivityService.PublishAsync(ConnectivityIntent.Disconnected(failure), token)
+                .ConfigureAwait(false);
+            return Result<RpcFlow, NetworkFailure>.Err(failure);
         }
 
-        return Result<RpcFlow, NetworkFailure>.Err(
-            NetworkFailure.InvalidRequestType("Unknown service type")
-        );
-    }
-
-    private async Task<Result<SecureEnvelope, NetworkFailure>> ExecuteGrpcCallAsync(
-        RpcServiceType serviceType,
-        IConnectivityService connectivityService,
-        RpcRequestContext? requestContext,
-        CancellationToken token,
-        Func<CallOptions, AsyncUnaryCall<SecureEnvelope>> grpcCallFactory
-    )
-    {
+        EventEnvelope envelope;
         try
         {
-            CallOptions callOptions = _callOptionsFactory.Create(serviceType, requestContext, token);
-            AsyncUnaryCall<SecureEnvelope> call = grpcCallFactory(callOptions);
-            SecureEnvelope response = await call.ResponseAsync.ConfigureAwait(false);
-
-            await connectivityService.PublishAsync(
-                    ConnectivityIntent.Connected())
-                .ConfigureAwait(false);
-
-            return Result<SecureEnvelope, NetworkFailure>.Ok(response);
-        }
-        catch (RpcException rpcEx)
-        {
-            NetworkFailure failure = await _errorProcessor.ProcessAsync(rpcEx).ConfigureAwait(false);
-
-            if (failure.FailureType != NetworkFailureType.PROTOCOL_STATE_MISMATCH)
-            {
-                await connectivityService.PublishAsync(
-                        ConnectivityIntent.Disconnected(failure))
-                    .ConfigureAwait(false);
-            }
-
-            return Result<SecureEnvelope, NetworkFailure>.Err(failure);
+            envelope = GatewayTransportFactory.BuildEnvelope(
+                route!,
+                request.Payload,
+                _metaDataProvider,
+                request.RequestContext);
         }
         catch (Exception ex)
         {
-            return Result<SecureEnvelope, NetworkFailure>.Err(
-                NetworkFailure.DataCenterNotResponding(ex.Message));
+            NetworkFailure failure = NetworkFailure.InvalidRequestType(
+                $"Failed to build transport envelope: {ex.Message}", ex);
+            await connectivityService.PublishAsync(ConnectivityIntent.Disconnected(failure), token)
+                .ConfigureAwait(false);
+            return Result<RpcFlow, NetworkFailure>.Err(failure);
         }
+
+        try
+        {
+            CallOptions callOptions = _callOptionsFactory.Create(
+                request.RpcServiceMethod,
+                request.RequestContext,
+                token);
+
+            AsyncUnaryCall<EventEnvelope> call = _gatewayClient.UnaryAsync(envelope, callOptions);
+
+            Task<Result<SecureEnvelope, NetworkFailure>> responseTask =
+                HandleUnaryResponseAsync(call.ResponseAsync, connectivityService, token);
+
+            return Result<RpcFlow, NetworkFailure>.Ok(new RpcFlow.SingleCall(responseTask));
+        }
+        catch (RpcException rpcEx) when (!GrpcErrorClassifier.IsCancelled(rpcEx))
+        {
+            NetworkFailure failure = _errorProcessor.Process(rpcEx);
+            await connectivityService.PublishAsync(ConnectivityIntent.Disconnected(failure), token)
+                .ConfigureAwait(false);
+            return Result<RpcFlow, NetworkFailure>.Err(failure);
+        }
+        catch (RpcException) when (token.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            NetworkFailure failure = NetworkFailure.DataCenterNotResponding(ex.Message, ex);
+            await connectivityService.PublishAsync(ConnectivityIntent.Disconnected(failure), token)
+                .ConfigureAwait(false);
+            return Result<RpcFlow, NetworkFailure>.Err(failure);
+        }
+    }
+
+    private async Task<Result<SecureEnvelope, NetworkFailure>> HandleUnaryResponseAsync(
+        Task<EventEnvelope> responseTask,
+        IConnectivityService connectivityService,
+        CancellationToken token)
+    {
+        try
+        {
+            EventEnvelope response = await responseTask.ConfigureAwait(false);
+
+            NetworkFailure? failure = GatewayTransportFactory.MapOutcome(response.Metadata);
+            if (failure != null)
+            {
+                await connectivityService.PublishAsync(ConnectivityIntent.Disconnected(failure), token)
+                    .ConfigureAwait(false);
+                return Result<SecureEnvelope, NetworkFailure>.Err(failure);
+            }
+
+            SecureEnvelope payload = ParseSecureEnvelope(response);
+
+            await connectivityService.PublishAsync(
+                    ConnectivityIntent.Connected(response.Metadata?.Security?.ConnectId),
+                    token)
+                .ConfigureAwait(false);
+
+            return Result<SecureEnvelope, NetworkFailure>.Ok(payload);
+        }
+        catch (RpcException rpcEx) when (!GrpcErrorClassifier.IsCancelled(rpcEx))
+        {
+            NetworkFailure failure = await _errorProcessor.ProcessAsync(rpcEx).ConfigureAwait(false);
+            await connectivityService.PublishAsync(ConnectivityIntent.Disconnected(failure), token)
+                .ConfigureAwait(false);
+            return Result<SecureEnvelope, NetworkFailure>.Err(failure);
+        }
+        catch (RpcException) when (token.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            NetworkFailure failure = NetworkFailure.DataCenterNotResponding(ex.Message, ex);
+            await connectivityService.PublishAsync(ConnectivityIntent.Disconnected(failure), token)
+                .ConfigureAwait(false);
+            return Result<SecureEnvelope, NetworkFailure>.Err(failure);
+        }
+    }
+
+    private static SecureEnvelope ParseSecureEnvelope(EventEnvelope response)
+    {
+        if (response.Payload == null || response.Payload.Length == 0)
+        {
+            throw new InvalidOperationException("Transport response payload was empty.");
+        }
+
+        return SecureEnvelope.Parser.ParseFrom(response.Payload);
     }
 }

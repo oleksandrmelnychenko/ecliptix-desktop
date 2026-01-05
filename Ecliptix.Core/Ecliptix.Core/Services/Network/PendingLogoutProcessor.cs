@@ -1,10 +1,8 @@
-using System.Threading;
-using System.Threading.Tasks;
-using Ecliptix.Core.Infrastructure.Data;
-using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Network.Rpc;
-using Ecliptix.Protobuf.Membership;
+using Ecliptix.Network.Data;
+using Ecliptix.Network.Network.Core.Providers;
 using Ecliptix.Protobuf.Protocol;
+using Ecliptix.Protobuf.Transport.Identity;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Membership;
 using Ecliptix.Utilities.Failures.Network;
@@ -13,7 +11,7 @@ using Serilog;
 
 namespace Ecliptix.Core.Services.Network;
 
-internal sealed class PendingLogoutProcessor(
+public sealed class PendingLogoutProcessor(
     NetworkProvider networkProvider,
     PendingLogoutRequestStorage pendingLogoutStorage)
 {
@@ -40,7 +38,6 @@ internal sealed class PendingLogoutProcessor(
             pendingRequest.ToByteArray(),
             async responsePayload =>
             {
-                AnonymousLogoutResponse.Parser.ParseFrom(responsePayload);
                 responseCompletionSource.TrySetResult(true);
                 return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
             },

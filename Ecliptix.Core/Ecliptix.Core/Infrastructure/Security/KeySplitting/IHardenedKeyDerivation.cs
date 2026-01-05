@@ -1,4 +1,4 @@
-namespace Ecliptix.Core.Infrastructure.Security.KeySplitting;
+namespace Ecliptix.Network.Security.KeySplitting;
 
 public interface IHardenedKeyDerivation;
 

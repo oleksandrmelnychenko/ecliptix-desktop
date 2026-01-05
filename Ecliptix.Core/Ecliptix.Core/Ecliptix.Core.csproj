@@ -17,11 +17,35 @@
     <None Remove="Views\Authentication\Registration\RegistrationWizardView.xaml" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\Ecliptix.Opaque.Protocol\Ecliptix.Opaque.Protocol.csproj" />
+    <ProjectReference Include="..\..\Ecliptix.Protocol.System\Ecliptix.Protocol.System.csproj" />
+    <ProjectReference Include="..\..\Ecliptix.Security.Certificate.Pinning\Ecliptix.Security.Certificate.Pinning.csproj" />
+    <ProjectReference Include="..\..\Ecliptix.Core.Modularity\Ecliptix.Core.Modularity.csproj" />
+    <ProjectReference Include="..\..\Ecliptix.Protobufs\Ecliptix.Protobufs.csproj" />
+    <ProjectReference Include="..\..\Ecliptix.Network\Ecliptix.Network.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Core\Abstractions\**\*.cs" />
+    <Compile Remove="Core\Modularity\**\*.cs" />
+    <Compile Remove="Infrastructure\Network\**\*.cs" />
+    <Compile Remove="Infrastructure\Security\**\*.cs" />
+    <Compile Remove="Infrastructure\Data\Abstractions\IApplicationSecureStorageProvider.cs" />
+    <Compile Remove="Infrastructure\Data\PendingLogoutRequestStorage.cs" />
+    <Compile Remove="Services\Network\**\*.cs" />
+    <Compile Remove="Services\Abstractions\Network\**\*.cs" />
+    <Compile Remove="Services\Abstractions\Authentication\IIdentityService.cs" />
+    <Compile Remove="Services\Common\**\*.cs" />
+    <Compile Remove="Services\External\IpGeolocation\IpCountry.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Infrastructure\Network\Transport\Grpc\GrpcClientServiceExtensions.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="AnimatedImage.Avalonia" Version="2.1.2" />
     <PackageReference Include="AsyncImageLoader.Avalonia" Version="3.4.3" />
     <PackageReference Include="Avalonia" Version="11.3.9" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.9" />
-    <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.8" />
+    <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.9" />
     <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.9" />
     <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.9" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
@@ -110,11 +134,7 @@
     <UpToDateCheckInput Remove="Themes\Generic.axaml" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Ecliptix.Opaque.Protocol\Ecliptix.Opaque.Protocol.csproj" />
-    <ProjectReference Include="..\..\Ecliptix.Protocol.System\Ecliptix.Protocol.System.csproj" />
-    <ProjectReference Include="..\..\Ecliptix.Security.Certificate.Pinning\Ecliptix.Security.Certificate.Pinning.csproj" />
-  </ItemGroup>
-  <ItemGroup>
+    <ProjectReference Include="..\..\Ecliptix.Core.Messaging\Ecliptix.Core.Messaging.csproj" />
     <Folder Include="Assets\Fonts\" />
   </ItemGroup>
   <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64' OR '$(RuntimeIdentifier)' == 'win-x86'">

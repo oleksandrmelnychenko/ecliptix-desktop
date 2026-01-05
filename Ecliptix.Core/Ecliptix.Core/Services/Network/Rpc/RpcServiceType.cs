@@ -1,5 +1,7 @@
 namespace Ecliptix.Core.Services.Network.Rpc;
 
+// Legacy logical service identifiers used internally by the client.
+// These are now mapped to gateway event types.
 public enum RpcServiceType : short
 {
     EstablishSecrecyChannel,
@@ -28,6 +30,5 @@ public enum RpcServiceType : short
 
     GetAccountProfile,
     CheckProfileNameAvailability,
-    CreateOrUpdateProfile,
-
+    CreateOrUpdateProfile
 }

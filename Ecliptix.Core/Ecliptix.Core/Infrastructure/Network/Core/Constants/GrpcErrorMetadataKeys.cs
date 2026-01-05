@@ -1,4 +1,4 @@
-namespace Ecliptix.Core.Infrastructure.Network.Core.Constants;
+namespace Ecliptix.Network.Network.Core.Constants;
 
 public static class GrpcErrorMetadataKeys
 {

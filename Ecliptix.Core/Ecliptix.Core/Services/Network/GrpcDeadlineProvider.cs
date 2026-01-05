@@ -1,10 +1,8 @@
-using System;
-using System.Threading;
 using Ecliptix.Core.Services.Network.Rpc;
 
 namespace Ecliptix.Core.Services.Network;
 
-internal sealed class GrpcDeadlineProvider(IOperationTimeoutProvider timeoutProvider) : IGrpcDeadlineProvider
+public sealed class GrpcDeadlineProvider(IOperationTimeoutProvider timeoutProvider) : IGrpcDeadlineProvider
 {
     private static readonly TimeSpan DefaultDeadline = TimeSpan.FromSeconds(30);
 

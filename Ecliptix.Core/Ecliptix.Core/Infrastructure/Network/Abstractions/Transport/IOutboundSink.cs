@@ -1,9 +1,8 @@
-using System.Threading.Tasks;
 using Ecliptix.Protobuf.Common;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 
-namespace Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
+namespace Ecliptix.Network.Network.Abstractions.Transport;
 
 public interface IOutboundSink
 {

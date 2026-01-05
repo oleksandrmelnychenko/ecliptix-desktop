@@ -1,12 +1,9 @@
-using System;
-using System.IO;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
-using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Common;
-using Ecliptix.Protobuf.Membership;
+using Ecliptix.Network.Data.Abstractions;
+using Ecliptix.Protobuf.Transport.Identity;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Authentication;
@@ -379,7 +376,7 @@ public class LogoutProofHandler(
 
     public async Task<Result<Unit, LogoutFailure>> GenerateLogoutHmacProofAsync(
         LogoutRequest request,
-        string membershipId,
+        string _,
         string accountId)
     {
         SodiumSecureMemoryHandle? masterKeyHandle = null;

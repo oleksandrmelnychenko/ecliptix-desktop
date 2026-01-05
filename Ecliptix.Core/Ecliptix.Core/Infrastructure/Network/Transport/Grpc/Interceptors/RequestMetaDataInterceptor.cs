@@ -1,10 +1,9 @@
-using System;
-using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
+using Ecliptix.Network.Network.Abstractions.Transport;
 using Ecliptix.Protobuf.Protocol;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 
-namespace Ecliptix.Core.Infrastructure.Network.Transport.Grpc.Interceptors;
+namespace Ecliptix.Network.Network.Transport.Grpc.Interceptors;
 
 public sealed class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataProvider) : Interceptor
 {

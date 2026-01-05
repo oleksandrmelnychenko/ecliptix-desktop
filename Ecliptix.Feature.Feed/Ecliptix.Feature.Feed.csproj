@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>14</LangVersion>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ecliptix.Core\Ecliptix.Core\Ecliptix.Core.csproj" />
+    <ProjectReference Include="..\Ecliptix.Network\Ecliptix.Network.csproj" />
+    <ProjectReference Include="..\Ecliptix.Contracts\Ecliptix.Contracts.csproj" />
+    <ProjectReference Include="..\Ecliptix.Feature.Chats\Ecliptix.Feature.Chats.csproj" />
+    <ProjectReference Include="..\Ecliptix.Feature.Profile\Ecliptix.Feature.Profile.csproj" />
+  </ItemGroup>
+
+</Project>

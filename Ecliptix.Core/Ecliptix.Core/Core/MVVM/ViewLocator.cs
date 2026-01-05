@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Ecliptix.Utilities;
 using ReactiveUI;
-using IViewLocator = Ecliptix.Core.Core.Abstractions.IViewLocator;
+using IViewLocator = Ecliptix.Core.Modularity.Abstractions.IViewLocator;
 
 namespace Ecliptix.Core.Core.MVVM;
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
@@ -205,9 +205,9 @@ public partial class SideSheetControl : ReactiveUserControl<SideSheetViewModel>,
 
     private void SetupScrimColorBinding(CompositeDisposable disposables)
     {
-         this.WhenAnyValue(x => x.IsDismissableOnScrimClick, x => x.DismissableScrimColor, x => x.UnDismissableScrimColor)
-            .Subscribe(t => ScrimColor = t.Item1 ? t.Item2 : t.Item3)
-            .DisposeWith(disposables);
+        this.WhenAnyValue(x => x.IsDismissableOnScrimClick, x => x.DismissableScrimColor, x => x.UnDismissableScrimColor)
+           .Subscribe(t => ScrimColor = t.Item1 ? t.Item2 : t.Item3)
+           .DisposeWith(disposables);
     }
 
     private void SetupDismissableBindings(CompositeDisposable disposables)
@@ -287,12 +287,13 @@ public partial class SideSheetControl : ReactiveUserControl<SideSheetViewModel>,
         Thickness padding = _sheetBorder.Padding;
         Thickness borderThickness = _sheetBorder.BorderThickness;
         double horizontalExtras = padding.Left + padding.Right + borderThickness.Left + borderThickness.Right;
-        double verticalExtras = padding.Top + padding.Bottom + borderThickness.Top + borderThickness.Bottom;
+
+        _ = padding.Top + padding.Bottom + borderThickness.Top + borderThickness.Bottom;
 
         double availableWidth = MaxWidth - horizontalExtras;
 
         double availableHeight = _rootGrid != null ? _rootGrid.Bounds.Height : Height;
-        if(availableHeight == 0)
+        if (availableHeight == 0)
         {
             availableHeight = double.PositiveInfinity;
         }
@@ -369,12 +370,12 @@ public partial class SideSheetControl : ReactiveUserControl<SideSheetViewModel>,
 
     private async Task HideSideSheet()
     {
-         if (_hideAnimation is null || _sheetBorder is null || _rootGrid is null)
-         {
-             return;
-         }
+        if (_hideAnimation is null || _sheetBorder is null || _rootGrid is null)
+        {
+            return;
+        }
 
-         _isAnimating = true;
+        _isAnimating = true;
         _sheetBorder.IsHitTestVisible = false;
 
         try
@@ -435,12 +436,16 @@ public partial class SideSheetControl : ReactiveUserControl<SideSheetViewModel>,
 
         _scrimShowAnimation = new Animation
         {
-            Duration = TimeSpan.FromMilliseconds(400), Easing = easing, FillMode = FillMode.Both,
+            Duration = TimeSpan.FromMilliseconds(400),
+            Easing = easing,
+            FillMode = FillMode.Both,
             Children = { new KeyFrame { Cue = new Cue(0.0), Setters = { new Setter(OpacityProperty, 0.0) } }, new KeyFrame { Cue = new Cue(1.0), Setters = { new Setter(OpacityProperty, 0.5) } } }
         };
         _scrimHideAnimation = new Animation
         {
-            Duration = TimeSpan.FromMilliseconds(400), Easing = easing, FillMode = FillMode.Both,
+            Duration = TimeSpan.FromMilliseconds(400),
+            Easing = easing,
+            FillMode = FillMode.Both,
             Children = { new KeyFrame { Cue = new Cue(0.0), Setters = { new Setter(OpacityProperty, 0.5) } }, new KeyFrame { Cue = new Cue(1.0), Setters = { new Setter(OpacityProperty, 0.0) } } }
         };
     }

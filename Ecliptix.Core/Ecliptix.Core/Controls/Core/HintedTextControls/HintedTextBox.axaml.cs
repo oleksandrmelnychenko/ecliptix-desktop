@@ -420,7 +420,8 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             return;
         }
 
-        try { action(); }
+        try
+        { action(); }
         catch (Exception ex) { Debug.WriteLine($"ERROR in {context}: {ex.Message}"); }
     }
 

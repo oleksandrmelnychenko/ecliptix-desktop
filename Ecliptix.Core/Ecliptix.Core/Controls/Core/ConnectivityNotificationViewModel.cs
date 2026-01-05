@@ -1,24 +1,12 @@
 using System;
-using System.Collections.Generic;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using System.Threading;
 using System.Threading.Tasks;
-using Avalonia;
-using Avalonia.Animation;
-using Avalonia.Animation.Easings;
-using Avalonia.Controls;
-using Avalonia.Media;
-using Avalonia.Media.Imaging;
-using Avalonia.Platform;
-using Avalonia.Styling;
-using Avalonia.Threading;
 using Ecliptix.Core.Controls.Common;
-using Ecliptix.Core.Controls.Constants;
-using Ecliptix.Core.Core.Messaging;
-using Ecliptix.Core.Core.Messaging.Connectivity;
-using Ecliptix.Core.Core.Messaging.Events;
-using Ecliptix.Core.Core.Messaging.Services;
+using Ecliptix.Core.Messaging.Core.Messaging;
+using Ecliptix.Core.Messaging.Core.Messaging.Connectivity;
+using Ecliptix.Core.Messaging.Core.Messaging.Events;
+using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Network.Infrastructure;
 using ReactiveUI;
@@ -30,7 +18,7 @@ namespace Ecliptix.Core.Controls.Core;
 
 public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposable
 {
- private readonly ILocalizationService _localizationService;
+    private readonly ILocalizationService _localizationService;
     private readonly IConnectivityService _connectivityService;
     private readonly CompositeDisposable _disposables = new();
 
@@ -44,20 +32,20 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
     [ObservableAsProperty] public bool IsServerIssue { get; }
     [ObservableAsProperty] public bool IsRestored { get; }
 
-    [ObservableAsProperty] public string StatusText { get; }
-    [ObservableAsProperty] public string StatusDescription { get; }
+    [ObservableAsProperty] public string StatusText { get; } = default!;
+    [ObservableAsProperty] public string StatusDescription { get; } = default!;
     [ObservableAsProperty] public bool ShowRetryButton { get; }
-    [ObservableAsProperty] public string RetryButtonText { get; }
+    [ObservableAsProperty] public string RetryButtonText { get; } = default!;
 
     public TimeSpan RestoredStateDuration { get; set; } = TimeSpan.FromSeconds(3);
 
     public ReactiveCommand<Unit, Unit> RetryCommand { get; }
     public ReactiveCommand<Unit, Unit> CloseCommand { get; }
 
-   public ConnectivityNotificationViewModel(
-        ILocalizationService localizationService,
-        IConnectivityService connectivityService,
-        IPendingRequestManager pendingRequestManager)
+    public ConnectivityNotificationViewModel(
+         ILocalizationService localizationService,
+         IConnectivityService connectivityService,
+         IPendingRequestManager pendingRequestManager)
     {
         _localizationService = localizationService;
         _connectivityService = connectivityService;
@@ -130,9 +118,9 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         );
     }
 
-   private StatusObservables CreateStatusObservables(
-        IObservable<Unit> languageTrigger,
-        ConnectivityObservables connectivityObservables)
+    private StatusObservables CreateStatusObservables(
+         IObservable<Unit> languageTrigger,
+         ConnectivityObservables connectivityObservables)
     {
         ConnectivitySnapshot initialInternetSnapshot = new ConnectivitySnapshot(
             _connectivityService.LastKnownInternetStatus,

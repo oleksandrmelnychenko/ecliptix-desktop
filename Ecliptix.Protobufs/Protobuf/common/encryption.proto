@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package ecliptix.proto.common;
+option csharp_namespace = "Ecliptix.Protobuf.Common";
+
+message EncryptionKeyPair {
+  bytes public_key = 1;
+  bytes private_key = 2;
+}
+
+message EncryptPayloadRequest {
+  bytes payload = 1;
+  bytes recipient_public_key = 2;
+  bytes sender_private_key = 3;
+}
+
+message EncryptPayloadResponse {
+  bytes encrypted_payload = 1;
+  bytes nonce = 2;
+}
+
+message DecryptPayloadRequest {
+  bytes encrypted_payload = 1;
+  bytes nonce = 2;
+  bytes sender_public_key = 3;
+  bytes recipient_private_key = 4;
+}
+
+message DecryptPayloadResponse {
+  bytes payload = 1;
+}

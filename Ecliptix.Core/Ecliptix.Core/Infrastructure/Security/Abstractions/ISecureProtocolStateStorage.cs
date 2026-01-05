@@ -1,8 +1,7 @@
-using System.Threading.Tasks;
-using Ecliptix.Core.Infrastructure.Security.Storage;
+using Ecliptix.Network.Security.Storage;
 using Ecliptix.Utilities;
 
-namespace Ecliptix.Core.Infrastructure.Security.Abstractions;
+namespace Ecliptix.Network.Security.Abstractions;
 
 public interface ISecureProtocolStateStorage
 {

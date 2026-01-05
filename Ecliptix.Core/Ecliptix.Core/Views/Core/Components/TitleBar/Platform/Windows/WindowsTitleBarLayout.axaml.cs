@@ -119,7 +119,7 @@ public sealed partial class WindowsTitleBarLayout : UserControl, ITitleBar
         }
 
         _hostWindow.GetObservable(Window.WindowStateProperty)
-            .Subscribe( state =>
+            .Subscribe(state =>
             {
                 if (_maximizeIcon == null)
                 {

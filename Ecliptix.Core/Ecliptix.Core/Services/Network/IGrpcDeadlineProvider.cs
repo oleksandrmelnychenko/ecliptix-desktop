@@ -1,4 +1,3 @@
-using System;
 using Ecliptix.Core.Services.Network.Rpc;
 
 namespace Ecliptix.Core.Services.Network;

@@ -2,14 +2,11 @@ using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
-
-using Avalonia.Controls;
 using Avalonia.Threading;
-using Ecliptix.Core.Core.Messaging.Events;
-using Ecliptix.Core.Core.Messaging.Services;
-
+using Ecliptix.Core.Messaging.Core.Messaging.Events;
+using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using ReactiveUI;
-using IMessageBus = Ecliptix.Core.Core.Messaging.IMessageBus;
+using IMessageBus = Ecliptix.Core.Messaging.Core.Messaging.IMessageBus;
 
 namespace Ecliptix.Core.Controls.Modals.BottomSheetModal;
 

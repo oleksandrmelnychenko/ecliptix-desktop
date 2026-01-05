@@ -1,16 +1,14 @@
-using System;
 using System.Buffers;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
-using Ecliptix.Core.Infrastructure.Security.Abstractions;
+using Ecliptix.Network.Security.Abstractions;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures;
 using Ecliptix.Utilities.Failures.Sodium;
 using Konscious.Security.Cryptography;
 
-namespace Ecliptix.Core.Infrastructure.Security.KeySplitting;
+namespace Ecliptix.Network.Security.KeySplitting;
 
 public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecurityProvider) : IHardenedKeyDerivation
 {

@@ -1,9 +1,7 @@
-using System;
-using System.Threading.Tasks;
-using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Modularity.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Ecliptix.Core.Core.Modularity;
+namespace Ecliptix.Core.Modularity.Modularity;
 
 public abstract class ModuleBase<TManifest> : ITypedModule<TManifest> where TManifest : IModuleManifest
 {

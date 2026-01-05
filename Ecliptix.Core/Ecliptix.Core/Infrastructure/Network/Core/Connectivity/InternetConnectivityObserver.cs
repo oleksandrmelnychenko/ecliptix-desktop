@@ -1,18 +1,13 @@
-using System;
-using System.Linq;
-using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using System.Threading;
-using System.Threading.Tasks;
-using Ecliptix.Core.Infrastructure.Network.Abstractions.Core;
+using Ecliptix.Network.Network.Abstractions.Core;
 
-namespace Ecliptix.Core.Infrastructure.Network.Core.Connectivity;
+namespace Ecliptix.Network.Network.Core.Connectivity;
 
-internal sealed class InternetConnectivityObserver : IInternetConnectivityObserver
+public sealed class InternetConnectivityObserver : IInternetConnectivityObserver
 {
     public const string HTTP_CLIENT_NAME = "InternetConnectivityProbeClient";
     private const int NETWORK_CHANGE_THROTTLE_MS = 500;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
@@ -144,7 +144,7 @@ public partial class StatusBadge : UserControl
         if (targetRect.X + finalHorizontalOffset < padding)
         {
 
-             finalHorizontalOffset = padding - targetRect.X;
+            finalHorizontalOffset = padding - targetRect.X;
         }
 
         bool isInTopArea = targetRect.Y < (windowBounds.Height * 0.3);

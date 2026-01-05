@@ -331,7 +331,7 @@ public sealed partial class OverlaySheetControl : ReactiveUserControl<OverlayShe
         }
     }
 
-   private void UpdateSheetLayout()
+    private void UpdateSheetLayout()
     {
         if (ViewModel?.Content == null || _sheetBorder == null || _measureContainer == null)
         {
@@ -351,7 +351,7 @@ public sealed partial class OverlaySheetControl : ReactiveUserControl<OverlayShe
 
         if (double.IsInfinity(maxWidth) || double.IsNaN(maxWidth))
         {
-             maxWidth = double.PositiveInfinity;
+            maxWidth = double.PositiveInfinity;
         }
 
         Thickness padding = _sheetBorder.Padding;

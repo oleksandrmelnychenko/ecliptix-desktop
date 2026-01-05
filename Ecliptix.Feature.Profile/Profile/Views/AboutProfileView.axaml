@@ -1,0 +1,130 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:viewModels="clr-namespace:Ecliptix.Feature.Profile.Profile.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:DataType="viewModels:AboutProfileViewModel"
+             x:Class="Ecliptix.Feature.Profile.Profile.Views.AboutProfileView">
+    <UserControl.Styles>
+        <Style Selector="TextBlock.h1">
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#242424"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+        </Style>
+
+        <Style Selector="TextBlock.handle">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Foreground" Value="#666666"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+        </Style>
+
+        <Style Selector="TextBlock.bio">
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="LineHeight" Value="24"/>
+        </Style>
+
+        <Style Selector="TextBlock.meta">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#666666"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style Selector="TextBlock.stat-value">
+            <Setter Property="FontSize" Value="22"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#242424"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+
+        <Style Selector="TextBlock.stat-label">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#777777"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+
+        <Grid>
+
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        MaxWidth="400"
+                        Spacing="0">
+
+                <Border Width="120" Height="120"
+                        CornerRadius="60"
+                        Margin="0,0,0,24"
+                        HorizontalAlignment="Center"
+                        BorderBrush="#E0E0E0"
+                        BorderThickness="1"
+                        ClipToBounds="True"
+                        Background="#F5F5F5">
+
+                    <Panel>
+                        <Grid>
+                            <TextBlock Text="{Binding Initials}"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Center"
+                                       FontSize="36"
+                                       FontWeight="Bold"
+                                       Foreground="#CCCCCC"/>
+                        </Grid>
+
+                        <Image Source="{Binding ProfileImage}"
+                               Stretch="UniformToFill"/>
+                    </Panel>
+                </Border>
+
+                <TextBlock Text="{Binding DisplayName}" Classes="h1" Margin="0,0,0,8"/>
+                <TextBlock Text="{Binding Handle}" Classes="handle" Margin="0,0,0,24"/>
+
+                <TextBlock Text="{Binding Bio}" Classes="bio" Margin="0,0,0,24"/>
+
+                <StackPanel Spacing="8" HorizontalAlignment="Center" Margin="0,0,0,32">
+                    <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                       <TextBlock Text="{Binding Location}" Classes="meta"/>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                        <PathIcon Data="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zm-8 4H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z"
+                                  Width="14" Height="14"
+                                  Foreground="#888888"
+                                  VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding JoinedDate}" Classes="meta"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <Border Height="1" Background="#EEEEEE" Margin="0,0,0,24"/>
+
+                <Grid ColumnDefinitions="*,*,*">
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="{Binding PostsCount}" Classes="stat-value"/>
+                        <TextBlock Text="Posts" Classes="stat-label"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="{Binding FollowersCount}" Classes="stat-value"/>
+                        <TextBlock Text="Followers" Classes="stat-label"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="{Binding FollowingCount}" Classes="stat-value"/>
+                        <TextBlock Text="Following" Classes="stat-label"/>
+                    </StackPanel>
+                </Grid>
+
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</UserControl>
+

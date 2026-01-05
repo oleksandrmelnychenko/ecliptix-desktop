@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace Ecliptix.Core.Controls.Modals.SideSheetModal;
 

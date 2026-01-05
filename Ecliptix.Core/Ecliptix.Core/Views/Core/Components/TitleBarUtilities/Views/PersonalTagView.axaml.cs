@@ -14,7 +14,7 @@ public partial class PersonalTagView : ReactiveUserControl<PersonalTagViewModel>
         InitializeComponent();
     }
 
-    private void  InitializeComponent()
+    private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);
     }

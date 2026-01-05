@@ -1,10 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Modularity.Abstractions;
 
-namespace Ecliptix.Core.Core.Modularity;
+namespace Ecliptix.Core.Modularity.Modularity;
 
 public class ModuleDependencyResolver
 {

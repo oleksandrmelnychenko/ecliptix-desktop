@@ -1,8 +1,5 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
+namespace Ecliptix.Core.Modularity.Abstractions;
 
-namespace Ecliptix.Core.Core.Abstractions;
 public interface IModuleMessageBus
 {
     Task PublishAsync<T>(T eventMessage, CancellationToken cancellationToken = default)

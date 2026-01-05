@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package ecliptix.proto.common;
+option csharp_namespace = "Ecliptix.Protobuf.Common";
+
+import "transport/identity_access.proto";
+
+// Local application instance settings (client-side persisted state).
+message ApplicationInstanceSettings {
+  bytes app_instance_id = 1;
+  bytes device_id = 2;
+  string country = 3;
+  string culture = 4;
+  bytes membership_id = 5;
+  bytes account_id = 6;
+  bytes current_account_id = 7;
+  bytes server_public_key = 8;
+  bool is_new_instance = 9;
+  WindowPlacement window_placement = 10;
+  ecliptix.transport.identity.Membership membership = 11;
+}
+
+// Window placement for desktop UI.
+message WindowPlacement {
+  double width = 1;
+  double height = 2;
+  double x = 3;
+  double y = 4;
+  bool is_maximized = 5;
+  int32 position_x = 6;
+  int32 position_y = 7;
+  int32 client_width = 8;
+  int32 client_height = 9;
+  int32 window_state = 10;
+  bool is_valid_save = 11;
+}

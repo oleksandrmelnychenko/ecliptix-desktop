@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Avalonia;
@@ -73,7 +73,7 @@ public class IconToDrawingConverter : IMultiValueConverter
         {
             return new GeometryDrawing
             {
-                Geometry = new RectangleGeometry(new Rect(0,0,24,24)),
+                Geometry = new RectangleGeometry(new Rect(0, 0, 24, 24)),
                 Brush = Brushes.Magenta
             };
         }

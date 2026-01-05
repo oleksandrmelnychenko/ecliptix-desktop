@@ -1,7 +1,7 @@
 using System.Reactive;
 using ReactiveUI;
 using Splat;
-using IMessageBus = Ecliptix.Core.Core.Messaging.IMessageBus;
+using IMessageBus = Ecliptix.Core.Messaging.Core.Messaging.IMessageBus;
 
 namespace Ecliptix.Core.Views.Core.Components.TitleBarUtilities.ViewModels;
 

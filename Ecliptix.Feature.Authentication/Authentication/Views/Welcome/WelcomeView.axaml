@@ -1,0 +1,95 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:carousels="clr-namespace:Ecliptix.Core.Controls.Carousels;assembly=Ecliptix.Core"
+             xmlns:illustrations="clr-namespace:Ecliptix.Core.Controls.Illustrations;assembly=Ecliptix.Core"
+             xmlns:vm="clr-namespace:Ecliptix.Feature.Authentication.Authentication.ViewModels.Welcome"
+             mc:Ignorable="d"
+             d:DesignWidth="380"
+             d:DesignHeight="480"
+             x:CompileBindings="True"
+             x:Class="Ecliptix.Feature.Authentication.Authentication.Views.Welcome.WelcomeView"
+             x:DataType="vm:WelcomeViewModel">
+
+        <UserControl.Styles>
+
+                <Style Selector="EcliptixIcon">
+                        <Setter Property="Cursor" Value="Hand" />
+                        <Setter Property="Transitions">
+                                <Transitions>
+                                        <BrushTransition Property="Stroke" Duration="0:0:0.2"/>
+                                        <DoubleTransition Property="StrokeThickness" Duration="0:0:0.2"/>
+                                        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1"/>
+                                </Transitions>
+                        </Setter>
+                </Style>
+
+                <Style Selector="EcliptixIcon:pointerover">
+                        <Setter Property="Stroke" Value="#3B82F6" /> <Setter Property="StrokeThickness" Value="2.5" />
+                        <Setter Property="RenderTransform" Value="scale(1.1)" /> </Style>
+
+        </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,Auto,Auto, Auto"
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch"
+          Margin="{StaticResource Welcome.Container.Margin}"
+          Width="{StaticResource Content.MaxWidth}">
+
+
+        <carousels:WelcomeCarouselView Grid.Row="1"
+                                  ItemsSource="{Binding Slides}"
+                                  SelectedIndex="{Binding CurrentSlideIndex, Mode=TwoWay}"
+                                  HtmlUrl="avares://Ecliptix.Core/Assets/WelcomeContent.html" />
+
+        <Grid Grid.Row="2"
+              ColumnDefinitions="208*,176*"
+              ColumnSpacing="12"
+              HorizontalAlignment="Stretch"
+              VerticalAlignment="Top"
+              Margin="0,0,0,16">
+
+            <Button Grid.Column="0"
+                    Content="{Binding LocalizationService[Welcome.SignInButton]}"
+                    Command="{Binding NavToSignInCommand}"
+                    Classes="secondary large"
+                    Classes.is-busy="{Binding IsSignInBusy}"
+                    MinWidth="{StaticResource Button.MinWidth}" />
+
+            <Button Grid.Column="1"
+                    Content="{Binding LocalizationService[Welcome.CreateAccountButton]}"
+                    Command="{Binding NavToCreateAccountCommand}"
+                    Classes="primary large glow"
+                    Classes.is-busy="{Binding IsCreateAccountBusy}"
+                    MinWidth="{StaticResource Button.MinWidth}" />
+        </Grid>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" IsVisible="True">
+                <Button Background="Black"
+                        Height="20"
+                        Foreground="white"
+                        Content="Complete"
+                        Command="{Binding NavToCompleteAccountCommand}">
+                </Button>
+
+                <Button Background="Black"
+                        Height="20"
+                        Foreground="white"
+                        Content="SecureKey"
+                        Command="{Binding NavToSecureKeySetCommand}">
+                </Button>
+
+                <Button Background="Black"
+                        Height="20"
+                        Foreground="white"
+                        Content="Welcome Back"
+                        Command="{Binding NavToWelcomeBackCommand}">
+                </Button>
+
+        </StackPanel>
+
+
+
+    </Grid>
+</UserControl>

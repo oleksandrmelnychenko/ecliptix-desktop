@@ -1,10 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Modularity.Abstractions;
 using Ecliptix.Utilities;
 
-namespace Ecliptix.Core.Core.Modularity;
+namespace Ecliptix.Core.Modularity.Modularity;
 
 public interface IModuleCatalog
 {

@@ -7,16 +7,14 @@ using System.Threading.Tasks;
 using Avalonia.Threading;
 using Ecliptix.Core.Controls.Common;
 using Ecliptix.Core.Controls.Modals;
-using Ecliptix.Core.Core.Messaging.Connectivity;
-using Ecliptix.Core.Core.Messaging.Events;
-using Ecliptix.Core.Core.Messaging.Services;
-using Ecliptix.Core.Features.Authentication.Common;
-using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
-using Ecliptix.Core.Infrastructure.Network.Core.Providers;
+using Ecliptix.Core.Messaging.Core.Messaging.Connectivity;
+using Ecliptix.Core.Messaging.Core.Messaging.Services;
+using Ecliptix.Core.Modularity.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Core.Localization;
-using Ecliptix.Protobuf.Membership;
+using Ecliptix.Network.Network.Core.Providers;
 using Ecliptix.Protobuf.Protocol;
+using Ecliptix.Protobuf.Transport.Identity;
 using Ecliptix.Utilities;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
@@ -32,12 +30,12 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
 
     protected ViewModelBase(NetworkProvider networkProvider,
         ILocalizationService localizationService,
-        IGlobalModalService globalModalService,
+        IGlobalModalService? globalModalService,
         IConnectivityService? connectivityService = null)
     {
         NetworkProvider = networkProvider;
         LocalizationService = localizationService;
-        GlobalModalService = globalModalService;
+        GlobalModalService = globalModalService!;
 
         LanguageChanged = Observable.FromEvent(
                 handler => localizationService.LanguageChanged += handler,
@@ -90,7 +88,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         return connectId;
     }
 
-    protected Membership Membership() =>
+    protected Membership? Membership() =>
         NetworkProvider.ApplicationInstanceSettings.Membership;
 
     public string GetLocalizedWarningMessage(CharacterWarningType warningType)
@@ -110,7 +108,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         IScreen hostScreen,
         string message,
         int seconds,
-        Action<AuthenticationViewModel> navigationAction,
+        Action<IAuthenticationHost> navigationAction,
         string title,
         string subtitle
         )
@@ -121,7 +119,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
             _autoRedirectTimer = null;
         });
 
-        if (hostScreen is AuthenticationViewModel hostWindow)
+        if (hostScreen is IAuthenticationHost hostWindow)
         {
             await ShowRedirectNotification(message, seconds, () =>
             {
@@ -184,7 +182,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         }
     }
 
-    protected void CleanupAndNavigate(AuthenticationViewModel membershipHostWindow, MembershipViewType targetView)
+    protected void CleanupAndNavigate(IAuthenticationHost membershipHostWindow, MembershipViewType targetView)
     {
         membershipHostWindow.ClearNavigationStack();
         membershipHostWindow.Navigate.Execute(targetView).Subscribe();

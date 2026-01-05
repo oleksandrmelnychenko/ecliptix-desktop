@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
-
-namespace Ecliptix.Core.Infrastructure.Network.Core.Connectivity;
+namespace Ecliptix.Network.Network.Core.Connectivity;
 
 public record InternetConnectivityObserverOptions
 {

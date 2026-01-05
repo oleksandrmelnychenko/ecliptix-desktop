@@ -1,10 +1,10 @@
 using System.Threading.Tasks;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
-using Ecliptix.Core.Features.Splash.ViewModels;
-using Ecliptix.Core.Features.Splash.Views;
-using Ecliptix.Core.Infrastructure.Network.Core.Connectivity;
+using Ecliptix.Core.Modularity.Abstractions.Splash;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Settings;
+using Ecliptix.Network.Network.Core.Connectivity;
 using Splat;
 
 namespace Ecliptix.Core;
@@ -13,21 +13,22 @@ public class ApplicationStartup(
     IClassicDesktopStyleApplicationLifetime desktop,
     IApplicationInitializer initializer,
     IApplicationRouter router,
-    IApplicationStateManager stateManager)
+    IApplicationStateManager stateManager,
+    ISplashHostFactory splashHostFactory)
 {
-    private SplashWindowViewModel? _splashViewModel;
+    private ISplashHost? _splashHost;
 
     public async Task RunAsync(DefaultSystemSettings defaultSystemSettings)
     {
         _ = Locator.Current.GetService<InternetConnectivityBridge>();
 
-        _splashViewModel = Locator.Current.GetService<SplashWindowViewModel>()!;
-        SplashWindow splashScreen = new() { DataContext = _splashViewModel };
+        _splashHost = splashHostFactory.Create();
+        Window splashScreen = _splashHost.CreateWindow();
 
         desktop.MainWindow = splashScreen;
         splashScreen.Show();
 
-        await _splashViewModel.IsSubscribed.Task;
+        await _splashHost.IsSubscribedAsync;
 
         bool success = await initializer.InitializeAsync(defaultSystemSettings);
 
@@ -37,12 +38,12 @@ public class ApplicationStartup(
 
             await router.TransitionFromSplashAsync(splashScreen, isAuthenticated);
 
-            _splashViewModel?.Dispose();
-            _splashViewModel = null;
+            _splashHost?.Dispose();
+            _splashHost = null;
         }
         else
         {
-            await _splashViewModel.PrepareForShutdownAsync();
+            await _splashHost.PrepareForShutdownAsync();
             desktop.Shutdown();
         }
     }

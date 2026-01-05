@@ -2,12 +2,11 @@
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Ecliptix.Core.Controls.Modals;
-using Ecliptix.Core.Core.Messaging.Events;
-using Ecliptix.Core.Core.Messaging.Services;
-using Ecliptix.Core.Infrastructure.Data.Abstractions;
-using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
+using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Settings;
+using Ecliptix.Network.Data.Abstractions;
+using Ecliptix.Network.Network.Abstractions.Transport;
 using Ecliptix.Utilities;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;

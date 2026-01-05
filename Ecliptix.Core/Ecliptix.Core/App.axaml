@@ -1,6 +1,5 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:feedConverters="clr-namespace:Ecliptix.Core.Features.Feed.Converters"
              xmlns:hintedTextControls="clr-namespace:Ecliptix.Core.Controls.Core.HintedTextControls"
              xmlns:sharedConverters="clr-namespace:Ecliptix.Core.Shared.Converters"
              x:Class="Ecliptix.Core.App"
@@ -10,33 +9,15 @@
         <ResourceDictionary>
             <FontFamily x:Key="SegoeUI">avares://Ecliptix.Core/Assets/Fonts/SegoeUI/#Segoe UI</FontFamily>
 
-            <!-- Feed Converters -->
-            <feedConverters:BoolToColorConverter x:Key="BoolToColorConverter" />
-            <feedConverters:NumberAbbreviationConverter x:Key="NumberAbbreviationConverter" />
-            <feedConverters:RelativeTimeConverter x:Key="RelativeTimeConverter" />
-            <feedConverters:NotNullOrEmptyConverter x:Key="NotNullOrEmptyConverter" />
-            <feedConverters:PlayPauseIconConverter x:Key="PlayPauseIconConverter" />
-            <feedConverters:MuteIconConverter x:Key="MuteIconConverter" />
-            <feedConverters:InitialsConverter x:Key="InitialsConverter" />
-            <feedConverters:GreaterThanOneConverter x:Key="GreaterThanOneConverter" />
-            <feedConverters:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter" />
-            <feedConverters:PluralConverter x:Key="PluralConverter" />
-            <feedConverters:LikeColorConverter x:Key="LikeColorConverter" />
-            <feedConverters:LikeIconConverter x:Key="LikeIconConverter" />
-            <feedConverters:SaveColorConverter x:Key="SaveColorConverter" />
-            <feedConverters:BooleanNotConverter x:Key="BooleanNotConverter" />
-            <feedConverters:BoolToOpacityConverter x:Key="BoolToOpacityConverter" />
-
             <!-- Shared Converters -->
             <sharedConverters:ResourceConverter x:Key="ResourceConverter"/>
+            <sharedConverters:BooleanToOpacityConverter x:Key="BoolToOpacityConverter"/>
 
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="Assets/Icons/UI/LampIcon.axaml"></ResourceInclude>
-                <ResourceInclude Source="/Features/Feed/Resources/IconGeometries.axaml"/>
                 <ResourceInclude Source="/Styles/Components/CalendarDatePicker.axaml"/>
                 <ResourceInclude Source="Controls/Core/Icons/Resources/LucideIconResources.axaml"/>
                 <ResourceInclude Source="Controls/Core/Icons/EcliptixIcon.axaml"/>
-                <ResourceInclude Source="/Features/Feed/Resources/FeedColors.axaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

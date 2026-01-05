@@ -1,11 +1,12 @@
 using System.Buffers.Binary;
+using System.Reflection;
 using System.Security.Cryptography;
-using Ecliptix.Protobuf.Protocol;
 using Google.Protobuf;
+using PubKeyExchangeType = Ecliptix.Protobuf.Protocol.PubKeyExchangeType;
 
 namespace Ecliptix.Utilities;
 
-internal static class Helpers
+public static class Helpers
 {
     private static readonly RandomNumberGenerator Rng = RandomNumberGenerator.Create();
 
@@ -86,10 +87,22 @@ internal static class Helpers
         return min + value % (max - min + 1);
     }
 
-    public static T ParseFromBytes<T>(byte[] data) where T : IMessage<T>, new()
+    public static T ParseFromBytes<T>(byte[] data)
     {
-        MessageParser<T> parser = new(() => new T());
-        return parser.ParseFrom(data);
+        // Prefer a static Parser with ParseFrom(byte[]) if present (used by lightweight DTOs and generated protos).
+#pragma warning disable IL2090
+        PropertyInfo? parserProperty = typeof(T).GetProperty("Parser");
+#pragma warning restore IL2090
+        if (parserProperty?.GetValue(null) is { } parserInstance)
+        {
+            MethodInfo? parseMethod = parserInstance.GetType().GetMethod("ParseFrom", new[] { typeof(byte[]) });
+            if (parseMethod != null)
+            {
+                return (T)parseMethod.Invoke(parserInstance, new object?[] { data })!;
+            }
+        }
+
+        throw new InvalidOperationException($"No parser available for type {typeof(T).Name}");
     }
 
     private static uint ComputeUniqueConnectId(

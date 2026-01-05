@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package ecliptix.proto.protocol;
+option csharp_namespace = "Ecliptix.Protobuf.Protocol";
+
+// Minimal representation of the hybrid/PQ handshake exchange payload.
+message PubKeyExchange {
+  bytes payload = 1;
+  PubKeyExchangeState state = 2;
+}
+
+enum PubKeyExchangeState {
+  PUB_KEY_EXCHANGE_STATE_UNSPECIFIED = 0;
+  INIT = 1;
+  RESP = 2;
+  COMPLETE = 3;
+}
+
+enum PubKeyExchangeType {
+  DATA_CENTER_EPHEMERAL_CONNECT = 0;
+  SERVER_STREAMING = 1;
+}

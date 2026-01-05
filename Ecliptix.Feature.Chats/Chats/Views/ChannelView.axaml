@@ -1,0 +1,69 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:viewModels="clr-namespace:Ecliptix.Feature.Chats.Chats.ViewModels"
+             xmlns:views="clr-namespace:Ecliptix.Feature.Chats.Chats.Views"
+             xmlns:vm="clr-namespace:Ecliptix.Feature.Chats.Chats.ViewModels.Messages"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:DataType="viewModels:ChannelViewModel"
+             x:Class="Ecliptix.Feature.Chats.Chats.Views.ChannelView">
+  <UserControl.Styles>
+        <Style Selector="Button.action-btn">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Foreground" Value="#6E767D"/>
+            <Setter Property="CornerRadius" Value="4"/>
+        </Style>
+
+        <Style Selector="Button.action-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#F2F2F2"/>
+            <Setter Property="Foreground" Value="#1A1A1A"/>
+        </Style>
+
+        <Style Selector="Button.action-btn TextBlock">
+             <Setter Property="FontSize" Value="12"/>
+             <Setter Property="VerticalAlignment" Value="Center"/>
+             <Setter Property="Margin" Value="4,0,0,0"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <Grid.Background>
+            <DrawingBrush TileMode="Tile" SourceRect="0,0,32,32" DestinationRect="0,0,32,32" Stretch="None">
+                <DrawingBrush.Drawing>
+                    <GeometryDrawing Brush="#406A5ACD">
+                        <GeometryDrawing.Geometry><EllipseGeometry Rect="15,15,2,2" /></GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                </DrawingBrush.Drawing>
+            </DrawingBrush>
+        </Grid.Background>
+
+        <views:ChannelHeaderView Grid.Row="0" />
+
+        <ScrollViewer Grid.Row="1">
+            <ItemsControl ItemsSource="{Binding Posts}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Spacing="16" HorizontalAlignment="Center"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+
+                <ItemsControl.DataTemplates>
+
+                    <DataTemplate DataType="{x:Type vm:DateSeparatorViewModel}">
+                        <views:DateSeparatorView />
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type viewModels:ChannelPostViewModel}">
+                        <views:ChannelPostView />
+                    </DataTemplate>
+                </ItemsControl.DataTemplates>
+            </ItemsControl>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
+

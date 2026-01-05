@@ -1,7 +1,6 @@
-using System.Threading;
 using Ecliptix.Protobuf.Protocol;
 
-namespace Ecliptix.Core.Infrastructure.Network.Core.Providers;
+namespace Ecliptix.Network.Network.Core.Providers;
 
 internal readonly record struct SecrecyChannelRequest(
     uint ConnectId,

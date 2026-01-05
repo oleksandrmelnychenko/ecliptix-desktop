@@ -2,15 +2,15 @@ using System;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecliptix.Core.Infrastructure.Data.Abstractions;
-using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.Security;
 using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Core.Services.Network.Rpc;
+using Ecliptix.Network.Data.Abstractions;
+using Ecliptix.Network.Network.Core.Providers;
 using Ecliptix.OPAQUE.Client;
-using Ecliptix.Protobuf.Membership;
+using Ecliptix.Protobuf.Transport.Identity;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
@@ -53,7 +53,7 @@ internal sealed class SecureKeyRecoveryService(
 
     public Task<Result<Unit, string>> InitiateSecureKeyResetOtpAsync(
         ByteString mobileNumberIdentifier,
-        Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate = null,
+        Action<uint, Guid, CountdownUpdateStatus, string?>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default) =>
         registrationService.InitiateOtpVerificationAsync(
             mobileNumberIdentifier,
@@ -64,7 +64,7 @@ internal sealed class SecureKeyRecoveryService(
     public Task<Result<Unit, string>> ResendSecureKeyResetOtpAsync(
         Guid sessionIdentifier,
         ByteString mobileNumberIdentifier,
-        Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate = null,
+        Action<uint, Guid, CountdownUpdateStatus, string?>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default) =>
         registrationService.ResendOtpVerificationAsync(
             sessionIdentifier,
@@ -72,7 +72,7 @@ internal sealed class SecureKeyRecoveryService(
             onCountdownUpdate,
             cancellationToken);
 
-    public Task<Result<Protobuf.Membership.Membership, string>> VerifySecureKeyResetOtpAsync(
+    public Task<Result<Protobuf.Transport.Identity.Membership, string>> VerifySecureKeyResetOtpAsync(
         Guid sessionIdentifier,
         string otpCode,
         uint connectId,

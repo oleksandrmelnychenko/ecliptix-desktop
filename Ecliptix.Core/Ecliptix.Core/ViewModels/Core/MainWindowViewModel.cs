@@ -10,26 +10,26 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using Ecliptix.Core.Controls.Core;
-using Ecliptix.Core.Core.Messaging;
-using Ecliptix.Core.Core.Messaging.Events;
-using Ecliptix.Core.Core.Messaging.Services;
-using Ecliptix.Core.Infrastructure.Data.Abstractions;
-using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
+using Ecliptix.Core.Messaging.Core.Messaging;
+using Ecliptix.Core.Messaging.Core.Messaging.Events;
+using Ecliptix.Core.Messaging.Core.Messaging.Services;
+using Ecliptix.Core.Modularity.Abstractions.Suggestions;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Common;
+using Ecliptix.Core.Views.Core.Components.TitleBar;
+using Ecliptix.Core.Views.Core.Components.TitleBarUtilities.ViewModels;
 using Ecliptix.Core.Views.Core.Configuration;
 using Ecliptix.Core.Views.Core.Constants;
 using Ecliptix.Core.Views.Core.Factories;
 using Ecliptix.Core.Views.Core.Models;
 using Ecliptix.Core.Views.Core.Services;
-using Ecliptix.Core.Views.Core.Components.TitleBar;
-using Ecliptix.Core.Views.Core.Components.TitleBarUtilities.ViewModels;
-using Ecliptix.Protobuf.Device;
+using Ecliptix.Network.Data.Abstractions;
+using Ecliptix.Network.Network.Abstractions.Transport;
+using Ecliptix.Protobuf.Common;
 using Ecliptix.Utilities;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Serilog;
-using Ecliptix.Core.Features.Suggestions.ViewModels;
 
 namespace Ecliptix.Core.ViewModels.Core;
 
@@ -73,7 +73,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     public LanguageCycleButtonViewModel LanguageSelector { get; }
 
     public TitleBarViewModel TitleBarViewModel { get; }
-    public SuggestionsViewModel SuggestionsViewModel { get; }
+    public ISuggestionsViewModel SuggestionsViewModel { get; }
     public ConnectivityNotificationViewModel ConnectivityNotification { get; }
 
     public Func<Rect>? GetPrimaryScreenWorkingArea { get; set; }
@@ -113,7 +113,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
         TitleBarViewModel = new TitleBarViewModel();
 
-        SuggestionsViewModel = Track(_viewModelFactory.Create<SuggestionsViewModel>());
+        SuggestionsViewModel = Track(_viewModelFactory.Create<ISuggestionsViewModel>());
 
         LanguageSelector = new LanguageCycleButtonViewModel(
             localizationService,
@@ -572,8 +572,8 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         {
             placement.PositionX = position.X;
             placement.PositionY = position.Y;
-            placement.ClientWidth = clientSize.Width;
-            placement.ClientHeight = clientSize.Height;
+            placement.ClientWidth = (int)clientSize.Width;
+            placement.ClientHeight = (int)clientSize.Height;
         }
 
         placement.WindowState = (int)(state == WindowState.Minimized ? WindowState.Normal : state);

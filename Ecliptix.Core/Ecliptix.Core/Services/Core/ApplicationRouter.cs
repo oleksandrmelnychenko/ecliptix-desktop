@@ -5,19 +5,20 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using Ecliptix.Core.Constants;
-using Ecliptix.Core.Core.Abstractions;
-using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
-using Ecliptix.Core.Features.Main.ViewModels;
-using Ecliptix.Core.Infrastructure.Data.Abstractions;
-using Ecliptix.Core.Infrastructure.Network.Core.Providers;
+using Ecliptix.Core.Modularity.Abstractions;
+using Ecliptix.Core.Modularity.Abstractions.Authentication;
+using Ecliptix.Core.Modularity.Abstractions.Main;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Core.ViewModels.Core;
 using Ecliptix.Core.Views.Core;
-using Ecliptix.Protobuf.Device;
+using Ecliptix.Network.Data.Abstractions;
+using Ecliptix.Network.Network.Core.Providers;
+using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.ProtocolState;
+using Ecliptix.Protobuf.Transport.DeviceProvisioning;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
@@ -47,7 +48,7 @@ public sealed class ApplicationRouter(
             ModuleIdentifier.AUTHENTICATION,
             ApplicationErrorMessages.ApplicationRouter.FAILED_TO_LOAD_AUTH_MODULE).ConfigureAwait(false);
 
-        AuthenticationViewModel membershipViewModel = GetRequiredServiceOrThrow<AuthenticationViewModel>(
+        IAuthenticationHost membershipViewModel = GetRequiredServiceOrThrow<IAuthenticationHost>(
             authModule.ServiceScope!.ServiceProvider,
             ApplicationErrorMessages.ApplicationRouter.FAILED_TO_CREATE_MEMBERSHIP_VIEW_MODEL);
 
@@ -62,7 +63,7 @@ public sealed class ApplicationRouter(
             ModuleIdentifier.MAIN,
             ApplicationErrorMessages.ApplicationRouter.FAILED_TO_LOAD_MAIN_MODULE).ConfigureAwait(false);
 
-        MasterViewModel mainViewModel = GetRequiredServiceOrThrow<MasterViewModel>(
+        IMainHost mainViewModel = GetRequiredServiceOrThrow<IMainHost>(
             mainModule.ServiceScope!.ServiceProvider,
             ApplicationErrorMessages.ApplicationRouter.FAILED_TO_CREATE_MAIN_VIEW_MODEL);
 
@@ -83,7 +84,7 @@ public sealed class ApplicationRouter(
                 ModuleIdentifier.MAIN,
                 ApplicationErrorMessages.ApplicationRouter.FAILED_TO_LOAD_MAIN_MODULE_FROM_SPLASH).ConfigureAwait(false);
 
-            MasterViewModel mainViewModel = GetRequiredServiceOrThrow<MasterViewModel>(
+            IMainHost mainViewModel = GetRequiredServiceOrThrow<IMainHost>(
                 mainModule.ServiceScope!.ServiceProvider,
                 ApplicationErrorMessages.ApplicationRouter.FAILED_TO_CREATE_MAIN_VIEW_MODEL);
 
@@ -95,7 +96,7 @@ public sealed class ApplicationRouter(
                 ModuleIdentifier.AUTHENTICATION,
                 ApplicationErrorMessages.ApplicationRouter.FAILED_TO_LOAD_AUTH_MODULE_FROM_SPLASH).ConfigureAwait(false);
 
-            AuthenticationViewModel membershipViewModel = GetRequiredServiceOrThrow<AuthenticationViewModel>(
+            IAuthenticationHost membershipViewModel = GetRequiredServiceOrThrow<IAuthenticationHost>(
                 authModule.ServiceScope!.ServiceProvider,
                 ApplicationErrorMessages.ApplicationRouter.FAILED_TO_CREATE_MEMBERSHIP_VIEW_MODEL);
 
@@ -213,6 +214,8 @@ public sealed class ApplicationRouter(
             DeviceType = AppDevice.Types.DeviceType.Desktop
         };
 
+        ByteString? receivedServerPublicKey = null;
+
         await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
             RpcServiceType.RegisterAppDevice,
@@ -223,11 +226,19 @@ public sealed class ApplicationRouter(
                 DeviceRegistrationResponse reply =
                     Helpers.ParseFromBytes<DeviceRegistrationResponse>(decryptedPayload);
 
-                settings.ServerPublicKey = SecureByteStringInterop.WithByteStringAsSpan(reply.ServerPublicKey,
+                receivedServerPublicKey = SecureByteStringInterop.WithByteStringAsSpan(reply.ServerPublicKey,
                     ByteString.CopyFrom);
+
+                settings.ServerPublicKey = receivedServerPublicKey;
 
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
             }, allowDuplicates: false, token: CancellationToken.None).ConfigureAwait(false);
+
+        if (receivedServerPublicKey != null && !receivedServerPublicKey.IsEmpty)
+        {
+            networkProvider.SetServerPublicKey(receivedServerPublicKey);
+            await applicationSecureStorageProvider.SetServerPublicKeyAsync(receivedServerPublicKey).ConfigureAwait(false);
+        }
     }
 
     private async Task<IModule> LoadModuleOrThrowAsync(ModuleIdentifier id, string failureMessage)

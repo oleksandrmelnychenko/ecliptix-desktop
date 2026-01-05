@@ -44,7 +44,7 @@ public static partial class SecureKeyValidator
         (s => !HasDigitRegex.IsMatch(s), SecureKeyValidatorConstants.LocalizationKeys.NO_DIGIT, null)
     ];
 
-    private static   List<(Func<string, bool> IsWeak, string ErrorMessageKey, object[]? Args)> GetSoftRules() =>
+    private static List<(Func<string, bool> IsWeak, string ErrorMessageKey, object[]? Args)> GetSoftRules() =>
     [
         (s => s.Length > SecureKeyValidatorConstants.ValidationRules.MAX_LENGTH,
             SecureKeyValidatorConstants.LocalizationKeys.MAX_LENGTH,
@@ -147,18 +147,18 @@ public static partial class SecureKeyValidator
             >= 14 => 3,
             >= 12 => 2,
             >= 10 => 1,
-            _     => 0
+            _ => 0
         };
 
         int finalScore = lengthScore - penalties;
 
         return finalScore switch
         {
-            < 0  => SecureKeyStrength.WEAK,
-            0    => SecureKeyStrength.WEAK,
-            1    => SecureKeyStrength.GOOD,
-            2    => SecureKeyStrength.STRONG,
-            _    => SecureKeyStrength.VERY_STRONG
+            < 0 => SecureKeyStrength.WEAK,
+            0 => SecureKeyStrength.WEAK,
+            1 => SecureKeyStrength.GOOD,
+            2 => SecureKeyStrength.STRONG,
+            _ => SecureKeyStrength.VERY_STRONG
         };
     }
 

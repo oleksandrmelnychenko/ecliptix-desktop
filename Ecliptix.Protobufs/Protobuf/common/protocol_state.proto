@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package ecliptix.proto.protocol_state;
+option csharp_namespace = "Ecliptix.Protobuf.ProtocolState";
+
+import "common/pub_key_exchange.proto";
+
+// Client-side session snapshot persisted for reconnects.
+message EcliptixSessionState {
+  uint32 connect_id = 1;
+  ecliptix.proto.protocol.PubKeyExchange peer_handshake_message = 2;
+  bytes native_state = 3;
+  bytes native_peer_bundle = 4;
+  bool native_is_initiator = 5;
+  string membership_id = 6;
+  bytes account_id = 7;
+}

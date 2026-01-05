@@ -1,7 +1,4 @@
-using System;
-using System.Threading.Tasks;
-
-namespace Ecliptix.Core.Core.Abstractions;
+namespace Ecliptix.Core.Modularity.Abstractions;
 
 public interface IModule
 {

@@ -2,16 +2,13 @@ using System;
 using System.Globalization;
 using System.Reactive.Disposables;
 using System.Threading.Tasks;
-
 using Ecliptix.Core.Controls.Core;
-using Ecliptix.Core.Core.Messaging.Services;
-using Ecliptix.Core.Infrastructure.Network.Core.Providers;
+using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Settings;
+using Ecliptix.Network.Network.Core.Providers;
 using Ecliptix.Utilities;
-
 using ReactiveUI;
-
 using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Controls.Modals;

@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecliptix.Core.Infrastructure.Network.Core.Providers;
-using Ecliptix.Protobuf.Membership;
+using Ecliptix.Network.Network.Core.Providers;
+using Ecliptix.Protobuf.Transport.Identity;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 
@@ -39,7 +39,7 @@ internal sealed class VerificationStreamManager(NetworkProvider networkProvider)
     public void ProcessVerificationUpdate(
         Guid verificationIdentifier,
         uint streamConnectId,
-        VerificationCountdownUpdate.Types.CountdownUpdateStatus status,
+        CountdownUpdateStatus status,
         VerificationPurpose purpose)
     {
         bool shouldCleanup = ShouldCleanupStream(status);
@@ -101,13 +101,13 @@ internal sealed class VerificationStreamManager(NetworkProvider networkProvider)
         _activeSessionPurposes.Clear();
     }
 
-    private static bool ShouldCleanupStream(VerificationCountdownUpdate.Types.CountdownUpdateStatus status)
+    private static bool ShouldCleanupStream(CountdownUpdateStatus status)
     {
         return status switch
         {
-            VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed => true,
-            VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached => true,
-            VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound => true,
+            CountdownUpdateStatus.CountdownFailed => true,
+            CountdownUpdateStatus.CountdownMaxAttemptsReached => true,
+            CountdownUpdateStatus.CountdownNotFound => true,
             _ => false
         };
     }

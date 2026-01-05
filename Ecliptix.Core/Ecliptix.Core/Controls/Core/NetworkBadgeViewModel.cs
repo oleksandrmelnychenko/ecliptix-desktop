@@ -1,14 +1,13 @@
-﻿using System;
+using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using Ecliptix.Core.Core.Messaging.Connectivity;
-using Ecliptix.Core.Core.Messaging.Services;
+using Ecliptix.Core.Messaging.Core.Messaging.Connectivity;
+using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Core.Localization;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Serilog;
-using Splat;
 
 namespace Ecliptix.Core.Controls.Core;
 
@@ -17,20 +16,20 @@ public sealed class NetworkBadgeViewModel : ReactiveObject, IDisposable
     private readonly CompositeDisposable _disposables = new();
     private readonly ILocalizationService? _localizationService;
 
-    [ObservableAsProperty] public string Text { get; }
-    [ObservableAsProperty] public string Icon { get; }
+    [ObservableAsProperty] public string Text { get; } = default!;
+    [ObservableAsProperty] public string Icon { get; } = default!;
 
-    [ObservableAsProperty] public string HoverText { get; }
+    [ObservableAsProperty] public string HoverText { get; } = default!;
 
     [ObservableAsProperty] public bool IsConnected { get; }
     [ObservableAsProperty] public bool IsDisconnected { get; }
     [ObservableAsProperty] public bool IsServerError { get; }
 
-   public NetworkBadgeViewModel(ILocalizationService localizationService, IConnectivityService connectivityService)
-   {
-       _localizationService = localizationService;
+    public NetworkBadgeViewModel(ILocalizationService localizationService, IConnectivityService connectivityService)
+    {
+        _localizationService = localizationService;
 
-       ConnectivityStatus initialInternetState = connectivityService.LastKnownInternetStatus;
+        ConnectivityStatus initialInternetState = connectivityService.LastKnownInternetStatus;
         ConnectivityStatus initialServerState = connectivityService.LastKnownServerStatus;
 
         Log.Information("[BadgeVM] Init State: Internet={Internet}, Server={Server}", initialInternetState, initialServerState);

@@ -12,7 +12,7 @@ using Avalonia.Threading;
 using Ecliptix.Core.Services.Core;
 using Ecliptix.Core.ViewModels.Core;
 using Ecliptix.Core.Views.Core.Constants;
-using Ecliptix.Protobuf.Device;
+using Ecliptix.Protobuf.Common;
 using ReactiveUI;
 using Serilog;
 using Unit = System.Reactive.Unit;
@@ -44,6 +44,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>, IDisposab
         this.WhenActivated(disposables =>
         {
             this.WhenAnyValue(x => x.DataContext)
+                .WhereNotNull()
                 .OfType<MainWindowViewModel>()
                 .Take(1)
                 .ObserveOn(RxApp.MainThreadScheduler)

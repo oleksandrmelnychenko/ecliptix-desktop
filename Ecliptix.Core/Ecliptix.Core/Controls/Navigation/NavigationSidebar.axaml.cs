@@ -23,11 +23,6 @@ public partial class NavigationSidebar : ReactiveUserControl<NavigationSidebarVi
         AvaloniaXamlLoader.Load(this);
     }
 
-    private void HideFlyout()
-    {
-        _createFlyoutButton?.Flyout?.Hide();
-    }
-
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);

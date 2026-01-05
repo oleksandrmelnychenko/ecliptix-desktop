@@ -1,6 +1,4 @@
-using System.Collections.Generic;
-
-namespace Ecliptix.Core.Core.Abstractions;
+namespace Ecliptix.Core.Modularity.Abstractions;
 
 public interface IModuleManifest
 {

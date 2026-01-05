@@ -1,11 +1,9 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using Ecliptix.Protocol.System.Native;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 
-namespace Ecliptix.Core.Infrastructure.Network.Core.Providers;
+namespace Ecliptix.Network.Network.Core.Providers;
 
 /// <summary>
 /// Manages native protocol sessions keyed by connectId. Keeps creation, lookup, and disposal in one place

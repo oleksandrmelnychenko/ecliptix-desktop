@@ -1,14 +1,12 @@
-using System;
-using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
-using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
+using Ecliptix.Network.Network.Abstractions.Transport;
 
-namespace Ecliptix.Core.Infrastructure.Network.Transport;
+namespace Ecliptix.Network.Network.Transport;
 
-internal sealed class RpcMetaDataProvider : IRpcMetaDataProvider
+public sealed class RpcMetaDataProvider : IRpcMetaDataProvider
 {
     public Guid AppInstanceId { get; private set; }
     public Guid DeviceId { get; private set; }

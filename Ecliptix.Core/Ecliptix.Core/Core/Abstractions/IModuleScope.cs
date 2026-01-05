@@ -1,6 +1,5 @@
-using System;
+namespace Ecliptix.Core.Modularity.Abstractions;
 
-namespace Ecliptix.Core.Core.Abstractions;
 public interface IModuleScope : IDisposable
 {
     IServiceProvider ServiceProvider { get; }

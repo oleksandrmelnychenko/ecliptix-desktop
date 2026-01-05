@@ -1,0 +1,222 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:viewModels="clr-namespace:Ecliptix.Feature.NewContent.NewContent.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:DataType="viewModels:NewGroupChatViewModel"
+             Width="510"
+             Height="600"
+             x:Class="Ecliptix.Feature.NewContent.NewContent.Views.NewGroupChatView">
+   <UserControl.Styles>
+        <Style Selector="TextBox.input-box">
+            <Setter Property="Background" Value="#F9FAFB"/>
+            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+        <Style Selector="TextBox.input-box:focus /template/ Border#PART_BorderElement">
+            <Setter Property="BorderBrush" Value="#7B61FF"/>
+            <Setter Property="Background" Value="#FFFFFF"/>
+        </Style>
+
+        <Style Selector="CheckBox">
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+
+        <Style Selector="CheckBox:checked /template/ Border#NormalRectangle">
+            <Setter Property="Background" Value="#7B61FF"/>
+            <Setter Property="BorderBrush" Value="#7B61FF"/>
+        </Style>
+
+
+        <Style Selector="ListBoxItem">
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <ContentPresenter Name="PART_ContentPresenter"
+                                      Background="{TemplateBinding Background}"
+                                      BorderBrush="{TemplateBinding BorderBrush}"
+                                      BorderThickness="{TemplateBinding BorderThickness}"
+                                      CornerRadius="8"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      Content="{TemplateBinding Content}"
+                                      Padding="{TemplateBinding Padding}"
+                                      HorizontalContentAlignment="Stretch"
+                                      VerticalContentAlignment="Stretch"/>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#F3F4F6"/>
+        </Style>
+
+        <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto, *, Auto" Margin="32">
+
+        <Grid Grid.Row="0" ColumnDefinitions="*, Auto" Margin="0,0,0,24">
+            <StackPanel Grid.Column="0" Spacing="4">
+                <TextBlock Text="New Group"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           Foreground="#111827"/>
+                <TextBlock Text="Create a group chat to message multiple people"
+                           FontSize="14"
+                           Foreground="#6B7280"
+                           TextWrapping="Wrap"/>
+            </StackPanel>
+
+            <Button Grid.Column="1"
+                    Command="{Binding CloseCommand}"
+                    Background="Transparent"
+                    Padding="5"
+                    Cursor="Hand"
+                    VerticalAlignment="Top"
+                    Margin="0,-5,-5,0">
+                <PathIcon Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                          Width="12" Height="12" Foreground="#6B7280"/>
+            </Button>
+        </Grid>
+
+        <ScrollViewer Grid.Row="1" Margin="-10,0,-10,0" Padding="10,0,10,0">
+            <StackPanel Spacing="24">
+
+                <StackPanel HorizontalAlignment="Center" Spacing="12">
+                    <Button Command="{Binding UploadPhotoCommand}"
+                            Width="80" Height="80"
+                            CornerRadius="40"
+                            Background="#F3F0FF"
+                            Cursor="Hand">
+                        <Button.Styles>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                <Setter Property="Background" Value="#EBE5FF"/>
+                            </Style>
+                        </Button.Styles>
+                        <PathIcon Data="M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M5,19V5H19V19H5M6,17L18,17L14.25,12L11.25,16L9,13L6,17Z"
+                                  Width="28" Height="28"
+                                  Foreground="#7B61FF"/>
+                    </Button>
+                    <TextBlock Text="Add group photo"
+                               FontSize="13"
+                               Foreground="#7B61FF"
+                               HorizontalAlignment="Center"
+                               FontWeight="Medium"/>
+                </StackPanel>
+
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Group Name"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="#374151"/>
+                    <TextBox Classes="input-box"
+                             Watermark="Enter group name"
+                             Text="{Binding GroupName}"/>
+                </StackPanel>
+
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Add Members"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="#374151"/>
+
+                    <TextBox Classes="input-box"
+                             Watermark="Search contacts..."
+                             Text="{Binding SearchQuery}">
+                        <TextBox.InnerLeftContent>
+                            <PathIcon Data="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"
+                                      Width="16" Height="16"
+                                      Foreground="#9CA3AF"
+                                      Margin="12,0,4,0"/>
+                        </TextBox.InnerLeftContent>
+                    </TextBox>
+
+
+                    <ListBox ItemsSource="{Binding Contacts}"
+                             Background="Transparent"
+                             SelectionMode="Multiple,Toggle">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type viewModels:ContactItemViewModel}">
+                                <Grid ColumnDefinitions="Auto, Auto, *" Margin="0,4">
+
+                                    <CheckBox Grid.Column="0"
+                                              IsChecked="{Binding IsSelected}"
+                                              VerticalAlignment="Center"
+                                              Margin="0,0,16,0"/>
+
+
+                                    <Panel Grid.Column="1" Width="40" Height="40" Margin="0,0,12,0">
+                                        <Ellipse Width="40" Height="40" Fill="#F3F4F6"/>
+
+                                        <PathIcon Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"
+                                                  Width="20" Height="20" Foreground="#9CA3AF" />
+
+                                        <Border Width="12" Height="12"
+                                                CornerRadius="6"
+                                                Background="#10B981"
+                                                BorderBrush="White"
+                                                BorderThickness="2"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Bottom"
+                                                IsVisible="{Binding IsOnline}"/>
+                                    </Panel>
+
+                                    <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="2">
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   FontWeight="Medium"
+                                                   Foreground="#111827"
+                                                   FontSize="14"/>
+                                        <TextBlock Text="{Binding Handle}"
+                                                   Foreground="#6B7280"
+                                                   FontSize="13"/>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                </StackPanel>
+
+                <Panel Height="20"/>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="2"
+                Margin="0,16,0,0"
+                Padding="0,16,0,0"
+                BorderBrush="#F3F4F6"
+                BorderThickness="0,1,0,0">
+
+            <Button Command="{Binding CreateCommand}"
+                    HorizontalAlignment="Right"
+                    Background="#7B61FF"
+                    CornerRadius="24"
+                    Padding="32,12"
+                    Cursor="Hand"
+                    IsEnabled="{Binding GroupName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+
+                <Button.Styles>
+                    <Style Selector="Button:pointerover /template/ ContentPresenter">
+                        <Setter Property="Background" Value="#6A5ACD"/>
+                    </Style>
+                    <Style Selector="Button:disabled /template/ ContentPresenter">
+                        <Setter Property="Background" Value="#C4B5FD"/>
+                    </Style>
+                </Button.Styles>
+
+                <TextBlock Text="Create Group" Foreground="White" FontWeight="SemiBold" FontSize="14"/>
+            </Button>
+        </Border>
+
+    </Grid>
+</UserControl>
+

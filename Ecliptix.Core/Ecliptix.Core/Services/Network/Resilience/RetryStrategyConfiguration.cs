@@ -1,5 +1,3 @@
-using System;
-
 namespace Ecliptix.Core.Services.Network.Resilience;
 
 public class RetryStrategyConfiguration

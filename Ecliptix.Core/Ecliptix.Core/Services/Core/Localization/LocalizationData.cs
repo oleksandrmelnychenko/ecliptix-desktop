@@ -534,6 +534,7 @@ public static class LocalizationData
     public static readonly FrozenDictionary<string, FrozenDictionary<string, string>> AllLanguages =
         new Dictionary<string, FrozenDictionary<string, string>>
         {
-            ["en-US"] = EnglishStrings, ["uk-UA"] = UkrainianStrings
+            ["en-US"] = EnglishStrings,
+            ["uk-UA"] = UkrainianStrings
         }.ToFrozenDictionary();
 }

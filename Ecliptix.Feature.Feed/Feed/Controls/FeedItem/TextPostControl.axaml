@@ -1,0 +1,32 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ecliptix.Feature.Feed.Feed.ViewModels"
+             xmlns:postHeader="clr-namespace:Ecliptix.Feature.Feed.Feed.Controls.PostHeader"
+             xmlns:postInteractions="clr-namespace:Ecliptix.Feature.Feed.Feed.Controls.PostInteractions"
+             mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="400"
+             x:Class="Ecliptix.Feature.Feed.Feed.Controls.FeedItem.TextPostControl"
+             x:DataType="vm:TextPostViewModel">
+   
+        <StackPanel Background="#FFFFFF"
+                    Spacing="0"
+                    Margin="0,0,0,20"
+                    ClipToBounds="True">
+
+            <!-- Post Header -->
+            <postHeader:PostHeaderControl DataContext="{Binding}" />
+
+            <!-- Text Content -->
+            <Border Padding="16,0">
+                <TextBlock Text="{Binding TextContent.Text}"
+                           TextWrapping="Wrap"
+                           FontSize="16"
+                           LineHeight="24"
+                           Foreground="#1A1A1A" />
+            </Border>
+
+            <!-- Post Actions -->
+            <postInteractions:PostActionsControl DataContext="{Binding Interactions}" />
+        </StackPanel>
+</UserControl>

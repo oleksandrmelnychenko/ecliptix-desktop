@@ -1,12 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reactive.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
 using Ecliptix.Core.Services.Abstractions.Network;
+using Ecliptix.Network.Network.Abstractions.Transport;
 using Ecliptix.Protobuf.Common;
-using Ecliptix.Protobuf.Membership;
+using Ecliptix.Protobuf.Transport.Common;
+using Ecliptix.Protobuf.Transport.Gateway;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Grpc.Core;
@@ -19,18 +16,21 @@ public sealed class ReceiveStreamRpcServices : IReceiveStreamRpcServices
         Dictionary<RpcServiceType, Func<ServiceRequest, CancellationToken, Result<RpcFlow, NetworkFailure>>>
         _serviceHandlers;
 
-    private readonly AuthVerificationServices.AuthVerificationServicesClient _authenticationServicesClient;
+    private readonly EventGateway.EventGatewayClient _gatewayClient;
     private readonly IGrpcErrorProcessor _errorProcessor;
     private readonly IGrpcCallOptionsFactory _callOptionsFactory;
+    private readonly IRpcMetaDataProvider _metaDataProvider;
 
     public ReceiveStreamRpcServices(
-        AuthVerificationServices.AuthVerificationServicesClient authenticationServicesClient,
+        EventGateway.EventGatewayClient gatewayClient,
         IGrpcErrorProcessor errorProcessor,
-        IGrpcCallOptionsFactory callOptionsFactory)
+        IGrpcCallOptionsFactory callOptionsFactory,
+        IRpcMetaDataProvider metaDataProvider)
     {
-        _authenticationServicesClient = authenticationServicesClient;
+        _gatewayClient = gatewayClient;
         _errorProcessor = errorProcessor;
         _callOptionsFactory = callOptionsFactory;
+        _metaDataProvider = metaDataProvider;
         _serviceHandlers =
             new Dictionary<RpcServiceType, Func<ServiceRequest, CancellationToken, Result<RpcFlow, NetworkFailure>>>
             {
@@ -72,25 +72,29 @@ public sealed class ReceiveStreamRpcServices : IReceiveStreamRpcServices
     {
         try
         {
+            if (!GatewayRouteCatalog.TryGetRoute(request.RpcServiceMethod, out GatewayRoute? route))
+            {
+                return Result<RpcFlow, NetworkFailure>.Err(
+                    NetworkFailure.InvalidRequestType(
+                        $"Unsupported RPC service type: {request.RpcServiceMethod}"));
+            }
+
             CallOptions callOptions = _callOptionsFactory.Create(
                 RpcServiceType.InitiateVerification,
                 request.RequestContext,
                 token);
 
-            AsyncServerStreamingCall<SecureEnvelope> streamingCall =
-                _authenticationServicesClient.InitiateVerification(request.Payload, callOptions);
+            EventEnvelope envelope = GatewayTransportFactory.BuildEnvelope(
+                route!,
+                request.Payload,
+                _metaDataProvider,
+                request.RequestContext);
+
+            AsyncUnaryCall<EventEnvelope> unaryCall =
+                _gatewayClient.UnaryAsync(envelope, callOptions);
 
             IAsyncEnumerable<Result<SecureEnvelope, NetworkFailure>> stream =
-                streamingCall.ResponseStream.ReadAllAsync(token)
-                    .ToObservable()
-                    .Select(Result<SecureEnvelope, NetworkFailure>.Ok)
-                    .Catch<Result<SecureEnvelope, NetworkFailure>, RpcException>(rpcEx =>
-                        Observable.Return(Result<SecureEnvelope, NetworkFailure>.Err(
-                            _errorProcessor.Process(rpcEx))))
-                    .Catch<Result<SecureEnvelope, NetworkFailure>, Exception>(ex =>
-                        Observable.Return(Result<SecureEnvelope, NetworkFailure>.Err(
-                            NetworkFailure.DataCenterNotResponding(ex.Message, ex))))
-                    .ToAsyncEnumerable();
+                CreateUnaryStream(unaryCall, token);
 
             return Result<RpcFlow, NetworkFailure>.Ok(new RpcFlow.InboundStream(stream));
         }
@@ -102,6 +106,52 @@ public sealed class ReceiveStreamRpcServices : IReceiveStreamRpcServices
         {
             return Result<RpcFlow, NetworkFailure>.Err(
                 NetworkFailure.DataCenterNotResponding(ex.Message, ex));
+        }
+    }
+
+    private async IAsyncEnumerable<Result<SecureEnvelope, NetworkFailure>> CreateUnaryStream(
+        AsyncUnaryCall<EventEnvelope> unaryCall,
+        [EnumeratorCancellation] CancellationToken token)
+    {
+        Result<SecureEnvelope, NetworkFailure> result;
+        try
+        {
+            EventEnvelope response = await unaryCall.ResponseAsync.WaitAsync(token).ConfigureAwait(false);
+            result = ToSecureEnvelopeResult(response);
+        }
+        catch (RpcException rpcEx) when (!token.IsCancellationRequested)
+        {
+            result = Result<SecureEnvelope, NetworkFailure>.Err(_errorProcessor.Process(rpcEx));
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            yield break;
+        }
+        catch (Exception ex)
+        {
+            result = Result<SecureEnvelope, NetworkFailure>.Err(
+                NetworkFailure.DataCenterNotResponding(ex.Message, ex));
+        }
+
+        yield return result;
+    }
+
+    private static Result<SecureEnvelope, NetworkFailure> ToSecureEnvelopeResult(EventEnvelope envelope)
+    {
+        NetworkFailure? failure = GatewayTransportFactory.MapOutcome(envelope.Metadata);
+        if (failure != null)
+        {
+            return Result<SecureEnvelope, NetworkFailure>.Err(failure);
+        }
+
+        try
+        {
+            return Result<SecureEnvelope, NetworkFailure>.Ok(SecureEnvelope.Parser.ParseFrom(envelope.Payload));
+        }
+        catch (Exception ex)
+        {
+            return Result<SecureEnvelope, NetworkFailure>.Err(
+                NetworkFailure.InvalidRequestType($"Failed to parse secure envelope: {ex.Message}", ex));
         }
     }
 }

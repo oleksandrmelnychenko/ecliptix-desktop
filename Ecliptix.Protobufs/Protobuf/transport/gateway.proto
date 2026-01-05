@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package ecliptix.transport.gateway;
+option csharp_namespace = "Ecliptix.Protobuf.Transport.Gateway";
+
+import "transport/common/event_envelope.proto";
+
+service EventGateway {
+  rpc Unary(ecliptix.transport.common.EventEnvelope) returns (ecliptix.transport.common.EventEnvelope);
+  rpc ServerStream(ecliptix.transport.common.EventEnvelope) returns (stream ecliptix.transport.common.EventEnvelope);
+  rpc ClientStream(stream ecliptix.transport.common.EventEnvelope) returns (ecliptix.transport.common.EventEnvelope);
+  rpc BidiStream(stream ecliptix.transport.common.EventEnvelope) returns (stream ecliptix.transport.common.EventEnvelope);
+}

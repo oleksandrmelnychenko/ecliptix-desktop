@@ -2,7 +2,7 @@ using Ecliptix.Security.Certificate.Pinning.Services;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 
-namespace Ecliptix.Core.Infrastructure.Security.Crypto;
+namespace Ecliptix.Network.Security.Crypto;
 
 public interface IRsaChunkEncryptor
 {

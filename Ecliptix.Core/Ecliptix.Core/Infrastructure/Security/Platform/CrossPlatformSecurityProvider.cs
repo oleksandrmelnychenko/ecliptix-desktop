@@ -1,21 +1,17 @@
-using System;
-using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
-using Ecliptix.Core.Infrastructure.Security.Abstractions;
-using Ecliptix.Core.Infrastructure.Security.Storage;
+using Ecliptix.Network.Security.Abstractions;
+using Ecliptix.Network.Security.Storage;
 using Ecliptix.Utilities;
 using Serilog;
 
-namespace Ecliptix.Core.Infrastructure.Security.Platform;
+namespace Ecliptix.Network.Security.Platform;
 
-internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
+public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 {
     private const int AES_KEY_SIZE = 32;
     private const int AES_IV_SIZE = 16;
@@ -315,7 +311,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             tag = new byte[GCM_TAG_SIZE];
             ciphertext = new byte[data.Length];
 
-            using AesGcm aes = new(aesKey);
+            using AesGcm aes = new(aesKey, GCM_TAG_SIZE);
             aes.Encrypt(nonce, data, ciphertext, tag);
 
             byte[] result = new byte[nonce.Length + tag.Length + ciphertext.Length];
@@ -377,7 +373,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             ReadOnlySpan<byte> ciphertext = data.AsSpan(GCM_NONCE_SIZE + GCM_TAG_SIZE);
 
             byte[] plaintext = new byte[ciphertext.Length];
-            using AesGcm aes = new(aesKey);
+            using AesGcm aes = new(aesKey, GCM_TAG_SIZE);
             aes.Decrypt(nonce, ciphertext, tag, plaintext);
 
             return Option<byte[]>.Some(plaintext);
@@ -416,7 +412,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         try
         {
             Marshal.Copy(key, 0, credentialBlob, key.Length);
-            CREDENTIAL credential = new()
+            Credential credential = new()
             {
                 Type = CRED_TYPE_GENERIC,
                 TargetName = target,
@@ -453,7 +449,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 
         try
         {
-            CREDENTIAL credential = Marshal.PtrToStructure<CREDENTIAL>(credentialPtr);
+            Credential credential = Marshal.PtrToStructure<Credential>(credentialPtr);
             if (credential.CredentialBlobSize == 0 || credential.CredentialBlob == IntPtr.Zero)
             {
                 return Result<byte[], SecureStorageFailure>.Err(
@@ -506,7 +502,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             CFRelease(itemRef);
         }
 
-        if (status == MacOsKeychainErrors.DuplicateItem)
+        if (status == MacOsKeychainErrors.DUPLICATE_ITEM)
         {
             Result<Unit, SecureStorageFailure> deleteResult = DeleteFromMacOsKeychain(identifier);
             if (deleteResult.IsErr)
@@ -584,7 +580,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             out IntPtr passwordData,
             out IntPtr itemRef);
 
-        if (status == MacOsKeychainErrors.ItemNotFound)
+        if (status == MacOsKeychainErrors.ITEM_NOT_FOUND)
         {
             return Result<Unit, SecureStorageFailure>.Ok(Unit.Value);
         }
@@ -764,7 +760,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             ReadOnlySpan<byte> ciphertext = encrypted.Slice(headerSize + GCM_NONCE_SIZE + GCM_TAG_SIZE);
 
             byte[] plaintext = new byte[ciphertext.Length];
-            using AesGcm aes = new(machineKey);
+            using AesGcm aes = new(machineKey, GCM_TAG_SIZE);
             aes.Decrypt(nonce, ciphertext, tag, plaintext, associatedData);
 
             return plaintext;
@@ -801,7 +797,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             tag = new byte[GCM_TAG_SIZE];
             ciphertext = new byte[keyMaterial.Length];
 
-            using AesGcm aes = new(machineKey);
+            using AesGcm aes = new(machineKey, GCM_TAG_SIZE);
             aes.Encrypt(nonce, keyMaterial, ciphertext, tag, associatedData);
 
             payload = new byte[KeyFileMagic.Length + nonce.Length + tag.Length + ciphertext.Length];
@@ -1100,10 +1096,8 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
                 CryptographicOperations.ZeroMemory(newKey);
                 return;
             }
-            else
-            {
-                TrySecureDeleteFile(machineKeyFile);
-            }
+
+            TrySecureDeleteFile(machineKeyFile);
 
             _cachedMachineKey = newKey;
             CryptographicOperations.ZeroMemory(legacyKey);
@@ -1205,7 +1199,6 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             WriteMachineKeyFile(machineKeyFile, _cachedMachineKey);
         }
 
-        // Return a clone to prevent callers from modifying the cached key
         return Option<byte[]>.Some((byte[])_cachedMachineKey.Clone());
     }
 
@@ -1298,11 +1291,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 
     private byte[] DeriveKeyFromMachineId(string machineId)
     {
-        // SECURITY FIX C5: Use random per-machine salt instead of hardcoded salt
-        // This prevents rainbow table attacks and cross-machine key prediction
         byte[] randomSalt = GetOrCreateRandomMachineSalt();
-
-        // Combine random salt with static context for domain separation
         byte[] combinedSalt = new byte[randomSalt.Length + 32];
         try
         {
@@ -1325,7 +1314,6 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 
     private byte[] GetOrCreateRandomMachineSalt()
     {
-        // Try to retrieve existing random salt from platform keychain
         Result<byte[], SecureStorageFailure> retrieveResult = GetPlatformRetrieve(MACHINE_SALT_IDENTIFIER);
         if (retrieveResult.IsOk)
         {
@@ -1334,21 +1322,16 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             {
                 return existingSalt;
             }
-            // Invalid size - regenerate
             CryptographicOperations.ZeroMemory(existingSalt);
         }
 
-        // Generate new random salt
         byte[] newSalt = RandomNumberGenerator.GetBytes(RANDOM_SALT_SIZE);
 
-        // Store in platform keychain
         Result<Unit, SecureStorageFailure> storeResult = GetPlatformStore(MACHINE_SALT_IDENTIFIER, newSalt);
         if (storeResult.IsErr)
         {
             Log.Warning("[MACHINE-SALT] Failed to store random machine salt in keychain: {Error}",
                 storeResult.UnwrapErr().Message);
-            // Continue with the generated salt anyway - it will be regenerated on next app start
-            // but this is still more secure than hardcoded salt
         }
         else
         {
@@ -1359,7 +1342,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    private struct CREDENTIAL
+    private struct Credential
     {
         public uint Flags;
         public uint Type;
@@ -1377,15 +1360,15 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 
     private static class MacOsKeychainErrors
     {
-        public const int DuplicateItem = -25299;
-        public const int ItemNotFound = -25300;
+        public const int DUPLICATE_ITEM = -25299;
+        public const int ITEM_NOT_FOUND = -25300;
     }
 
-    private const string SecurityFramework = "/System/Library/Frameworks/Security.framework/Security";
-    private const string CoreFoundationFramework = "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation";
+    private const string SECURITY_FRAMEWORK = "/System/Library/Frameworks/Security.framework/Security";
+    private const string CORE_FOUNDATION_FRAMEWORK = "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation";
 
     [DllImport("advapi32.dll", EntryPoint = "CredWriteW", SetLastError = true, CharSet = CharSet.Unicode)]
-    private static extern bool CredWrite(ref CREDENTIAL credential, uint flags);
+    private static extern bool CredWrite(ref Credential credential, uint flags);
 
     [DllImport("advapi32.dll", EntryPoint = "CredReadW", SetLastError = true, CharSet = CharSet.Unicode)]
     private static extern bool CredRead(string target, uint type, uint flags, out IntPtr credential);
@@ -1396,7 +1379,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
     [DllImport("advapi32.dll", EntryPoint = "CredFree", SetLastError = true)]
     private static extern void CredFree(IntPtr buffer);
 
-    [DllImport(SecurityFramework)]
+    [DllImport(SECURITY_FRAMEWORK)]
     private static extern int SecKeychainAddGenericPassword(
         IntPtr keychain,
         uint serviceNameLength,
@@ -1407,7 +1390,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         byte[] passwordData,
         out IntPtr itemRef);
 
-    [DllImport(SecurityFramework)]
+    [DllImport(SECURITY_FRAMEWORK)]
     private static extern int SecKeychainFindGenericPassword(
         IntPtr keychain,
         uint serviceNameLength,
@@ -1418,23 +1401,23 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         out IntPtr passwordData,
         out IntPtr itemRef);
 
-    [DllImport(SecurityFramework)]
+    [DllImport(SECURITY_FRAMEWORK)]
     private static extern int SecKeychainItemDelete(IntPtr itemRef);
 
-    [DllImport(SecurityFramework)]
+    [DllImport(SECURITY_FRAMEWORK)]
     private static extern int SecKeychainItemFreeContent(IntPtr attrList, IntPtr data);
 
-    [DllImport(CoreFoundationFramework)]
+    [DllImport(CORE_FOUNDATION_FRAMEWORK)]
     private static extern void CFRelease(IntPtr cf);
 
     private static class LinuxSecretService
     {
-        private const string LibSecretLibrary = "libsecret-1.so.0";
-        private const string LibGlibLibrary = "libglib-2.0.so.0";
-        private const int SecretSchemaAttributeMax = 32;
-        private const string SchemaName = "com.ecliptix.desktop";
-        private const string AttributeName = "identifier";
-        private const string SecretLabel = "Ecliptix Key Material";
+        private const string LIB_SECRET_LIBRARY = "libsecret-1.so.0";
+        private const string LIB_GLIB_LIBRARY = "libglib-2.0.so.0";
+        private const int SECRET_SCHEMA_ATTRIBUTE_MAX = 32;
+        private const string SCHEMA_NAME = "com.ecliptix.desktop";
+        private const string ATTRIBUTE_NAME = "identifier";
+        private const string SECRET_LABEL = "Ecliptix Key Material";
         private static readonly Lazy<bool> Availability = new(Initialize);
         private static SecretSchema _schema;
         private static IntPtr _glibHandle;
@@ -1464,7 +1447,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             try
             {
                 string encoded = Convert.ToBase64String(key);
-                bool ok = secret_password_storev_sync(ref _schema, null, SecretLabel, encoded,
+                bool ok = secret_password_storev_sync(ref _schema, null, SECRET_LABEL, encoded,
                     attributes, IntPtr.Zero, out IntPtr error);
 
                 if (!ok)
@@ -1596,13 +1579,13 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
                 return false;
             }
 
-            _secretHandle = TryLoadLibrary(new[] { LibSecretLibrary, "libsecret-1.so", "libsecret.so.1" });
+            _secretHandle = TryLoadLibrary(new[] { LIB_SECRET_LIBRARY, "libsecret-1.so", "libsecret.so.1" });
             if (_secretHandle == IntPtr.Zero)
             {
                 return false;
             }
 
-            _glibHandle = TryLoadLibrary(new[] { LibGlibLibrary, "libglib-2.0.so", "libglib.so.0" });
+            _glibHandle = TryLoadLibrary(new[] { LIB_GLIB_LIBRARY, "libglib-2.0.so", "libglib.so.0" });
             if (_glibHandle == IntPtr.Zero)
             {
                 return false;
@@ -1655,12 +1638,12 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 
         private static IntPtr ResolveImport(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
         {
-            if (libraryName == LibSecretLibrary && _secretHandle != IntPtr.Zero)
+            if (libraryName == LIB_SECRET_LIBRARY && _secretHandle != IntPtr.Zero)
             {
                 return _secretHandle;
             }
 
-            if (libraryName == LibGlibLibrary && _glibHandle != IntPtr.Zero)
+            if (libraryName == LIB_GLIB_LIBRARY && _glibHandle != IntPtr.Zero)
             {
                 return _glibHandle;
             }
@@ -1672,14 +1655,14 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         {
             SecretSchema schema = new()
             {
-                Name = Marshal.StringToHGlobalAnsi(SchemaName),
+                Name = Marshal.StringToHGlobalAnsi(SCHEMA_NAME),
                 Flags = SecretSchemaFlags.None,
-                Attributes = new SecretSchemaAttribute[SecretSchemaAttributeMax]
+                Attributes = new SecretSchemaAttribute[SECRET_SCHEMA_ATTRIBUTE_MAX]
             };
 
             schema.Attributes[0] = new SecretSchemaAttribute
             {
-                Name = Marshal.StringToHGlobalAnsi(AttributeName),
+                Name = Marshal.StringToHGlobalAnsi(ATTRIBUTE_NAME),
                 Type = SecretSchemaAttributeType.String
             };
 
@@ -1695,7 +1678,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
                 return IntPtr.Zero;
             }
 
-            IntPtr key = g_strdup(AttributeName);
+            IntPtr key = g_strdup(ATTRIBUTE_NAME);
             IntPtr value = g_strdup(identifier);
             g_hash_table_insert(table, key, value);
             return table;
@@ -1732,7 +1715,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             public IntPtr Name;
             public SecretSchemaFlags Flags;
 
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = SecretSchemaAttributeMax)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = SECRET_SCHEMA_ATTRIBUTE_MAX)]
             public SecretSchemaAttribute[] Attributes;
         }
 
@@ -1755,7 +1738,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             None = 0
         }
 
-        [DllImport(LibSecretLibrary, EntryPoint = "secret_password_storev_sync")]
+        [DllImport(LIB_SECRET_LIBRARY, EntryPoint = "secret_password_storev_sync")]
         [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool secret_password_storev_sync(
             ref SecretSchema schema,
@@ -1766,14 +1749,14 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             IntPtr cancellable,
             out IntPtr error);
 
-        [DllImport(LibSecretLibrary, EntryPoint = "secret_password_lookupv_sync")]
+        [DllImport(LIB_SECRET_LIBRARY, EntryPoint = "secret_password_lookupv_sync")]
         private static extern IntPtr secret_password_lookupv_sync(
             ref SecretSchema schema,
             IntPtr attributes,
             IntPtr cancellable,
             out IntPtr error);
 
-        [DllImport(LibSecretLibrary, EntryPoint = "secret_password_clearv_sync")]
+        [DllImport(LIB_SECRET_LIBRARY, EntryPoint = "secret_password_clearv_sync")]
         [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool secret_password_clearv_sync(
             ref SecretSchema schema,
@@ -1781,26 +1764,26 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             IntPtr cancellable,
             out IntPtr error);
 
-        [DllImport(LibSecretLibrary, EntryPoint = "secret_password_free")]
+        [DllImport(LIB_SECRET_LIBRARY, EntryPoint = "secret_password_free")]
         private static extern void secret_password_free(IntPtr password);
 
-        [DllImport(LibGlibLibrary)]
+        [DllImport(LIB_GLIB_LIBRARY)]
         private static extern IntPtr g_hash_table_new_full(
             IntPtr hashFunc,
             IntPtr keyEqualFunc,
             IntPtr keyDestroyFunc,
             IntPtr valueDestroyFunc);
 
-        [DllImport(LibGlibLibrary)]
+        [DllImport(LIB_GLIB_LIBRARY)]
         private static extern void g_hash_table_insert(IntPtr hashTable, IntPtr key, IntPtr value);
 
-        [DllImport(LibGlibLibrary)]
+        [DllImport(LIB_GLIB_LIBRARY)]
         private static extern void g_hash_table_destroy(IntPtr hashTable);
 
-        [DllImport(LibGlibLibrary)]
+        [DllImport(LIB_GLIB_LIBRARY)]
         private static extern IntPtr g_strdup(string str);
 
-        [DllImport(LibGlibLibrary)]
+        [DllImport(LIB_GLIB_LIBRARY)]
         private static extern void g_error_free(IntPtr error);
     }
 
@@ -1860,11 +1843,11 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
     // SECURITY FIX C6: Implement IDisposable with proper key zeroing
     public void Dispose()
     {
-        Dispose(disposing: true);
+        Dispose(true);
         GC.SuppressFinalize(this);
     }
 
-    private void Dispose(bool disposing)
+    private void Dispose(bool _)
     {
         if (_disposed)
         {
@@ -1895,6 +1878,6 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 
     ~CrossPlatformSecurityProvider()
     {
-        Dispose(disposing: false);
+        Dispose(false);
     }
 }

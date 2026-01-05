@@ -49,7 +49,7 @@
         <PackageReference Include="Avalonia.Desktop" Version="11.3.9" />
         <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
         <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.9" />
-        <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.8" />
+        <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.9" />
         <PackageReference Include="DotNetEnv" Version="3.1.1" />
         <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.0" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0" GeneratePathProperty="true" />
@@ -93,9 +93,19 @@
         <!-- <TrimmerRootDescriptor Include="../../ILLink.Descriptors.xml" /> -->
     </ItemGroup>
 
-    <ItemGroup>
-        <ProjectReference Include="..\.\Ecliptix.Core\Ecliptix.Core.csproj" />
-    </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\.\Ecliptix.Core\Ecliptix.Core.csproj" />
+    <ProjectReference Include="..\..\Ecliptix.Network\Ecliptix.Network.csproj" />
+    <ProjectReference Include="..\..\Ecliptix.Feature.Authentication\Ecliptix.Feature.Authentication.csproj" />
+    <ProjectReference Include="..\..\Ecliptix.Feature.Chats\Ecliptix.Feature.Chats.csproj" />
+    <ProjectReference Include="..\..\Ecliptix.Feature.Feed\Ecliptix.Feature.Feed.csproj" />
+    <ProjectReference Include="..\..\Ecliptix.Feature.Main\Ecliptix.Feature.Main.csproj" />
+    <ProjectReference Include="..\..\Ecliptix.Feature.Profile\Ecliptix.Feature.Profile.csproj" />
+    <ProjectReference Include="..\..\Ecliptix.Feature.Settings\Ecliptix.Feature.Settings.csproj" />
+    <ProjectReference Include="..\..\Ecliptix.Feature.Splash\Ecliptix.Feature.Splash.csproj" />
+    <ProjectReference Include="..\..\Ecliptix.Feature.Suggestions\Ecliptix.Feature.Suggestions.csproj" />
+    <ProjectReference Include="..\..\Ecliptix.Feature.NewContent\Ecliptix.Feature.NewContent.csproj" />
+  </ItemGroup>
 
     <!-- Platform-specific icon configurations -->
     <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64'">

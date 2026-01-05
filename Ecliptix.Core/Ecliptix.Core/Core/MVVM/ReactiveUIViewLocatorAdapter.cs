@@ -4,7 +4,7 @@ using ReactiveUI;
 
 namespace Ecliptix.Core.Core.MVVM;
 
-public class ReactiveUiViewLocatorAdapter(Abstractions.IViewLocator moduleViewLocator) : IViewLocator
+public class ReactiveUiViewLocatorAdapter(Modularity.Abstractions.IViewLocator moduleViewLocator) : IViewLocator
 {
     [UnconditionalSuppressMessage("Trimming", "IL2026",
         Justification = "ViewLocator is registered with explicit view/viewmodel mappings at startup")]

@@ -1,16 +1,11 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Avalonia.Threading;
-using Ecliptix.Core.Core.Messaging.Connectivity;
-using Ecliptix.Core.Core.Messaging.Events;
-using Ecliptix.Core.Core.Messaging.Services;
-using Ecliptix.Core.Infrastructure.Network.Core.Providers;
+using Ecliptix.Core.Messaging.Core.Messaging.Connectivity;
+using Ecliptix.Core.Messaging.Core.Messaging.Events;
+using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Core.Services.Abstractions.Network;
 using Ecliptix.Core.Services.Network.Rpc;
+using Ecliptix.Network.Network.Core.Providers;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Polly;
@@ -293,8 +288,8 @@ public sealed class RetryStrategy : IRetryStrategy
         {
             List<string> exhaustedKeys = [];
             exhaustedKeys.AddRange(from operation in _activeRetryOperations.Values
-                where operation.IsExhausted
-                select operation.UniqueKey);
+                                   where operation.IsExhausted
+                                   select operation.UniqueKey);
 
             foreach (string key in exhaustedKeys)
             {

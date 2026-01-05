@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
@@ -7,7 +5,7 @@ using System.Runtime.InteropServices;
 using Ecliptix.Protobuf.Protocol;
 using Grpc.Core;
 
-namespace Ecliptix.Core.Infrastructure.Network.Transport.Grpc.Interceptors;
+namespace Ecliptix.Network.Network.Transport.Grpc.Interceptors;
 
 public static class GrpcMetadataHandler
 {

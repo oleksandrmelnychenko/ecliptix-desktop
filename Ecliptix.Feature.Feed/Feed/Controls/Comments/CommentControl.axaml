@@ -1,0 +1,277 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+			 xmlns:i="using:Avalonia.Xaml.Interactivity"
+			 xmlns:ia="using:Avalonia.Xaml.Interactions"
+			 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+			 xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
+			 xmlns:vm="clr-namespace:Ecliptix.Feature.Feed.Feed.ViewModels"
+			 xmlns:comments="clr-namespace:Ecliptix.Feature.Feed.Feed.Controls.Comments"
+			 x:Class="Ecliptix.Feature.Feed.Feed.Controls.Comments.CommentControl"
+			 x:DataType="vm:CommentViewModel">
+
+	<Grid ColumnDefinitions="Auto,*,Auto"
+		  RowDefinitions="Auto,Auto,Auto"
+		  Background="#FFF"
+		  RowSpacing="5"
+		  ColumnSpacing="10">
+
+		<!--Avatar-->
+		<Border Grid.Column="0"
+				Grid.RowSpan="3"
+				VerticalAlignment="Top"
+				Width="32"
+				Height="32"
+				CornerRadius="20"
+				ClipToBounds="True"
+				Background="#8a7ae0">
+			<Panel>
+				<Image asyncImageLoader:ImageLoader.Source="{Binding Comment.Author.AvatarUrl}"
+					   Stretch="Fill"
+					   IsVisible="{Binding Comment.Author.AvatarUrl, Converter={x:Static ObjectConverters.IsNotNull}}" />
+				<TextBlock Text="{Binding Comment.Author.DisplayName, Converter={StaticResource InitialsConverter}}"
+						   FontSize="16"
+						   Foreground="#fff"
+						   FontWeight="SemiBold"
+						   HorizontalAlignment="Center"
+						   VerticalAlignment="Center"
+						   IsVisible="{Binding Comment.Author.AvatarUrl, Converter={x:Static ObjectConverters.IsNull}}" />
+			</Panel>
+		</Border>
+
+		<!--Comment-->
+		<StackPanel Grid.Column="1">
+
+			<TextBlock FontSize="15"
+					   FontWeight="500"
+					   Foreground="#314158"
+					   TextWrapping="Wrap"
+					   LineHeight="22">
+				<Run Text="{Binding Comment.Author.DisplayName, Mode=OneTime}" FontWeight="600" Foreground="#0f172b" />
+				<Run Text="{Binding Comment.Author.Username, Mode=OneTime, StringFormat='@{0}'}" Foreground="#6A7383" FontWeight="500" FontSize="14"/>
+				<Run Text="{Binding DisplayCommentText, Mode=TwoWay}" Foreground="#314158"/>
+			</TextBlock>
+
+			<Button Content="{Binding ExpandedText}"
+					Command="{Binding ToggleTextCommand}"
+					IsVisible="{Binding RequiresExpansion}"
+					Background="#00000001"
+					Foreground="#6A7383"
+					BorderThickness="0"
+					HorizontalAlignment="Left"
+					VerticalAlignment="Top"
+					Padding="0,1,0,0"
+					MinHeight="22"
+					FontWeight="600"
+					FontSize="15">
+				<Button.Styles>
+					<Style Selector="Button:pointerover /template/ ContentPresenter">
+						<Setter Property="TextBlock.Foreground" Value="#6a5acd"/>
+					</Style>
+				</Button.Styles>
+			</Button>
+		</StackPanel>
+
+		<!--Like panel-->
+		<Grid Grid.Column="2"
+			  Grid.RowSpan="3"
+			  RowDefinitions="Auto,Auto"
+			  ColumnDefinitions="Auto,Auto"
+			  VerticalAlignment="Top"
+			  HorizontalAlignment="Right"
+			  ColumnSpacing="7">
+
+			<Button Grid.Column="0"
+					Grid.Row="0"
+					HorizontalAlignment="Stretch"
+					Background="Transparent"
+					BorderThickness="0"
+					Padding="1">
+				<StackPanel Spacing="2" HorizontalAlignment="Center">
+					<Path Width="14"
+						  Height="14"
+						  Stroke="{Binding Comment.IsLikedByCurrentUser, Converter={StaticResource LikeColorConverter}}"
+						  StrokeThickness="2"
+						  Fill="{Binding Comment.IsLikedByCurrentUser, Converter={StaticResource SaveColorConverter}}"
+						  Stretch="Uniform"
+						  Data="{StaticResource LikeIconGeometry}" />
+					<TextBlock Text="{Binding Comment.LikesCount}"
+							   FontSize="11"
+							   FontWeight="500"
+							   HorizontalAlignment="Center"
+							   Foreground="#6A7383"
+							   IsVisible="{Binding Comment.LikesCount, Converter={StaticResource GreaterThanZeroConverter}}" />
+				</StackPanel>
+			</Button>
+
+			<Button Grid.Row="0"
+					Grid.Column="1"
+					Grid.RowSpan="2"
+					CornerRadius="5"
+					Width="22"
+					Height="22"
+					Padding="1"
+					Background="#00000001"
+					HorizontalAlignment="Left"
+					BorderThickness="0"
+					VerticalAlignment="Top"
+					Opacity="{Binding IsFlyoutOpen, Converter={StaticResource BoolToOpacityConverter}}"
+					IsHitTestVisible="{Binding !IsFlyoutOpen}">
+				<Path Width="35"
+					  Height="4"
+					  Fill="#9DA5B2"
+					  Data="{StaticResource MenuIconGeometry}">
+					<Path.RenderTransform>
+						<TransformGroup>
+							<RotateTransform Angle="90" CenterX="2" CenterY="8"/>
+						</TransformGroup>
+					</Path.RenderTransform>
+				</Path>
+				<Button.Styles>
+					<Style Selector="Button:pointerover /template/ ContentPresenter">
+						<Setter Property="TextBlock.Background" Value="#F3F4F6"/>
+					</Style>
+
+					<Style Selector="FlyoutPresenter">
+						<Setter Property="BorderThickness" Value="0"/>
+					</Style>
+				</Button.Styles>
+
+				<Button.Flyout>
+					<Flyout	Placement="BottomEdgeAlignedRight"
+							Opened="Flyout_Opened"
+							Closed="Flyout_Closed">
+
+						<Border Width="180"
+								Height="42"
+								Padding="3"
+								BorderThickness="1"
+								CornerRadius="8"								
+								BoxShadow ="0 4 12 0 #15000000">
+							<Button Content="Copy link"
+									HorizontalContentAlignment="Left"
+									CornerRadius="8"
+									Command="{Binding CopyLinkCommand}" />
+						</Border>
+					</Flyout>
+				</Button.Flyout>
+			</Button>
+		</Grid>
+
+		<!--Relative time row-->
+		<StackPanel Spacing="10"
+					Orientation="Horizontal"
+					Grid.Row="1"
+					Grid.Column="1"
+					Grid.ColumnSpan="2">
+			<TextBlock Text="{Binding Comment.CreatedAt, Converter={StaticResource RelativeTimeConverter}}"
+					   Foreground="#99A1AF"
+					   FontWeight="400"
+					   FontSize="12"/>
+			<Button	Content="Reply"
+					BorderThickness="0"
+					Background="#00000001"
+					Padding="0"
+					Foreground="#6A7383"
+					FontWeight="600"
+					FontSize="12"
+					Command="{Binding ReplyCommand}">
+				<Button.Styles>
+					<Style Selector="Button:pointerover /template/ ContentPresenter">
+						<Setter Property="TextBlock.Foreground" Value="#6A76DC"/>
+					</Style>
+				</Button.Styles>
+			</Button>
+		</StackPanel>
+
+		<!--Replies section-->
+		<Grid Grid.Row="2"
+			  Grid.Column="1"
+			  Grid.ColumnSpan="2"
+			  Margin="0,0,0,10"
+			  RowDefinitions="Auto,Auto"
+			  IsVisible="{Binding Comment.RepliesCount, Converter={StaticResource GreaterThanZeroConverter}}">
+
+			<Button Grid.Row="0"
+					Content="{Binding Comment.RepliesCount, StringFormat='Show replies ({0})'}"
+					IsVisible="{Binding HasReplies}"
+					Background="Transparent"
+					Foreground="#6A7383"
+					BorderThickness="0"
+					HorizontalAlignment="Left"
+					Padding="0"
+					FontWeight="600"
+					FontSize="12"
+					Command="{Binding ShowRepliesCommand}">
+				<Button.Styles>
+					<Style Selector="Button:pointerover /template/ ContentPresenter">
+						<Setter Property="TextBlock.Foreground" Value="#6A76DC"/>
+					</Style>
+				</Button.Styles>
+			</Button>
+
+			<Button Grid.Row="0"
+					Content="{Binding Comment.RepliesCount, StringFormat='Hide replies ({0})'}"
+					IsVisible="{Binding Replies.Count, Converter={StaticResource GreaterThanZeroConverter}}"
+					Background="Transparent"
+					Foreground="#6A7383"
+					BorderThickness="0"
+					HorizontalAlignment="Left"
+					Padding="0"
+					FontWeight="600"
+					FontSize="12"
+					Command="{Binding HideRepliesCommand}">
+				<Button.Styles>
+					<Style Selector="Button:pointerover /template/ ContentPresenter">
+						<Setter Property="TextBlock.Foreground" Value="#6A76DC"/>
+					</Style>
+				</Button.Styles>
+			</Button>
+
+			<Grid Margin="20,10,0,0"
+				  ColumnSpacing="10"
+				  Grid.Row="1"
+				  ColumnDefinitions="Auto,*"
+				  RowDefinitions="Auto,Auto">
+				<!--Left line-->
+				<Border Grid.Row="0"
+						Grid.Column="0"
+						Grid.RowSpan="2"
+						Background="#E5E7EB"
+						Width="0.5"
+						HorizontalAlignment="Left"
+						VerticalAlignment="Stretch"/>
+
+				<ItemsControl Grid.Row="0"
+							  Grid.Column="1"
+							  ItemsSource="{Binding Replies}">
+					<ItemsControl.ItemTemplate>
+						<DataTemplate x:DataType="vm:CommentViewModel">
+							<comments:CommentControl />
+						</DataTemplate>
+					</ItemsControl.ItemTemplate>
+				</ItemsControl>
+
+				<Button Grid.Row="1"
+						Grid.Column="1"
+						Content="{Binding Comment.RepliesCount, StringFormat='View ({0}) more replies '}"
+						IsVisible="{Binding Replies.Count, Converter={StaticResource GreaterThanZeroConverter}}"
+						Background="Transparent"
+						Foreground="#6A7383"
+						BorderThickness="0"
+						HorizontalAlignment="Left"
+						Padding="0"
+						FontWeight="600"
+						FontSize="12"
+						Command="{Binding ShowMoreRepliesCommand}">
+					<Button.Styles>
+						<Style Selector="Button:pointerover /template/ ContentPresenter">
+							<Setter Property="TextBlock.Foreground" Value="#6A76DC"/>
+						</Style>
+					</Button.Styles>
+				</Button>
+			</Grid>
+		</Grid>
+	</Grid>
+</UserControl>

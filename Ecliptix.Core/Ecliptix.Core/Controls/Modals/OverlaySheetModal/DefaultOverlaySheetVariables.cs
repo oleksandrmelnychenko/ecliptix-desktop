@@ -1,5 +1,4 @@
 using Avalonia.Media;
-using System;
 
 namespace Ecliptix.Core.Controls.Modals.OverlaySheetModal;
 

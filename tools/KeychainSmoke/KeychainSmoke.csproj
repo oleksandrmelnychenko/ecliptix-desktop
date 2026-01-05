@@ -7,5 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../Ecliptix.Core/Ecliptix.Core/Ecliptix.Core.csproj" />
+    <ProjectReference Include="../../Ecliptix.Network/Ecliptix.Network.csproj" />
   </ItemGroup>
 </Project>

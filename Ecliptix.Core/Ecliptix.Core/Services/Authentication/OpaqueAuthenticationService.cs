@@ -3,15 +3,15 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecliptix.Core.Infrastructure.Data.Abstractions;
-using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.Security;
 using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Core.Services.Network.Rpc;
+using Ecliptix.Network.Data.Abstractions;
+using Ecliptix.Network.Network.Core.Providers;
 using Ecliptix.OPAQUE.Client;
-using Ecliptix.Protobuf.Membership;
+using Ecliptix.Protobuf.Transport.Identity;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
@@ -407,7 +407,8 @@ internal sealed class OpaqueAuthenticationService(
     {
         OpaqueSignInInitRequest initRequest = new()
         {
-            MobileNumber = mobileNumber, PeerOprf = ByteString.CopyFrom(ke1Result.GetKeyExchangeDataCopy()),
+            MobileNumber = mobileNumber,
+            PeerOprf = ByteString.CopyFrom(ke1Result.GetKeyExchangeDataCopy()),
         };
 
         Result<OpaqueSignInInitResponse, NetworkFailure> initResult =
@@ -469,7 +470,8 @@ internal sealed class OpaqueAuthenticationService(
     {
         OpaqueSignInFinalizeRequest finalizeRequest = new()
         {
-            MobileNumber = mobileNumber, ClientMac = ByteString.CopyFrom(ke3Data),
+            MobileNumber = mobileNumber,
+            ClientMac = ByteString.CopyFrom(ke3Data),
         };
 
         Result<SignInResult, NetworkFailure> finalResult =
@@ -497,7 +499,7 @@ internal sealed class OpaqueAuthenticationService(
                 new SignInFlowResult(masterKeyHandle, ByteString.Empty, ByteString.Empty));
         }
 
-        Ecliptix.Protobuf.Membership.Membership membership = signInResult.Membership.Value!;
+        Ecliptix.Protobuf.Transport.Identity.Membership membership = signInResult.Membership.Value!;
         ByteString membershipIdentifier = membership.UniqueIdentifier;
 
         ByteString? accountIdentifier = signInResult.ActiveAccount.Match(
@@ -635,7 +637,7 @@ internal sealed class OpaqueAuthenticationService(
 
         if (capturedResponse.Result == OpaqueSignInFinalizeResponse.Types.SignInResult.InvalidCredentials)
         {
-            string message = capturedResponse.HasMessage
+            string message = !string.IsNullOrEmpty(capturedResponse.Message)
                 ? capturedResponse.Message
                 : localizationService[AuthenticationConstants.INVALID_CREDENTIALS_KEY];
             return Result<SignInResult, NetworkFailure>.Err(
@@ -643,8 +645,8 @@ internal sealed class OpaqueAuthenticationService(
         }
 
         SignInResult result = new(
-            Option<Ecliptix.Protobuf.Membership.Membership>.From(capturedResponse.Membership),
-            Option<Protobuf.Account.Account>.From(capturedResponse.ActiveAccount));
+            Option<Ecliptix.Protobuf.Transport.Identity.Membership>.From(capturedResponse.Membership),
+            Option<Protobuf.Transport.Identity.Account>.From(capturedResponse.ActiveAccount));
         return Result<SignInResult, NetworkFailure>.Ok(result);
     }
 
@@ -805,7 +807,7 @@ internal sealed class OpaqueAuthenticationService(
         SignInResult signInResult,
         ByteString accountIdentifier)
     {
-        Ecliptix.Protobuf.Membership.Membership membership = signInResult.Membership.Value!;
+        Ecliptix.Protobuf.Transport.Identity.Membership membership = signInResult.Membership.Value!;
         ByteString membershipIdentifier = membership.UniqueIdentifier;
         Guid accountId = Helpers.FromByteStringToGuid(accountIdentifier);
 
@@ -818,7 +820,7 @@ internal sealed class OpaqueAuthenticationService(
         }
 
         await applicationSecureStorageProvider
-            .SetApplicationMembershipAsync(membership)
+            .SetApplicationMembershipAsync(membershipIdentifier)
             .ConfigureAwait(false);
 
         await applicationSecureStorageProvider

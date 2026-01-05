@@ -1,0 +1,19 @@
+namespace Ecliptix.Core.Messaging.Core.Messaging.Connectivity;
+
+public enum ConnectivityReason
+{
+    NONE,
+    HANDSHAKE_STARTED,
+    HANDSHAKE_SUCCEEDED,
+    RPC_FAILURE,
+    MANUAL_RETRY,
+    BACKOFF,
+    NO_INTERNET,
+    INTERNET_RECOVERED,
+    SERVER_SHUTDOWN,
+    RETRY_LIMIT_REACHED,
+    OPERATION_CANCELLED,
+    HANDSHAKE_FAILED,
+    SECURITY_ERROR,
+    UNKNOWN
+}

@@ -1,7 +1,7 @@
-﻿using ReactiveUI;
+using ReactiveUI;
 
 namespace Ecliptix.Core.Controls.Core;
 
-public class VerticalSeparatorViewModel(): ReactiveObject
+public class VerticalSeparatorViewModel() : ReactiveObject
 {
 }

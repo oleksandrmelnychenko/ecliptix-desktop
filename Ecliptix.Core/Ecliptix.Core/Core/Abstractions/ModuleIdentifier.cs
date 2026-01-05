@@ -1,6 +1,4 @@
-using System;
-
-namespace Ecliptix.Core.Core.Abstractions;
+namespace Ecliptix.Core.Modularity.Abstractions;
 
 public enum ModuleIdentifier
 {
@@ -9,7 +7,8 @@ public enum ModuleIdentifier
     FEED,
     CHATS,
     SETTINGS,
-    PROFILE
+    PROFILE,
+    NEW_CONTENT
 }
 
 public static class ModuleIdentifierExtensions
@@ -22,6 +21,7 @@ public static class ModuleIdentifierExtensions
         ModuleIdentifier.CHATS => "Chats",
         ModuleIdentifier.SETTINGS => "Settings",
         ModuleIdentifier.PROFILE => "Profile",
+        ModuleIdentifier.NEW_CONTENT => "NewContent",
         _ => throw new ArgumentOutOfRangeException(nameof(identifier), identifier, "Unknown module identifier")
     };
 }

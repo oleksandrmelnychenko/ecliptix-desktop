@@ -1,9 +1,6 @@
 using System;
-using Avalonia;
 using Avalonia.Markup.Xaml;
-using Avalonia.Media;
 using Avalonia.ReactiveUI;
-using Ecliptix.Core.Services.Abstractions.Core;
 
 namespace Ecliptix.Core.Controls.Core;
 

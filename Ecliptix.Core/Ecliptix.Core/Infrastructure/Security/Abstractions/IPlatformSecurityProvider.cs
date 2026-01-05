@@ -1,8 +1,6 @@
-using System;
-using System.Threading.Tasks;
 using Ecliptix.Utilities;
 
-namespace Ecliptix.Core.Infrastructure.Security.Abstractions;
+namespace Ecliptix.Network.Security.Abstractions;
 
 public interface IPlatformSecurityProvider : IDisposable
 {

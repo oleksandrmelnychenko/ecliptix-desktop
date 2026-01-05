@@ -1,12 +1,10 @@
-using System;
 using System.Globalization;
-using System.Threading;
 using Ecliptix.Core.Services.Network.Rpc;
 using Grpc.Core;
 
 namespace Ecliptix.Core.Services.Network;
 
-internal sealed class GrpcCallOptionsFactory(IGrpcDeadlineProvider deadlineProvider) : IGrpcCallOptionsFactory
+public sealed class GrpcCallOptionsFactory(IGrpcDeadlineProvider deadlineProvider) : IGrpcCallOptionsFactory
 {
     public CallOptions Create(
         RpcServiceType serviceType,

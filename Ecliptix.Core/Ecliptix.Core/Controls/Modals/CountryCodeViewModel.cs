@@ -1,14 +1,14 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive;
 using System.Threading.Tasks;
-using Ecliptix.Core.Core.Messaging.Services;
+using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Core.Settings.Constants;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Splat;
-using IMessageBus = Ecliptix.Core.Core.Messaging.IMessageBus;
+using IMessageBus = Ecliptix.Core.Messaging.Core.Messaging.IMessageBus;
 
 namespace Ecliptix.Core.Controls.Modals;
 

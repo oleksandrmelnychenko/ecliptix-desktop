@@ -1,8 +1,6 @@
 using System;
 using System.Globalization;
 using System.IO;
-using System.Net;
-using System.Net.Http;
 using System.Reactive.Concurrency;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -16,59 +14,54 @@ using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Controls.Modals.BottomSheetModal;
 using Ecliptix.Core.Controls.Modals.OverlaySheetModal;
 using Ecliptix.Core.Controls.Modals.SideSheetModal;
-using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.Communication;
-using Ecliptix.Core.Core.Messaging;
-using Ecliptix.Core.Core.Messaging.Services;
-using Ecliptix.Core.Core.Modularity;
 using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Core.Desktop.Constants;
-using Ecliptix.Core.Features.Authentication;
-using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
-using Ecliptix.Core.Features.Chats;
-using Ecliptix.Core.Features.Feed;
-using Ecliptix.Core.Features.Main;
-using Ecliptix.Core.Features.Main.ViewModels;
-using Ecliptix.Core.Features.Profile;
-using Ecliptix.Core.Features.Settings;
-using Ecliptix.Core.Features.Splash.ViewModels;
-using Ecliptix.Core.Infrastructure.Data.Abstractions;
+using Ecliptix.Core.Desktop.DI;
 using Ecliptix.Core.Infrastructure.Data.SecureStorage;
 using Ecliptix.Core.Infrastructure.Data.SecureStorage.Configuration;
-using Ecliptix.Core.Infrastructure.Network.Abstractions.Core;
-using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
-using Ecliptix.Core.Infrastructure.Network.Core.Connectivity;
-using Ecliptix.Core.Infrastructure.Network.Core.Providers;
-using Ecliptix.Core.Infrastructure.Network.Transport;
 using Ecliptix.Core.Infrastructure.Network.Transport.Grpc;
-using Ecliptix.Core.Infrastructure.Network.Transport.Grpc.Interceptors;
-using Ecliptix.Core.Infrastructure.Security.Abstractions;
-using Ecliptix.Core.Infrastructure.Security.Crypto;
-using Ecliptix.Core.Infrastructure.Security.KeySplitting;
-using Ecliptix.Core.Infrastructure.Security.Platform;
-using Ecliptix.Core.Infrastructure.Security.Storage;
+using Ecliptix.Core.Messaging.Core.Messaging;
+using Ecliptix.Core.Messaging.Core.Messaging.Services;
+using Ecliptix.Core.Modularity.Abstractions;
+using Ecliptix.Core.Modularity.Abstractions.Splash;
+using Ecliptix.Core.Modularity.Abstractions.Suggestions;
+using Ecliptix.Core.Modularity.Modularity;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
-using Ecliptix.Core.Services.Abstractions.External;
 using Ecliptix.Core.Services.Abstractions.Membership;
 using Ecliptix.Core.Services.Abstractions.Network;
 using Ecliptix.Core.Services.Abstractions.Security;
 using Ecliptix.Core.Services.Authentication;
 using Ecliptix.Core.Services.Core;
 using Ecliptix.Core.Services.Core.Localization;
-using Ecliptix.Core.Services.External.IpGeolocation;
 using Ecliptix.Core.Services.Membership;
 using Ecliptix.Core.Services.Network;
-using Ecliptix.Core.Services.Network.Infrastructure;
 using Ecliptix.Core.Services.Network.Resilience;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Core.Services.Security;
 using Ecliptix.Core.Settings;
+using Ecliptix.Core.Views.Core.Components.TitleBarUtilities.ViewModels;
+using Ecliptix.Core.Views.Core.Components.TitleBarUtilities.Views;
 using Ecliptix.Core.Views.Core.Configuration;
 using Ecliptix.Core.Views.Core.Factories;
 using Ecliptix.Core.Views.Core.Services;
-using Ecliptix.Core.Views.Core.Components.TitleBarUtilities.ViewModels;
-using Ecliptix.Core.Views.Core.Components.TitleBarUtilities.Views;
+using Ecliptix.Feature.Authentication.Authentication.Domain.Abstractions;
+using Ecliptix.Feature.Authentication.Authentication.ViewModels.Hosts;
+using Ecliptix.Feature.Feed.Feed.Services.Abstractions;
+using Ecliptix.Feature.Feed.Feed.Services.Implementation;
+using Ecliptix.Feature.Main.Main.ViewModels;
+using Ecliptix.Feature.Splash.Splash.ViewModels;
+using Ecliptix.Feature.Suggestions.Suggestions.ViewModels;
+using Ecliptix.Network.Data.Abstractions;
+using Ecliptix.Network.Network.Abstractions.Transport;
+using Ecliptix.Network.Network.Core.Providers;
+using Ecliptix.Network.Network.Transport;
+using Ecliptix.Network.Network.Transport.Grpc.Interceptors;
+using Ecliptix.Network.Security.Abstractions;
+using Ecliptix.Network.Security.KeySplitting;
+using Ecliptix.Network.Security.Platform;
+using Ecliptix.Network.Security.Storage;
 using Ecliptix.Security.Certificate.Pinning.Services;
 using Grpc.Net.ClientFactory;
 using Microsoft.AspNetCore.DataProtection;
@@ -76,13 +69,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Polly;
-using Polly.Extensions.Http;
 using Serilog;
 using Serilog.Core;
 using Splat.Microsoft.Extensions.DependencyInjection;
-using IViewLocator = Ecliptix.Core.Core.Abstractions.IViewLocator;
-using Ecliptix.Core.Features.Suggestions.ViewModels;
+using FeatureRegistration = Ecliptix.Feature.Main.Main.FeatureRegistration;
+using IViewLocator = Ecliptix.Core.Modularity.Abstractions.IViewLocator;
 
 namespace Ecliptix.Core.Desktop;
 
@@ -114,18 +105,30 @@ public static class Program
             IServiceProvider serviceProvider = services.BuildServiceProvider();
             ReactiveUI.IViewLocator reactiveViewLocator = serviceProvider.GetRequiredService<ReactiveUI.IViewLocator>();
             Splat.Locator.CurrentMutable.Register(() => reactiveViewLocator, typeof(ReactiveUI.IViewLocator));
-            Splat.Locator.CurrentMutable.Register(() => new LanguageCycleButtonView(), typeof(ReactiveUI.IViewFor<LanguageCycleButtonViewModel>));
-            Splat.Locator.CurrentMutable.Register(() => new ToggleNavigationSideBarView(), typeof(ReactiveUI.IViewFor<ToggleNavigationSideBarViewModel>));
-            Splat.Locator.CurrentMutable.Register(() => new ToggleThemeView(), typeof(ReactiveUI.IViewFor<ToggleThemeViewModel>));
-            Splat.Locator.CurrentMutable.Register(() => new PersonalTagView(), typeof(ReactiveUI.IViewFor<PersonalTagViewModel>));
-            Splat.Locator.CurrentMutable.Register(() => new EppBadgeView(), typeof(ReactiveUI.IViewFor<EppBadgeViewModel>));
-            Splat.Locator.CurrentMutable.Register(() => new NetworkBadgeView(), typeof(ReactiveUI.IViewFor<NetworkBadgeViewModel>));
-            Splat.Locator.CurrentMutable.Register(() => new LanguageMenuButtonView(), typeof(ReactiveUI.IViewFor<LanguageMenuButtonViewModel>));
-            Splat.Locator.CurrentMutable.Register(() => new VerticalSeparatorView(), typeof(ReactiveUI.IViewFor<VerticalSeparatorViewModel>));
-            Splat.Locator.CurrentMutable.Register(( ) => new DetectLanguageDialog(), typeof(ReactiveUI.IViewFor<DetectLanguageDialogViewModel>));
-            Splat.Locator.CurrentMutable.Register(() => new RedirectNotificationView(), typeof(ReactiveUI.IViewFor<RedirectNotificationViewModel>));
-            Splat.Locator.CurrentMutable.Register(() => new LanguagePickerView(), typeof(ReactiveUI.IViewFor<LanguagePickerViewModel>));
-            Splat.Locator.CurrentMutable.Register(() => new CountryCodeView(), typeof(ReactiveUI.IViewFor<CountryCodeViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new LanguageCycleButtonView(),
+                typeof(ReactiveUI.IViewFor<LanguageCycleButtonViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new ToggleNavigationSideBarView(),
+                typeof(ReactiveUI.IViewFor<ToggleNavigationSideBarViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new ToggleThemeView(),
+                typeof(ReactiveUI.IViewFor<ToggleThemeViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new PersonalTagView(),
+                typeof(ReactiveUI.IViewFor<PersonalTagViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new EppBadgeView(),
+                typeof(ReactiveUI.IViewFor<EppBadgeViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new NetworkBadgeView(),
+                typeof(ReactiveUI.IViewFor<NetworkBadgeViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new LanguageMenuButtonView(),
+                typeof(ReactiveUI.IViewFor<LanguageMenuButtonViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new VerticalSeparatorView(),
+                typeof(ReactiveUI.IViewFor<VerticalSeparatorViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new DetectLanguageDialog(),
+                typeof(ReactiveUI.IViewFor<DetectLanguageDialogViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new RedirectNotificationView(),
+                typeof(ReactiveUI.IViewFor<RedirectNotificationViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new LanguagePickerView(),
+                typeof(ReactiveUI.IViewFor<LanguagePickerViewModel>));
+            Splat.Locator.CurrentMutable.Register(() => new CountryCodeView(),
+                typeof(ReactiveUI.IViewFor<CountryCodeViewModel>));
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
         }
         catch (Exception ex)
@@ -156,7 +159,8 @@ public static class Program
         return new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
             .AddJsonFile(ApplicationConstants.Configuration.APP_SETTINGS_FILE, optional: false, reloadOnChange: true)
-            .AddJsonFile(string.Format(ApplicationConstants.Configuration.ENVIRONMENT_APP_SETTINGS_PATTERN, environment),
+            .AddJsonFile(
+                string.Format(ApplicationConstants.Configuration.ENVIRONMENT_APP_SETTINGS_PATTERN, environment),
                 optional: true, reloadOnChange: true)
             .AddEnvironmentVariables()
             .Build();
@@ -207,7 +211,7 @@ public static class Program
         ServiceCollection services = new();
 
         ConfigureCoreServices(services, configuration);
-        ConfigureNetworkServices(services);
+        ConfigureNetworkServices(services, configuration);
         ConfigureSecurityServices(services, configuration);
         ConfigureMessagingServices(services);
         ConfigureAuthenticationServices(services);
@@ -218,10 +222,8 @@ public static class Program
         return services;
     }
 
-    private static string GetSectionValue(IConfigurationSection section, string key, string defaultValue = "")
-    {
-        return section[key] ?? defaultValue;
-    }
+    private static string GetSectionValue(IConfigurationSection section, string key, string defaultValue = "") =>
+        section[key] ?? defaultValue;
 
     private static void ConfigureCoreServices(IServiceCollection services, IConfiguration configuration)
     {
@@ -244,57 +246,8 @@ public static class Program
         services.AddSingleton<IViewModelFactory, ViewModelFactory>();
     }
 
-    private static void ConfigureNetworkServices(IServiceCollection services)
-    {
-        services.AddHttpClient(InternetConnectivityObserver.HTTP_CLIENT_NAME, client =>
-        {
-            InternetConnectivityObserverOptions options = InternetConnectivityObserverOptions.Default;
-            client.Timeout = options.ProbeTimeout;
-        });
-
-        services.AddHttpClient<IIpGeolocationService, IpGeolocationService>()
-            .SetHandlerLifetime(ApplicationConstants.Timeouts.HttpClientLifetime)
-            .AddPolicyHandler(HttpPolicyExtensions
-                .HandleTransientHttpError()
-                .OrResult(msg => msg.StatusCode == HttpStatusCode.TooManyRequests)
-                .WaitAndRetryAsync(
-                    retryCount: ApplicationConstants.Thresholds.RETRY_ATTEMPTS,
-                    sleepDurationProvider: attempt =>
-                        TimeSpan.FromSeconds(Math.Pow(ApplicationConstants.Thresholds.EXPONENTIAL_BACKOFF_BASE,
-                            attempt))))
-            .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(ApplicationConstants.Timeouts.HttpTimeout));
-
-        services.AddSingleton<IInternetConnectivityObserver, InternetConnectivityObserver>();
-        services.AddSingleton(new InternetConnectivityObserverOptions
-        {
-            PollingInterval = ApplicationConstants.Timeouts.DefaultPollingInterval,
-            FailureThreshold = ApplicationConstants.Thresholds.DEFAULT_FAILURE_THRESHOLD,
-            SuccessThreshold = ApplicationConstants.Thresholds.DEFAULT_SUCCESS_THRESHOLD
-        });
-
-        services.AddSingleton<IRsaChunkEncryptor, RsaChunkEncryptor>();
-        services.AddSingleton<IPendingRequestManager, PendingRequestManager>();
-
-        services.AddSingleton<NetworkProviderDependencies>(sp => new NetworkProviderDependencies(
-            sp.GetRequiredService<IRpcServiceManager>(),
-            sp.GetRequiredService<IApplicationSecureStorageProvider>(),
-            sp.GetRequiredService<ISecureProtocolStateStorage>(),
-            sp.GetRequiredService<IRpcMetaDataProvider>(),
-            sp.GetRequiredService<IIdentityService>()));
-
-        services.AddSingleton<NetworkProviderServices>(sp => new NetworkProviderServices(
-            sp.GetRequiredService<IConnectivityService>(),
-            sp.GetRequiredService<IRetryStrategy>(),
-            sp.GetRequiredService<IPendingRequestManager>()));
-
-        services.AddSingleton<NetworkProviderSecurity>(sp => new NetworkProviderSecurity(
-            sp.GetRequiredService<ICertificatePinningServiceFactory>(),
-            sp.GetRequiredService<IRsaChunkEncryptor>(),
-            sp.GetRequiredService<IRetryPolicyProvider>()));
-
-        services.AddSingleton<NetworkProvider>();
-        services.AddSingleton<InternetConnectivityBridge>();
-    }
+    private static void ConfigureNetworkServices(IServiceCollection services, IConfiguration configuration) =>
+        services.AddNetworkInfrastructure(configuration);
 
     private static void ConfigureSecurityServices(IServiceCollection services, IConfiguration configuration)
     {
@@ -356,7 +309,8 @@ public static class Program
             string storageDirectory =
                 config[
                     ApplicationConstants.Configuration.SECURE_STORAGE_SECTION +
-                    ApplicationConstants.Configuration.PATH_SEPARATOR + ApplicationConstants.ConfigurationKeys.STATE_PATH]
+                    ApplicationConstants.Configuration.PATH_SEPARATOR +
+                    ApplicationConstants.ConfigurationKeys.STATE_PATH]
                 ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     ApplicationConstants.Storage.ECLIPTIX_DIRECTORY_NAME);
 
@@ -373,7 +327,8 @@ public static class Program
     {
         services.AddSingleton<IMessageBus, MessageBus>();
         services.AddSingleton<IConnectivityService, ConnectivityService>();
-        services.AddSingleton<IGlobalModalService, GlobalModalService>(sp => new GlobalModalService(sp.GetRequiredService<IMessageBus>()));
+        services.AddSingleton<IGlobalModalService, GlobalModalService>(sp =>
+            new GlobalModalService(sp.GetRequiredService<IMessageBus>()));
         services.AddSingleton<ISideSheetService, SideSheetService>();
         services.AddSingleton<IBottomSheetService, BottomSheetService>();
         services.AddSingleton<IOverlaySheetService, OverlaySheetService>();
@@ -489,53 +444,48 @@ public static class Program
 
     private static void ConfigureModules(IServiceCollection services)
     {
-        services.AddSingleton<ModuleResourceManager>();
-
-        services.AddSingleton<IModuleMessageBus, ModuleMessageBus>();
-        services.AddSingleton<IModuleViewFactory>(provider =>
+        Action<ModuleServiceContext, IServiceCollection> moduleServiceForwarder = (ctx, moduleServices) =>
         {
-            ModuleViewFactory factory = new(
-                provider.GetRequiredService<IModuleManager>(),
-                provider);
+            moduleServices.AddSingleton(ctx.GetParentService<IMessageBus>());
+            moduleServices.AddSingleton(ctx.GetParentService<NetworkProvider>());
+            moduleServices.AddSingleton(ctx.GetParentService<IRpcMetaDataProvider>());
+            moduleServices.AddSingleton(ctx.GetParentService<IApplicationSecureStorageProvider>());
+            moduleServices.AddSingleton(ctx.GetParentService<ILocalizationService>());
+            moduleServices.AddSingleton(ctx.GetParentService<IApplicationRouter>());
+            moduleServices.AddSingleton(ctx.GetParentService<IApplicationStateManager>());
+            moduleServices.AddSingleton(ctx.GetParentService<ILogoutService>());
+            moduleServices.AddSingleton(ctx.GetParentService<IAuthenticationService>());
+            moduleServices.AddSingleton(ctx.GetParentService<IOpaqueRegistrationService>());
+            moduleServices.AddSingleton(ctx.GetParentService<ISecureKeyRecoveryService>());
+        };
 
-            factory.RegisterView<Ecliptix.Core.Features.Feed.ViewModels.FeedViewModel,
-                Ecliptix.Core.Features.Feed.Views.FeedView>();
-            factory.RegisterView<Ecliptix.Core.Features.Chats.ViewModels.ChatsViewModel,
-                Ecliptix.Core.Features.Chats.Views.ChatsView>();
-            factory.RegisterView<Ecliptix.Core.Features.Settings.ViewModels.SettingsViewModel,
-                Ecliptix.Core.Features.Settings.Views.SettingsView>();
-            factory.RegisterView<Ecliptix.Core.Features.Profile.ViewModels.ProfileViewModel,
-                Ecliptix.Core.Features.Profile.Views.ProfileView>();
-
-            Log.Information("Registered {Count} module views during ModuleViewFactory creation", 3);
-
-            return factory;
-        });
-
-        services.AddSingleton<IViewLocator, ViewLocator>();
-        services.AddSingleton<ReactiveUiViewLocatorAdapter>();
-
-        services.AddSingleton<ReactiveUI.IViewLocator>(provider =>
-            provider.GetRequiredService<ReactiveUiViewLocatorAdapter>());
+        services.AddSingleton(sp => new ModuleResourceManager(sp, moduleServiceForwarder));
 
         ModuleCatalog catalog = new();
-        catalog.AddModule<AuthenticationModule>();
-        catalog.AddModule<MainModule>();
-        catalog.AddModule<FeedModule>();
-        catalog.AddModule<ChatsModule>();
-        catalog.AddModule<SettingsModule>();
-        catalog.AddModule<ProfileModule>();
+        Feature.Authentication.FeatureRegistration.RegisterModule(catalog);
+        FeatureRegistration.RegisterModule(catalog);
+        Feature.Feed.Feed.FeatureRegistration.RegisterModule(catalog);
+        Feature.Chats.Chats.FeatureRegistration.RegisterModule(catalog);
+        Feature.Settings.Settings.FeatureRegistration.RegisterModule(catalog);
+        Feature.Profile.Profile.FeatureRegistration.RegisterModule(catalog);
+        Feature.NewContent.NewContent.FeatureRegistration.RegisterModule(catalog);
 
         services.AddSingleton<IModuleCatalog>(catalog);
         services.AddSingleton(catalog);
 
+        services.AddSingleton<IModuleMessageBus, ModuleMessageBus>();
         services.AddSingleton<IModuleManager, ModuleManager>();
 
-        services.AddTransient<Ecliptix.Core.Features.Feed.ViewModels.FeedViewModel>();
-        services.AddTransient<Ecliptix.Core.Features.Chats.ViewModels.ChatsViewModel>();
-        services.AddTransient<Ecliptix.Core.Features.Settings.ViewModels.SettingsViewModel>();
-        services.AddTransient<Ecliptix.Core.Features.Profile.ViewModels.ProfileViewModel>();
+        FeatureRegistration.RegisterServices(services);
+        Feature.Feed.Feed.FeatureRegistration.RegisterServices(services);
+        Feature.Chats.Chats.FeatureRegistration.RegisterServices(services);
+        Feature.Settings.Settings.FeatureRegistration.RegisterServices(services);
+        Feature.Profile.Profile.FeatureRegistration.RegisterServices(services);
+        Feature.Authentication.FeatureRegistration.RegisterServices(services);
+        Feature.NewContent.NewContent.FeatureRegistration.RegisterServices(services);
+
         services.AddTransient<SuggestionsViewModel>();
+        services.AddTransient<ISuggestionsViewModel, SuggestionsViewModel>();
 
         services.AddSingleton<LanguagePickerViewModel>();
         services.AddTransient<LanguageCycleButtonViewModel>();
@@ -544,14 +494,15 @@ public static class Program
         services.AddSingleton<OverlaySheetViewModel>();
         services.AddSingleton<ConnectivityNotificationViewModel>();
         services.AddSingleton<Ecliptix.Core.ViewModels.Core.MainWindowViewModel>();
-        services.AddTransient<Ecliptix.Core.Controls.Core.VerticalSeparatorViewModel>();
-        services.AddTransient<Ecliptix.Core.Controls.Core.LanguageMenuButtonViewModel>();
-        services.AddTransient<Ecliptix.Core.Controls.Core.EppBadgeViewModel>();
-        services.AddTransient<Ecliptix.Core.Controls.Core.NetworkBadgeViewModel>();
+        services.AddTransient<VerticalSeparatorViewModel>();
+        services.AddTransient<LanguageMenuButtonViewModel>();
+        services.AddTransient<EppBadgeViewModel>();
+        services.AddTransient<NetworkBadgeViewModel>();
         services.AddTransient<ToggleNavigationSideBarViewModel>();
         services.AddTransient<ToggleThemeViewModel>();
         services.AddTransient<PersonalTagViewModel>();
         services.AddTransient<SplashWindowViewModel>();
+        services.AddSingleton<ISplashHostFactory, Feature.Splash.Splash.SplashHostFactory>();
         services.AddTransient<AuthenticationViewModel>(sp => new AuthenticationViewModel(
             new AuthenticationViewModelDependencies
             {
@@ -559,17 +510,38 @@ public static class Program
                 NetworkProvider = sp.GetRequiredService<NetworkProvider>(),
                 LocalizationService = sp.GetRequiredService<ILocalizationService>(),
                 StorageProvider = sp.GetRequiredService<IApplicationSecureStorageProvider>(),
-                AuthenticationService = sp.GetRequiredService<IAuthenticationService>(),
-                RegistrationService = sp.GetRequiredService<IOpaqueRegistrationService>(),
-                RecoveryService = sp.GetRequiredService<ISecureKeyRecoveryService>(),
                 LanguageDetectionService = sp.GetRequiredService<ILanguageDetectionService>(),
                 Router = sp.GetRequiredService<IApplicationRouter>(),
                 GlobalModalService = sp.GetRequiredService<IGlobalModalService>(),
                 MainWindowViewModel = sp.GetRequiredService<Ecliptix.Core.ViewModels.Core.MainWindowViewModel>(),
                 Settings = sp.GetRequiredService<DefaultSystemSettings>(),
                 MessageBus = sp.GetRequiredService<IMessageBus>(),
+                AuthRepository = sp.GetRequiredService<IAuthRepository>(),
             }));
         services.AddTransient<MasterViewModel>();
+
+        services.AddSingleton<IViewLocator, ViewLocator>();
+        services.AddSingleton<ReactiveUiViewLocatorAdapter>();
+
+        services.AddSingleton<ReactiveUI.IViewLocator>(provider =>
+            provider.GetRequiredService<ReactiveUiViewLocatorAdapter>());
+
+        services.AddSingleton<IModuleViewFactory>(provider =>
+        {
+            ModuleViewFactory factory = new(
+                provider.GetRequiredService<IModuleManager>(),
+                provider);
+
+            Feature.Feed.Feed.FeatureRegistration.RegisterViews(factory);
+            Feature.Chats.Chats.FeatureRegistration.RegisterViews(factory);
+            Feature.Settings.Settings.FeatureRegistration.RegisterViews(factory);
+            Feature.Profile.Profile.FeatureRegistration.RegisterViews(factory);
+            Feature.NewContent.NewContent.FeatureRegistration.RegisterViews(factory);
+
+            Log.Information("Registered {Count} module views during ModuleViewFactory creation", 5);
+
+            return factory;
+        });
     }
 
     private static string GetPlatformAppDataDirectory()
@@ -640,12 +612,12 @@ public static class Program
 
     private static void ConfigureFeedServices(IServiceCollection services)
     {
-        services.AddSingleton<Ecliptix.Core.Features.Feed.Services.Abstractions.IFeedService,
-            Ecliptix.Core.Features.Feed.Services.Implementation.FeedService>();
-        services.AddSingleton<Ecliptix.Core.Features.Feed.Services.Abstractions.IPostInteractionService,
-            Ecliptix.Core.Features.Feed.Services.Implementation.PostInteractionService>();
-        services.AddSingleton<Ecliptix.Core.Features.Feed.Services.Abstractions.ICommentService,
-            Ecliptix.Core.Features.Feed.Services.Implementation.CommentService>();
+        services.AddSingleton<IFeedService,
+            FeedService>();
+        services.AddSingleton<IPostInteractionService,
+            PostInteractionService>();
+        services.AddSingleton<ICommentService,
+            CommentService>();
 
         Log.Information("Feed services configured successfully");
     }

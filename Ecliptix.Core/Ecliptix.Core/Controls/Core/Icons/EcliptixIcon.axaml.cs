@@ -1,6 +1,5 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
 using Avalonia.Media;
 using Ecliptix.Core.Controls.Common;
 
@@ -10,7 +9,7 @@ public class EcliptixIcon : IconElement
 {
     public EcliptixIcon()
     {
-        AffectsRender<EcliptixIcon>([KindProperty,StrokeProperty,StrokeThicknessProperty]);
+        AffectsRender<EcliptixIcon>([KindProperty, StrokeProperty, StrokeThicknessProperty]);
     }
 
     public static readonly StyledProperty<IconKind> KindProperty =

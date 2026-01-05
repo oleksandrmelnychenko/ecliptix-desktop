@@ -1,11 +1,10 @@
-using System;
 using System.Buffers;
 using System.Security.Cryptography;
 using Ecliptix.Security.Certificate.Pinning.Services;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 
-namespace Ecliptix.Core.Infrastructure.Security.Crypto;
+namespace Ecliptix.Network.Security.Crypto;
 
 public sealed class RsaChunkEncryptor : IRsaChunkEncryptor
 {
@@ -115,7 +114,7 @@ public sealed class RsaChunkEncryptor : IRsaChunkEncryptor
                 if (!chunkDecryptResult.IsSuccess)
                 {
                     return Result<byte[], NetworkFailure>.Err(
-                        NetworkFailure.DataCenterNotResponding(
+                        NetworkFailure.RsaEncryption(
                             $"Failed to decrypt response chunk {(offset / RSA_ENCRYPTED_CHUNK_SIZE) + 1}: {chunkDecryptResult.Error?.Message}"));
                 }
 

@@ -1,6 +1,4 @@
-using System;
-using System.Linq;
-using Ecliptix.Core.Infrastructure.Network.Core.Constants;
+using Ecliptix.Network.Network.Core.Constants;
 using Ecliptix.Utilities;
 using Grpc.Core;
 
@@ -41,20 +39,20 @@ public static class GrpcErrorClassifier
             return false;
         }
 
-        string detail = ex.Status.Detail?.ToLowerInvariant() ?? string.Empty;
+        string detail = ex.Status.Detail ?? string.Empty;
 
-        return detail.Contains("header authentication failed") ||
-               detail.Contains("requested index") && detail.Contains("not future") ||
-               detail.Contains("chain rotation") ||
-               detail.Contains("sequence mismatch") ||
-               detail.Contains("protocol state") && detail.Contains("mismatch") ||
-               detail.Contains("protocol state") && detail.Contains("desynchronized") ||
-               detail.Contains("dhpublic") && detail.Contains("unknown") ||
-               detail.Contains("sender chain") && detail.Contains("invalid") ||
-               detail.Contains("receiver chain") && detail.Contains("invalid") ||
-               detail.Contains("protocol version") ||
-               detail.Contains("state version") ||
-               detail.Contains("channel state") && detail.Contains("invalid");
+        return detail.Contains("header authentication failed", StringComparison.OrdinalIgnoreCase) ||
+               detail.Contains("requested index", StringComparison.OrdinalIgnoreCase) && detail.Contains("not future", StringComparison.OrdinalIgnoreCase) ||
+               detail.Contains("chain rotation", StringComparison.OrdinalIgnoreCase) ||
+               detail.Contains("sequence mismatch", StringComparison.OrdinalIgnoreCase) ||
+               detail.Contains("protocol state", StringComparison.OrdinalIgnoreCase) && detail.Contains("mismatch", StringComparison.OrdinalIgnoreCase) ||
+               detail.Contains("protocol state", StringComparison.OrdinalIgnoreCase) && detail.Contains("desynchronized", StringComparison.OrdinalIgnoreCase) ||
+               detail.Contains("dhpublic", StringComparison.OrdinalIgnoreCase) && detail.Contains("unknown", StringComparison.OrdinalIgnoreCase) ||
+               detail.Contains("sender chain", StringComparison.OrdinalIgnoreCase) && detail.Contains("invalid", StringComparison.OrdinalIgnoreCase) ||
+               detail.Contains("receiver chain", StringComparison.OrdinalIgnoreCase) && detail.Contains("invalid", StringComparison.OrdinalIgnoreCase) ||
+               detail.Contains("protocol version", StringComparison.OrdinalIgnoreCase) ||
+               detail.Contains("state version", StringComparison.OrdinalIgnoreCase) ||
+               detail.Contains("channel state", StringComparison.OrdinalIgnoreCase) && detail.Contains("invalid", StringComparison.OrdinalIgnoreCase);
     }
 
     public static bool IsServerShutdown(RpcException ex) =>

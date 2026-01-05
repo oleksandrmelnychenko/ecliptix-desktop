@@ -5,8 +5,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using Ecliptix.Core.Core.Abstractions;
-using Ecliptix.Core.Core.Utilities;
+using Ecliptix.Core.Messaging.Core.Utilities;
+using Ecliptix.Core.Modularity.Abstractions;
 
 namespace Ecliptix.Core.Core.Communication;
 

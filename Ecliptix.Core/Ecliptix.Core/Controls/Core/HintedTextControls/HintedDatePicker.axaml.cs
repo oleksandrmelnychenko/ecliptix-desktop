@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
@@ -75,7 +75,7 @@ public partial class HintedDatePicker : UserControl
         AvaloniaProperty.Register<HintedDatePicker, IBrush>(
             nameof(MainBorderBrush), new SolidColorBrush(Color.Parse(HintedTextBoxConstants.FOCUS_COLOR_HEX)));
 
-    public static readonly StyledProperty<CornerRadius> CornerRadiusProperty =
+    public new static readonly StyledProperty<CornerRadius> CornerRadiusProperty =
         AvaloniaProperty.Register<HintedDatePicker, CornerRadius>(
             nameof(CornerRadius), new CornerRadius(4));
 
@@ -185,7 +185,7 @@ public partial class HintedDatePicker : UserControl
         set => SetValue(MainBorderBrushProperty, value);
     }
 
-    public CornerRadius CornerRadius
+    public new CornerRadius CornerRadius
     {
         get => GetValue(CornerRadiusProperty);
         set => SetValue(CornerRadiusProperty, value);

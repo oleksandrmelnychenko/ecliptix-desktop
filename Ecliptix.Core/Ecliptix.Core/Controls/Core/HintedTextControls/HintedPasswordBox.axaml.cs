@@ -1,6 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+using System;
 using System.Collections.Frozen;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Reactive.Disposables;
@@ -591,7 +591,7 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
 
         if (!string.IsNullOrEmpty(_currentStrengthClass))
         {
-            _mainGrid.Classes.Remove(_currentStrengthClass);
+            _mainGrid?.Classes.Remove(_currentStrengthClass);
             _currentStrengthClass = null;
         }
 
@@ -599,21 +599,9 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
         {
             if (StrengthClassMap.TryGetValue(SecureKeyStrength, out string? newClass))
             {
-                _mainGrid.Classes.Add(newClass);
+                _mainGrid?.Classes.Add(newClass);
                 _currentStrengthClass = newClass;
             }
-        }
-    }
-
-    private void ToggleClass(string className, bool isEnabled)
-    {
-        if (isEnabled && !Classes.Contains(className))
-        {
-            Classes.Add(className);
-        }
-        else if (!isEnabled && Classes.Contains(className))
-        {
-            Classes.Remove(className);
         }
     }
 
@@ -943,12 +931,14 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
         try
         {
             TopLevel? topLevel = TopLevel.GetTopLevel(this);
+#pragma warning disable CS0618 // IClipboard is obsolete but no replacement API available
             if (topLevel?.Clipboard == null)
             {
                 return;
             }
 
             string? clipboardText = await topLevel.Clipboard.GetTextAsync();
+#pragma warning restore CS0618
 
             if (_mainTextBox == null || _isDisposed)
             {

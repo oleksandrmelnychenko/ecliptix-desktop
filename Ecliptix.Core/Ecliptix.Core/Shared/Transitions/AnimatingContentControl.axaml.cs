@@ -171,7 +171,7 @@ public partial class AnimatingContentControl : UserControl, ILogical
         base.OnPropertyChanged(change);
     }
 
-   private void UpdateContent(bool withTransition)
+    private void UpdateContent(bool withTransition)
     {
         if (VisualRoot is null || _presenter2 is null || Presenter is null)
         {
@@ -184,7 +184,7 @@ public partial class AnimatingContentControl : UserControl, ILogical
 
         if (ReferenceEquals(fromContent, toContent))
         {
-             return;
+            return;
         }
 
         if (_lastPresenter != null &&

@@ -1,11 +1,10 @@
-using System;
-using Ecliptix.Core.Core.Messaging.Connectivity;
-using Ecliptix.Core.Core.Messaging.Services;
-using Ecliptix.Core.Infrastructure.Network.Abstractions.Core;
+using Ecliptix.Core.Messaging.Core.Messaging.Connectivity;
+using Ecliptix.Core.Messaging.Core.Messaging.Services;
+using Ecliptix.Network.Network.Abstractions.Core;
 
-namespace Ecliptix.Core.Infrastructure.Network.Core.Connectivity;
+namespace Ecliptix.Network.Network.Core.Connectivity;
 
-internal sealed class InternetConnectivityBridge : IDisposable
+public sealed class InternetConnectivityBridge : IDisposable
 {
     private readonly IDisposable _subscription;
     private bool _disposed;

@@ -3,10 +3,6 @@ using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Infrastructure.Data;
-using Ecliptix.Core.Infrastructure.Data.Abstractions;
-using Ecliptix.Core.Infrastructure.Network.Core.Providers;
-using Ecliptix.Core.Infrastructure.Security.Abstractions;
-using Ecliptix.Core.Infrastructure.Security.Storage;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.External;
@@ -17,9 +13,16 @@ using Ecliptix.Core.Services.Network;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.Settings.Constants;
-using Ecliptix.Protobuf.Device;
+using Ecliptix.Network.Data;
+using Ecliptix.Network.Data.Abstractions;
+using Ecliptix.Network.Network.Core.Providers;
+using Ecliptix.Network.Security.Abstractions;
+using Ecliptix.Network.Security.Storage;
+using Ecliptix.Network.Services.Core;
+using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.ProtocolState;
+using Ecliptix.Protobuf.Transport.DeviceProvisioning;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
@@ -29,8 +32,6 @@ using Google.Protobuf;
 using Serilog;
 
 namespace Ecliptix.Core.Services.Core;
-
-public record InstanceSettingsResult(ApplicationInstanceSettings Settings, bool IsNewInstance);
 
 public sealed class ApplicationInitializer(
     NetworkProvider networkProvider,

@@ -1,0 +1,115 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                 xmlns:coreControls="clr-namespace:Ecliptix.Core.Controls.Core;assembly=Ecliptix.Core"
+                 xmlns:hintedTextControls="clr-namespace:Ecliptix.Core.Controls.Core.HintedTextControls;assembly=Ecliptix.Core"
+                 xmlns:signIn="clr-namespace:Ecliptix.Feature.Authentication.Authentication.ViewModels.SignIn"
+                 mc:Ignorable="d"
+                 d:DesignWidth="320"
+                 d:DesignHeight="400"
+                 x:DataType="signIn:SignInViewModel"
+                 x:Class="Ecliptix.Feature.Authentication.Authentication.Views.SignIn.SignInView"
+                 MinWidth="{StaticResource Content.MaxWidth}"
+                 Width="{StaticResource Content.MaxWidth}">
+
+    <Grid VerticalAlignment="Top"
+          RowSpacing="{StaticResource Spacing.Authentication}"
+          RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+          HorizontalAlignment="Stretch"
+          Margin="0 -5 0 0"
+          Width="{StaticResource Content.MaxWidth}">
+
+            <StackPanel Grid.Row="0"
+                        Spacing="{StaticResource Spacing.S+}"
+                        HorizontalAlignment="Left"
+                        Margin="0 0 0 5">
+                <TextBlock Text="{Binding LocalizationService[Authentication.SignIn.Title]}"
+                           FontSize="{StaticResource Font.XL}"
+                           FontWeight="Medium"
+                           Foreground="{DynamicResource OnSurface}"/>
+                <TextBlock Text="{Binding LocalizationService[Authentication.SignIn.Welcome]}"
+                           TextWrapping="Wrap"
+                           FontWeight="Normal"
+                           FontSize="{StaticResource Font.XL}"
+                           LineHeight="{StaticResource LineHeight.Subtitle}"
+                           Foreground="{DynamicResource OnSurfaceVariant}"
+                           />
+            </StackPanel>
+
+            <hintedTextControls:HintedTextBox
+                Grid.Row="1"
+                x:Name="MobileTextBox"
+                IsPhoneNumberMode="True"
+                CountryFlagPath="{Binding CountryFlag}"
+                PhonePrefix="{Binding PhonePrefix}"
+                CountryCodeCommand="{Binding OpenCountryPickerCommand}"
+                Watermark="{Binding LocalizationService[Authentication.SignIn.MobilePlaceholder]}"
+                Hint="{Binding LocalizationService[Authentication.SignIn.MobileHint]}"
+                TextForeground="{DynamicResource OnSurface}"
+                HintForeground="{DynamicResource Primary}"
+                ErrorText="{Binding MobileNumberError, Mode=OneWay}"
+                HasError="{Binding HasMobileNumberError, Mode=OneWay}"
+                Text="{Binding MobileNumber, Mode=TwoWay}"
+                Height="{StaticResource Input.Height}"
+                CornerRadius="{StaticResource Input.CornerRadius}"
+                FontSize="{StaticResource Input.FontSize}"
+                WatermarkFontSize="{StaticResource Input.WatermarkFontSize}"
+                FontWeight="Light"
+                HorizontalAlignment="Stretch"
+                IsEnabled="{Binding !IsBusy}"
+                FocusBorderBrush="{DynamicResource Primary}"
+                MaxLength="25"
+                />
+
+            <hintedTextControls:HintedPasswordBox
+                Grid.Row="2"
+                x:Name="SecureKeyTextBox"
+                IsSecureKeyMode="True"
+                Background="{DynamicResource Surface}"
+                Watermark="{Binding LocalizationService[Authentication.SignIn.SecureKeyPlaceholder]}"
+                Hint="{Binding LocalizationService[Authentication.SignIn.SecureKeyHint]}"
+                CornerRadius="{StaticResource Input.CornerRadius}"
+                TextForeground="{DynamicResource OnSurface}"
+                HintForeground="{DynamicResource Primary}"
+                FontSize="{StaticResource Input.FontSize}"
+                WatermarkFontSize="{StaticResource Input.WatermarkFontSize}"
+                ErrorText="{Binding SecureKeyError, Mode=OneWay}"
+                HasError="{Binding HasSecureKeyError, Mode=OneWay}"
+                Height="{StaticResource Input.Height}"
+                FontWeight="Light"
+                HorizontalAlignment="Stretch"
+                MaxLength="28"
+                IconRegularSource="{StaticResource LampIconDrawingRegular}"
+                IconErrorSource="{StaticResource LampIconDrawingError}"
+                IsEnabled="{Binding !IsBusy}"
+                FocusBorderBrush="{DynamicResource Primary}"
+                VisualIcon="Lock"/>
+
+            <Grid Grid.Row="3"
+                  HorizontalAlignment="Stretch"
+                  ColumnDefinitions="208*,176*"
+                  ColumnSpacing="{StaticResource Button.Spacing}">
+                <Button Grid.Column="0"
+                        Content="{Binding LocalizationService[Authentication.SignIn.AccountRecovery]}"
+                        Command="{Binding AccountRecoveryCommand}"
+                        IsEnabled="{Binding !IsBusy}"
+                        Classes="secondary large"
+                        Classes.is-busy="{Binding AccountRecoveryCommand.CanExecute}"/>
+
+                <Button Grid.Column="1"
+                        Content="{Binding LocalizationService[Authentication.SignIn.Continue]}"
+                        Command="{Binding SignInCommand}"
+                        IsEnabled="{Binding !IsBusy}"
+                        Classes="primary large glow"
+                        Classes.is-busy="{Binding IsBusy}"/>
+            </Grid>
+
+            <coreControls:ErrorNotificationView
+                Grid.Row="4"
+                x:Name="ErrorNotification"
+                VerticalAlignment="Top"
+                HorizontalAlignment="Stretch"
+                Margin="0,0,0,0"/>
+        </Grid>
+    </UserControl>

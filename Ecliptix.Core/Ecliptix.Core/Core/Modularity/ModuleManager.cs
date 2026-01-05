@@ -1,14 +1,10 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Modularity.Abstractions;
 using Ecliptix.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
-namespace Ecliptix.Core.Core.Modularity;
+namespace Ecliptix.Core.Modularity.Modularity;
 
 public class ModuleManager : IModuleManager
 {

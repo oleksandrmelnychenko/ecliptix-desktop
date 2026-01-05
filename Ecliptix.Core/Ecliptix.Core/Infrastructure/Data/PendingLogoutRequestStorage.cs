@@ -1,14 +1,13 @@
-using System.Threading.Tasks;
-using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Services.Common;
-using Ecliptix.Protobuf.Membership;
+using Ecliptix.Network.Data.Abstractions;
+using Ecliptix.Protobuf.Transport.Identity;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Membership;
 using Google.Protobuf;
 
-namespace Ecliptix.Core.Infrastructure.Data;
+namespace Ecliptix.Network.Data;
 
-internal sealed class PendingLogoutRequestStorage(IApplicationSecureStorageProvider storageProvider)
+public sealed class PendingLogoutRequestStorage(IApplicationSecureStorageProvider storageProvider)
 {
     private const string STORAGE_KEY = "PendingLogout";
 

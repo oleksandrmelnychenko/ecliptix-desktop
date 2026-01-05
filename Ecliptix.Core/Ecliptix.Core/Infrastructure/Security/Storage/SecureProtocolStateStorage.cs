@@ -1,19 +1,13 @@
-using System;
 using System.Buffers.Binary;
-using System.Collections.Generic;
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Ecliptix.Core.Constants;
-using Ecliptix.Core.Infrastructure.Security.Abstractions;
+using Ecliptix.Network.Security.Abstractions;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures;
 using Grpc.Core;
 
-namespace Ecliptix.Core.Infrastructure.Security.Storage;
+namespace Ecliptix.Network.Security.Storage;
 
 public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, IDisposable
 {
@@ -23,11 +17,21 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
     private static readonly Encoding Ascii = Encoding.ASCII;
     private static readonly byte[] MagicHeaderBytes = Ascii.GetBytes(SecureStorageConstants.Header.MAGIC_HEADER);
     private static readonly char[] InvalidFileNameChars = Path.GetInvalidFileNameChars();
-    private static readonly HashSet<char> InvalidFileNameCharacterSet = [..InvalidFileNameChars];
+    private static readonly HashSet<char> InvalidFileNameCharacterSet = [.. InvalidFileNameChars];
 
     private readonly IPlatformSecurityProvider _platformProvider;
     private readonly string _storageDirectory;
     private readonly byte[] _deviceId;
+
+    private const string STORAGE_DISPOSED_MESSAGE = "Storage is disposed";
+    private const string STATE_FILE_NOT_FOUND_MESSAGE = "State file not found";
+    private const string TAMPERED_STATE_DETECTED_MESSAGE = "Security violation: tampered state detected";
+    private const string ASSOCIATED_DATA_MISMATCH_MESSAGE = "Associated data mismatch";
+    private const string INVALID_CONTAINER_FORMAT_MESSAGE = "Invalid container format";
+    private const string UNSUPPORTED_VERSION_MESSAGE = "Unsupported version: {0}";
+    private const string SAVE_FAILED_MESSAGE = "Save failed: {0}";
+    private const string LOAD_FAILED_MESSAGE = "Load failed: {0}";
+    private const string DELETE_FAILED_MESSAGE = "Delete failed: {0}";
 
     private byte[]? _cachedHmacKey;
     private bool _disposed;
@@ -97,8 +101,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
             await CleanupFailedSaveAsync(storagePath, keychainKey).ConfigureAwait(false);
 
             return Result<Unit, SecureStorageFailure>.Err(
-                new SecureStorageFailure(
-                    string.Format(ApplicationErrorMessages.SecureProtocolStateStorage.SAVE_FAILED, ex.Message)));
+                new SecureStorageFailure(string.Format(SAVE_FAILED_MESSAGE, ex.Message)));
         }
         finally
         {
@@ -141,8 +144,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
                 return await FailAndCleanupAsync(
                         storagePath,
                         keychainKey,
-                        new SecureStorageFailure(
-                            ApplicationErrorMessages.SecureProtocolStateStorage.STATE_FILE_NOT_FOUND))
+                        new SecureStorageFailure(STATE_FILE_NOT_FOUND_MESSAGE))
                     .ConfigureAwait(false);
             }
 
@@ -178,8 +180,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
                 return await FailAndCleanupAsync(
                         storagePath,
                         keychainKey,
-                        new SecureStorageFailure(
-                            ApplicationErrorMessages.SecureProtocolStateStorage.ASSOCIATED_DATA_MISMATCH))
+                        new SecureStorageFailure(ASSOCIATED_DATA_MISMATCH_MESSAGE))
                     .ConfigureAwait(false);
             }
 
@@ -207,8 +208,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
                 return await FailAndCleanupAsync(
                         storagePath,
                         keychainKey,
-                        new SecureStorageFailure(
-                            ApplicationErrorMessages.SecureProtocolStateStorage.TAMPERED_STATE_DETECTED))
+                        new SecureStorageFailure(TAMPERED_STATE_DETECTED_MESSAGE))
                     .ConfigureAwait(false);
             }
         }
@@ -216,8 +216,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         {
             await CleanupStateArtifactsAsync(storagePath, keychainKey).ConfigureAwait(false);
             return Result<byte[], SecureStorageFailure>.Err(
-                new SecureStorageFailure(
-                    string.Format(ApplicationErrorMessages.SecureProtocolStateStorage.LOAD_FAILED, ex.Message)));
+                new SecureStorageFailure(string.Format(LOAD_FAILED_MESSAGE, ex.Message)));
         }
         finally
         {
@@ -258,8 +257,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
             return Result<Unit, SecureStorageFailure>.Err(
-                new SecureStorageFailure(
-                    string.Format(ApplicationErrorMessages.SecureProtocolStateStorage.DELETE_FAILED, ex.Message)));
+                new SecureStorageFailure(string.Format(DELETE_FAILED_MESSAGE, ex.Message)));
         }
     }
 
@@ -395,13 +393,13 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         if (readSpan.Length < MagicHeaderBytes.Length + sizeof(int))
         {
             throw new InvalidOperationException(
-                ApplicationErrorMessages.SecureProtocolStateStorage.INVALID_CONTAINER_FORMAT);
+                INVALID_CONTAINER_FORMAT_MESSAGE);
         }
 
         if (!readSpan[..MagicHeaderBytes.Length].SequenceEqual(MagicHeaderBytes))
         {
             throw new InvalidOperationException(
-                ApplicationErrorMessages.SecureProtocolStateStorage.INVALID_CONTAINER_FORMAT);
+                INVALID_CONTAINER_FORMAT_MESSAGE);
         }
 
         readSpan = readSpan[MagicHeaderBytes.Length..];
@@ -410,7 +408,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         if (version != SecureStorageConstants.Header.CURRENT_VERSION)
         {
             throw new InvalidOperationException(
-                string.Format(ApplicationErrorMessages.SecureProtocolStateStorage.UNSUPPORTED_VERSION, version));
+                string.Format(UNSUPPORTED_VERSION_MESSAGE, version));
         }
 
         readSpan = readSpan[sizeof(int)..];
@@ -424,7 +422,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         if (!readSpan.IsEmpty)
         {
             throw new InvalidOperationException(
-                ApplicationErrorMessages.SecureProtocolStateStorage.INVALID_CONTAINER_FORMAT);
+                INVALID_CONTAINER_FORMAT_MESSAGE);
         }
 
         return new SecureContainer(version, salt, nonce, tag, ciphertext, associatedData);
@@ -450,8 +448,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         if (protectedData.Length < SecureStorageConstants.Encryption.HMAC_SHA_512_SIZE)
         {
             return Result<byte[], SecureStorageFailure>.Err(
-                new SecureStorageFailure(
-                    ApplicationErrorMessages.SecureProtocolStateStorage.TAMPERED_STATE_DETECTED));
+                new SecureStorageFailure(TAMPERED_STATE_DETECTED_MESSAGE));
         }
 
         int macSize = SecureStorageConstants.Encryption.HMAC_SHA_512_SIZE;
@@ -479,8 +476,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
         ZeroBuffer(data);
         return Result<byte[], SecureStorageFailure>.Err(
-            new SecureStorageFailure(
-                ApplicationErrorMessages.SecureProtocolStateStorage.TAMPERED_STATE_DETECTED));
+            new SecureStorageFailure(TAMPERED_STATE_DETECTED_MESSAGE));
     }
 
     private async Task<byte[]> GetHmacKeyAsync()
@@ -607,10 +603,8 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         return Option<byte[]>.From(key);
     }
 
-    private async Task CleanupFailedSaveAsync(string storagePath, string keychainKey)
-    {
+    private async Task CleanupFailedSaveAsync(string storagePath, string keychainKey) =>
         await CleanupStateArtifactsAsync(storagePath, keychainKey).ConfigureAwait(false);
-    }
 
     private async Task CleanupStateArtifactsAsync(string storagePath, string keychainKey)
     {
@@ -657,7 +651,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
     {
         if (_disposed)
         {
-            failure = new SecureStorageFailure(ApplicationErrorMessages.SecureProtocolStateStorage.STORAGE_DISPOSED);
+            failure = new SecureStorageFailure(STORAGE_DISPOSED_MESSAGE);
             return false;
         }
 
@@ -678,22 +672,19 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
     {
         if (source.Length < sizeof(int))
         {
-            throw new InvalidOperationException(
-                ApplicationErrorMessages.SecureProtocolStateStorage.INVALID_CONTAINER_FORMAT);
+            throw new InvalidOperationException(INVALID_CONTAINER_FORMAT_MESSAGE);
         }
 
         int length = BinaryPrimitives.ReadInt32LittleEndian(source);
         if (length < 0)
         {
-            throw new InvalidOperationException(
-                ApplicationErrorMessages.SecureProtocolStateStorage.INVALID_CONTAINER_FORMAT);
+            throw new InvalidOperationException(INVALID_CONTAINER_FORMAT_MESSAGE);
         }
 
         source = source[sizeof(int)..];
         if (source.Length < length)
         {
-            throw new InvalidOperationException(
-                ApplicationErrorMessages.SecureProtocolStateStorage.INVALID_CONTAINER_FORMAT);
+            throw new InvalidOperationException(INVALID_CONTAINER_FORMAT_MESSAGE);
         }
 
         byte[] result = source[..length].ToArray();

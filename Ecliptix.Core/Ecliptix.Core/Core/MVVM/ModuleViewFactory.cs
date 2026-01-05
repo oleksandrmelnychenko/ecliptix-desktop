@@ -2,12 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Avalonia.Controls;
-using Ecliptix.Core.Core.Abstractions;
-using Ecliptix.Core.Features.Chats.ViewModels;
-using Ecliptix.Core.Features.Feed.ViewModels;
-using Ecliptix.Core.Features.Main;
-using Ecliptix.Core.Features.Profile.ViewModels;
-using Ecliptix.Core.Features.Settings.ViewModels;
+using Ecliptix.Core.Modularity.Abstractions;
 using Ecliptix.Utilities;
 using Serilog;
 
@@ -16,6 +11,7 @@ namespace Ecliptix.Core.Core.MVVM;
 public class ModuleViewFactory : IModuleViewFactory
 {
     private readonly Dictionary<Type, Func<Control>> _factories = new();
+    private readonly Dictionary<ModuleIdentifier, Type> _moduleViewModels = new();
     private readonly IModuleManager _moduleManager;
     private readonly IServiceProvider _serviceProvider;
 
@@ -31,6 +27,11 @@ public class ModuleViewFactory : IModuleViewFactory
     {
         Type vmType = typeof(TViewModel);
         _factories[vmType] = () => new TView();
+    }
+
+    public void RegisterModuleViewModel(ModuleIdentifier moduleId, Type viewModelType)
+    {
+        _moduleViewModels[moduleId] = viewModelType;
     }
 
     public Option<Control> CreateView(Type viewModelType)
@@ -58,12 +59,6 @@ public class ModuleViewFactory : IModuleViewFactory
 
     public async Task<Option<UserControl>> CreateViewForModuleAsync(ModuleIdentifier moduleId)
     {
-        if (!MainModule.CanLoadContentModule(moduleId))
-        {
-            Log.Warning("Main module does not allow loading content module: {ModuleName}", moduleId.ToName());
-            return Option<UserControl>.None;
-        }
-
         string moduleName = moduleId.ToName();
 
         Option<IModule> moduleOption = await _moduleManager.LoadModuleAsync(moduleName);
@@ -92,12 +87,8 @@ public class ModuleViewFactory : IModuleViewFactory
         return Option<UserControl>.Some((UserControl)viewOption.Value!);
     }
 
-    private static Type? GetViewModelTypeForModule(ModuleIdentifier moduleId) => moduleId switch
+    private Type? GetViewModelTypeForModule(ModuleIdentifier moduleId)
     {
-        ModuleIdentifier.FEED => typeof(FeedViewModel),
-        ModuleIdentifier.CHATS => typeof(ChatsViewModel),
-        ModuleIdentifier.SETTINGS => typeof(SettingsViewModel),
-        ModuleIdentifier.PROFILE => typeof(ProfileViewModel),
-        _ => null
-    };
+        return _moduleViewModels.TryGetValue(moduleId, out Type? viewModelType) ? viewModelType : null;
+    }
 }

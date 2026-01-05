@@ -1,17 +1,13 @@
-using System;
 using System.Globalization;
-using System.Linq;
-using System.Threading.Tasks;
-using Ecliptix.Core.Infrastructure.Network.Core.Constants;
-using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Network.Resilience;
+using Ecliptix.Network.Network.Core.Constants;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Grpc.Core;
 
 namespace Ecliptix.Core.Services.Network.Rpc;
 
-internal sealed class GrpcErrorProcessor(ILocalizationService localizationService) : IGrpcErrorProcessor
+public sealed class GrpcErrorProcessor : IGrpcErrorProcessor
 {
     public NetworkFailure Process(RpcException rpcException) => CreateFailure(rpcException);
 
@@ -46,10 +42,11 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
         Metadata trailers = rpcException.Trailers;
 
         ErrorCode errorCode = ParseErrorCode(rpcException, trailers);
-        (string message, string keyUsed) = ResolveMessage(
-            GetMetadataValue(trailers, GrpcErrorMetadataKeys.I_18_N_KEY),
-            errorCode,
-            rpcException.Status.Detail);
+        string? requestedKey = GetMetadataValue(trailers, GrpcErrorMetadataKeys.I_18_N_KEY);
+        string message = ResolveMessage(errorCode, rpcException.Status.Detail);
+        string keyUsed = string.IsNullOrWhiteSpace(requestedKey)
+            ? GetFallbackKey(errorCode)
+            : requestedKey;
 
         bool? retryable = ParseRetryable(trailers) ?? IsTransientStatus(rpcException.StatusCode);
 
@@ -90,55 +87,15 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
         return MapStatusCode(rpcException.StatusCode);
     }
 
-    private (string Message, string KeyUsed) ResolveMessage(string? requestedKey, ErrorCode errorCode,
-        string statusDetail)
+    private static string ResolveMessage(ErrorCode errorCode, string statusDetail)
     {
-        if (!string.IsNullOrWhiteSpace(requestedKey))
-        {
-            string localized = Localize(requestedKey);
-            if (!IsMissing(localized))
-            {
-                return (localized, requestedKey);
-            }
-        }
-
-        string fallbackKey = GetFallbackKey(errorCode);
-        string fallbackMessage = Localize(fallbackKey);
-        if (!IsMissing(fallbackMessage))
-        {
-            return (fallbackMessage, fallbackKey);
-        }
-
         if (!string.IsNullOrWhiteSpace(statusDetail))
         {
-            return (statusDetail, fallbackKey);
+            return statusDetail;
         }
 
-        string internalMessage = Localize(ErrorI18NKeys.INTERNAL);
-        if (IsMissing(internalMessage))
-        {
-            internalMessage = "An unexpected error occurred";
-        }
-
-        return (internalMessage, ErrorI18NKeys.INTERNAL);
-    }
-
-    private string Localize(string key)
-    {
-        try
-        {
-            return localizationService[key];
-        }
-        catch
-        {
-            return $"!{key}!";
-        }
-    }
-
-    private static bool IsMissing(string value)
-    {
-        return string.IsNullOrWhiteSpace(value) ||
-               value.StartsWith("!", StringComparison.Ordinal) && value.EndsWith("!", StringComparison.Ordinal);
+        string defaultMessage = GetDefaultMessage(errorCode);
+        return string.IsNullOrWhiteSpace(defaultMessage) ? "An unexpected error occurred" : defaultMessage;
     }
 
     private static bool? ParseRetryable(Metadata trailers)
@@ -166,8 +123,8 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
     }
 
     private static string? GetMetadataValue(Metadata metadata, string key) => (from entry in metadata
-        where entry.Key.Equals(key, StringComparison.OrdinalIgnoreCase)
-        select entry.Value).FirstOrDefault();
+                                                                               where entry.Key.Equals(key, StringComparison.OrdinalIgnoreCase)
+                                                                               select entry.Value).FirstOrDefault();
 
     private static bool IsTransientStatus(StatusCode statusCode) =>
         statusCode is StatusCode.Unavailable or StatusCode.DeadlineExceeded or StatusCode.Cancelled;
@@ -209,6 +166,29 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
             ErrorCode.CANCELLED => ErrorI18NKeys.CANCELLED,
             ErrorCode.DATABASE_UNAVAILABLE => ErrorI18NKeys.DATABASE_UNAVAILABLE,
             _ => ErrorI18NKeys.INTERNAL
+        };
+
+    private static string GetDefaultMessage(ErrorCode errorCode) =>
+        errorCode switch
+        {
+            ErrorCode.VALIDATION_FAILED => "Validation failed",
+            ErrorCode.MAX_ATTEMPTS_REACHED => "Maximum attempts reached",
+            ErrorCode.INVALID_MOBILE_NUMBER => "Invalid mobile number",
+            ErrorCode.OTP_EXPIRED => "Verification code expired",
+            ErrorCode.NOT_FOUND => "Resource not found",
+            ErrorCode.ALREADY_EXISTS => "Already exists",
+            ErrorCode.UNAUTHENTICATED => "Authentication required",
+            ErrorCode.PERMISSION_DENIED => "Permission denied",
+            ErrorCode.PRECONDITION_FAILED => "Precondition failed",
+            ErrorCode.CONFLICT => "Conflict detected",
+            ErrorCode.RESOURCE_EXHAUSTED => "Resource exhausted",
+            ErrorCode.SERVICE_UNAVAILABLE => "Service unavailable",
+            ErrorCode.DEPENDENCY_UNAVAILABLE => "Dependency unavailable",
+            ErrorCode.DEADLINE_EXCEEDED => "Request timed out",
+            ErrorCode.CANCELLED => "Operation cancelled",
+            ErrorCode.DATABASE_UNAVAILABLE => "Database unavailable",
+            ErrorCode.INTERNAL_ERROR => "Internal error occurred",
+            _ => "An unexpected error occurred"
         };
 
     private static NetworkFailureType DetermineFailureType(RpcException rpcException, UserFacingError userError)

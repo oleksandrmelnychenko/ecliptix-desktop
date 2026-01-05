@@ -1,0 +1,90 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:viewModels="clr-namespace:Ecliptix.Feature.Chats.Chats.ViewModels"
+             xmlns:views="clr-namespace:Ecliptix.Feature.Chats.Chats.Views"
+             xmlns:msgVm="clr-namespace:Ecliptix.Feature.Chats.Chats.ViewModels.Messages"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:DataType="viewModels:ConversationViewModel"
+             x:Class="Ecliptix.Feature.Chats.Chats.Views.ConversationView">
+
+    <UserControl.Styles>
+        <StyleInclude Source="/Chats/Styles/ChatStyles.axaml"/>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <Grid.Background>
+            <DrawingBrush TileMode="Tile" SourceRect="0,0,32,32" DestinationRect="0,0,32,32" Stretch="None">
+                <DrawingBrush.Drawing>
+                    <GeometryDrawing Brush="#406A5ACD">
+                        <GeometryDrawing.Geometry>
+                            <EllipseGeometry Rect="15,15,2,2" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                </DrawingBrush.Drawing>
+            </DrawingBrush>
+        </Grid.Background>
+
+        <views:ChatHeaderView Grid.Row="0" />
+
+        <ScrollViewer Grid.Row="1"
+                      Padding="20 0 20 0"
+                      VerticalScrollBarVisibility="Visible"
+                      x:Name="ChatScrollViewer">
+
+            <ItemsControl ItemsSource="{Binding Messages}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Spacing="20" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+
+                <ItemsControl.DataTemplates>
+
+                    <DataTemplate DataType="{x:Type msgVm:DateSeparatorViewModel}">
+                        <views:DateSeparatorView />
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type msgVm:MessageViewModelBase}">
+                        <Grid ColumnDefinitions="Auto, *, Auto">
+
+                            <Border Grid.Column="0" Classes="avatar" IsVisible="{Binding !IsMine}" VerticalAlignment="Top" Margin="0,0,10,0">
+                                <Panel>
+                                    <PathIcon Data="M12,12 A4,4 0 0,1 12,12" Width="16" Height="16" IsVisible="{Binding SenderAvatar, Converter={x:Static ObjectConverters.IsNull}}"/>
+                                    <Image Source="{Binding SenderAvatar}" Stretch="UniformToFill" IsVisible="{Binding SenderAvatar, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+                                </Panel>
+                            </Border>
+
+                            <StackPanel Grid.Column="1"
+                                        Classes="msg-container"
+                                        Classes.mine="{Binding IsMine}"
+                                        Background="Transparent"
+                                        PointerPressed="OnMessagePointerPressed">
+
+                                <views:MessageBubbleView />
+                            </StackPanel>
+
+                            <Border Grid.Column="2" Classes="avatar" IsVisible="{Binding IsMine}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10,0,0,0">
+                                <TextBlock Text="ME" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="10"/>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+
+                </ItemsControl.DataTemplates>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <views:ChatInputView Grid.Row="2" x:Name="ChatInput" />
+
+        <Canvas x:Name="HiddenMeasureContainer"
+                Opacity="0"
+                IsHitTestVisible="False"
+                Width="0"
+                Height="0"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"/>
+        </Grid>
+</UserControl>
+

@@ -1,0 +1,50 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:page="clr-namespace:Ecliptix.Core.Shared.Transitions.Page;assembly=Ecliptix.Core"
+             xmlns:vm="clr-namespace:Ecliptix.Feature.Chats.Chats.ViewModels"
+             xmlns:views="clr-namespace:Ecliptix.Feature.Chats.Chats.Views"
+             mc:Ignorable="d"
+             d:DesignWidth="800"
+             d:DesignHeight="600"
+             x:DataType="vm:ChatsViewModel"
+             x:Class="Ecliptix.Feature.Chats.Chats.Views.ChatsView">
+
+
+    <Grid ColumnDefinitions="340,*">
+
+        <views:ChatSidebarView Grid.Column="0"
+                               DataContext="{Binding SidebarViewModel}" />
+
+        <Grid Grid.Column="1">
+            <TransitioningContentControl Content="{Binding CurrentChatContent}"
+                                         IsTransitionReversed="{Binding IsTransitionReversed}">
+                <TransitioningContentControl.PageTransition>
+                    <page:SharedAxisPageTransition Duration="0:0:0.300"
+                                                   Orientation="Vertical"
+                                                   SlideDistance="30"
+                                                   FadeThreshold="0.5" />
+                </TransitioningContentControl.PageTransition>
+
+                <TransitioningContentControl.DataTemplates>
+                    <DataTemplate DataType="{x:Type vm:ConversationViewModel}">
+                       <views:ConversationView />
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type vm:GroupConversationViewModel}">
+                       <views:GroupConversationView/>
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type vm:ChannelViewModel}">
+                        <views:ChannelView></views:ChannelView>
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type vm:SearchChatViewModel}">
+                        <views:SearchChatView />
+                    </DataTemplate>
+                </TransitioningContentControl.DataTemplates>
+            </TransitioningContentControl>
+        </Grid>
+    </Grid>
+</UserControl>

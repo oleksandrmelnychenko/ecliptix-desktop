@@ -4,7 +4,6 @@ using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Ecliptix.Core.Services.Abstractions.Core;
-using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Core.Services.Core.Localization;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
@@ -25,7 +24,7 @@ public sealed partial class RedirectNotificationViewModel : ReactiveObject, IDis
 
     [Reactive] public int SecondsRemaining { get; set; }
 
-    [Reactive] public string AutoRequestPrefixText { get; set; }
+    [Reactive] public string AutoRequestPrefixText { get; set; } = string.Empty;
 
     public RedirectNotificationViewModel(
         string title,

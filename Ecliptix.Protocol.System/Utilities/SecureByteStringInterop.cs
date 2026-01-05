@@ -5,7 +5,7 @@ using Google.Protobuf;
 
 namespace Ecliptix.Protocol.System.Utilities;
 
-internal static class SecureByteStringInterop
+public static class SecureByteStringInterop
 {
     public static Result<ByteString, SodiumFailure> CreateByteStringFromSecureMemory(SodiumSecureMemoryHandle source,
         int length)

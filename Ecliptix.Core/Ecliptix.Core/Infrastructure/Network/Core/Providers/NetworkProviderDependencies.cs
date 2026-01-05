@@ -1,10 +1,10 @@
-using Ecliptix.Core.Infrastructure.Data.Abstractions;
-using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
-using Ecliptix.Core.Infrastructure.Security.Abstractions;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Network;
+using Ecliptix.Network.Data.Abstractions;
+using Ecliptix.Network.Network.Abstractions.Transport;
+using Ecliptix.Network.Security.Abstractions;
 
-namespace Ecliptix.Core.Infrastructure.Network.Core.Providers;
+namespace Ecliptix.Network.Network.Core.Providers;
 
 public sealed record NetworkProviderDependencies(
     IRpcServiceManager RpcServiceManager,

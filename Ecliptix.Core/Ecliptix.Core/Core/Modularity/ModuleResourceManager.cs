@@ -1,27 +1,28 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Modularity.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
-using Serilog;
 
-namespace Ecliptix.Core.Core.Modularity;
+namespace Ecliptix.Core.Modularity.Modularity;
 
-internal sealed class ModuleServiceContext(IServiceProvider parentProvider)
+public sealed class ModuleServiceContext(IServiceProvider parentProvider)
 {
     public T GetParentService<T>() where T : notnull => parentProvider.GetRequiredService<T>();
 }
 
-internal class ModuleResourceManager(IServiceProvider serviceProvider) : IDisposable
+public class ModuleResourceManager(IServiceProvider serviceProvider,
+    Action<ModuleServiceContext, IServiceCollection>? defaultServiceConfigurator = null) : IDisposable
 {
     private readonly ConcurrentDictionary<string, IModuleScope> _moduleScopes = new();
+    private readonly Action<ModuleServiceContext, IServiceCollection>? _defaultServiceConfigurator =
+        defaultServiceConfigurator;
     private bool _disposed;
 
     public IModuleScope CreateModuleScope(string moduleName, Action<IServiceCollection>? configureServices = null)
     {
         IServiceScope serviceScope;
 
-        if (configureServices != null)
+        bool needsCustomScope = configureServices != null || _defaultServiceConfigurator != null;
+        if (needsCustomScope)
         {
             IServiceScope parentScope = serviceProvider.CreateScope();
             ServiceCollection moduleServices = new();
@@ -29,9 +30,8 @@ internal class ModuleResourceManager(IServiceProvider serviceProvider) : IDispos
             ModuleServiceContext context = new(parentScope.ServiceProvider);
             moduleServices.AddSingleton(context);
 
-            AutoForwardCoreServices(moduleServices, context);
-
-            configureServices(moduleServices);
+            _defaultServiceConfigurator?.Invoke(context, moduleServices);
+            configureServices?.Invoke(moduleServices);
 
             ServiceProvider moduleServiceProvider = moduleServices.BuildServiceProvider();
             serviceScope = new CompositeServiceScope(moduleServiceProvider, parentScope);
@@ -51,33 +51,6 @@ internal class ModuleResourceManager(IServiceProvider serviceProvider) : IDispos
         moduleScope.Dispose();
         throw new InvalidOperationException($"Module scope for '{moduleName}' already exists");
 
-    }
-
-    private static void AutoForwardCoreServices(IServiceCollection moduleServices, ModuleServiceContext context)
-    {
-        moduleServices.AddSingleton(context.GetParentService<Core.Messaging.Services.IConnectivityService>());
-        moduleServices.AddSingleton(context.GetParentService<Core.Messaging.Services.IBottomSheetService>());
-        moduleServices.AddSingleton(context.GetParentService<Core.Messaging.Services.ILanguageDetectionService>());
-        moduleServices.AddSingleton(context.GetParentService<Infrastructure.Network.Core.Providers.NetworkProvider>());
-        moduleServices.AddSingleton(context
-            .GetParentService<Infrastructure.Network.Abstractions.Core.IInternetConnectivityObserver>());
-        moduleServices.AddSingleton(context
-            .GetParentService<Infrastructure.Network.Abstractions.Transport.IRpcMetaDataProvider>());
-        moduleServices.AddSingleton(context
-            .GetParentService<Infrastructure.Data.Abstractions.IApplicationSecureStorageProvider>());
-        moduleServices.AddSingleton(context.GetParentService<Services.Abstractions.Core.ILocalizationService>());
-        moduleServices.AddSingleton(context.GetParentService<Services.Abstractions.Core.IApplicationRouter>());
-        moduleServices.AddSingleton(context.GetParentService<Services.Abstractions.Membership.ILogoutService>());
-        moduleServices.AddSingleton(context
-            .GetParentService<Services.Abstractions.Authentication.IAuthenticationService>());
-        moduleServices.AddSingleton(context
-            .GetParentService<Services.Abstractions.Authentication.IOpaqueRegistrationService>());
-        moduleServices.AddSingleton(context
-            .GetParentService<Services.Abstractions.Authentication.ISecureKeyRecoveryService>());
-        moduleServices.AddSingleton(context
-            .GetParentService<Ecliptix.Core.Controls.Core.ConnectivityNotificationViewModel>());
-
-        Log.Debug("Auto-forwarded core services to module service collection");
     }
 
     public bool RemoveModuleScope(string moduleName)

@@ -1,9 +1,10 @@
 using System;
 using System.Threading;
-using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Security;
+using Ecliptix.Network.Network.Core.Providers;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
+using Google.Protobuf;
 using Serilog;
 
 namespace Ecliptix.Core.Services.Security;
@@ -24,7 +25,7 @@ internal sealed class ServerPublicKeyProvider(NetworkProvider networkProvider) :
             }
 
             byte[] newKey = SecureByteStringInterop.WithByteStringAsSpan(
-                networkProvider.ApplicationInstanceSettings.ServerPublicKey,
+                networkProvider.ApplicationInstanceSettings.ServerPublicKey ?? ByteString.Empty,
                 span => span.ToArray());
 
             if (newKey.Length != EXPECTED_KEY_LENGTH)

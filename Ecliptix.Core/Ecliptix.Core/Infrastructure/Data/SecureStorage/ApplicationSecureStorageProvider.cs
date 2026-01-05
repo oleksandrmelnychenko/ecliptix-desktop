@@ -5,14 +5,14 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Ecliptix.Core.Constants;
-using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Data.SecureStorage.Configuration;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.Core;
 using Ecliptix.Core.Services.External.IpGeolocation;
-using Ecliptix.Protobuf.Device;
-using Ecliptix.Protobuf.Membership;
-using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Network.Data.Abstractions;
+using Ecliptix.Network.Services.Core;
+using Ecliptix.Protobuf.Common;
+using Ecliptix.Protobuf.Transport.Identity;
 using Ecliptix.Utilities;
 using Google.Protobuf;
 using Microsoft.AspNetCore.DataProtection;
@@ -24,6 +24,7 @@ namespace Ecliptix.Core.Infrastructure.Data.SecureStorage;
 internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStorageProvider
 {
     private const string SETTINGS_KEY = "ApplicationInstanceSettings";
+    private const string WINDOW_PLACEMENT_KEY = "WindowPlacement";
 
     private readonly IDataProtector _protector;
     private readonly string _storagePath;
@@ -36,7 +37,7 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         SecureStoreOptions opts = options.Value;
 
         _storagePath = opts.EncryptedStatePath;
-        _protector = dataProtectionProvider.CreateProtector("Ecliptix.SecureStorage.v1");
+        _protector = dataProtectionProvider.CreateProtector("Ecliptix.SecureStorage.v2");
 
         InitializeStorageDirectory();
     }
@@ -51,10 +52,8 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         }
 
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
-        settings.Culture = cultureName;
-
-        return await SecureByteStringInterop.WithByteStringAsSpan(settings.ToByteString(),
-            span => StoreAsync(SETTINGS_KEY, span.ToArray()));
+        settings.Culture = cultureName ?? settings.Culture;
+        return await StoreSettingsAsync(settings);
     }
 
     public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationInstanceAsync(bool isNewInstance)
@@ -68,8 +67,7 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
 
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
         settings.IsNewInstance = isNewInstance;
-        return await SecureByteStringInterop.WithByteStringAsSpan(settings.ToByteString(),
-            span => StoreAsync(SETTINGS_KEY, span.ToArray()));
+        return await StoreSettingsAsync(settings);
     }
 
     public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationIpCountryAsync(IpCountry ipCountry)
@@ -82,13 +80,11 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         }
 
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
-        settings.Country = ipCountry.Country;
-
-        return await SecureByteStringInterop.WithByteStringAsSpan(settings.ToByteString(),
-            span => StoreAsync(SETTINGS_KEY, span.ToArray()));
+        settings.Country = ipCountry.Country ?? settings.Country;
+        return await StoreSettingsAsync(settings);
     }
 
-    public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationMembershipAsync(Membership? membership)
+    public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationMembershipAsync(ByteString? membershipId)
     {
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
             await GetApplicationInstanceSettingsAsync();
@@ -98,10 +94,10 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         }
 
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
-        settings.Membership = membership;
-
-        return await SecureByteStringInterop.WithByteStringAsSpan(settings.ToByteString(),
-            span => StoreAsync(SETTINGS_KEY, span.ToArray()));
+        settings.Membership = membershipId is { Length: > 0 }
+            ? new Membership { UniqueIdentifier = membershipId }
+            : null;
+        return await StoreSettingsAsync(settings);
     }
 
     public async Task<Result<Unit, InternalServiceApiFailure>> SetCurrentAccountIdAsync(ByteString? accountId)
@@ -114,13 +110,12 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         }
 
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
-        settings.CurrentAccountId = accountId ?? ByteString.Empty;
-
-        return await SecureByteStringInterop.WithByteStringAsSpan(settings.ToByteString(),
-            span => StoreAsync(SETTINGS_KEY, span.ToArray()));
+        settings.AccountId = accountId;
+        settings.CurrentAccountId = accountId;
+        return await StoreSettingsAsync(settings);
     }
 
-    public async Task<Result<Unit, InternalServiceApiFailure>> SetWindowPlacementAsync(WindowPlacement windowPlacement)
+    public async Task<Result<Unit, InternalServiceApiFailure>> SetServerPublicKeyAsync(ByteString? serverPublicKey)
     {
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
             await GetApplicationInstanceSettingsAsync();
@@ -130,9 +125,23 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         }
 
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
-        settings.WindowPlacement = windowPlacement;
-        return await SecureByteStringInterop.WithByteStringAsSpan(settings.ToByteString(),
-            span => StoreAsync(SETTINGS_KEY, span.ToArray()));
+        settings.ServerPublicKey = serverPublicKey ?? ByteString.Empty;
+        return await StoreSettingsAsync(settings);
+    }
+
+    public async Task<Result<Unit, InternalServiceApiFailure>> SetWindowPlacementAsync(WindowPlacement windowPlacement)
+    {
+        try
+        {
+            byte[] data = SerializeWindowPlacement(windowPlacement);
+            return await StoreAsync(WINDOW_PLACEMENT_KEY, data);
+        }
+        catch (Exception ex)
+        {
+            return Result<Unit, InternalServiceApiFailure>.Err(
+                InternalServiceApiFailure.SecureStoreAccessDenied(
+                    ApplicationErrorMessages.SecureStorageProvider.FAILED_TO_WRITE_TO_STORAGE, ex));
+        }
     }
 
     public async Task<Result<ApplicationInstanceSettings, InternalServiceApiFailure>>
@@ -154,10 +163,17 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
 
         try
         {
-            ApplicationInstanceSettings settings = ApplicationInstanceSettings.Parser.ParseFrom(maybeData.Value);
+            if (maybeData.Value == null || maybeData.Value.Length == 0)
+            {
+                return Result<ApplicationInstanceSettings, InternalServiceApiFailure>.Err(
+                    InternalServiceApiFailure.SecureStoreAccessDenied(
+                        ApplicationErrorMessages.SecureStorageProvider.CORRUPT_SETTINGS_DATA));
+            }
+
+            ApplicationInstanceSettings settings = DeserializeSettings(maybeData.Value);
             return Result<ApplicationInstanceSettings, InternalServiceApiFailure>.Ok(settings);
         }
-        catch (InvalidProtocolBufferException ex)
+        catch (Exception ex)
         {
             return Result<ApplicationInstanceSettings, InternalServiceApiFailure>.Err(
                 InternalServiceApiFailure.SecureStoreAccessDenied(
@@ -185,11 +201,16 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
 
         try
         {
-            ApplicationInstanceSettings settings = ApplicationInstanceSettings.Parser.ParseFrom(maybeData.Value);
+            if (maybeData.Value == null || maybeData.Value.Length == 0)
+            {
+                return await CreateAndStoreNewSettingsAsync(defaultCulture);
+            }
+
+            ApplicationInstanceSettings settings = DeserializeSettings(maybeData.Value);
             return Result<InstanceSettingsResult, InternalServiceApiFailure>.Ok(
                 new InstanceSettingsResult(settings, false));
         }
-        catch (InvalidProtocolBufferException ex)
+        catch (Exception ex)
         {
             Log.Warning(ex,
                 "[SETTINGS-INIT-RECOVERY] Settings parsing failed, creating fresh settings. ERROR: {Error}",
@@ -205,13 +226,15 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         {
             AppInstanceId = Helpers.GuidToByteString(Guid.NewGuid()),
             DeviceId = Helpers.GuidToByteString(Guid.NewGuid()),
-            Culture = defaultCulture
+            Country = "Unknown",
+            Culture = defaultCulture ?? "en-US",
+            AccountId = ByteString.Empty,
+            CurrentAccountId = ByteString.Empty,
+            ServerPublicKey = ByteString.Empty,
+            IsNewInstance = true
         };
 
-        Result<Unit, InternalServiceApiFailure> storeResult = await SecureByteStringInterop.WithByteStringAsSpan(
-            newSettings.ToByteString(),
-            span => StoreAsync(SETTINGS_KEY, span.ToArray()));
-
+        Result<Unit, InternalServiceApiFailure> storeResult = await StoreSettingsAsync(newSettings);
         if (storeResult.IsErr)
         {
             Log.Warning(
@@ -354,5 +377,70 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         }
 
         return ValueTask.CompletedTask;
+    }
+
+    private async Task<Result<Unit, InternalServiceApiFailure>> StoreSettingsAsync(ApplicationInstanceSettings settings)
+    {
+        try
+        {
+            byte[] data = SerializeSettings(settings);
+            return await StoreAsync(SETTINGS_KEY, data);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[SECURE-STORAGE] Failed to store application settings. ERROR: {Error}", ex.Message);
+            return Result<Unit, InternalServiceApiFailure>.Err(
+                InternalServiceApiFailure.SecureStoreAccessDenied(
+                    ApplicationErrorMessages.SecureStorageProvider.FAILED_TO_WRITE_TO_STORAGE, ex));
+        }
+    }
+
+    private static byte[] SerializeSettings(ApplicationInstanceSettings settings)
+    {
+        ApplicationInstanceSettings proto = settings.Clone();
+        proto.AppInstanceId = proto.AppInstanceId ?? ByteString.Empty;
+        proto.DeviceId = proto.DeviceId ?? ByteString.Empty;
+        proto.Country ??= string.Empty;
+        proto.Culture ??= string.Empty;
+        proto.MembershipId = proto.MembershipId ?? ByteString.Empty;
+        proto.AccountId = proto.AccountId ?? ByteString.Empty;
+        proto.CurrentAccountId = proto.CurrentAccountId ?? ByteString.Empty;
+        proto.ServerPublicKey = proto.ServerPublicKey ?? ByteString.Empty;
+
+        if (proto.WindowPlacement is { } placement)
+        {
+            proto.WindowPlacement = MapWindowPlacementToProto(placement);
+        }
+
+        return proto.ToByteArray();
+    }
+
+    private static ApplicationInstanceSettings DeserializeSettings(byte[] payload)
+    {
+        ApplicationInstanceSettings settings = ApplicationInstanceSettings.Parser.ParseFrom(payload);
+
+        settings.Membership = settings.MembershipId.Length > 0
+            ? new Membership { UniqueIdentifier = settings.MembershipId }
+            : null;
+
+        if (settings.WindowPlacement != null)
+        {
+            settings.WindowPlacement = MapWindowPlacementFromProto(settings.WindowPlacement);
+        }
+
+        return settings;
+    }
+
+    private static byte[] SerializeWindowPlacement(WindowPlacement placement) =>
+        MapWindowPlacementToProto(placement).ToByteArray();
+
+    private static WindowPlacement MapWindowPlacementToProto(WindowPlacement placement) =>
+        placement.Clone();
+
+    private static WindowPlacement MapWindowPlacementFromProto(WindowPlacement proto)
+    {
+        WindowPlacement placement = proto.Clone();
+        placement.IsValidSave = placement.ClientWidth > 0 && placement.ClientHeight > 0;
+        return placement;
     }
 }
