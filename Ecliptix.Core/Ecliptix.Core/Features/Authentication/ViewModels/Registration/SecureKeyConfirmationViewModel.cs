@@ -207,8 +207,6 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModel
                     ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.PIN_SET_VIEW);
                 })
                 .DisposeWith(disposables);
-
-            SetServerError("TEsting error notification placement");
         });
     }
 
@@ -235,7 +233,7 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModel
             {
                 if (host is { } authVm)
                 {
-                    authVm.ClearNavigationStack(preserveInitialWelcome: true);
+                    authVm.ClearNavigationStack();
                     authVm.Navigate.Execute(MembershipViewType.WELCOME_VIEW).Subscribe();
                 }
             },
