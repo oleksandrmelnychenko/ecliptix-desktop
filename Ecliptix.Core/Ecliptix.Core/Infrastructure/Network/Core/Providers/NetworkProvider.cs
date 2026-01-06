@@ -760,7 +760,8 @@ public sealed class NetworkProvider(
         ApplicationInstanceSettings applicationInstanceSettings,
         RestoreRetryMode retryMode = RestoreRetryMode.AUTO_RETRY,
         bool enablePendingRegistration = true,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool isInitialization = false)
     {
         InitializeApplicationSettings(applicationInstanceSettings);
         SetupRpcMetadata(applicationInstanceSettings);
@@ -771,7 +772,8 @@ public sealed class NetworkProvider(
                 request,
                 ecliptixSecrecyChannelState.ConnectId,
                 retryMode,
-                cancellationToken);
+                cancellationToken,
+                isInitialization);
 
         if (restoreResponse.IsErr)
         {
@@ -813,12 +815,13 @@ public sealed class NetworkProvider(
         RestoreChannelRequest request,
         uint connectId,
         RestoreRetryMode retryMode,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool isInitialization)
     {
         return retryMode switch
         {
             RestoreRetryMode.AUTO_RETRY =>
-                await ExecuteWithAutoRetryAsync(request, connectId, cancellationToken),
+                await ExecuteWithAutoRetryAsync(request, connectId, cancellationToken, isInitialization),
             RestoreRetryMode.MANUAL_RETRY =>
                 await ExecuteWithManualRetryAsync(request, connectId, cancellationToken),
             RestoreRetryMode.DIRECT_NO_RETRY =>
@@ -831,9 +834,18 @@ public sealed class NetworkProvider(
     private async Task<Result<RestoreChannelResponse, NetworkFailure>> ExecuteWithAutoRetryAsync(
         RestoreChannelRequest request,
         uint connectId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool isInitialization)
     {
-        BeginSecrecyChannelEstablishRecovery();
+        if (!isInitialization)
+        {
+            BeginSecrecyChannelEstablishRecovery();
+        }
+        else
+        {
+            EnsureConnectionRecoveryToken();
+        }
+
         CancellationToken recoveryToken = GetConnectionRecoveryToken();
         using CancellationTokenSource combinedCts = CreateLinkedTokenSource(recoveryToken, cancellationToken);
 

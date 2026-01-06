@@ -401,7 +401,10 @@ public sealed class ApplicationInitializer(
         }
 
         Result<bool, NetworkFailure> restoreResult =
-            await networkProvider.RestoreSecrecyChannelAsync(state.Value!, applicationInstanceSettings).ConfigureAwait(false);
+            await networkProvider.RestoreSecrecyChannelAsync(
+                state.Value!,
+                applicationInstanceSettings,
+                isInitialization: true).ConfigureAwait(false);
 
         if (restoreResult.IsErr)
         {
