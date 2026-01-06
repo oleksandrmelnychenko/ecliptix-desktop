@@ -24,11 +24,11 @@
   <Grid RowDefinitions="Auto, *" Margin="16">
         <Grid ColumnDefinitions="*, Auto" Margin="0,0,0,20">
             <StackPanel Grid.Column="0" Spacing="2">
-                <TextBlock Text="{Binding LocalizationService[LanguagePicker.Title]}"
+                <TextBlock Text="{Binding Title}"
                            FontFamily="{StaticResource SegoeUI}"
                            FontSize="16" FontWeight="Bold"
                            Foreground="{DynamicResource OnSurface}"/>
-                <TextBlock Text="{Binding LocalizationService[LanguagePicker.Subtitle]}"
+                <TextBlock Text="{Binding Subtitle}"
                            FontFamily="{StaticResource SegoeUI}"
                            FontSize="12" FontWeight="Normal"
                            Foreground="#6B7280"/>
