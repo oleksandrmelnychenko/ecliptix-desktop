@@ -1,5 +1,6 @@
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
+using Native = Ecliptix.Protocol.System.Native.NativeInterop;
 
 namespace Ecliptix.Protocol.System.Native;
 
@@ -7,15 +8,15 @@ public static class NativeProtocolSystem
 {
     public static Result<Unit, EcliptixProtocolFailure> Initialize()
     {
-        EcliptixErrorCode result = EcliptixNativeInterop.ecliptix_initialize();
-        return result == EcliptixErrorCode.SUCCESS
+        Native.EcliptixErrorCode result = Native.ecliptix_initialize();
+        return result == Native.EcliptixErrorCode.Success
             ? Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value)
             : Result<Unit, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.Generic(
-                    $"Failed to initialize native protocol: {EcliptixNativeInterop.ErrorCodeToString(result)}"));
+                    $"Failed to initialize native protocol: {Native.ErrorCodeToString(result)}"));
     }
 
-    public static void Shutdown() => EcliptixNativeInterop.ecliptix_shutdown();
+    public static void Shutdown() => Native.ecliptix_shutdown();
 
     public static Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure> CreateIdentity()
         => EcliptixIdentityKeysWrapper.Create();
@@ -39,5 +40,5 @@ public static class NativeProtocolSystem
         return Result<NativeProtocolSession, EcliptixProtocolFailure>.Ok(session);
     }
 
-    public static string GetVersion() => EcliptixNativeInterop.GetVersion();
+    public static string GetVersion() => Native.GetVersion();
 }

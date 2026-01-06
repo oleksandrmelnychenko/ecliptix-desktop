@@ -5,35 +5,11 @@
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>14</LangVersion>
-        <!-- Default to host RID when not provided, so native copy logic can locate the binary -->
-        <RuntimeIdentifier Condition="'$(RuntimeIdentifier)'==''">$([System.Runtime.InteropServices.RuntimeInformation]::RuntimeIdentifier)</RuntimeIdentifier>
-        <!-- Use platform-appropriate base name (Unix shared libs often carry a lib prefix) -->
-        <EcliptixNativeBaseName Condition="'$(EcliptixNativeBaseName)'=='' and $([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('win'))">ecliptix_protocol</EcliptixNativeBaseName>
-        <EcliptixNativeBaseName Condition="'$(EcliptixNativeBaseName)'=='' and !$([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('win'))">libecliptix_protocol</EcliptixNativeBaseName>
-        <!-- Resolve native dir in priority order: explicit property, env override, local CLion build, then repo-native staging -->
-        <EcliptixNativeDir Condition="'$(EcliptixNativeDir)'=='' and '$(ECLIPTIX_NATIVE_DIR)'!=''">$(ECLIPTIX_NATIVE_DIR)</EcliptixNativeDir>
-        <EcliptixNativeDir Condition="'$(EcliptixNativeDir)'=='' and Exists('/Users/oleksandrmelnychenko/CLionProjects/Ecliptix.Protocol.System/build/$(RuntimeIdentifier)')">/Users/oleksandrmelnychenko/CLionProjects/Ecliptix.Protocol.System/build/$(RuntimeIdentifier)</EcliptixNativeDir>
-        <EcliptixNativeDir Condition="'$(EcliptixNativeDir)'=='' and Exists('/Users/oleksandrmelnychenko/CLionProjects/Ecliptix.Protocol.System/build')">/Users/oleksandrmelnychenko/CLionProjects/Ecliptix.Protocol.System/build</EcliptixNativeDir>
-        <EcliptixNativeDir Condition="'$(EcliptixNativeDir)'==''">$(MSBuildThisFileDirectory)native/$(RuntimeIdentifier)</EcliptixNativeDir>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(EcliptixNativeExt)'=='' and '$(RuntimeIdentifier)'!='' and $([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('win'))">
-        <EcliptixNativeExt>.dll</EcliptixNativeExt>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(EcliptixNativeExt)'=='' and '$(RuntimeIdentifier)'!='' and $([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('osx'))">
-        <EcliptixNativeExt>.dylib</EcliptixNativeExt>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(EcliptixNativeExt)'=='' and '$(RuntimeIdentifier)'!='' and ! $([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('win')) and ! $([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('osx'))">
-        <EcliptixNativeExt>.so</EcliptixNativeExt>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(EcliptixNativeExt)'=='' and '$(OS)'=='Windows_NT'">
-        <EcliptixNativeExt>.dll</EcliptixNativeExt>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(EcliptixNativeExt)'=='' and '$(OS)'!='Windows_NT'">
-        <EcliptixNativeExt>.so</EcliptixNativeExt>
     </PropertyGroup>
 
     <ItemGroup>
+      <!-- NuGet package provides native libraries and P/Invoke interop -->
+      <PackageReference Include="Ecliptix.Protocol.Client" Version="1.0.0-ci.29" />
       <PackageReference Include="Google.Protobuf" Version="3.33.0" />
       <PackageReference Include="Grpc.Core.Api" Version="2.71.0" />
       <PackageReference Include="Grpc.Tools" Version="2.76.0">
@@ -68,15 +44,6 @@
 
     <ItemGroup>
       <None Include="Scripts\**\*" />
-      <None Include="Native\osx-arm64\**\*" />
     </ItemGroup>
-    <Target Name="CopyNativeProtocolLibrary" AfterTargets="Build" Condition="'$(EcliptixNativeExt)'!=''">
-      <PropertyGroup>
-        <_EcliptixNativePath>$(EcliptixNativeDir)/$(EcliptixNativeBaseName)$(EcliptixNativeExt)</_EcliptixNativePath>
-      </PropertyGroup>
-      <Message Importance="High" Text="Copying native protocol library from $(_EcliptixNativePath) to $(OutDir)" Condition="Exists('$(_EcliptixNativePath)')" />
-      <Copy SourceFiles="$(_EcliptixNativePath)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" Condition="Exists('$(_EcliptixNativePath)')" />
-      <Warning Text="Native protocol library not found at $(_EcliptixNativePath). Set EcliptixNativeDir/EcliptixNativeBaseName/EcliptixNativeExt or provide a RuntimeIdentifier." Condition="!Exists('$(_EcliptixNativePath)')" />
-    </Target>
 
 </Project>
