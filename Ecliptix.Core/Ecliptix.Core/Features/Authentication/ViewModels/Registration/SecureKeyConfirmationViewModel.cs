@@ -198,6 +198,15 @@ public sealed class SecureKeyConfirmationViewModel : Core.MVVM.ViewModelBase, IR
                 })
                 .Subscribe()
                 .DisposeWith(disposables);
+
+            SubmitCommand
+                .Where(_ => !IsBusy && CanSubmit)
+                .Subscribe(_ =>
+                {
+                    ((AuthenticationViewModel)HostScreen).ClearNavigationStack(true);
+                    ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.PIN_SET_VIEW);
+                })
+                .DisposeWith(disposables);
         });
     }
 

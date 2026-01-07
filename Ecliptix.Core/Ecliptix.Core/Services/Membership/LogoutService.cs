@@ -113,8 +113,7 @@ internal sealed class LogoutService(
 
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
 
-        // TEST FIX if (settings.Membership?.UniqueIdentifier == null)
-        if(settings.CurrentAccountId == null)
+        if (settings.Membership?.UniqueIdentifier == null)
         {
             return Result<string, LogoutFailure>.Err(
                 LogoutFailure.InvalidMembershipIdentifier("No active session found"));

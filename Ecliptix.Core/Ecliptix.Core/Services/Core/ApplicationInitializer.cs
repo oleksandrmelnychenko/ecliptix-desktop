@@ -334,7 +334,6 @@ public sealed class ApplicationInitializer(
 
             applicationInstanceSettings.Membership = null;
         }
-        networkProvider.ClearConnection(connectId);
 
         networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
     }
