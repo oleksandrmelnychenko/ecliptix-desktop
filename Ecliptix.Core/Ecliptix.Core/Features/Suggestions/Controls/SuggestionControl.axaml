@@ -8,7 +8,8 @@
 			 x:DataType="models:Suggestion"
 			 x:Class="Ecliptix.Core.Features.Suggestions.Controls.SuggestionControl">
 
-	<Border Classes="card" Margin="0,0,0,8"
+	<Border Classes="card"
+			Margin="0,0,0,8"
 			Height="114.5"
 			Width="248"
 			CornerRadius="14"
@@ -28,45 +29,82 @@
 			  ColumnSpacing="12"
 			  Background="#fff">
 
-			<Border Classes="avatar"
-					Grid.Column="0"
-					VerticalAlignment="Top"
-					HorizontalAlignment="Center"
-					Width="48"
-					Height="48"
-					CornerRadius="30"
-					Background="#C37BFF">
+			<!--Avatar-->
+			<Grid Grid.Column="0"
+				  VerticalAlignment="Top"
+				  HorizontalAlignment="Center">
 
-				<Border VerticalAlignment="Center"
-						HorizontalAlignment="Center"
-						Width="44"
-						Height="44"
+				<Border Classes="avatar"
+						Width="48"
+						Height="48"
 						CornerRadius="30"
-						Background="#fff">
+						Background="#C37BFF">
 
 					<Border VerticalAlignment="Center"
 							HorizontalAlignment="Center"
-							Width="40"
-							Height="40"
+							Width="44"
+							Height="44"
 							CornerRadius="30"
-							ClipToBounds="True"
-							Background="#8a7ae0">
-						<Panel>
-							<Image asyncImageLoader:ImageLoader.Source="{Binding Author.AvatarUrl}"
-								   Stretch="Fill"
-								   IsVisible="{Binding Author.AvatarUrl, Converter={x:Static ObjectConverters.IsNotNull}}" />
-							<TextBlock Text="{Binding Author.DisplayName, Converter={StaticResource InitialsConverter}}"
-									   FontSize="16"
-									   Foreground="#fff"
-									   FontWeight="SemiBold"
-									   HorizontalAlignment="Center"
-									   VerticalAlignment="Center"
-									   IsVisible="{Binding Author.AvatarUrl, Converter={x:Static ObjectConverters.IsNull}}" />
-						</Panel>
+							Background="#fff">
+
+						<Border VerticalAlignment="Center"
+								HorizontalAlignment="Center"
+								Width="40"
+								Height="40"
+								CornerRadius="30"
+								ClipToBounds="True"
+								Background="#8a7ae0">
+							<Panel>
+								<Image asyncImageLoader:ImageLoader.Source="{Binding Author.AvatarUrl}"
+									   Stretch="Fill"
+									   IsVisible="{Binding Author.AvatarUrl, Converter={x:Static ObjectConverters.IsNotNull}}" />
+								<TextBlock Text="{Binding Author.DisplayName, Converter={StaticResource InitialsConverter}}"
+										   FontSize="16"
+										   Foreground="#fff"
+										   FontWeight="SemiBold"
+										   HorizontalAlignment="Center"
+										   VerticalAlignment="Center"
+										   IsVisible="{Binding Author.AvatarUrl, Converter={x:Static ObjectConverters.IsNull}}" />
+							</Panel>
+						</Border>
 					</Border>
 				</Border>
-			</Border>
 
+				<!--Following circle-->
+				<Grid IsVisible="{Binding IsFollowing}"
+					  VerticalAlignment="Bottom"
+					  HorizontalAlignment="Right">
+					<Border VerticalAlignment="Center"
+							HorizontalAlignment="Center"
+							BorderThickness="2"
+							BorderBrush="#fff"
+							Width="20"
+							Height="20"
+							CornerRadius="10"
+							Background="#6a5acd">
+
+						<Path Width="8"
+							  Height="8"
+							  Fill="#fff"
+							  Stretch="Uniform"
+							  HorizontalAlignment="Center"
+							  VerticalAlignment="Center"
+							  Data="
+							  M8.3535 2.6465
+							  a0.5 1 0 0 1 0 0.707
+							  l-4 4
+							  a0.5 1 0 0 1-0.707 0
+							  l-2-2
+							  a0.5 1 0 0 1 0.707-0.707
+							  L4 6.293
+							  l3.6465-3.6465
+							  a0.5 1 0 0 1 0.707 0
+							  z"/>
+					</Border>
+				</Grid>
+			</Grid>
+
+			<!--Author info-->
 			<Grid Grid.Column="1"
 				  RowDefinitions="Auto,Auto,Auto"
 				  ColumnDefinitions="*,Auto"
