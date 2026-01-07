@@ -9,6 +9,7 @@ using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Common;
+using Ecliptix.Core.Services.Core.Localization;
 using Ecliptix.Core.Settings;
 using Ecliptix.Utilities;
 using ReactiveUI;
@@ -35,12 +36,12 @@ public class LanguagePickerViewModel : ReactiveObject, IActivatableViewModel, ID
 
     public ViewModelActivator Activator { get; } = new();
 
-    public ILocalizationService LocalizationService => _localizationService;
+    [Reactive] public string Title { get; private set; } = string.Empty;
+    [Reactive] public string Subtitle { get; private set; } = string.Empty;
 
     public ObservableCollection<LanguagePickerItemViewModel> Languages { get; }
 
     public ReactiveCommand<Unit, Unit> CloseCommand { get; }
-
     public ReactiveCommand<LanguagePickerItemViewModel, Unit> SelectLanguageCommand { get; }
 
     public LanguagePickerViewModel(
@@ -70,7 +71,22 @@ public class LanguagePickerViewModel : ReactiveObject, IActivatableViewModel, ID
         {
             await SelectLanguageAsync(selectedItem);
         });
+
+        RefreshLocalization();
     }
+
+    public void RefreshLocalization()
+    {
+        Title = _localizationService[LocalizationKeys.LanguagePicker.TITLE];
+        Subtitle = _localizationService[LocalizationKeys.LanguagePicker.SUBTITLE];
+
+        string currentCulture = _localizationService.CurrentCultureName;
+        foreach (LanguagePickerItemViewModel lang in Languages)
+        {
+            lang.IsSelected = lang.Model.Code == currentCulture;
+        }
+    }
+
 
     private async Task SelectLanguageAsync(LanguagePickerItemViewModel selectedItem)
     {

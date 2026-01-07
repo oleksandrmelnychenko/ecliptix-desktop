@@ -34,7 +34,7 @@ using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
-public class RequirementItem : ReactiveObject
+public sealed class RequirementItem : ReactiveObject
 {
     [Reactive] public string Text { get; set; }
     [Reactive] public bool IsMet { get; set; }
@@ -46,7 +46,7 @@ public class RequirementItem : ReactiveObject
     }
 }
 
-public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
+public sealed class SecureKeyConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
 {
     private const int VALIDATION_THROTTLE_MS = 150;
 
@@ -287,10 +287,14 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModel
 
     public void ResetState()
     {
-        _secureKeyBuffer.Remove(0, _secureKeyBuffer.Length);
-        _verifySecureKeyBuffer.Remove(0, _verifySecureKeyBuffer.Length);
         _hasSecureKeyBeenTouched = false;
         _hasVerifySecureKeyBeenTouched = false;
+
+        _secureKeyBuffer.Remove(0, _secureKeyBuffer.Length);
+        _verifySecureKeyBuffer.Remove(0, _verifySecureKeyBuffer.Length);
+
+        this.RaisePropertyChanged(nameof(CurrentSecureKeyLength));
+        this.RaisePropertyChanged(nameof(CurrentVerifySecureKeyLength));
 
         SecureKeyError = string.Empty;
         HasSecureKeyError = false;
@@ -302,6 +306,14 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModel
 
         IsMembershipLoading = true;
         MembershipUniqueId = null;
+
+        if (ValidationTips != null)
+        {
+            foreach (RequirementItem tip in ValidationTips)
+            {
+                tip.IsMet = false;
+            }
+        }
 
         SetServerError(string.Empty);
     }

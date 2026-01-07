@@ -15,7 +15,7 @@ using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Controls.Core;
 
-public class LanguageMenuButtonViewModel : ReactiveObject, IActivatableViewModel, IDisposable
+public sealed class LanguageMenuButtonViewModel : ReactiveObject, IActivatableViewModel, IDisposable
 {
     private readonly LanguagePickerViewModel _cachedLanguagePickerVm;
     private readonly ILocalizationService _localizationService;
@@ -44,6 +44,8 @@ public class LanguageMenuButtonViewModel : ReactiveObject, IActivatableViewModel
 
         OpenLanguagePickerCommand = ReactiveCommand.CreateFromTask(async () =>
         {
+            _cachedLanguagePickerVm.RefreshLocalization();
+
             await globalModalService.ShowRightAsync(
                 _cachedLanguagePickerVm,
                 showScrim: true,
