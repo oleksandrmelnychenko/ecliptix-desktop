@@ -95,7 +95,6 @@
 			</transitions:AnimatingContentControl>
 		</Border>
 
-
 		<Grid Grid.Column="0"
 			  Grid.ColumnSpan="2"
 			  ZIndex="2000"

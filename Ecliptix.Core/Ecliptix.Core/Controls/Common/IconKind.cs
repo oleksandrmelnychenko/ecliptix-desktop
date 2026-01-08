@@ -1,4 +1,4 @@
-// ReSharper disable InconsistentNaming
+
 namespace Ecliptix.Core.Controls.Common;
 
 public enum IconKind

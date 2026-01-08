@@ -1,4 +1,4 @@
-using Ecliptix.Protocol.System.Sodium;
+using Ecliptix.Protected.Protocol.Sodium;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Authentication;
 

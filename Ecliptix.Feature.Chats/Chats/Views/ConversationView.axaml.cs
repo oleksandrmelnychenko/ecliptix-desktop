@@ -157,15 +157,12 @@ public partial class ConversationView : UserControl
                 DateTime now = DateTime.UtcNow;
                 double elapsedMs = (now - startTime).TotalMilliseconds;
 
-
                 double progress = Math.Min(1.0, elapsedMs / totalDurationMs);
 
                 double t = 1.0 - progress;
                 double easedProgress = 1.0 - (t * t * t);
 
-
                 double currentOffset = startOffset + (targetOffset - startOffset) * easedProgress;
-
 
                 _chatScrollViewer.Offset = new Vector(_chatScrollViewer.Offset.X, currentOffset);
 

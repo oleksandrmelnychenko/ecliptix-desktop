@@ -2,11 +2,8 @@ using System;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecliptix.Core.Infrastructure.Data;
-using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.External;
-using Ecliptix.Core.Services.External.IpGeolocation;
 using Ecliptix.Core.Services.Membership;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.Settings.Constants;
@@ -20,13 +17,14 @@ using Ecliptix.Network.Services.Common;
 using Ecliptix.Network.Services.Core;
 using Ecliptix.Network.Services.External.IpGeolocation;
 using Ecliptix.Network.Services.Network;
+using Ecliptix.Network.Services.Network.Resilience;
 using Ecliptix.Network.Services.Network.Rpc;
 using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.ProtocolState;
 using Ecliptix.Protobuf.Transport.DeviceProvisioning;
-using Ecliptix.Protocol.System.Sodium;
-using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Protected.Protocol.Sodium;
+using Ecliptix.Protected.Protocol.Utilities;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Authentication;
 using Ecliptix.Utilities.Failures.Network;
@@ -50,7 +48,7 @@ public sealed class ApplicationInitializer(
         networkProvider,
         new PendingLogoutRequestStorage(applicationSecureStorageProvider));
 
-    public async Task<bool> InitializeAsync(DefaultSystemSettings defaultSystemSettings)
+    public async Task<ApplicationInitializationResult> InitializeAsync(DefaultSystemSettings defaultSystemSettings)
     {
         Result<InstanceSettingsResult, InternalServiceApiFailure> settingsResult =
             await applicationSecureStorageProvider.InitApplicationInstanceSettingsAsync(defaultSystemSettings.Culture)
@@ -58,7 +56,7 @@ public sealed class ApplicationInitializer(
 
         if (settingsResult.IsErr)
         {
-            return false;
+            return ApplicationInitializationResult.SETTINGS_INITIALIZATION_FAILED;
         }
 
         (ApplicationInstanceSettings settings, bool isNewInstance) = settingsResult.Unwrap();
@@ -91,7 +89,23 @@ public sealed class ApplicationInitializer(
             await EnsureSecrecyChannelAsync(settings, isNewInstance).ConfigureAwait(false);
         if (connectIdResult.IsErr)
         {
-            return false;
+            NetworkFailure failure = connectIdResult.UnwrapErr();
+            Exception? innerException = failure.InnerException;
+            if (innerException != null)
+            {
+                Log.Error(innerException,
+                    "[APPLICATION-INITIALIZER] Secrecy channel initialization failed. Type: {FailureType}, Message: {Message}",
+                    failure.FailureType,
+                    failure.Message);
+            }
+            else
+            {
+                Log.Error(
+                    "[APPLICATION-INITIALIZER] Secrecy channel initialization failed. Type: {FailureType}, Message: {Message}",
+                    failure.FailureType,
+                    failure.Message);
+            }
+            return ApplicationInitializationResult.SECRECY_CHANNEL_FAILED;
         }
 
         uint connectId = connectIdResult.Unwrap();
@@ -100,12 +114,12 @@ public sealed class ApplicationInitializer(
             await RegisterDeviceAsync(connectId, settings).ConfigureAwait(false);
         if (registrationResult.IsErr)
         {
-            return false;
+            return ApplicationInitializationResult.DEVICE_REGISTRATION_FAILED;
         }
 
         await ProcessPendingLogoutRequestsAsync(connectId).ConfigureAwait(false);
 
-        return true;
+        return ApplicationInitializationResult.SUCCESS;
     }
 
     private async Task ProcessPendingLogoutRequestsAsync(uint connectId) =>
@@ -133,13 +147,10 @@ public sealed class ApplicationInitializer(
             NetworkProvider.ComputeUniqueConnectId(applicationInstanceSettings,
                 PubKeyExchangeType.DataCenterEphemeralConnect);
 
-        Option<string> membershipId = ExtractMembershipId(applicationInstanceSettings);
-        Option<string> accountId = ExtractAccountId(applicationInstanceSettings);
-
         if (!isNewInstance)
         {
             Result<uint, NetworkFailure>? restoreResult =
-                await TryRestoreExistingSessionAsync(connectId, applicationInstanceSettings, membershipId, accountId)
+                await TryRestoreExistingSessionAsync(connectId, applicationInstanceSettings)
                     .ConfigureAwait(false);
 
             if (restoreResult.HasValue)
@@ -147,6 +158,9 @@ public sealed class ApplicationInitializer(
                 return restoreResult.Value;
             }
         }
+
+        Option<string> membershipId = ExtractMembershipId(applicationInstanceSettings);
+        Option<string> accountId = ExtractAccountId(applicationInstanceSettings);
 
         return await EstablishNewSecrecyChannelAsync(applicationInstanceSettings, connectId, membershipId, accountId)
             .ConfigureAwait(false);
@@ -165,22 +179,33 @@ public sealed class ApplicationInitializer(
 
     private async Task<Result<uint, NetworkFailure>?> TryRestoreExistingSessionAsync(
         uint connectId,
-        ApplicationInstanceSettings applicationInstanceSettings,
-        Option<string> membershipId,
-        Option<string> accountId)
+        ApplicationInstanceSettings applicationInstanceSettings)
     {
+        ClearExistingConnection(connectId);
+
         Result<bool, NetworkFailure> restoreResult =
             await TryRestoreSessionStateAsync(connectId, applicationInstanceSettings).ConfigureAwait(false);
 
         if (restoreResult.IsErr)
         {
-            return Result<uint, NetworkFailure>.Err(restoreResult.UnwrapErr());
+            NetworkFailure failure = restoreResult.UnwrapErr();
+            if (ShouldFallbackFromRestoreFailure(failure))
+            {
+                await HandleRestoreFallbackAsync(connectId, applicationInstanceSettings, failure)
+                    .ConfigureAwait(false);
+                return null;
+            }
+
+            return Result<uint, NetworkFailure>.Err(failure);
         }
 
         if (!restoreResult.Unwrap())
         {
             return null;
         }
+
+        Option<string> membershipId = ExtractMembershipId(applicationInstanceSettings);
+        Option<string> accountId = ExtractAccountId(applicationInstanceSettings);
 
         if (membershipId.IsSome && accountId.IsSome)
         {
@@ -193,6 +218,63 @@ public sealed class ApplicationInitializer(
         }
 
         return Result<uint, NetworkFailure>.Ok(connectId);
+    }
+
+    private void ClearExistingConnection(uint connectId)
+    {
+        if (!networkProvider.HasConnection(connectId))
+        {
+            return;
+        }
+
+        Log.Warning(
+            "[APPLICATION-INITIALIZER] Existing protocol session found before restore. Clearing to avoid conflicts. ConnectId: {ConnectId}",
+            connectId);
+        networkProvider.ClearConnection(connectId);
+    }
+
+    private static bool ShouldFallbackFromRestoreFailure(NetworkFailure failure)
+    {
+        if (FailureClassification.IsProtocolStateMismatch(failure) ||
+            FailureClassification.IsSessionExpired(failure))
+        {
+            return true;
+        }
+
+        return failure.FailureType == NetworkFailureType.ECLIPTIX_PROTOCOL_FAILURE &&
+               failure.Message.Contains("session expired", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task HandleRestoreFallbackAsync(
+        uint connectId,
+        ApplicationInstanceSettings applicationInstanceSettings,
+        NetworkFailure failure)
+    {
+        Log.Warning(
+            "[APPLICATION-INITIALIZER] Restore failed; resetting local state and falling back to anonymous. Type: {FailureType}, ConnectId: {ConnectId}, Message: {Message}",
+            failure.FailureType,
+            connectId,
+            failure.Message);
+
+        networkProvider.ClearConnection(connectId);
+
+        Result<Unit, SecureStorageFailure> deleteResult =
+            await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
+        if (deleteResult.IsErr)
+        {
+            Log.Warning(
+                "[APPLICATION-INITIALIZER] Failed to delete protocol state during fallback. ConnectId: {ConnectId}, Error: {Error}",
+                connectId,
+                deleteResult.UnwrapErr().Message);
+        }
+
+        if (applicationInstanceSettings.Membership != null)
+        {
+            await applicationSecureStorageProvider.SetApplicationMembershipAsync(null).ConfigureAwait(false);
+            applicationInstanceSettings.Membership = null;
+        }
+
+        await stateManager.TransitionToAnonymousAsync().ConfigureAwait(false);
     }
 
     private async Task<Result<uint, NetworkFailure>> EstablishNewSecrecyChannelAsync(
@@ -229,10 +311,12 @@ public sealed class ApplicationInitializer(
             await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId)
                 .ConfigureAwait(false);
 
-            Option<byte[]> membershipIdBytes = applicationInstanceSettings.Membership?.UniqueIdentifier?.ToByteArray() is { } bytes
-                ? Option<byte[]>.Some(bytes)
+            ByteString? accountIdentifier = applicationInstanceSettings.CurrentAccountId ?? applicationInstanceSettings.AccountId;
+            Option<byte[]> accountIdBytes = accountIdentifier is { IsEmpty: false }
+                ? Option<byte[]>.Some(accountIdentifier.ToByteArray())
                 : Option<byte[]>.None;
-            return await EstablishAndSaveSecrecyChannelAsync(connectId, membershipIdBytes).ConfigureAwait(false);
+
+            return await EstablishAndPersistSecrecyChannelAsync(connectId, accountIdBytes).ConfigureAwait(false);
         }
         finally
         {
@@ -291,7 +375,7 @@ public sealed class ApplicationInitializer(
 
         if (recreateResult.IsErr)
         {
-            await HandleAuthenticatedProtocolFailureAsync(recreateResult.UnwrapErr(), membershipId, accountId,
+            await HandleAuthenticatedProtocolFailureAsync(recreateResult.UnwrapErr(), accountId,
                     applicationInstanceSettings, connectId)
                 .ConfigureAwait(false);
             return null;
@@ -303,7 +387,6 @@ public sealed class ApplicationInitializer(
 
     private async Task HandleAuthenticatedProtocolFailureAsync(
         NetworkFailure failure,
-        string membershipId,
         string accountId,
         ApplicationInstanceSettings applicationInstanceSettings,
         uint connectId)
@@ -318,8 +401,8 @@ public sealed class ApplicationInitializer(
             .ConfigureAwait(false);
     }
 
-    private async Task<Result<uint, NetworkFailure>> EstablishAndSaveSecrecyChannelAsync(uint connectId,
-        Option<byte[]> membershipId)
+    private async Task<Result<uint, NetworkFailure>> EstablishAndPersistSecrecyChannelAsync(uint connectId,
+        Option<byte[]> accountId)
     {
         Result<EcliptixSessionState, NetworkFailure> establishResult =
             await networkProvider.EstablishSecrecyChannelAsync(connectId).ConfigureAwait(false);
@@ -331,12 +414,12 @@ public sealed class ApplicationInitializer(
 
         EcliptixSessionState secrecyChannelState = establishResult.Unwrap();
 
-        if (membershipId.IsSome)
+        if (accountId.IsSome)
         {
             await SecureByteStringInterop.WithByteStringAsSpan(
                     secrecyChannelState.ToByteString(),
                     span => secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString(),
-                        membershipId.Value!))
+                        accountId.Value!))
                 .ConfigureAwait(false);
         }
 
@@ -363,14 +446,14 @@ public sealed class ApplicationInitializer(
         uint connectId,
         ApplicationInstanceSettings applicationInstanceSettings)
     {
-        byte[]? membershipId = applicationInstanceSettings.Membership?.UniqueIdentifier?.ToByteArray();
-        if (membershipId == null)
+        ByteString? accountId = applicationInstanceSettings.CurrentAccountId ?? applicationInstanceSettings.AccountId;
+        if (accountId == null || accountId.IsEmpty)
         {
             return Result<bool, NetworkFailure>.Ok(false);
         }
 
         Result<byte[], SecureStorageFailure> loadResult =
-            await secureProtocolStateStorage.LoadStateAsync(connectId.ToString(), membershipId).ConfigureAwait(false);
+            await secureProtocolStateStorage.LoadStateAsync(connectId.ToString(), accountId.ToByteArray()).ConfigureAwait(false);
 
         if (loadResult.IsErr)
         {
@@ -504,18 +587,14 @@ public sealed class ApplicationInitializer(
                 DeviceRegistrationResponse reply =
                     Helpers.ParseFromBytes<DeviceRegistrationResponse>(decryptedPayload);
 
-                ByteString serverPublicKey = SecureByteStringInterop.WithByteStringAsSpan(reply.ServerPublicKey,
-                    ByteString.CopyFrom);
-
-                networkProvider.SetServerPublicKey(serverPublicKey);
-
-                // Store server's Kyber (ML-KEM-768) public key for post-quantum hybrid handshake
-                if (!reply.ServerKyberPublicKey.IsEmpty)
+                if (reply.Status is DeviceRegistrationResponse.Types.Status.InvalidRequest
+                    or DeviceRegistrationResponse.Types.Status.InternalError)
                 {
-                    ByteString serverKyberPublicKey = SecureByteStringInterop.WithByteStringAsSpan(
-                        reply.ServerKyberPublicKey, ByteString.CopyFrom);
-
-                    networkProvider.SetServerKyberPublicKey(serverKyberPublicKey);
+                    return Task.FromResult(Result<Unit, NetworkFailure>.Err(
+                        NetworkFailure.InvalidRequestType(
+                            string.IsNullOrWhiteSpace(reply.Message)
+                                ? "Device registration failed"
+                                : reply.Message)));
                 }
 
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));

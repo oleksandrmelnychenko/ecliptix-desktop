@@ -3,16 +3,17 @@ using Ecliptix.Core.Messaging.Core.Messaging.Connectivity;
 using Ecliptix.Network.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Network.Infrastructure.Network.Core.Constants;
 using Ecliptix.Network.Infrastructure.Security.Storage;
+using Ecliptix.Network.Services.Common;
 using Ecliptix.Network.Services.Network.Resilience;
 using Ecliptix.Network.Services.Network.Rpc;
 using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.ProtocolState;
 using Ecliptix.Protobuf.Transport.DeviceProvisioning;
-using Ecliptix.Protocol.System.Interfaces;
-using Ecliptix.Protocol.System.Native;
-using Ecliptix.Protocol.System.Sodium;
-using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Protected.Protocol.Interfaces;
+using Ecliptix.Protected.Protocol.Native;
+using Ecliptix.Protected.Protocol.Sodium;
+using Ecliptix.Protected.Protocol.Utilities;
 using Ecliptix.Security.Certificate.Pinning.Services;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Authentication;
@@ -64,10 +65,6 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         return hmac.ComputeHash(infoBytes);
     }
 
-    /// <summary>
-    /// Process handshake response for authenticated channels. Uses externally derived root key
-    /// instead of X3DH-derived key to match server's OPAQUE-based derivation.
-    /// </summary>
     private Result<PubKeyExchange, NetworkFailure> ProcessAuthenticatedHandshakeResponse(
         SecureEnvelope responseEnvelope,
         CertificatePinningService certificatePinningService,
@@ -91,7 +88,6 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
 
         PubKeyExchange peerPubKeyExchange = PubKeyExchange.Parser.ParseFrom(decryptResult.Unwrap());
 
-        // Use CompleteHandshake with OPAQUE-derived root key (matching server derivation)
         Result<Unit, EcliptixProtocolFailure> completeResult =
             nativeSessionResult.Unwrap().CompleteHandshake(peerPubKeyExchange.ToByteArray(), rootKey);
         return completeResult.IsErr
@@ -197,6 +193,11 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         NetworkFailure failure,
         SecrecyChannelRequest request)
     {
+
+        _nativeSessions.ClearServerKyberKey(request.ConnectId);
+        Log.Debug("[HANDSHAKE-FAILURE] Cleared stale Kyber key for connectId {ConnectId}, failure: {FailureType}",
+            request.ConnectId, failure.FailureType);
+
         if (request.EnablePendingRegistration && ShouldQueueSecrecyChannelRetry(failure))
         {
             QueueSecrecyChannelEstablishRetry(request.ConnectId, request.ExchangeType, request.MaxRetries,
@@ -248,7 +249,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         uint connectId,
         PubKeyExchange peerPubKeyExchange)
     {
-        // Managed protocol is retired; persist only the native state plus handshake metadata.
+
         EcliptixSessionState state = new()
         {
             ConnectId = connectId,
@@ -273,6 +274,13 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
                             _applicationInstanceSettings.Value!.Membership?.UniqueIdentifier.ToBase64() ??
                             string.Empty;
                     }
+
+                    Result<byte[], EcliptixProtocolFailure> kyberKeyResult = _nativeSessions.GetServerKyberKey(connectId);
+                    if (kyberKeyResult.IsOk)
+                    {
+                        state.ServerKyberPublicKey = ByteString.CopyFrom(kyberKeyResult.Unwrap());
+                        Log.Debug("[SESSION-STATE] Persisted per-connection Kyber key for connectId {ConnectId}", connectId);
+                    }
                 }
             }
         }
@@ -296,36 +304,81 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         }
     }
 
-    public void SetServerPublicKey(ByteString serverPublicKey)
+    public bool SetServerPublicKey(ByteString serverPublicKey)
     {
         lock (_appInstanceSetterLock)
         {
-            if (!_applicationInstanceSettings.IsSome)
-            {
-                return;
-            }
+            ApplicationInstanceSettings current = _applicationInstanceSettings.IsSome
+                ? _applicationInstanceSettings.Value!.Clone()
+                : new ApplicationInstanceSettings();
 
-            ApplicationInstanceSettings current = _applicationInstanceSettings.Value!;
-            ApplicationInstanceSettings updated = current.Clone();
-            updated.ServerPublicKey = serverPublicKey;
-            _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(updated);
+            current.ServerPublicKey = serverPublicKey;
+            _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(current);
+            return true;
         }
     }
 
-    public void SetServerKyberPublicKey(ByteString serverKyberPublicKey)
+    public bool SetServerKyberPublicKey(ByteString serverKyberPublicKey)
     {
         lock (_appInstanceSetterLock)
         {
-            if (!_applicationInstanceSettings.IsSome)
-            {
-                return;
-            }
+            Log.Debug("[NETWORK-PROVIDER] SetServerKyberPublicKey called. Current settings.IsSome: {IsSome}, KeyLength: {Length}",
+                _applicationInstanceSettings.IsSome, serverKyberPublicKey.Length);
 
-            ApplicationInstanceSettings current = _applicationInstanceSettings.Value!;
-            ApplicationInstanceSettings updated = current.Clone();
-            updated.ServerKyberPublicKey = serverKyberPublicKey;
-            _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(updated);
+            ApplicationInstanceSettings current = _applicationInstanceSettings.IsSome
+                ? _applicationInstanceSettings.Value!.Clone()
+                : new ApplicationInstanceSettings();
+
+            current.ServerKyberPublicKey = serverKyberPublicKey;
+            _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(current);
+
+            Log.Debug("[NETWORK-PROVIDER] SetServerKyberPublicKey complete. New settings.IsSome: {IsSome}, StoredKeyLength: {Length}",
+                _applicationInstanceSettings.IsSome, _applicationInstanceSettings.Value!.ServerKyberPublicKey.Length);
+
+            return true;
         }
+    }
+
+    public async Task<Result<Unit, NetworkFailure>> FetchServerPublicKeysAsync(
+        CancellationToken cancellationToken = default)
+    {
+        Result<GetServerPublicKeysResponse, NetworkFailure> rpcResult =
+            await _dependencies.RpcServiceManager.GetServerPublicKeysAsync(
+                _services.ConnectivityService,
+                cancellationToken).ConfigureAwait(false);
+
+        if (rpcResult.IsErr)
+        {
+            return Result<Unit, NetworkFailure>.Err(rpcResult.UnwrapErr());
+        }
+
+        GetServerPublicKeysResponse response = rpcResult.Unwrap();
+
+        Result<Unit, InternalServiceApiFailure> persistPublicKeyResult =
+            await _dependencies.ApplicationSecureStorageProvider.SetServerPublicKeyAsync(response.ServerPublicKey)
+                .ConfigureAwait(false);
+        if (persistPublicKeyResult.IsErr)
+        {
+            Log.Warning("[NETWORK-PROVIDER] Failed to persist server public key: {Error}",
+                persistPublicKeyResult.UnwrapErr().Message);
+        }
+
+        Result<Unit, InternalServiceApiFailure> persistKyberResult =
+            await _dependencies.ApplicationSecureStorageProvider.SetServerKyberPublicKeyAsync(response.ServerKyberPublicKey)
+                .ConfigureAwait(false);
+        if (persistKyberResult.IsErr)
+        {
+            Log.Warning("[NETWORK-PROVIDER] Failed to persist server Kyber public key: {Error}",
+                persistKyberResult.UnwrapErr().Message);
+        }
+
+        SetServerPublicKey(response.ServerPublicKey);
+        SetServerKyberPublicKey(response.ServerKyberPublicKey);
+
+        Log.Information("[NETWORK-PROVIDER] Successfully fetched server public keys. X25519: {X25519Size} bytes, Kyber: {KyberSize} bytes",
+            response.ServerPublicKey.Length, response.ServerKyberPublicKey.Length);
+
+        return Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
 
     public void InitiateEcliptixProtocolSystem(ApplicationInstanceSettings applicationInstanceSettings, uint connectId)
@@ -546,10 +599,12 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         RestoreRetryMode retryMode,
         bool enablePendingRegistration)
     {
-        if (FailureClassification.IsProtocolStateMismatch(failure))
+        if (FailureClassification.IsProtocolStateMismatch(failure) ||
+            FailureClassification.IsSessionExpired(failure))
         {
             Log.Warning(
-                "[NETWORK-PROVIDER] Protocol state mismatch during restore. Cleaning up stale state. ConnectId: {ConnectId}",
+                "[NETWORK-PROVIDER] Restore failure requires state cleanup. Type: {FailureType} ConnectId: {ConnectId}",
+                failure.FailureType,
                 sessionState.ConnectId);
 
             await CleanupFailedAuthenticationAsync(sessionState.ConnectId).ConfigureAwait(false);
@@ -709,7 +764,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
             }
             catch (ObjectDisposedException)
             {
-                // Intentionally suppressed: CancellationTokenSource already disposed during connection cleanup
+
             }
         }
     }
@@ -797,7 +852,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         }
 
         (uint localSending, uint localReceiving) = chainResult.Unwrap();
-        // Server indices are from its perspective: server receiving == client sending, server sending == client receiving.
+
         uint serverReceiving = peerSecrecyChannelState.ReceivingChainLength;
         uint serverSending = peerSecrecyChannelState.SendingChainLength;
 
@@ -940,6 +995,12 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
             if (nativeImportResult.IsErr)
             {
                 return Result<Unit, EcliptixProtocolFailure>.Err(nativeImportResult.UnwrapErr());
+            }
+
+            if (!state.ServerKyberPublicKey.IsEmpty)
+            {
+                _nativeSessions.StoreServerKyberKey(state.ConnectId, state.ServerKyberPublicKey.ToByteArray());
+                Log.Debug("[RESTORE] Restored per-connection Kyber key for connectId {ConnectId}", state.ConnectId);
             }
 
             return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
@@ -1147,13 +1208,13 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
             return;
         }
 
-        byte[]? membershipId = GetMembershipIdBytes();
-        if (membershipId == null)
+        byte[]? accountId = GetAccountIdBytes();
+        if (accountId == null)
         {
             return;
         }
 
-        EcliptixSessionState? existingState = await TryLoadStoredStateAsync(connectId, membershipId)
+        EcliptixSessionState? existingState = await TryLoadStoredStateAsync(connectId, accountId)
             .ConfigureAwait(false);
         if (existingState == null)
         {
@@ -1181,7 +1242,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
             state.AccountId = _applicationInstanceSettings.Value!.CurrentAccountId;
         }
 
-        await PersistSessionStateAsync(state, connectId, membershipId).ConfigureAwait(false);
+        await PersistSessionStateAsync(state, connectId, accountId).ConfigureAwait(false);
     }
 
     public void OnProtocolStateChanged(uint connectId) =>
@@ -1247,7 +1308,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
             }
             catch
             {
-                // Suppressed
+
             }
         }
     }
@@ -1316,7 +1377,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         }
         catch (ObjectDisposedException)
         {
-            // Suppressed
+
         }
     }
 
@@ -1483,7 +1544,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
             }
             catch (ObjectDisposedException)
             {
-                // Intentionally suppressed: Recovery cancellation token source already disposed
+
             }
             finally
             {
@@ -1552,18 +1613,18 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         string failureMessage,
         bool failOnMissingState = false)
     {
-        Result<(uint connectId, byte[] membershipId), NetworkFailure> prerequisitesResult =
+        Result<(uint connectId, byte[] accountId), NetworkFailure> prerequisitesResult =
             ValidateRecoveryPrerequisites();
         if (prerequisitesResult.IsErr)
         {
             return Result<Unit, NetworkFailure>.Err(prerequisitesResult.UnwrapErr());
         }
 
-        (uint connectId, byte[] membershipId) = prerequisitesResult.Unwrap();
+        (uint connectId, byte[] accountId) = prerequisitesResult.Unwrap();
         _nativeSessions.Remove(connectId);
 
         Result<EcliptixSessionState, NetworkFailure> stateResult =
-            await LoadAndParseStoredState(connectId, membershipId, failOnMissingState, failureMessage)
+            await LoadAndParseStoredState(connectId, accountId, failOnMissingState, failureMessage)
                 .ConfigureAwait(false);
 
         if (stateResult.IsErr)
@@ -1610,7 +1671,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
 
-    private Result<(uint connectId, byte[] membershipId), NetworkFailure> ValidateRecoveryPrerequisites()
+    private Result<(uint connectId, byte[] accountId), NetworkFailure> ValidateRecoveryPrerequisites()
     {
         if (!_applicationInstanceSettings.IsSome)
         {
@@ -1621,24 +1682,24 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         uint connectId = ComputeUniqueConnectId(_applicationInstanceSettings.Value!,
             PubKeyExchangeType.DataCenterEphemeralConnect);
 
-        byte[]? membershipId = GetMembershipIdBytes();
-        if (membershipId == null)
+        byte[]? accountId = GetAccountIdBytes();
+        if (accountId == null)
         {
             return Result<(uint, byte[]), NetworkFailure>.Err(
-                NetworkFailure.DataCenterNotResponding("MembershipId not available for state restoration"));
+                NetworkFailure.DataCenterNotResponding("AccountId not available for state restoration"));
         }
 
-        return Result<(uint, byte[]), NetworkFailure>.Ok((connectId, membershipId));
+        return Result<(uint, byte[]), NetworkFailure>.Ok((connectId, accountId));
     }
 
     private async Task<Result<EcliptixSessionState, NetworkFailure>> LoadAndParseStoredState(
         uint connectId,
-        byte[] membershipId,
+        byte[] accountId,
         bool failOnMissingState,
         string failureMessage)
     {
         Result<byte[], SecureStorageFailure> stateResult =
-            await _dependencies.SecureProtocolStateStorage.LoadStateAsync(connectId.ToString(), membershipId)
+            await _dependencies.SecureProtocolStateStorage.LoadStateAsync(connectId.ToString(), accountId)
                 .ConfigureAwait(false);
 
         if (stateResult.IsErr)
@@ -1661,10 +1722,10 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         }
     }
 
-    private async Task<EcliptixSessionState?> TryLoadStoredStateAsync(uint connectId, byte[] membershipId)
+    private async Task<EcliptixSessionState?> TryLoadStoredStateAsync(uint connectId, byte[] accountId)
     {
         Result<byte[], SecureStorageFailure> stateResult =
-            await _dependencies.SecureProtocolStateStorage.LoadStateAsync(connectId.ToString(), membershipId)
+            await _dependencies.SecureProtocolStateStorage.LoadStateAsync(connectId.ToString(), accountId)
                 .ConfigureAwait(false);
 
         if (stateResult.IsErr)
@@ -1786,7 +1847,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         });
     }
 
-    private byte[]? GetMembershipIdBytes()
+    private byte[]? GetAccountIdBytes()
     {
         if (!_applicationInstanceSettings.IsSome)
         {
@@ -1794,15 +1855,20 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         }
 
         ApplicationInstanceSettings settings = _applicationInstanceSettings.Value!;
+        ByteString? accountId = settings.CurrentAccountId ?? settings.AccountId;
+        if (accountId == null || accountId.IsEmpty)
+        {
+            return null;
+        }
 
-        return settings.Membership?.UniqueIdentifier.ToByteArray();
+        return accountId.ToByteArray();
     }
 
     private async Task PersistSessionStateAsync(EcliptixSessionState state, uint connectId,
-        byte[]? membershipIdOverride = null)
+        byte[]? accountIdOverride = null)
     {
-        byte[]? membershipId = membershipIdOverride ?? GetMembershipIdBytes();
-        if (membershipId == null)
+        byte[]? accountId = accountIdOverride ?? GetAccountIdBytes();
+        if (accountId == null)
         {
             return;
         }
@@ -1810,7 +1876,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         Result<Unit, SecureStorageFailure> saveResult = await SecureByteStringInterop.WithByteStringAsSpan(
                 state.ToByteString(),
                 span => _dependencies.SecureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString(),
-                    membershipId))
+                    accountId))
             .ConfigureAwait(false);
 
         if (saveResult.IsErr)
@@ -1835,8 +1901,8 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         {
             try
             {
-                byte[]? membershipId = GetMembershipIdBytes();
-                if (membershipId == null)
+                byte[]? accountId = GetAccountIdBytes();
+                if (accountId == null)
                 {
                     _nativeSessions.Remove(connectId);
 
@@ -1857,7 +1923,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
                 }
 
                 Result<byte[], SecureStorageFailure> stateResult =
-                    await _dependencies.SecureProtocolStateStorage.LoadStateAsync(connectId.ToString(), membershipId)
+                    await _dependencies.SecureProtocolStateStorage.LoadStateAsync(connectId.ToString(), accountId)
                         .ConfigureAwait(false);
                 if (stateResult.IsErr)
                 {
@@ -1898,11 +1964,14 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
             maxRetries: retryBehavior.MaxAttempts - 1,
             cancellationToken: CancellationToken.None).ConfigureAwait(false);
 
-        // If server doesn't have master key shares (fresh server), fallback to fresh handshake
         if (networkResult.IsErr &&
             networkResult.UnwrapErr().FailureType == NetworkFailureType.MASTER_KEY_SHARES_NOT_FOUND)
         {
             Log.Warning("[RecreateProtocolWithMasterKey] Server missing master key shares, falling back to fresh handshake");
+
+            _nativeSessions.ClearServerKyberKey(connectId);
+            Log.Debug("[HANDSHAKE-RETRY] Cleared stale Kyber key for connectId {ConnectId}", connectId);
+
             Result<EcliptixSessionState, NetworkFailure> freshResult =
                 await EstablishSecrecyChannelAsync(connectId).ConfigureAwait(false);
 
@@ -1980,20 +2049,21 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
                     nativeSessionResult.UnwrapErr().ToNetworkFailure());
             }
 
-            // Use BeginHandshakeWithPeerKyber if server's Kyber key is available
-            Result<byte[], EcliptixProtocolFailure> nativeHandshake;
-            if (_applicationInstanceSettings.IsSome &&
-                !_applicationInstanceSettings.Value!.ServerKyberPublicKey.IsEmpty)
+            NativeProtocolSession nativeSession = nativeSessionResult.Unwrap();
+
+            Result<byte[], NetworkFailure> kyberResult = await FetchPerConnectionKyberKeyAsync(connectId).ConfigureAwait(false);
+            if (kyberResult.IsErr)
             {
-                byte[] serverKyberKey = _applicationInstanceSettings.Value!.ServerKyberPublicKey.ToByteArray();
-                nativeHandshake = nativeSessionResult.Unwrap()
-                    .BeginHandshakeWithPeerKyber(connectId, (byte)exchangeType, serverKyberKey);
+                await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
+                return Result<Unit, NetworkFailure>.Err(kyberResult.UnwrapErr());
             }
-            else
-            {
-                nativeHandshake = nativeSessionResult.Unwrap()
-                    .BeginHandshake(connectId, (byte)exchangeType);
-            }
+
+            byte[] serverKyberKey = kyberResult.Unwrap();
+            Log.Debug("[AUTH-HANDSHAKE] Using fresh per-connection Kyber key for connectId {ConnectId}, length: {Length}",
+                connectId, serverKyberKey.Length);
+
+            Result<byte[], EcliptixProtocolFailure> nativeHandshake = nativeSession
+                .BeginHandshakeWithPeerKyber(connectId, (byte)exchangeType, serverKyberKey);
 
             if (nativeHandshake.IsErr)
             {
@@ -2002,8 +2072,15 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
                     nativeHandshake.UnwrapErr().ToNetworkFailure());
             }
 
-            // Parse the native output as PubKeyExchange (it already contains the full bundle with Kyber key)
-            PubKeyExchange clientExchange = PubKeyExchange.Parser.ParseFrom(nativeHandshake.Unwrap());
+            Result<PubKeyExchange, NetworkFailure> updatedHandshakeResult =
+                EnsureLocalKyberPublicKeyInHandshake(nativeHandshake.Unwrap(), nativeSession);
+            if (updatedHandshakeResult.IsErr)
+            {
+                await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
+                return Result<Unit, NetworkFailure>.Err(updatedHandshakeResult.UnwrapErr());
+            }
+
+            PubKeyExchange clientExchange = updatedHandshakeResult.Unwrap();
 
             AuthenticatedEstablishRequest authenticatedRequest = new()
             {
@@ -2034,7 +2111,6 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
                     NetworkFailure.RsaEncryption("Failed to initialize certificate pinning service"));
             }
 
-            // Derive root key from OPAQUE master key (matching server-side derivation)
             byte[] rootKey = DeriveRootKeyFromMasterKey(masterKeyBytes, accountGuid);
 
             Result<PubKeyExchange, NetworkFailure> processResult =
@@ -2044,7 +2120,6 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
                     connectId,
                     rootKey);
 
-            // Wipe derived root key after use
             CryptographicOperations.ZeroMemory(rootKey);
 
             if (processResult.IsErr)
@@ -2061,15 +2136,14 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
                 return Result<Unit, NetworkFailure>.Err(nativeSessionForPersist.UnwrapErr().ToNetworkFailure());
             }
 
-            NativeProtocolSession nativeSession = nativeSessionForPersist.Unwrap();
-            Result<byte[], EcliptixProtocolFailure> nativeExport = nativeSession.ExportState();
+            NativeProtocolSession nativeSessionForPersistHandle = nativeSessionForPersist.Unwrap();
+            Result<byte[], EcliptixProtocolFailure> nativeExport = nativeSessionForPersistHandle.ExportState();
             if (nativeExport.IsErr)
             {
                 await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
                 return Result<Unit, NetworkFailure>.Err(nativeExport.UnwrapErr().ToNetworkFailure());
             }
 
-            // Persist native-only state plus seeds.
             EcliptixSessionState sessionState = new()
             {
                 ConnectId = connectId,
@@ -2083,7 +2157,14 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
                     : string.Empty
             };
 
-            await PersistSessionStateAsync(sessionState, connectId, membershipIdentifier.ToByteArray())
+            Result<byte[], EcliptixProtocolFailure> kyberKeyResult = _nativeSessions.GetServerKyberKey(connectId);
+            if (kyberKeyResult.IsOk)
+            {
+                sessionState.ServerKyberPublicKey = ByteString.CopyFrom(kyberKeyResult.Unwrap());
+                Log.Debug("[AUTH-STATE] Persisted per-connection Kyber key for connectId {ConnectId}", connectId);
+            }
+
+            await PersistSessionStateAsync(sessionState, connectId, accountIdentifier.ToByteArray())
                 .ConfigureAwait(false);
 
             return Result<Unit, NetworkFailure>.Ok(Unit.Value);
@@ -2108,6 +2189,9 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
 
     private async Task CleanupFailedAuthenticationAsync(uint connectId)
     {
+
+        _nativeSessions.ClearServerKyberKey(connectId);
+
         Result<Unit, SecureStorageFailure> deleteResult =
             await _dependencies.SecureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
 

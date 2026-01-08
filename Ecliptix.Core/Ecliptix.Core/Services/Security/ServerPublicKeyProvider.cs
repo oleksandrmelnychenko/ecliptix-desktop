@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using Ecliptix.Core.Services.Abstractions.Security;
 using Ecliptix.Network.Infrastructure.Network.Core.Providers;
-using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Protected.Protocol.Utilities;
 using Ecliptix.Utilities;
 using Google.Protobuf;
 using Serilog;

@@ -27,12 +27,10 @@
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
 
-
         <Style Selector="CheckBox:checked /template/ Border#NormalRectangle">
             <Setter Property="Background" Value="#7B61FF"/>
             <Setter Property="BorderBrush" Value="#7B61FF"/>
         </Style>
-
 
         <Style Selector="ListBoxItem">
             <Setter Property="Padding" Value="8,4"/>
@@ -139,7 +137,6 @@
                         </TextBox.InnerLeftContent>
                     </TextBox>
 
-
                     <ListBox ItemsSource="{Binding Contacts}"
                              Background="Transparent"
                              SelectionMode="Multiple,Toggle">
@@ -151,7 +148,6 @@
                                               IsChecked="{Binding IsSelected}"
                                               VerticalAlignment="Center"
                                               Margin="0,0,16,0"/>
-
 
                                     <Panel Grid.Column="1" Width="40" Height="40" Margin="0,0,12,0">
                                         <Ellipse Width="40" Height="40" Fill="#F3F4F6"/>

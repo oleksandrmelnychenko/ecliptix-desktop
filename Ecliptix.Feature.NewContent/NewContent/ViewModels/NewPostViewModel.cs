@@ -27,7 +27,6 @@ public class NewPostViewModel : ReactiveObject
     {
         _messageBus = Locator.Current.GetService<IMessageBus>();
 
-
         this.WhenAnyValue(x => x.Caption)
             .Select(text => text?.Length ?? 0)
             .ToPropertyEx(this, x => x.CaptionLength);

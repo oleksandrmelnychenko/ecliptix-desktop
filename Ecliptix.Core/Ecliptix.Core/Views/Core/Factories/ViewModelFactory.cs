@@ -67,7 +67,7 @@ public sealed class ViewModelFactory(IServiceProvider serviceProvider) : IViewMo
             }
             catch
             {
-                // Suppress exceptions during cleanup
+
             }
         }
     }

@@ -28,7 +28,6 @@ public partial class FloatingNavBar : UserControl
         set => SetValue(ItemsProperty, value);
     }
 
-    // Властивість для команди навігації
     public static readonly StyledProperty<ICommand> CommandProperty =
         AvaloniaProperty.Register<FloatingNavBar, ICommand>(nameof(Command));
 

@@ -51,14 +51,12 @@
 
     <Canvas Width="280" Height="280" ClipToBounds="False">
 
-        <!-- Outer Protective Shield Ring -->
         <Ellipse Canvas.Left="36" Canvas.Top="36"
                  Width="208" Height="208"
                  Stroke="{StaticResource PinkGlow}"
                  StrokeThickness="2"
                  Opacity="0.25"/>
 
-        <!-- Energy Rings (Concentric circles) -->
         <Ellipse Canvas.Left="92" Canvas.Top="92"
                  Width="96" Height="96"
                  Stroke="{StaticResource BrandGradient}"
@@ -71,7 +69,6 @@
                  StrokeThickness="1"
                  Opacity="0.2"/>
 
-        <!-- Connection Lines from Center (140, 140) -->
         <Line StartPoint="140,140" EndPoint="130,86"
               Stroke="{StaticResource BrandGradient}"
               StrokeThickness="1.5" Opacity="0.2"/>
@@ -91,10 +88,8 @@
               Stroke="{StaticResource BrandGradient}"
               StrokeThickness="1.5" Opacity="0.2"/>
 
-        <!-- CENTER NODE: AI Brain with Pulse Animation (Center: 140,140) -->
         <Canvas Canvas.Left="140" Canvas.Top="140">
 
-            <!-- Pulsing Ring -->
             <Ellipse Name="PulseRing"
                      Canvas.Left="-24" Canvas.Top="-24"
                      Width="48" Height="48"
@@ -102,7 +97,6 @@
                      StrokeThickness="1.5"
                      Opacity="0.3"/>
 
-            <!-- Main Center Circle -->
             <Ellipse Canvas.Left="-18" Canvas.Top="-18"
                      Width="36" Height="36"
                      Stroke="{StaticResource BrandGradient}"
@@ -113,21 +107,18 @@
                 </Ellipse.Effect>
             </Ellipse>
 
-            <!-- AI Brain Icon -->
             <Path Canvas.Left="-10" Canvas.Top="-10"
                   Stroke="{StaticResource BrandGradient}"
                   StrokeThickness="2"
                   Opacity="0.9"
                   Data="M 4,2 Q 1,2 1,5 Q 1,8 3,10 Q 3,13 5,15 Q 7,17 10,17 Q 13,17 15,15 Q 17,13 17,10 Q 19,8 19,5 Q 19,2 16,2 Q 14,1 10,1 Q 6,1 4,2 Z"/>
 
-            <!-- Neural Connection Dots -->
             <Ellipse Canvas.Left="-3" Canvas.Top="-3" Width="2" Height="2" Fill="{StaticResource CyanGlow}" Opacity="0.8"/>
             <Ellipse Canvas.Left="3" Canvas.Top="-3" Width="2" Height="2" Fill="{StaticResource PinkGlow}" Opacity="0.8"/>
             <Ellipse Canvas.Left="-3" Canvas.Top="3" Width="2" Height="2" Fill="{StaticResource CyanGlow}" Opacity="0.8"/>
             <Ellipse Canvas.Left="3" Canvas.Top="3" Width="2" Height="2" Fill="{StaticResource PinkGlow}" Opacity="0.8"/>
         </Canvas>
 
-        <!-- FRIEND AVATAR 1: Upper Left (130, 86) -->
         <Canvas Canvas.Left="130" Canvas.Top="86">
             <Ellipse Canvas.Left="-15" Canvas.Top="-15" Width="30" Height="30" Fill="{StaticResource PinkGlow}" Opacity="0.15"/>
             <Ellipse Canvas.Left="-13" Canvas.Top="-13" Width="26" Height="26" Stroke="{StaticResource PinkGlow}" StrokeThickness="2.2"/>
@@ -139,7 +130,6 @@
                   Data="M 0,0 L 1.5,1.5 L 4,-1"/>
         </Canvas>
 
-        <!-- FRIEND AVATAR 2: Upper Right (186, 122) -->
         <Canvas Canvas.Left="186" Canvas.Top="122">
             <Ellipse Canvas.Left="-15" Canvas.Top="-15" Width="30" Height="30" Fill="{StaticResource CyanGlow}" Opacity="0.15"/>
             <Ellipse Canvas.Left="-13" Canvas.Top="-13" Width="26" Height="26" Stroke="{StaticResource CyanGlow}" StrokeThickness="2.2"/>
@@ -149,7 +139,6 @@
             <Ellipse Canvas.Left="9" Canvas.Top="9" Width="6" Height="6" Fill="#4CAF50"/>
         </Canvas>
 
-        <!-- FRIEND AVATAR 3: Middle Right (196, 160) -->
         <Canvas Canvas.Left="196" Canvas.Top="160">
             <Ellipse Canvas.Left="-15" Canvas.Top="-15" Width="30" Height="30" Fill="{StaticResource PurpleGlow}" Opacity="0.15"/>
             <Ellipse Canvas.Left="-13" Canvas.Top="-13" Width="26" Height="26" Stroke="{StaticResource PurpleGlow}" StrokeThickness="2.2"/>
@@ -159,7 +148,6 @@
             <Ellipse Canvas.Left="-7" Canvas.Top="3" Width="14" Height="11" Fill="{StaticResource PurpleGlow}" Opacity="0.9"/>
         </Canvas>
 
-        <!-- FRIEND AVATAR 4: Lower Right (152, 184) -->
         <Canvas Canvas.Left="152" Canvas.Top="184">
             <Ellipse Canvas.Left="-15" Canvas.Top="-15" Width="30" Height="30" Fill="{StaticResource OrangeGlow}" Opacity="0.15"/>
             <Ellipse Canvas.Left="-13" Canvas.Top="-13" Width="26" Height="26" Stroke="{StaticResource OrangeGlow}" StrokeThickness="2.2"/>
@@ -172,7 +160,6 @@
             <Ellipse Canvas.Left="9" Canvas.Top="9" Width="6" Height="6" Fill="#4CAF50"/>
         </Canvas>
 
-        <!-- FRIEND AVATAR 5: Lower Left (98, 174) -->
         <Canvas Canvas.Left="98" Canvas.Top="174">
             <Ellipse Canvas.Left="-15" Canvas.Top="-15" Width="30" Height="30" Fill="{StaticResource PinkGlow}" Opacity="0.15"/>
             <Ellipse Canvas.Left="-13" Canvas.Top="-13" Width="26" Height="26" Stroke="{StaticResource PinkGlow}" StrokeThickness="2.2"/>
@@ -184,7 +171,6 @@
             <Ellipse Canvas.Left="-7" Canvas.Top="3" Width="14" Height="11" Fill="{StaticResource PinkGlow}" Opacity="0.9"/>
         </Canvas>
 
-        <!-- FRIEND AVATAR 6: Middle Left (90, 134) -->
         <Canvas Canvas.Left="90" Canvas.Top="134">
             <Ellipse Canvas.Left="-15" Canvas.Top="-15" Width="30" Height="30" Fill="{StaticResource OrangeGlow}" Opacity="0.15"/>
             <Ellipse Canvas.Left="-13" Canvas.Top="-13" Width="26" Height="26" Stroke="{StaticResource OrangeGlow}" StrokeThickness="2.2"/>
@@ -194,7 +180,6 @@
             <Ellipse Canvas.Left="-11" Canvas.Top="9" Width="6" Height="6" Fill="#FFC107"/>
         </Canvas>
 
-        <!-- Message Bubbles -->
         <Canvas Canvas.Left="220" Canvas.Top="124" Opacity="0.6">
             <Ellipse Canvas.Left="-14" Canvas.Top="-9" Width="28" Height="18" Fill="{StaticResource PinkGlow}" Opacity="0.85"/>
             <Path Canvas.Left="-3" Canvas.Top="-1" Fill="{StaticResource PinkGlow}" Opacity="0.85" Data="M 0,-8 L 3,-11 L 3,-8 Z"/>
@@ -205,7 +190,6 @@
             <Path Canvas.Left="10" Canvas.Top="-1" Fill="{StaticResource OrangeGlow}" Opacity="0.85" Data="M 0,0 L 3,3 L 3,0 Z"/>
         </Canvas>
 
-        <!-- Protection Nodes Around Perimeter -->
         <Ellipse Canvas.Left="185" Canvas.Top="65" Width="14" Height="14" Fill="{StaticResource OrangeGlow}" Opacity="0.6"/>
         <Ellipse Canvas.Left="244" Canvas.Top="91" Width="14" Height="14" Fill="{StaticResource PinkGlow}" Opacity="0.6"/>
         <Ellipse Canvas.Left="258" Canvas.Top="133" Width="14" Height="14" Fill="{StaticResource OrangeGlow}" Opacity="0.6"/>

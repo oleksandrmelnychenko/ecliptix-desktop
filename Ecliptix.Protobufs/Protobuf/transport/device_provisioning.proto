@@ -9,6 +9,7 @@ enum DeviceProvisioningEventType {
   DEVICE_PROVISIONING_SECURE_CHANNEL_ESTABLISH = 2;
   DEVICE_PROVISIONING_SECURE_CHANNEL_RESTORE = 3;
   DEVICE_PROVISIONING_SECURE_CHANNEL_AUTH_ESTABLISH = 4;
+  DEVICE_PROVISIONING_GET_SERVER_PUBLIC_KEYS = 5;
 }
 
 message AppDevice {
@@ -25,8 +26,16 @@ message AppDevice {
 }
 
 message DeviceRegistrationResponse {
-  bytes server_public_key = 1;
-  bytes server_kyber_public_key = 2;  // ML-KEM-768 public key (1184 bytes)
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    NEW_REGISTRATION = 1;
+    ALREADY_EXISTS = 2;
+    INVALID_REQUEST = 3;
+    INTERNAL_ERROR = 4;
+  }
+
+  Status status = 1;
+  string message = 2;
 }
 
 message RestoreChannelRequest {}
@@ -48,4 +57,11 @@ message AuthenticatedEstablishRequest {
   bytes account_unique_id = 2;
   bytes master_key_fingerprint = 3;
   bytes client_pub_key_exchange = 4;
+}
+
+message GetServerPublicKeysRequest {}
+
+message GetServerPublicKeysResponse {
+  bytes server_public_key = 1;
+  bytes server_kyber_public_key = 2;
 }

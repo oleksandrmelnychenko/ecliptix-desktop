@@ -55,7 +55,6 @@
 
         </StackPanel>
 
-
         <Grid Grid.Row="3"
               ColumnDefinitions="208*,176*"
               ColumnSpacing="12"

@@ -332,8 +332,6 @@ public static class LocalizationKeys
         }
     }
 
-
-
     public static class Footer
     {
         public const string PRIVACY_POLICY = "Footer.PrivacyPolicy";

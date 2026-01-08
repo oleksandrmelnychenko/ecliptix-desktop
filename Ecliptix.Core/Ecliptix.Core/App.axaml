@@ -9,7 +9,6 @@
         <ResourceDictionary>
             <FontFamily x:Key="SegoeUI">avares://Ecliptix.Core/Assets/Fonts/SegoeUI/#Segoe UI</FontFamily>
 
-            <!-- Shared Converters -->
             <sharedConverters:ResourceConverter x:Key="ResourceConverter"/>
             <sharedConverters:BooleanToOpacityConverter x:Key="BoolToOpacityConverter"/>
 

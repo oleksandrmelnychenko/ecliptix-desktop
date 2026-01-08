@@ -50,7 +50,6 @@
 
         </StackPanel>
 
-
         <ScrollViewer IsVisible="{Binding !IsEmpty}"
                       VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled">

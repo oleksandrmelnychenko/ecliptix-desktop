@@ -1,36 +1,26 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- PRECOMPILED ICON GEOMETRIES -->
-    <!-- Parsed once at build time, shared across all post instances -->
-    <!-- Significant performance improvement: no runtime SVG parsing -->
-
-    <!-- Like/Heart Icon -->
     <StreamGeometry x:Key="LikeIconGeometry">
         M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z
     </StreamGeometry>
 
-    <!-- Comment/Chat Icon -->
     <StreamGeometry x:Key="CommentIconGeometry">
         M3,12 C3,7.029 7.029,3 12,3 C16.971,3 21,7.029 21,12 C21,16.971 16.971,21 12,21 L3,21 L3,14
     </StreamGeometry>
 
-    <!-- Save/Bookmark Icon -->
     <StreamGeometry x:Key="SaveIconGeometry">
         M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z
     </StreamGeometry>
 
-    <!-- Analytics/Chart Icon -->
     <StreamGeometry x:Key="AnalyticsIconGeometry">
         M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z
     </StreamGeometry>
 
-    <!-- Verification Badge Icon -->
     <StreamGeometry x:Key="VerifiedIconGeometry">
         M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z
     </StreamGeometry>
 
-    <!-- Menu/Options Icon (3 dots) -->
     <StreamGeometry x:Key="MenuIconGeometry">
         M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z
     </StreamGeometry>

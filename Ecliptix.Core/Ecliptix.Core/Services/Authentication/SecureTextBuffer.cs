@@ -2,8 +2,8 @@ using System;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
-using Ecliptix.Protocol.System.Sodium;
-using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Protected.Protocol.Sodium;
+using Ecliptix.Protected.Protocol.Utilities;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Sodium;
 

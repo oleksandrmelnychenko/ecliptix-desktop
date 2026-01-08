@@ -1,16 +1,12 @@
 using System.Security.Cryptography;
 using System.Text;
-using Ecliptix.Protocol.System.Sodium;
+using Ecliptix.Protected.Protocol.Sodium;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Sodium;
 using Serilog;
 
 namespace Ecliptix.Network.Services.Network;
 
-/// <summary>
-/// Local logout key derivation helper. Mirrors the previous protocol-layer helper but
-/// lives alongside the network stack now that the managed ratchet has been removed.
-/// </summary>
 internal static class LogoutKeyDerivation
 {
     private const int KEY_SIZE = 32;

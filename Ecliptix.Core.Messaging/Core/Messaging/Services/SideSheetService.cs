@@ -68,7 +68,6 @@ public sealed class SideSheetService : ISideSheetService
         await _messageBus.PublishAsync(SideSheetCommandEvent.Hide());
     }
 
-
     private async Task ProcessNextRequest()
     {
         if (_disposed)
@@ -134,7 +133,7 @@ public sealed class SideSheetService : ISideSheetService
             {
                 _isShowingSideSheet = true;
             }
-            else // Hide
+            else 
             {
                 _isShowingSideSheet = false;
                 if (_pendingRequest != null)

@@ -1,19 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
-        <!--If you are willing to use Windows/MacOS native APIs you will need to create 3 projects.
-        One for Windows with net8.0-windows TFM, one for MacOS with net8.0-macos and one with net8.0 TFM for Linux.-->
+
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
-        <!-- Enable Avalonia Hot Reload in Debug mode -->
+
         <AvaloniaUseCompiledBindingsByDefault Condition="'$(Configuration)' == 'Debug'">false</AvaloniaUseCompiledBindingsByDefault>
         <ApplicationIcon Condition="'$(RuntimeIdentifier)' == 'win-x64' OR '$(RuntimeIdentifier)' == 'win-x86'">../Ecliptix.Core/Assets/Branding/Platform/Windows/ecliptix.ico</ApplicationIcon>
         <AssemblyName>Ecliptix</AssemblyName>
 
-        <!-- Single-file deployment -->
         <PublishSingleFile>true</PublishSingleFile>
         <SelfContained>true</SelfContained>
-
 
         <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Windows')) AND '$(PlatformTarget)' != 'x86'">win-x64</RuntimeIdentifier>
         <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Windows')) AND '$(PlatformTarget)' == 'x86'">win-x86</RuntimeIdentifier>
@@ -21,24 +18,9 @@
         <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('OSX')) AND '$(Prefer32Bit)' != 'true'">osx-x64</RuntimeIdentifier>
         <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Linux'))">linux-x64</RuntimeIdentifier>
 
-
-
-        <!-- macOS specific settings -->
         <UseAppHost>true</UseAppHost>
         <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
         <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    </PropertyGroup>
-
-    <!-- Native protocol payload resolution -->
-    <PropertyGroup>
-        <NativeProtoBase Condition="'$(NativeProtoBase)'=='' and $([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('win'))">ecliptix_protocol</NativeProtoBase>
-        <NativeProtoBase Condition="'$(NativeProtoBase)'=='' and !$([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('win'))">libecliptix_protocol</NativeProtoBase>
-        <NativeProtoExt Condition="'$(NativeProtoExt)'=='' and $([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('win'))">.dll</NativeProtoExt>
-        <NativeProtoExt Condition="'$(NativeProtoExt)'=='' and $([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('osx'))">.dylib</NativeProtoExt>
-        <NativeProtoExt Condition="'$(NativeProtoExt)'==''">.so</NativeProtoExt>
-        <NativeProtoDir Condition="'$(NativeProtoDir)'=='' and Exists('/Users/oleksandrmelnychenko/CLionProjects/Ecliptix.Protocol.System/build/$(RuntimeIdentifier)')">/Users/oleksandrmelnychenko/CLionProjects/Ecliptix.Protocol.System/build/$(RuntimeIdentifier)</NativeProtoDir>
-        <NativeProtoDir Condition="'$(NativeProtoDir)'=='' and Exists('/Users/oleksandrmelnychenko/CLionProjects/Ecliptix.Protocol.System/build')">/Users/oleksandrmelnychenko/CLionProjects/Ecliptix.Protocol.System/build</NativeProtoDir>
-        <NativeProtoDir Condition="'$(NativeProtoDir)'==''">$(MSBuildThisFileDirectory)..\Ecliptix.Protocol.System\bin\$(Configuration)\net10.0\$(RuntimeIdentifier)</NativeProtoDir>
     </PropertyGroup>
 
     <PropertyGroup>
@@ -46,29 +28,31 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia.Desktop" Version="11.3.9" />
-        <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
-        <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.9" />
+        <PackageReference Include="Avalonia" Version="11.3.10" />
+        <PackageReference Include="Avalonia.Desktop" Version="11.3.10" />
+
+        <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.10" />
         <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.9" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.10" />
+        <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.10" />
         <PackageReference Include="DotNetEnv" Version="3.1.1" />
-        <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0" GeneratePathProperty="true" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="10.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.0" />
-        <PackageReference Include="Polly" Version="8.6.4" />
-        <PackageReference Include="Polly.Core" Version="8.6.4" />
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.1" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.1" GeneratePathProperty="true" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.1" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.1" />
+        <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="10.0.1" />
+        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.1" />
+        <PackageReference Include="Polly" Version="8.6.5" />
+        <PackageReference Include="Polly.Core" Version="8.6.5" />
         <PackageReference Include="Polly.Extensions.Http" Version="3.0.0" />
         <PackageReference Include="Serilog" Version="4.3.0" />
-        <PackageReference Include="Serilog.Extensions.Logging" Version="9.0.2" />
-        <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
+        <PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
+        <PackageReference Include="Serilog.Settings.Configuration" Version="10.0.0" />
         <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
         <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
         <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
 
-        <!-- gRPC Core for AOT -->
-        <PackageReference Include="Grpc.Core.Api" Version="2.71.0" />
+        <PackageReference Include="Grpc.Core.Api" Version="2.76.0" />
         <PackageReference Include="WebView.Avalonia.Desktop" Version="11.0.0.1" />
     </ItemGroup>
 
@@ -88,9 +72,7 @@
         <None Update="build-info.json">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
-        <!-- Simplified AOT configuration -->
-        <!-- <RdXmlFile Include="rd.xml" /> -->
-        <!-- <TrimmerRootDescriptor Include="../../ILLink.Descriptors.xml" /> -->
+
     </ItemGroup>
 
   <ItemGroup>
@@ -107,11 +89,10 @@
     <ProjectReference Include="..\..\Ecliptix.Feature.NewContent\Ecliptix.Feature.NewContent.csproj" />
   </ItemGroup>
 
-    <!-- Platform-specific icon configurations -->
     <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64'">
         <CFBundleIconFile>EcliptixLogo.icns</CFBundleIconFile>
     </PropertyGroup>
-    
+
     <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64' OR '$(RuntimeIdentifier)' == 'win-x86'">
         <Content Include="../Ecliptix.Core/Assets/Branding/Platform/Windows/ecliptix.ico">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -132,13 +113,4 @@
         </Content>
     </ItemGroup>
 
-    <!-- Copy native protocol library into the app output -->
-    <Target Name="CopyNativeProtocolLibrary" AfterTargets="Build">
-        <PropertyGroup>
-            <_NativeProtoPath>$(NativeProtoDir)/$(NativeProtoBase)$(NativeProtoExt)</_NativeProtoPath>
-        </PropertyGroup>
-        <Message Importance="High" Text="Copying native protocol library from $(_NativeProtoPath) to $(OutDir)" Condition="Exists('$(_NativeProtoPath)')" />
-        <Copy SourceFiles="$(_NativeProtoPath)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" Condition="Exists('$(_NativeProtoPath)')" />
-        <Warning Text="Native protocol library not found at $(_NativeProtoPath). Set NativeProtoDir/NativeProtoBase/NativeProtoExt or build the native target for $(RuntimeIdentifier)." Condition="!Exists('$(_NativeProtoPath)')" />
-    </Target>
 </Project>

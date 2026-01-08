@@ -301,7 +301,6 @@ public sealed partial class SignInViewModel : Core.Core.MVVM.ViewModelBase, IRou
             ((AuthenticationViewModel)HostScreen).StartSecureKeyRecoveryFlow();
         });
 
-
         OpenCountryPickerCommand = ReactiveCommand.CreateFromTask(async () =>
         {
             await GlobalModalService.ShowRightAsync(
@@ -319,7 +318,6 @@ public sealed partial class SignInViewModel : Core.Core.MVVM.ViewModelBase, IRou
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(_ => AttemptAutoSwitchCountry())
             .DisposeWith(_disposables);
-
 
         SignInCommand?
             .Where(result => result.IsErr)
@@ -346,7 +344,6 @@ public sealed partial class SignInViewModel : Core.Core.MVVM.ViewModelBase, IRou
                 );
             })
             .DisposeWith(_disposables);
-
 
         if (_messageBus != null)
         {
@@ -421,7 +418,7 @@ public sealed partial class SignInViewModel : Core.Core.MVVM.ViewModelBase, IRou
         }
         catch (ObjectDisposedException)
         {
-            // Intentionally suppressed: CancellationTokenSource already disposed of during cleanup
+
         }
         finally
         {

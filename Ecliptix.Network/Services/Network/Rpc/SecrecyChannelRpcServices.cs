@@ -343,4 +343,73 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
                 NetworkFailure.DataCenterNotResponding(ex.Message, ex));
         }
     }
+
+    public async Task<Result<GetServerPublicKeysResponse, NetworkFailure>> GetServerPublicKeysAsync(
+        IConnectivityService connectivityService,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (!GatewayRouteCatalog.TryGetRoute(RpcServiceType.GetServerPublicKeys, out GatewayRoute? route))
+            {
+                NetworkFailure failure = NetworkFailure.InvalidRequestType(
+                    $"Unsupported RPC service type: {RpcServiceType.GetServerPublicKeys}");
+                await connectivityService.PublishAsync(ConnectivityIntent.Disconnected(failure), cancellationToken)
+                    .ConfigureAwait(false);
+                return Result<GetServerPublicKeysResponse, NetworkFailure>.Err(failure);
+            }
+
+            RpcRequestContext requestContext = RpcRequestContext.CreateNew();
+
+            GetServerPublicKeysRequest request = new();
+            EventEnvelope envelope = GatewayTransportFactory.BuildEnvelope(
+                route!,
+                request,
+                _metaDataProvider,
+                requestContext);
+
+            CallOptions callOptions = _callOptionsFactory.Create(
+                RpcServiceType.GetServerPublicKeys,
+                requestContext,
+                cancellationToken);
+
+            AsyncUnaryCall<EventEnvelope> call = _gatewayClient.UnaryAsync(envelope, callOptions);
+            EventEnvelope response = await call.ResponseAsync.ConfigureAwait(false);
+
+            NetworkFailure? outcomeFailure = GatewayTransportFactory.MapOutcome(response.Metadata);
+            if (outcomeFailure != null)
+            {
+                await connectivityService.PublishAsync(
+                        ConnectivityIntent.Disconnected(outcomeFailure),
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                return Result<GetServerPublicKeysResponse, NetworkFailure>.Err(outcomeFailure);
+            }
+
+            GetServerPublicKeysResponse payload = GetServerPublicKeysResponse.Parser.ParseFrom(response.Payload);
+            return Result<GetServerPublicKeysResponse, NetworkFailure>.Ok(payload);
+        }
+        catch (RpcException rpcEx)
+        {
+            if (GrpcErrorClassifier.IsCancelled(rpcEx))
+            {
+                throw;
+            }
+
+            NetworkFailure failure = await _errorProcessor.ProcessAsync(rpcEx).ConfigureAwait(false);
+            await connectivityService.PublishAsync(
+                    ConnectivityIntent.Disconnected(failure))
+                .ConfigureAwait(false);
+            return Result<GetServerPublicKeysResponse, NetworkFailure>.Err(failure);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return Result<GetServerPublicKeysResponse, NetworkFailure>.Err(
+                NetworkFailure.DataCenterNotResponding(ex.Message, ex));
+        }
+    }
 }

@@ -87,7 +87,7 @@ public class ModuleResourceManager(IServiceProvider serviceProvider,
                 }
                 catch
                 {
-                    // Suppressed
+
                 }
             }
 

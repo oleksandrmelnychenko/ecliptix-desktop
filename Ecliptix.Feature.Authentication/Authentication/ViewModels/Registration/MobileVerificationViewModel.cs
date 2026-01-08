@@ -327,7 +327,7 @@ public sealed partial class MobileVerificationViewModel : Core.Core.MVVM.ViewMod
         }
         catch (OperationCanceledException)
         {
-            // Operation was canceled.
+
         }
         catch (Exception ex)
         {
@@ -616,7 +616,7 @@ public sealed partial class MobileVerificationViewModel : Core.Core.MVVM.ViewMod
         }
         catch (ObjectDisposedException)
         {
-            // Intentionally suppressed: CancellationTokenSource already disposed of during cleanup
+
         }
         finally
         {

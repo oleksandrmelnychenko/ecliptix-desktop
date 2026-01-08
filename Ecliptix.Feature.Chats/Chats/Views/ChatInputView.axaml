@@ -58,7 +58,6 @@
                         CornerRadius="10,0,0,10"
                         VerticalAlignment="Stretch"/>
 
-                <!-- Text Content -->
                 <StackPanel Grid.Column="1" Margin="10,8">
                     <TextBlock Text="{Binding InputContextTitle}"
                                Foreground="{Binding InputContextColor}"

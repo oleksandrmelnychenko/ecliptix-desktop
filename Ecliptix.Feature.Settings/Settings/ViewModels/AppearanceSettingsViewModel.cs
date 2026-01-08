@@ -24,7 +24,6 @@ public class AppearanceSettingsViewModel : ReactiveObject
     };
     [Reactive] public string SelectedFontSize { get; set; }
 
-
     public AppearanceSettingsViewModel()
     {
         SelectedLanguage = Languages[0];

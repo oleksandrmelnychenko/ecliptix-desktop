@@ -12,5 +12,12 @@
     <ProjectReference Include="..\Ecliptix.Feature.Feed\Ecliptix.Feature.Feed.csproj" />
   </ItemGroup>
 
-  
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.3.10" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.10" />
+    <PackageReference Include="Avalonia.Diagnostics" Version="11.3.10" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.10" />
+    <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.10" />
+  </ItemGroup>
+
 </Project>

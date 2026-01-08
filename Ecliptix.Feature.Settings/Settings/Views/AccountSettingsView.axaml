@@ -126,7 +126,6 @@
                 </Grid>
             </Border>
 
-
             <Border Classes="setting-row">
                 <Grid ColumnDefinitions="Auto, *">
                     <TextBlock Grid.Column="0" Text="Profile Name" Classes="setting-label"/>

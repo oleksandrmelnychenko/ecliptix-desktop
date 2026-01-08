@@ -30,7 +30,6 @@
 			</Grid>
 		</Border>
 
-		<!--Back button-->
 		<Button	Margin="0,10,0,0"
 				CornerRadius="20"
 				Width="32"
@@ -64,7 +63,6 @@
 			</Button.Styles>
 		</Button>
 
-		<!-- Entry -->
 		<Grid RowDefinitions="Auto,Auto"
 			  RowSpacing="10"
 			  VerticalAlignment="Bottom"

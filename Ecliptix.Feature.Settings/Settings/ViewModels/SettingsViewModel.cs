@@ -130,7 +130,6 @@ public sealed partial class SettingsViewModel : Core.Core.MVVM.ViewModelBase, IA
                 CancellationTokenSource operationCts = new();
                 _logoutCancellationTokenSource = operationCts;
 
-
                 try
                 {
                     Result<Ecliptix.Utilities.Unit, LogoutFailure> result = await _logoutService.LogoutAsync(
@@ -211,7 +210,7 @@ public sealed partial class SettingsViewModel : Core.Core.MVVM.ViewModelBase, IA
         }
         catch (ObjectDisposedException)
         {
-            // Intentionally suppressed
+
         }
         finally
         {

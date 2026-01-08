@@ -55,7 +55,6 @@
                     </StackPanel>
                 </StackPanel>
 
-                <!-- Inline Styles -->
                 <StackPanel Spacing="10">
                     <TextBlock Text="✓ Inline Property Settings (WORKS in Designer)"
                                FontWeight="Bold" FontSize="16" Foreground="Green"/>
@@ -67,7 +66,6 @@
                     </StackPanel>
                 </StackPanel>
 
-                <!-- THESE DON'T WORK IN DESIGNER (Need Runtime Testing) -->
                 <Border BorderBrush="Orange" BorderThickness="2" Padding="10" CornerRadius="4">
                     <StackPanel Spacing="10">
                         <TextBlock Text="⚠ Interactive States (ONLY work at Runtime - not in Designer)"
@@ -77,14 +75,12 @@
                             Run the application to test interactive behavior.
                         </TextBlock>
 
-                        <!-- Show both normal and "simulated hover" state side by side -->
                         <Grid ColumnDefinitions="Auto,20,Auto" RowDefinitions="Auto,Auto,Auto,Auto">
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="Normal State:"
                                      FontSize="12" Margin="0,0,0,5"/>
                             <TextBlock Grid.Row="0" Grid.Column="2" Text="Hover State (simulated):"
                                      FontSize="12" Margin="0,0,0,5"/>
 
-                            <!-- Example 1 -->
                             <EcliptixIcon Grid.Row="1" Grid.Column="0"
                                         Kind="ImagePlus" Height="48" Width="48" Stroke="Black">
                                 <EcliptixIcon.Styles>
@@ -96,7 +92,6 @@
                             <EcliptixIcon Grid.Row="1" Grid.Column="2"
                                         Kind="ImagePlus" Height="48" Width="48" Stroke="Blue"/>
 
-                            <!-- Example 2 -->
                             <EcliptixIcon Grid.Row="2" Grid.Column="0"
                                         Kind="Send" Height="48" Width="48"
                                         Stroke="Gray" StrokeThickness="2">
@@ -111,7 +106,6 @@
                                         Kind="Send" Height="48" Width="48"
                                         Stroke="Orange" StrokeThickness="3"/>
 
-                            <!-- Example 3 -->
                             <EcliptixIcon Grid.Row="3" Grid.Column="0"
                                         Kind="PaperClip" Height="48" Width="48"
                                         Stroke="Purple" StrokeThickness="2">
@@ -132,7 +126,6 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Testing Page Example -->
                 <Border BorderBrush="Blue" BorderThickness="2" Padding="10" CornerRadius="4">
                     <StackPanel Spacing="10">
                         <TextBlock Text="💡 Create a Test Page for Interactive States"
@@ -182,7 +175,6 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Button Examples (These work but need runtime) -->
                 <StackPanel Spacing="10">
                     <TextBlock Text="🎯 Real-World Button Examples (Test at Runtime)"
                                FontWeight="Bold" FontSize="16"/>

@@ -2,7 +2,7 @@ using System.Buffers;
 using System.Security.Cryptography;
 using System.Text;
 using Ecliptix.Network.Infrastructure.Security.Abstractions;
-using Ecliptix.Protocol.System.Sodium;
+using Ecliptix.Protected.Protocol.Sodium;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures;
 using Ecliptix.Utilities.Failures.Sodium;

@@ -1,8 +1,10 @@
+using System;
 using Avalonia;
 using Avalonia.Controls;
 using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Core.Modularity.Abstractions;
 using Ecliptix.Utilities;
+using Serilog;
 using Splat;
 
 namespace Ecliptix.Core.Core.Controls;
@@ -25,9 +27,11 @@ public sealed class ModuleContentControl : ContentControl
         try
         {
             _moduleViewFactory = Locator.Current?.GetService<IModuleViewFactory>();
+            Log.Debug("[ModuleContentControl] IModuleViewFactory resolved: {HasFactory}", _moduleViewFactory != null);
         }
-        catch
+        catch (Exception ex)
         {
+            Log.Error(ex, "[ModuleContentControl] Failed to resolve IModuleViewFactory");
             _moduleViewFactory = null;
         }
     }
@@ -40,6 +44,8 @@ public sealed class ModuleContentControl : ContentControl
 
     private void OnViewModelContentChanged(object? newViewModel)
     {
+        Log.Information("[ModuleContentControl] ViewModelContent changed to: {Type}", newViewModel?.GetType().Name ?? "null");
+
         if (newViewModel == null)
         {
             Content = null;
@@ -51,11 +57,13 @@ public sealed class ModuleContentControl : ContentControl
             .Match(
                 view =>
                 {
+                    Log.Information("[ModuleContentControl] ✅ View created: {ViewType} for {VmType}", view.GetType().Name, newViewModel.GetType().Name);
                     view.DataContext = newViewModel;
                     Content = view;
                 },
                 () =>
                 {
+                    Log.Warning("[ModuleContentControl] ❌ No view found for {VmType}, using fallback", newViewModel.GetType().Name);
                     Content = CreateFallbackView();
                 });
     }

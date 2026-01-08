@@ -6,7 +6,6 @@ using ReactiveUI;
 
 namespace Ecliptix.Feature.Profile.Profile.ViewModels;
 
-
 public class ProfileImageItem : ReactiveObject
 {
     public Bitmap? ImageContent { get; set; }

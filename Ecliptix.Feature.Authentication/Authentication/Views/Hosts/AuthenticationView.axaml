@@ -54,7 +54,6 @@
             </Border>
         </StackPanel>
 
-
         <Border Grid.Row="1">
             <Border Padding="{StaticResource ContentPadding}">
                 <core:ModuleContentControl ViewModelContent="{Binding CurrentView}"

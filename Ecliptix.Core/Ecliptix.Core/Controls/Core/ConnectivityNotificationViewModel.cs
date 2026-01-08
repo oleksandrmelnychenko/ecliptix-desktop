@@ -122,7 +122,7 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
          IObservable<Unit> languageTrigger,
          ConnectivityObservables connectivityObservables)
     {
-        ConnectivitySnapshot initialInternetSnapshot = new ConnectivitySnapshot(
+        ConnectivitySnapshot initialInternetSnapshot = new(
             _connectivityService.LastKnownInternetStatus,
             ConnectivityReason.UNKNOWN,
             ConnectivitySource.INTERNET_PROBE,
@@ -134,7 +134,7 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
             .Select(MapInternetStatus)
             .StartWith(MapInternetStatus(initialInternetSnapshot));
 
-        ConnectivitySnapshot initialServerSnapshot = new ConnectivitySnapshot(
+        ConnectivitySnapshot initialServerSnapshot = new(
             _connectivityService.LastKnownServerStatus,
             ConnectivityReason.UNKNOWN,
             ConnectivitySource.DATA_CENTER,

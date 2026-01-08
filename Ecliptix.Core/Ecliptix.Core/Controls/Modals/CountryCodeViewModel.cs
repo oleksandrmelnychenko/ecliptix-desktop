@@ -22,23 +22,16 @@ public record CountryPhoneModel(
     public string FormattedCode => $"{IsoCode} {PhonePrefix}";
 }
 
-
 public record CountryCodeSelectedEvent(
     CountryPhoneModel SelectedCountry,
     string RequestorContext);
 
-public class CountryPickerItemViewModel : ReactiveObject
+public class CountryPickerItemViewModel(CountryPhoneModel model, bool isSelected) : ReactiveObject
 {
-    public CountryPhoneModel Model { get; }
+    public CountryPhoneModel Model { get; } = model;
 
     [Reactive]
-    public bool IsSelected { get; set; }
-
-    public CountryPickerItemViewModel(CountryPhoneModel model, bool isSelected)
-    {
-        Model = model;
-        IsSelected = isSelected;
-    }
+    public bool IsSelected { get; set; } = isSelected;
 }
 
 public class CountryCodeViewModel : ReactiveObject, IActivatableViewModel, IDisposable
@@ -59,11 +52,11 @@ public class CountryCodeViewModel : ReactiveObject, IActivatableViewModel, IDisp
         _messageBus = messageBus;
         _requestorContext = requestorContext;
 
-        CountryPhoneModel[] supportedCountries = new[]
-        {
-            new CountryPhoneModel("United States", "US", "+1", AppCultureSettingsConstants.UNITED_STATES_FLAG_PATH),
-            new CountryPhoneModel("Ukraine", "UA", "+380", AppCultureSettingsConstants.UKRAINE_FLAG_PATH),
-        };
+        CountryPhoneModel[] supportedCountries =
+        [
+            new("United States", "US", "+1", AppCultureSettingsConstants.UNITED_STATES_FLAG_PATH),
+            new("Ukraine", "UA", "+380", AppCultureSettingsConstants.UKRAINE_FLAG_PATH)
+        ];
 
         Countries = new ObservableCollection<CountryPickerItemViewModel>(
             supportedCountries.Select(c => new CountryPickerItemViewModel(c, c.IsoCode == currentIsoCode))

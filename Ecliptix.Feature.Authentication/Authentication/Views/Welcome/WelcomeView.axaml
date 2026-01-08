@@ -37,7 +37,6 @@
           Margin="{StaticResource Welcome.Container.Margin}"
           Width="{StaticResource Content.MaxWidth}">
 
-
         <carousels:WelcomeCarouselView Grid.Row="1"
                                   ItemsSource="{Binding Slides}"
                                   SelectedIndex="{Binding CurrentSlideIndex, Mode=TwoWay}"
@@ -88,8 +87,6 @@
                 </Button>
 
         </StackPanel>
-
-
 
     </Grid>
 </UserControl>

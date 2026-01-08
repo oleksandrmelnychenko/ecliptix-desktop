@@ -4,7 +4,7 @@ using Ecliptix.Network.Infrastructure.Data.Abstractions;
 using Ecliptix.Network.Services.Abstractions.Authentication;
 using Ecliptix.Network.Services.Common;
 using Ecliptix.Protobuf.Transport.Identity;
-using Ecliptix.Protocol.System.Sodium;
+using Ecliptix.Protected.Protocol.Sodium;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Authentication;
 using Ecliptix.Utilities.Failures.Membership;

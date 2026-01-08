@@ -10,13 +10,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.10" />
+    <PackageReference Include="Avalonia.Diagnostics" Version="11.3.10" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.10" />
+    <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.10" />
     <PackageReference Include="Serilog" Version="4.3.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\Ecliptix.Core\Ecliptix.Core\Core\Abstractions\**\*.cs"
-             Link="Core/Abstractions/%(RecursiveDir)%(Filename)%(Extension)" />
-    <Compile Include="..\Ecliptix.Core\Ecliptix.Core\Core\Modularity\**\*.cs"
-             Link="Core/Modularity/%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\Ecliptix.Core\Ecliptix.Core\Core\Abstractions\**\*.cs" Link="Core/Abstractions/%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\Ecliptix.Core\Ecliptix.Core\Core\Modularity\**\*.cs" Link="Core/Modularity/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

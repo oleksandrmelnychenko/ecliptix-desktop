@@ -18,7 +18,7 @@ public class SecuritySettingsViewModel : ReactiveObject
 
     public SecuritySettingsViewModel()
     {
-        // Команда зміни паролю
+
         ChangePasswordCommand = ReactiveCommand.Create(() =>
         {
             Log.Information("Password change requested.");

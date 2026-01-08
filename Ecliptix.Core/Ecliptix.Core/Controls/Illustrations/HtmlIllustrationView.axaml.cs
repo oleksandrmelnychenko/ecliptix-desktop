@@ -66,9 +66,9 @@ public partial class HtmlIllustrationView : UserControl
         {
             if (url.StartsWith("avares://"))
             {
-                Uri uri = new Uri(url);
+                Uri uri = new(url);
                 using Stream stream = AssetLoader.Open(uri);
-                using StreamReader reader = new StreamReader(stream);
+                using StreamReader reader = new(stream);
                 string htmlContent = reader.ReadToEnd();
 
                 Dispatcher.UIThread.Post(() =>

@@ -7,8 +7,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Google.Protobuf" Version="3.33.0" />
-      <PackageReference Include="Grpc.Core.Api" Version="2.71.0" />
+      <PackageReference Include="Avalonia" Version="11.3.10" />
+      <PackageReference Include="Avalonia.Desktop" Version="11.3.10" />
+      <PackageReference Include="Avalonia.Diagnostics" Version="11.3.10" />
+      <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.10" />
+      <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.10" />
+      <PackageReference Include="Google.Protobuf" Version="3.33.2" />
+      <PackageReference Include="Grpc.Core.Api" Version="2.76.0" />
     </ItemGroup>
 
     <ItemGroup>

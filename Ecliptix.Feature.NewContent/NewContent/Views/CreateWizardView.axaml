@@ -9,7 +9,6 @@
              x:DataType="viewModels:CreateWizardViewModel"
              x:Class="Ecliptix.Feature.NewContent.NewContent.Views.CreateWizardView">
 
-
     <UserControl.Styles>
         <Style Selector="Border.sizing-container">
             <Setter Property="Background" Value="Transparent"/>

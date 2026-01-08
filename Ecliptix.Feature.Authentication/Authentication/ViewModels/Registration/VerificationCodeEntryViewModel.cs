@@ -363,7 +363,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.Core.MVVM.View
                 }
                 catch (ObjectDisposedException)
                 {
-                    // Intentionally suppressed: ViewModel disposed during countdown callback
+
                 }
             });
     }
@@ -1064,7 +1064,6 @@ public sealed partial class VerificationCodeEntryViewModel : Core.Core.MVVM.View
         string serverUnavailableText = _localizationService[LocalizationKeys.Common.SERVER_UNAVAILABLE];
         string serviceUnavailableText = _localizationService[ErrorI18NKeys.SERVICE_UNAVAILABLE];
 
-        //TODO:check
         return errorMessage.Contains(serverUnavailableText, StringComparison.OrdinalIgnoreCase) ||
                errorMessage.Contains(serviceUnavailableText, StringComparison.OrdinalIgnoreCase) ||
                errorMessage.Contains("unavailable", StringComparison.OrdinalIgnoreCase) ||

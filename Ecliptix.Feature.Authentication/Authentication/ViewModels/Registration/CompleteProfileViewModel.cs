@@ -213,7 +213,6 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
             {
                 Log.Information("Profile created successfully for AccountId: {AccountId}", currentAccountId);
 
-
                 if (HostScreen is AuthenticationViewModel authHost)
                 {
                     await authHost.SwitchToMainWindowCommand.Execute();

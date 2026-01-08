@@ -177,7 +177,7 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.Core.MVVM.View
 
     private void SetupSubscriptions()
     {
-        // TODO commmented for a test purposes
+
         this.WhenActivated(disposables =>
         {
             Observable.FromAsync(LoadMembershipAsync)
@@ -361,7 +361,7 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.Core.MVVM.View
                     ValidationTips[i].IsMet = v.Checklist[i].IsMet;
                 }
             })
-            .DisposeWith(_disposables); // Використовуємо _disposables
+            .DisposeWith(_disposables); 
 
         validationResult.Select(v => v.IsSuccess).ToPropertyEx(this, x => x.IsSecureKeySuccess);
         validationResult.Select(v => v.Strength).ToPropertyEx(this, x => x.CurrentSecureKeyStrength);
@@ -382,7 +382,7 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.Core.MVVM.View
 
         this.WhenAnyValue(x => x.SecureKeyStrengthMessage)
             .Subscribe(m => SecureKeyError = m)
-            .DisposeWith(_disposables); // Додаємо DisposeWith сюди також
+            .DisposeWith(_disposables); 
 
         return validationResult.Select(v => v.IsSuccess);
     }
@@ -532,9 +532,7 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.Core.MVVM.View
                             hostViewModel.Navigate.Execute(MembershipViewType.COMPLETE_PROFILE_VIEW).Subscribe();
                         }
                     }
-                    //TODO we are currently signin in, after restart we are gonna be authenticated, we should provide new statuses
-                    //TODO disable navigation back
-                    //TODO test logic on recovery
+
                     return SystemU.Default;
                 }
 
@@ -664,7 +662,7 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.Core.MVVM.View
         }
         catch (ObjectDisposedException)
         {
-            // Intentionally suppressed: CancellationTokenSource already disposed of during cleanup
+
         }
         finally
         {

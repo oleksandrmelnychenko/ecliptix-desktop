@@ -9,7 +9,6 @@
 
     <Grid RowDefinitions="*,Auto">
 
-        <!-- Carousel -->
         <Border Grid.Row="0"
                 CornerRadius="8"
                 ClipToBounds="True">
@@ -28,7 +27,6 @@
             </Carousel>
         </Border>
 
-        <!-- Indicators -->
         <StackPanel Grid.Row="0"
                     Orientation="Horizontal"
                     HorizontalAlignment="Center"
@@ -53,7 +51,6 @@
             </ItemsControl>
         </StackPanel>
 
-        <!-- Caption -->
         <Border Grid.Row="1"
                 Padding="16,10"
                 IsVisible="{Binding CarouselContent.Caption, Converter={x:Static ObjectConverters.IsNotNull}}">

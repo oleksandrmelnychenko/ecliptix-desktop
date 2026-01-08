@@ -32,7 +32,7 @@ public sealed class InternetConnectivityBridge : IDisposable
             }
             catch
             {
-                //Suppress
+
             }
         });
     }

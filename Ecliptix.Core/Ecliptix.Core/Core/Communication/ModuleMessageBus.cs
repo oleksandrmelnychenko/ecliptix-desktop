@@ -150,7 +150,7 @@ public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
             }
             catch
             {
-                // Handled
+
             }
             finally
             {
@@ -221,7 +221,7 @@ public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
         }
         catch (AggregateException ex) when (ex.InnerException is OperationCanceledException)
         {
-            // Expected during cancellation
+
         }
         catch (Exception ex)
         {

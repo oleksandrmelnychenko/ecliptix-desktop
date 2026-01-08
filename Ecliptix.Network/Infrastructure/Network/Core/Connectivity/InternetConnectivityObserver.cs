@@ -42,8 +42,8 @@ public sealed class InternetConnectivityObserver : IInternetConnectivityObserver
         IObservable<Unit> networkChangeObservable = Observable
             .FromEvent<NetworkAddressChangedEventHandler, EventPattern<EventArgs>>(
                 handler => (sender, e) => handler(new EventPattern<EventArgs>(sender, e)),
-                h => NetworkChange.NetworkAddressChanged += new NetworkAddressChangedEventHandler((s, e) => h(s, e)),
-                h => NetworkChange.NetworkAddressChanged -= new NetworkAddressChangedEventHandler((s, e) => h(s, e)))
+                h => NetworkChange.NetworkAddressChanged += h,
+                h => NetworkChange.NetworkAddressChanged -= h)
             .Throttle(TimeSpan.FromMilliseconds(NETWORK_CHANGE_THROTTLE_MS))
             .Select(_ => Unit.Default);
 
@@ -117,7 +117,7 @@ public sealed class InternetConnectivityObserver : IInternetConnectivityObserver
             }
             catch (Exception)
             {
-                // Network connectivity check failed - return false to indicate no connection
+
             }
         }
 

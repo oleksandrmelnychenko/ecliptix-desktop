@@ -19,7 +19,7 @@ using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.ProtocolState;
 using Ecliptix.Protobuf.Transport.DeviceProvisioning;
-using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Protected.Protocol.Utilities;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Google.Protobuf;
@@ -214,8 +214,6 @@ public sealed class ApplicationRouter(
             DeviceType = AppDevice.Types.DeviceType.Desktop
         };
 
-        ByteString? receivedServerPublicKey = null;
-
         await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
             RpcServiceType.RegisterAppDevice,
@@ -226,19 +224,18 @@ public sealed class ApplicationRouter(
                 DeviceRegistrationResponse reply =
                     Helpers.ParseFromBytes<DeviceRegistrationResponse>(decryptedPayload);
 
-                receivedServerPublicKey = SecureByteStringInterop.WithByteStringAsSpan(reply.ServerPublicKey,
-                    ByteString.CopyFrom);
-
-                settings.ServerPublicKey = receivedServerPublicKey;
+                if (reply.Status is DeviceRegistrationResponse.Types.Status.InvalidRequest
+                    or DeviceRegistrationResponse.Types.Status.InternalError)
+                {
+                    return Task.FromResult(Result<Unit, NetworkFailure>.Err(
+                        NetworkFailure.InvalidRequestType(
+                            string.IsNullOrWhiteSpace(reply.Message)
+                                ? "Device registration failed"
+                                : reply.Message)));
+                }
 
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
             }, allowDuplicates: false, token: CancellationToken.None).ConfigureAwait(false);
-
-        if (receivedServerPublicKey != null && !receivedServerPublicKey.IsEmpty)
-        {
-            networkProvider.SetServerPublicKey(receivedServerPublicKey);
-            await applicationSecureStorageProvider.SetServerPublicKeyAsync(receivedServerPublicKey).ConfigureAwait(false);
-        }
     }
 
     private async Task<IModule> LoadModuleOrThrowAsync(ModuleIdentifier id, string failureMessage)

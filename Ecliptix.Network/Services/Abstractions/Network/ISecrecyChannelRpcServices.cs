@@ -24,4 +24,8 @@ public interface ISecrecyChannelRpcServices
         IConnectivityService connectivityService,
         AuthenticatedEstablishRequest request,
         CancellationToken cancellationToken = default);
+
+    Task<Result<GetServerPublicKeysResponse, NetworkFailure>> GetServerPublicKeysAsync(
+        IConnectivityService connectivityService,
+        CancellationToken cancellationToken = default);
 }

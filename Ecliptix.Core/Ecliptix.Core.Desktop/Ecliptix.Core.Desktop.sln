@@ -15,7 +15,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecliptix.Utilities", "..\..
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecliptix.Protobufs", "..\..\Ecliptix.Protobufs\Ecliptix.Protobufs.csproj", "{1E757771-7B8C-45AD-B120-42419AAAE838}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecliptix.Protocol.System", "..\..\Ecliptix.Protocol.System\Ecliptix.Protocol.System.csproj", "{BFEA34CF-7866-414F-BAB7-DC1D7F659784}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecliptix.Protected.Protocol", "..\..\Ecliptix.Protected.Protocol\Ecliptix.Protected.Protocol.csproj", "{BFEA34CF-7866-414F-BAB7-DC1D7F659784}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecliptix.Security.Certificate.Pinning", "..\..\Ecliptix.Security.Certificate.Pinning\Ecliptix.Security.Certificate.Pinning.csproj", "{E7AA0EFF-5918-4437-AE17-7781FD2175FC}"
 EndProject

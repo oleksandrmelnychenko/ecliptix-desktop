@@ -20,13 +20,12 @@
 	<Grid Background="#fff">
 		<ScrollViewer HorizontalScrollBarVisibility="Disabled"
 					  VerticalScrollBarVisibility="Auto">
-			<!-- Twitter-like centered feed container -->
+
 			<Border MaxWidth="1020"
 					HorizontalAlignment="Center"
 					Padding="40,0">
 				<Grid RowDefinitions="Auto,*,Auto">
 
-					<!-- Loading Indicator -->
 					<Border Grid.Row="0"
 							Padding="16"
 							IsVisible="{Binding IsLoadingPosts}">
@@ -41,7 +40,6 @@
 											   HorizontalAlignment="Center"
 											   Items="{Binding MenuItems}" />
 
-					<!-- Feed Posts -->
 					<ItemsControl Grid.Row="1"
 								  ItemsSource="{Binding Posts}"
 								  Margin="0,8">
@@ -52,7 +50,6 @@
 						</ItemsControl.DataTemplates>
 					</ItemsControl>
 
-					<!-- Load More Button -->
 					<Border Grid.Row="2"
 							Padding="16"
 							IsVisible="{Binding HasMorePosts}">
@@ -68,7 +65,6 @@
 								FontWeight="SemiBold" />
 					</Border>
 
-					<!-- Error Message -->
 					<Border Grid.Row="2"
 							Padding="16"
 							IsVisible="{Binding ErrorMessage, Converter={StaticResource NotNullOrEmptyConverter}}">
@@ -94,13 +90,10 @@
 			</Border>
 		</ScrollViewer>
 
-		<!--Add post input-->
 		<feedItem:FeedInputControl Margin="230,0,230,20" />
 
-		<!--Edit post overlay-->
 		<feedItem:EditPostControl IsVisible="{Binding ((vm:FeedViewModel)DataContext).IsEdit, ElementName=ThisControl}" DataContext="{Binding SelectedPost}" />
 
-		<!-- Empty State -->
 		<Border IsVisible="{Binding !Posts.Count}"
 				Background="Transparent"
 				MaxWidth="1020"

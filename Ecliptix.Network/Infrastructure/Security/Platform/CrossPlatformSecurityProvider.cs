@@ -25,6 +25,7 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
     private const int CRED_MAX_CREDENTIAL_BLOB_SIZE = 512;
     private const string MACHINE_KEY_SALT = "EcliptixMachineKey";
     private const string HMAC_KEY_IDENTIFIER = "ecliptix_hmac_key";
+    private const string HARDWARE_ENCRYPTION_KEY_INFO = "ecliptix-hardware-encryption-v1";
     private const string MACHINE_KEY_IDENTIFIER = "ecliptix_machine_key";
     private const string MACHINE_SALT_IDENTIFIER = "ecliptix_machine_salt";
     private const int RANDOM_SALT_SIZE = 32;
@@ -255,7 +256,7 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
     {
         if (_cachedHmacKey != null)
         {
-            // Return a clone to prevent callers from modifying the cached key
+
             return (byte[])_cachedHmacKey.Clone();
         }
 
@@ -267,12 +268,12 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             await StoreKeyInKeychainAsync(HMAC_KEY_IDENTIFIER, newKey);
 
             _cachedHmacKey = newKey;
-            // Return a clone to prevent callers from modifying the cached key
+
             return (byte[])_cachedHmacKey.Clone();
         }
 
         _cachedHmacKey = hmacKey;
-        // Return a clone to prevent callers from modifying the cached key
+
         return (byte[])_cachedHmacKey.Clone();
     }
 
@@ -306,7 +307,7 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 
         try
         {
-            aesKey = key.AsSpan(0, AES_KEY_SIZE).ToArray();
+            aesKey = DeriveHardwareEncryptionKey(key);
             nonce = RandomNumberGenerator.GetBytes(GCM_NONCE_SIZE);
             tag = new byte[GCM_TAG_SIZE];
             ciphertext = new byte[data.Length];
@@ -366,7 +367,7 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 
         try
         {
-            aesKey = key.AsSpan(0, AES_KEY_SIZE).ToArray();
+            aesKey = DeriveHardwareEncryptionKey(key);
 
             ReadOnlySpan<byte> nonce = data.AsSpan(0, GCM_NONCE_SIZE);
             ReadOnlySpan<byte> tag = data.AsSpan(GCM_NONCE_SIZE, GCM_TAG_SIZE);
@@ -391,6 +392,18 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
                 CryptographicOperations.ZeroMemory(aesKey);
             }
         }
+    }
+
+    private static byte[] DeriveHardwareEncryptionKey(byte[] hmacKey)
+    {
+        byte[] aesKey = new byte[AES_KEY_SIZE];
+        HKDF.DeriveKey(
+            HashAlgorithmName.SHA256,
+            ikm: hmacKey,
+            output: aesKey,
+            salt: null,
+            info: Encoding.UTF8.GetBytes(HARDWARE_ENCRYPTION_KEY_INFO));
+        return aesKey;
     }
 
     private string BuildKeychainTarget(string identifier) =>
@@ -876,12 +889,10 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 
         try
         {
-            // Get the actual file size to ensure complete overwrite
+
             FileInfo fileInfo = new(filePath);
             long fileSize = fileInfo.Length;
 
-            // Overwrite with random data at least the size of the file
-            // Use minimum of SECURE_OVERWRITE_SIZE to handle edge cases
             int overwriteSize = (int)Math.Max(fileSize, SECURE_OVERWRITE_SIZE);
             byte[] randomData = RandomNumberGenerator.GetBytes(overwriteSize);
 
@@ -902,14 +913,13 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         {
             Log.Debug(ex, "[KEYCHAIN-CLEANUP] Could not securely delete file: {FilePath}", filePath);
 
-            // Try simple delete as fallback
             try
             {
                 File.Delete(filePath);
             }
             catch
             {
-                // Best effort - ignore
+
             }
         }
     }
@@ -1213,7 +1223,7 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         }
         catch (Exception)
         {
-            // Hardware random enhancement is best-effort - fallback to software RNG is acceptable
+
         }
     }
 
@@ -1623,7 +1633,7 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             }
             catch (InvalidOperationException)
             {
-                // Resolver already set for this assembly.
+
             }
         }
 
@@ -1831,7 +1841,6 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         }
     }
 
-    // SECURITY FIX C6: Implement IDisposable with proper key zeroing
     public void Dispose()
     {
         Dispose(true);
@@ -1845,8 +1854,6 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             return;
         }
 
-        // Zero sensitive key material regardless of disposing flag
-        // This ensures keys are cleared even during finalization
         lock (_lockObject)
         {
             if (_cachedMachineKey != null)

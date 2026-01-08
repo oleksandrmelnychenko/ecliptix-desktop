@@ -15,7 +15,6 @@ using ReactiveUI.Fody.Helpers;
 using Splat;
 using IMessageBus = Ecliptix.Core.Messaging.Core.Messaging.IMessageBus;
 
-
 namespace Ecliptix.Feature.Chats.Chats.ViewModels;
 
 public enum MessageActionType
@@ -58,7 +57,6 @@ public class ConversationViewModel : ReactiveObject, IDisposable
     public ReactiveCommand<Unit, Unit> CancelInputContextCommand { get; private set; } = null!;
     public ReactiveCommand<Unit, Unit> SendMessageCommand { get; private set; } = null!;
 
-
     public ConversationViewModel(Guid chatId, string name, IChatService chatService)
     {
         _chatId = chatId;
@@ -71,14 +69,14 @@ public class ConversationViewModel : ReactiveObject, IDisposable
 
         if (_messageBus != null)
         {
-            _messageBus.Subscribe<ChatMessageActionEvent>(OnMessageAction)
+            _messageBus.Subscribe<ChatMessageActionEvent>(evt => { OnMessageAction(evt); return Task.CompletedTask; })
                 .DisposeWith(_disposables);
         }
 
         LoadMessagesStreamAsync();
     }
 
-    private async Task OnMessageAction(ChatMessageActionEvent evt)
+    private void OnMessageAction(ChatMessageActionEvent evt)
     {
         switch (evt.ActionType)
         {
@@ -128,7 +126,6 @@ public class ConversationViewModel : ReactiveObject, IDisposable
         SendIconData = _sendIcon;
     }
 
-
     private async Task OnSendAsync()
     {
         if (string.IsNullOrWhiteSpace(InputText))
@@ -138,15 +135,15 @@ public class ConversationViewModel : ReactiveObject, IDisposable
 
         if (IsInputContextVisible && _currentAction == MessageActionType.Edit && _targetMessage != null)
         {
-            // await _chatService.EditMessageAsync(_chatId, _targetMessage.Id, InputText);
+
         }
         else if (IsInputContextVisible && _currentAction == MessageActionType.Reply && _targetMessage != null)
         {
-            // await _chatService.ReplyToMessageAsync(_chatId, _targetMessage.Id, InputText);
+
         }
         else
         {
-            // await _chatService.SendMessageAsync(_chatId, InputText);
+
         }
 
         ResetInputContext();

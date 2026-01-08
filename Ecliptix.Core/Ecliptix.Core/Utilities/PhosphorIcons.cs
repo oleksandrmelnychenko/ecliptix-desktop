@@ -1,21 +1,11 @@
 namespace Ecliptix.Core.Utilities;
 
-/// <summary>
-/// Provides easy access to Phosphor Icons (Light weight) SVG paths.
-/// All icons are located in Assets/Icons/ directory.
-/// </summary>
 public static class PhosphorIcons
 {
     private const string IconBasePath = "avares://Ecliptix.Core/Assets/Icons/";
 
-    /// <summary>
-    /// Gets the full Avalonia resource path for a Phosphor icon.
-    /// </summary>
-    /// <param name="iconName">The icon name without extension (e.g., "user", "home", "settings")</param>
-    /// <returns>Full avares:// path to the SVG icon</returns>
     public static string GetIconPath(string iconName) => $"{IconBasePath}{iconName}-light.svg";
 
-    // Common UI Icons
     public static class Common
     {
         public static string User => GetIconPath("user");
@@ -38,7 +28,6 @@ public static class PhosphorIcons
         public static string QuestionMark => GetIconPath("question-mark");
     }
 
-    // Navigation Icons
     public static class Navigation
     {
         public static string ArrowLeft => GetIconPath("arrow-left");
@@ -59,7 +48,6 @@ public static class PhosphorIcons
         public static string DotsThreeVertical => GetIconPath("dots-three-vertical");
     }
 
-    // Communication Icons
     public static class Communication
     {
         public static string Chat => GetIconPath("chat");
@@ -79,7 +67,6 @@ public static class PhosphorIcons
         public static string ShareNetwork => GetIconPath("share-network");
     }
 
-    // File & Document Icons
     public static class Documents
     {
         public static string File => GetIconPath("file");
@@ -99,7 +86,6 @@ public static class PhosphorIcons
         public static string CloudArrowUp => GetIconPath("cloud-arrow-up");
     }
 
-    // Media Controls
     public static class Media
     {
         public static string Play => GetIconPath("play");
@@ -115,7 +101,6 @@ public static class PhosphorIcons
         public static string SpeakerSlash => GetIconPath("speaker-slash");
     }
 
-    // Security & Lock Icons
     public static class Security
     {
         public static string Lock => GetIconPath("lock");
@@ -130,7 +115,6 @@ public static class PhosphorIcons
         public static string Fingerprint => GetIconPath("fingerprint");
     }
 
-    // Editor & Text Icons
     public static class Editor
     {
         public static string TextAa => GetIconPath("text-aa");
@@ -147,7 +131,6 @@ public static class PhosphorIcons
         public static string ListNumbers => GetIconPath("list-numbers");
     }
 
-    // Action Icons
     public static class Actions
     {
         public static string Trash => GetIconPath("trash");
@@ -166,7 +149,6 @@ public static class PhosphorIcons
         public static string FlagBanner => GetIconPath("flag-banner");
     }
 
-    // Status & State Icons
     public static class Status
     {
         public static string CheckCircle => GetIconPath("check-circle");
@@ -180,7 +162,6 @@ public static class PhosphorIcons
         public static string HourglassHigh => GetIconPath("hourglass-high");
     }
 
-    // System & App Icons
     public static class System
     {
         public static string Moon => GetIconPath("moon");
@@ -198,7 +179,6 @@ public static class PhosphorIcons
         public static string Power => GetIconPath("power");
     }
 
-    // Social & Sharing
     public static class Social
     {
         public static string At => GetIconPath("at");
@@ -211,7 +191,6 @@ public static class PhosphorIcons
         public static string Handshake => GetIconPath("handshake");
     }
 
-    // Calendar & Time
     public static class Time
     {
         public static string Calendar => GetIconPath("calendar");

@@ -9,7 +9,6 @@
             CornerRadius="8"
             ClipToBounds="True">
 
-        <!-- <WebView Name="WebViewControl" /> -->
         <illustrations:AuraProtectionSystem VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
 
     </Border>

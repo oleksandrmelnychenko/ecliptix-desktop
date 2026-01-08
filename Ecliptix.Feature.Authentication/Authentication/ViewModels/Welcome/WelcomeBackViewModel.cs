@@ -84,7 +84,6 @@ public sealed class WelcomeBackViewModel : ViewModelBase, IRoutableViewModel, IR
         _disposables.Add(ContinueLaterCommand);
     }
 
-
     private async Task ExecuteContinueToSetupAsync()
     {
         AuthenticationViewModel hostWindow = (AuthenticationViewModel)HostScreen;

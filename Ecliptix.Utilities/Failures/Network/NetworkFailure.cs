@@ -95,6 +95,10 @@ public record NetworkFailure(
                 ErrorCode.PRECONDITION_FAILED,
                 StatusCode.FailedPrecondition,
                 ErrorI18NKeys.PRECONDITION_FAILED),
+            NetworkFailureType.SESSION_EXPIRED => new GrpcErrorDescriptor(
+                ErrorCode.UNAUTHENTICATED,
+                StatusCode.Unauthenticated,
+                ErrorI18NKeys.UNAUTHENTICATED),
             NetworkFailureType.OPERATION_CANCELLED => new GrpcErrorDescriptor(
                 ErrorCode.CANCELLED,
                 StatusCode.Cancelled,

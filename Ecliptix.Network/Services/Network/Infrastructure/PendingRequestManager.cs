@@ -4,7 +4,6 @@ using Serilog.Events;
 
 namespace Ecliptix.Network.Services.Network.Infrastructure;
 
-//TODO: check
 public sealed class PendingRequestManager : IPendingRequestManager
 {
     private readonly ConcurrentDictionary<string, Func<CancellationToken, Task>> _pendingRequests = new();

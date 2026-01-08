@@ -97,7 +97,6 @@ public sealed class CertificatePinningService : IAsyncDisposable
         return VerifySignatureUnsafe(data.Span, signature.Span);
     }
 
-
     private static CertificatePinningBoolResult VerifySignatureUnsafe(ReadOnlySpan<byte> data, ReadOnlySpan<byte> signature)
     {
         try
@@ -143,7 +142,6 @@ public sealed class CertificatePinningService : IAsyncDisposable
 
         return EncryptUnsafe(plaintext.Span);
     }
-
 
     private static CertificatePinningByteArrayResult EncryptUnsafe(ReadOnlySpan<byte> plaintext)
     {
@@ -230,7 +228,6 @@ public sealed class CertificatePinningService : IAsyncDisposable
         return DecryptUnsafe(ciphertext.Span);
     }
 
-
     private static CertificatePinningByteArrayResult DecryptUnsafe(ReadOnlySpan<byte> ciphertext)
     {
         try
@@ -281,7 +278,6 @@ public sealed class CertificatePinningService : IAsyncDisposable
 
         return GetPublicKeyUnsafe();
     }
-
 
     private static CertificatePinningByteArrayResult GetPublicKeyUnsafe()
     {

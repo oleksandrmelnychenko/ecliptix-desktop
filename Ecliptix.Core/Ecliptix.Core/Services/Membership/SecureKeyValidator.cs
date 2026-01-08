@@ -88,11 +88,10 @@ public static partial class SecureKeyValidator
         return (null, recommendations);
     }
 
-
     public static List<(string Description, bool IsMet)> GetChecklistStatus(string secureKey, ILocalizationService localizationService)
     {
         string s = secureKey ?? string.Empty;
-        List<(string Description, bool IsMet)> statusList = new List<(string Description, bool IsMet)>();
+        List<(string Description, bool IsMet)> statusList = new();
 
         List<(Func<string, bool> IsInvalid, string ErrorMessageKey, object[]? Args)> hardRules = GetHardRules().ToList();
 
@@ -213,7 +212,7 @@ public static partial class SecureKeyValidator
 
             char[] charArray = sub.ToCharArray();
             Array.Reverse(charArray);
-            string reversedSub = new string(charArray);
+            string reversedSub = new(charArray);
 
             if (SecureKeyValidatorConstants.KeyboardRows.Any(row => row.Contains(reversedSub)))
             {

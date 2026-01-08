@@ -18,7 +18,6 @@ public class CreateWizardViewModel : ReactiveObject, IDisposable
         CreateSelectionViewModel selectionVm = new();
         CurrentPage = selectionVm;
 
-
         selectionVm.SelectActionCommand
             .Subscribe(actionType => NavigateToContent(actionType))
             .DisposeWith(_disposables);
@@ -42,13 +41,11 @@ public class CreateWizardViewModel : ReactiveObject, IDisposable
         }
     }
 
-
     public void GoBack()
     {
         if (CurrentPage is not CreateSelectionViewModel)
         {
             IsReverseTransition = true;
-
 
             CreateSelectionViewModel selectionVm = new();
             selectionVm.SelectActionCommand

@@ -13,7 +13,6 @@ public class CreateSelectionViewModel : ReactiveObject
     {
         Items = new ObservableCollection<CreateMenuItem>();
 
-
         Items.Add(new CreateMenuItem(
             "New Post",
             "Share content with your followers",

@@ -124,7 +124,6 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
         _disposed = true;
     }
 
-
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
@@ -389,7 +388,6 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
         _sheetBorder.Height = _sheetHeight;
     }
 
-
     private Control? CreateViewForViewModel(object viewModel)
     {
         IViewLocator viewLocator = ViewLocator.Current;
@@ -560,7 +558,7 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
         }
         catch
         {
-            // UI catch
+
         }
     }
 

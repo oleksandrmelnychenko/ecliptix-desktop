@@ -10,7 +10,6 @@
              VerticalAlignment="Stretch"
              x:DataType="titleBar:TitleBarViewModel">
 
-
     <UserControl.Resources>
         <DataTemplate x:Key="ContentItemTemplate" x:DataType="x:Object">
             <reactiveUi:ViewModelViewHost ViewModel="{Binding}"

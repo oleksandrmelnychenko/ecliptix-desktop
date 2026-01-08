@@ -2,7 +2,6 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="using:System">
 
-
     <ControlTheme x:Key="{x:Type CalendarDatePicker}" TargetType="CalendarDatePicker">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
@@ -113,7 +112,6 @@
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
 
-                        <!-- Header -->
                         <Grid Grid.Row="0" Margin="4,4,4,12">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -165,7 +163,6 @@
                             </StackPanel>
                         </Grid>
 
-                        <!-- Month View (days) -->
                         <Grid Name="PART_MonthView" Grid.Row="1" IsVisible="False" Margin="4">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -187,7 +184,6 @@
                             </Grid.ColumnDefinitions>
                         </Grid>
 
-                        <!-- Year View (months) -->
                         <Grid Name="PART_YearView" Grid.Row="1" IsVisible="False" Margin="4">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="*"/>
@@ -219,7 +215,6 @@
         </Setter>
     </ControlTheme>
 
-    <!-- CalendarDayButton (дні місяця) -->
     <ControlTheme x:Key="{x:Type CalendarDayButton}" TargetType="CalendarDayButton">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="{DynamicResource OnSurface}"/>
@@ -251,7 +246,6 @@
             </ControlTemplate>
         </Setter>
 
-        <!-- Hover - Light primary background with primary text -->
         <Style Selector="^:pointerover /template/ Border#RootBorder">
             <Setter Property="Background" Value="#F3F0FF"/>
         </Style>
@@ -259,7 +253,6 @@
             <Setter Property="Foreground" Value="#8B5CF6"/>
         </Style>
 
-        <!-- Selected - Solid primary background with white text -->
         <Style Selector="^:selected /template/ Border#RootBorder">
             <Setter Property="Background" Value="#8B5CF6"/>
         </Style>
@@ -267,18 +260,15 @@
             <Setter Property="Foreground" Value="White"/>
         </Style>
 
-        <!-- Today - Border outline in primary color -->
         <Style Selector="^:today /template/ Border#RootBorder">
             <Setter Property="BorderThickness" Value="1.5" />
             <Setter Property="BorderBrush" Value="#8B5CF6"/>
         </Style>
 
-        <!-- Inactive (дні з інших місяців) -->
         <Style Selector="^:inactive /template/ ContentPresenter">
             <Setter Property="Opacity" Value="0.3" />
         </Style>
 
-        <!-- Inactive days should not show hover effect -->
         <Style Selector="^:inactive:pointerover /template/ Border#RootBorder">
             <Setter Property="Background" Value="Transparent"/>
         </Style>
@@ -287,7 +277,6 @@
         </Style>
     </ControlTheme>
 
-    <!-- CalendarButton (місяці та роки) -->
     <ControlTheme x:Key="{x:Type CalendarButton}" TargetType="CalendarButton">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="{DynamicResource OnSurface}"/>
@@ -319,7 +308,6 @@
             </ControlTemplate>
         </Setter>
 
-        <!-- Hover - Light primary background with primary text -->
         <Style Selector="^:pointerover /template/ Border#RootBorder">
             <Setter Property="Background" Value="#F3F0FF"/>
         </Style>
@@ -327,7 +315,6 @@
             <Setter Property="Foreground" Value="#8B5CF6"/>
         </Style>
 
-        <!-- Selected - Solid primary background with white text -->
         <Style Selector="^:selected /template/ Border#RootBorder">
             <Setter Property="Background" Value="#8B5CF6"/>
         </Style>
@@ -335,12 +322,10 @@
             <Setter Property="Foreground" Value="White"/>
         </Style>
 
-        <!-- Inactive -->
         <Style Selector="^:inactive /template/ ContentPresenter">
             <Setter Property="Opacity" Value="0.3" />
         </Style>
 
-        <!-- Inactive items should not show hover effect -->
         <Style Selector="^:inactive:pointerover /template/ Border#RootBorder">
             <Setter Property="Background" Value="Transparent"/>
         </Style>

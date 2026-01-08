@@ -109,7 +109,6 @@ public sealed partial class WindowsTitleBarLayout : UserControl, ITitleBar
         _hostWindow.WindowState = WindowState.Minimized;
     }
 
-
     private async void SubscribeToWindowState()
     {
         while (_hostWindow == null)

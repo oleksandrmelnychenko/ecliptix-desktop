@@ -172,7 +172,7 @@ public static class SecurityServiceCollectionExtensions
         }
         catch (IOException)
         {
-            // best-effort
+
         }
     }
 }

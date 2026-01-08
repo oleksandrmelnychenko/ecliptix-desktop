@@ -28,7 +28,6 @@ public class NewGroupChatViewModel : ReactiveObject
     {
         _messageBus = Locator.Current.GetService<IMessageBus>();
 
-
         Contacts = new ObservableCollection<ContactItemViewModel>
         {
             new("Sarah Chen", "@sarahchen", true, ""),
@@ -53,7 +52,6 @@ public class NewGroupChatViewModel : ReactiveObject
         {
             List<ContactItemViewModel> selectedMembers = Contacts.Where(x => x.IsSelected).ToList();
             System.Diagnostics.Debug.WriteLine($"Creating group '{GroupName}' with {selectedMembers.Count} members");
-
 
             _messageBus?.PublishAsync(new CloseOverlayEvent());
         }, canCreate);

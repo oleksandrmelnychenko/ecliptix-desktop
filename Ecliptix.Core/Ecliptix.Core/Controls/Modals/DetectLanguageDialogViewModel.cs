@@ -32,7 +32,6 @@ public sealed class DetectLanguageDialogViewModel : ReactiveObject, IDisposable,
 
     private static readonly AppCultureSettings LanguageConfig = AppCultureSettings.Default;
 
-
     public DetectLanguageDialogViewModel(
         ILocalizationService localizationService,
         ILanguageDetectionService languageDetectionService,
@@ -71,7 +70,6 @@ public sealed class DetectLanguageDialogViewModel : ReactiveObject, IDisposable,
             LanguageConfig.GetDisplayName(languageName));
         ConfirmButtonText = localizationService["LanguageDetection.Button.Confirm"];
         DeclineButtonText = localizationService["LanguageDetection.Button.Decline"];
-
 
         Option<LanguageItem> languageItem = LanguageConfig.GetLanguageByCode(_targetCulture);
         FlagPath = languageItem.Select(item => item.FlagImagePath)

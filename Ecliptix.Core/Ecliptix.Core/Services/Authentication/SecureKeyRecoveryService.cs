@@ -11,7 +11,7 @@ using Ecliptix.Network.Infrastructure.Network.Core.Providers;
 using Ecliptix.Network.Services.Network.Rpc;
 using Ecliptix.OPAQUE.Client;
 using Ecliptix.Protobuf.Transport.Identity;
-using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Protected.Protocol.Utilities;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Google.Protobuf;
@@ -246,7 +246,6 @@ internal sealed class SecureKeyRecoveryService(
             serverRecoveryResponse =
                 SecureByteStringInterop.WithByteStringAsSpan(initResponse.PeerOprf, span => span.ToArray());
 
-            // Master key is now derived during authentication, not generated during registration/recovery
             recoveryRecord = opaqueClient.FinalizeRegistration(serverRecoveryResponse, registrationResult);
 
             OpaqueRecoverySecretKeyCompleteRequest completeRequest = new()

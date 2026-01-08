@@ -18,7 +18,6 @@
           HorizontalAlignment="Stretch"
           Width="{StaticResource Content.MaxWidth}">
 
-        <!-- Header Section -->
         <StackPanel Grid.Row="0"
                     Spacing="{StaticResource Spacing.S}"
                     MaxWidth="{StaticResource Header.MaxWidth}"
@@ -37,7 +36,6 @@
                        Opacity="0.8" />
         </StackPanel>
 
-        <!-- Segmented Pass Phase Input -->
         <coreControls:SegmentedTextBox Grid.Row="1"
                                    SegmentCount="4"
                                    Height="60"
@@ -51,7 +49,6 @@
                                    Value="{Binding PassPhase, Mode=TwoWay}"
                                    ActiveSegmentBorderColor="{DynamicResource Primary}"/>
 
-        <!-- Submit Button -->
         <Button Grid.Row="2"
                 Content="{Binding LocalizationService[Authentication.SignUp.PassPhase.Button]}"
                 Command="{Binding SubmitCommand}"

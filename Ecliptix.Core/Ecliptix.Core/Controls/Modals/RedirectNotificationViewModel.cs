@@ -41,10 +41,7 @@ public sealed partial class RedirectNotificationViewModel : ReactiveObject, IDis
         Message = message;
         SecondsRemaining = totalSeconds;
 
-        SkipDelayCommand = ReactiveCommand.Create(() =>
-        {
-            onComplete();
-        });
+        SkipDelayCommand = ReactiveCommand.Create(onComplete);
 
         UpdateLocalizedStrings();
 
@@ -85,10 +82,7 @@ public sealed partial class RedirectNotificationViewModel : ReactiveObject, IDis
         });
     }
 
-    private void UpdateLocalizedStrings()
-    {
-        AutoRequestPrefixText = _localizationService[LocalizationKeys.Verification.Redirect.AUTO_REQUEST_PREFIX];
-    }
+    private void UpdateLocalizedStrings() => AutoRequestPrefixText = _localizationService[LocalizationKeys.Verification.Redirect.AUTO_REQUEST_PREFIX];
 
     public void Dispose()
     {

@@ -30,9 +30,9 @@ public class ApplicationStartup(
 
         await _splashHost.IsSubscribedAsync;
 
-        bool success = await initializer.InitializeAsync(defaultSystemSettings);
+        ApplicationInitializationResult initResult = await initializer.InitializeAsync(defaultSystemSettings);
 
-        if (success)
+        if (initResult == ApplicationInitializationResult.SUCCESS)
         {
             bool isAuthenticated = stateManager.CurrentState == ApplicationState.AUTHENTICATED;
 

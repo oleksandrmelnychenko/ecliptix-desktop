@@ -11,5 +11,4 @@
     <ProjectReference Include="..\Ecliptix.Network\Ecliptix.Network.csproj" />
   </ItemGroup>
 
-  
 </Project>

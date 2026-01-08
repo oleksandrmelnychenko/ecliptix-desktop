@@ -12,7 +12,6 @@
                     VerticalAlignment="Center"
                     Spacing="14">
 
-            <!-- Logo -->
             <Svg Path="../../../../../../Assets/Branding/Logos/ecliptix_logo.svg"
                  Width="120"
                  Height="120"

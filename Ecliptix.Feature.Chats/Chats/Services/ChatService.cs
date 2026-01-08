@@ -139,7 +139,6 @@ public class ChatService : IChatService
         }
     }
 
-
     private async IAsyncEnumerable<IEnumerable<MessageViewModelBase>> GenerateChannelStream()
     {
         Random rnd = new();
@@ -218,7 +217,6 @@ public class ChatService : IChatService
                 yield return batch;
             }
         }
-
 
     }
 
@@ -323,7 +321,7 @@ public class ChatService : IChatService
 
     private void InitializeData()
     {
-        // 1. Створюємо 6 юзерів (у мене картинки до user6.jpg)
+
         Participant me = new(_currentUserId, "Me", "");
         Participant sarah = new(Guid.NewGuid(), "Sarah Chen", "user1.jpg");
         Participant marcus = new(Guid.NewGuid(), "Marcus Reid", "user2.jpg");
@@ -334,19 +332,16 @@ public class ChatService : IChatService
 
         _users.AddRange(new[] { me, sarah, marcus, emma, alex, lisa, john });
 
-        // 2. Створюємо чати
         Guid chatSarahId = Guid.NewGuid();
         Guid chatGroupId = Guid.NewGuid();
         Guid chatChannelId = Guid.NewGuid();
 
         _chats.Add(new ChatModel(chatSarahId, "Sarah Chen", ChatType.Personal, new List<Guid> { me.Id, sarah.Id }));
 
-        // ГРУПА: Додаємо 5 учасників (щоб побачити накладання аватарок)
         _chats.Add(new ChatModel(chatGroupId, "Design Team", ChatType.Group, new List<Guid> { me.Id, sarah.Id, marcus.Id, emma.Id, alex.Id }));
 
         _chats.Add(new ChatModel(chatChannelId, "Announcements", ChatType.Channel, new List<Guid> { me.Id }));
 
-        // 3. Початкові повідомлення
         _messages.Add(new MessageModel(Guid.NewGuid(), chatSarahId, sarah.Id, "Awesome! Can't wait to see them.", DateTime.Now.AddMinutes(-5), MessageType.Text));
         _messages.Add(new MessageModel(Guid.NewGuid(), chatGroupId, marcus.Id, "Guys, check the Figma updates.", DateTime.Now.AddMinutes(-30), MessageType.Text));
         _messages.Add(new MessageModel(Guid.NewGuid(), chatChannelId, me.Id, "Release notes v2.0", DateTime.Now.AddDays(-1), MessageType.Text));

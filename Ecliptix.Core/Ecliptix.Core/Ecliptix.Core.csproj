@@ -11,14 +11,10 @@
   </PropertyGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
-    <None Remove="Fonts\suisse-intl-regular.ttf" />
-    <None Remove="Fonts\suisseintl-bold.otf" />
-    <None Remove="Views\Authentication\Registration\MobileVerificationView.xaml" />
-    <None Remove="Views\Authentication\Registration\RegistrationWizardView.xaml" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Ecliptix.Opaque.Protocol\Ecliptix.Opaque.Protocol.csproj" />
-    <ProjectReference Include="..\..\Ecliptix.Protocol.System\Ecliptix.Protocol.System.csproj" />
+    <ProjectReference Include="..\..\Ecliptix.Protected.Protocol\Ecliptix.Protected.Protocol.csproj" />
     <ProjectReference Include="..\..\Ecliptix.Security.Certificate.Pinning\Ecliptix.Security.Certificate.Pinning.csproj" />
     <ProjectReference Include="..\..\Ecliptix.Core.Modularity\Ecliptix.Core.Modularity.csproj" />
     <ProjectReference Include="..\..\Ecliptix.Protobufs\Ecliptix.Protobufs.csproj" />
@@ -27,45 +23,34 @@
   <ItemGroup>
     <Compile Remove="Core\Abstractions\**\*.cs" />
     <Compile Remove="Core\Modularity\**\*.cs" />
-    <Compile Remove="Infrastructure\Network\**\*.cs" />
-    <Compile Remove="Infrastructure\Security\**\*.cs" />
-    <Compile Remove="Infrastructure\Data\Abstractions\IApplicationSecureStorageProvider.cs" />
-    <Compile Remove="Infrastructure\Data\PendingLogoutRequestStorage.cs" />
-    <Compile Remove="Services\Network\**\*.cs" />
-    <Compile Remove="Services\Abstractions\Network\**\*.cs" />
-    <Compile Remove="Services\Abstractions\Authentication\IIdentityService.cs" />
-    <Compile Remove="Services\Common\**\*.cs" />
-    <Compile Remove="Services\External\IpGeolocation\IpCountry.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Infrastructure\Network\Transport\Grpc\GrpcClientServiceExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AnimatedImage.Avalonia" Version="2.1.2" />
-    <PackageReference Include="AsyncImageLoader.Avalonia" Version="3.4.3" />
-    <PackageReference Include="Avalonia" Version="11.3.9" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.9" />
+    <PackageReference Include="AsyncImageLoader.Avalonia" Version="3.5.0" />
+    <PackageReference Include="Avalonia" Version="11.3.10" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.10" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.10" />
     <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.9" />
-    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.9" />
-    <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.9" />
+    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.10" />
+    <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.10" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-    <PackageReference Include="Google.Protobuf" Version="3.33.0" />
-    <PackageReference Include="Grpc.Net.Client" Version="2.71.0" />
-    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.71.0" />
+    <PackageReference Include="Google.Protobuf" Version="3.33.2" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.76.0" />
+    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.76.0" />
     <PackageReference Include="Grpc.Tools" Version="2.76.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Konscious.Security.Cryptography.Argon2" Version="1.3.1" />
-    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.0" />
-    <PackageReference Include="Polly" Version="8.6.4" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.1" />
+    <PackageReference Include="Polly" Version="8.6.5" />
     <PackageReference Include="Polly.Contrib.WaitAndRetry" Version="1.1.1" />
     <PackageReference Include="ReactiveUI" Version="20.1.1" />
     <PackageReference Include="ReactiveUI.Fody" Version="19.5.41" />
@@ -73,29 +58,13 @@
     <PackageReference Include="Serilog.Enrichers.Span" Version="3.1.0" />
     <PackageReference Include="Serilog.Formatting.Compact" Version="3.0.0" />
     <PackageReference Include="Splat.Microsoft.Extensions.DependencyInjection" Version="15.2.22" />
-    <PackageReference Include="Svg.Controls.Skia.Avalonia" Version="11.3.6.2" />
-    <PackageReference Include="System.Interactive.Async" Version="6.0.3" />
-    <PackageReference Include="System.Linq.Async" Version="6.0.3" />
+    <PackageReference Include="Svg.Controls.Skia.Avalonia" Version="11.3.9.1" />
+    <PackageReference Include="System.Interactive.Async" Version="7.0.0" />
+    <PackageReference Include="System.Linq.Async" Version="7.0.0" />
     <PackageReference Include="WebView.Avalonia" Version="11.0.0.1" />
     <PackageReference Include="Xaml.Behaviors.Avalonia" Version="11.3.9" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Update="Views\Memberships\AuthenticationWindow.axaml.cs">
-      <DependentUpon>AuthorizationWindow.axaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Update="Views\Memberships\SignUp\VerificationCodeEntryView.axaml.cs">
-      <DependentUpon>VerificationCodeEntryView.axaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Update="Views\Memberships\SignUp\PasswordConfirmationView.axaml.cs">
-      <DependentUpon>PasswordConfirmationView.axaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Update="Views\Memberships\SignUp\PassPhaseView.axaml.cs">
-      <DependentUpon>PassPhaseView.axaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Update="Controls\Modals\DetectLanguageDialog.axaml.cs">
       <DependentUpon>LanguageDetectionModal.axaml</DependentUpon>
       <SubType>Code</SubType>
@@ -104,34 +73,10 @@
       <DependentUpon>BottomSheetControl.axaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Update="Features\NewContent\Views\NewChannelView.axaml.cs">
-      <DependentUpon>NewChannelView.axaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Update="Features\NewContent\Views\NewGroupChatView.axaml.cs">
-      <DependentUpon>NewGroupChatView.axaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Update="Features\NewContent\Views\NewPostView.axaml.cs">
-      <DependentUpon>NewPostView.axaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Update="Views\Memberships\Components\TitleBar\TitleBar.axaml.cs">
-      <DependentUpon>TitleBar.axaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Update="Views\Memberships\Components\TitleBarUtilities\Views\ToggleNavigationSideBarView.axaml.cs">
-      <DependentUpon>ToggleNavigationSideBar.axaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Update="Controls\Core\HintedTextControls\HintedTextBox.axaml.cs">
       <DependentUpon>HintedTextBox.axaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <UpToDateCheckInput Remove="Styles\BaseColors.axaml" />
-    <UpToDateCheckInput Remove="Themes\Generic.axaml" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Ecliptix.Core.Messaging\Ecliptix.Core.Messaging.csproj" />
@@ -151,14 +96,5 @@
     <Content Include="Assets/Branding/Logos/logo_256x256.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Assets\Fonts\Geist\.DS_Store" />
-  </ItemGroup>
-  <ItemGroup>
-    <AdditionalFiles Include="Views\Memberships\Components\TitleBar\Platform\OSX\MacosTitleBarButtons.axaml" />
-    <AdditionalFiles Include="Views\Memberships\Components\TitleBar\Platform\OSX\MacosTitleBarLayout.axaml" />
-    <AdditionalFiles Include="Views\Memberships\Components\TitleBar\Platform\Windows\WindowsTitleBarButtons.axaml" />
-    <AdditionalFiles Include="Views\Memberships\Components\TitleBar\Platform\Windows\WindowsTitleBarLayout.axaml" />
   </ItemGroup>
 </Project>

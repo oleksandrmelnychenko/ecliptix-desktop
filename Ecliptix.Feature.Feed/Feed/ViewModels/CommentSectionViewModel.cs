@@ -108,7 +108,6 @@ public sealed class CommentSectionViewModel : ViewModelBase
             CommentViewModel viewModel = CreateCommentViewModel(comment);
             Comments.Add(viewModel);
 
-            // Replies (temp).
             foreach (Comment comment1 in comments)
             {
                 CommentViewModel viewModel1 = CreateCommentViewModel(comment1);
@@ -116,7 +115,6 @@ public sealed class CommentSectionViewModel : ViewModelBase
             }
         }
 
-        //temp
         CommentViewModel tt = Comments.First();
         tt.Comment.Text = "Deserialization vulnerabilities are a threat category where request payloads are processed insecurely. An attacker who successfully leverages these vulnerabilities against an app can cause denial of service (DoS), information disclosure, or remote code execution inside the target app. This risk category consistently makes the OWASP Top 10. Targets include";
     }

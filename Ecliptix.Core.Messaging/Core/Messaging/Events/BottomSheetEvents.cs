@@ -1,7 +1,5 @@
 namespace Ecliptix.Core.Messaging.Core.Messaging.Events;
 
-
-
 public enum AnimationType
 {
     SHOW,

@@ -83,4 +83,13 @@ public sealed class RpcServiceManager : IRpcServiceManager
 
         return Result<RpcFlow, NetworkFailure>.Err(NetworkFailure.InvalidRequestType("Unknown action type"));
     }
+
+    public async Task<Result<GetServerPublicKeysResponse, NetworkFailure>> GetServerPublicKeysAsync(
+        IConnectivityService connectivityService,
+        CancellationToken cancellationToken = default)
+    {
+        return await _secrecyChannelRpcServices.GetServerPublicKeysAsync(
+            connectivityService,
+            cancellationToken).ConfigureAwait(false);
+    }
 }

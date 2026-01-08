@@ -17,7 +17,6 @@
 		  RowSpacing="5"
 		  ColumnSpacing="10">
 
-		<!--Avatar-->
 		<Border Grid.Column="0"
 				Grid.RowSpan="3"
 				VerticalAlignment="Top"
@@ -40,7 +39,6 @@
 			</Panel>
 		</Border>
 
-		<!--Comment-->
 		<StackPanel Grid.Column="1">
 
 			<TextBlock FontSize="15"
@@ -73,7 +71,6 @@
 			</Button>
 		</StackPanel>
 
-		<!--Like panel-->
 		<Grid Grid.Column="2"
 			  Grid.RowSpan="3"
 			  RowDefinitions="Auto,Auto"
@@ -159,7 +156,6 @@
 			</Button>
 		</Grid>
 
-		<!--Relative time row-->
 		<StackPanel Spacing="10"
 					Orientation="Horizontal"
 					Grid.Row="1"
@@ -185,7 +181,6 @@
 			</Button>
 		</StackPanel>
 
-		<!--Replies section-->
 		<Grid Grid.Row="2"
 			  Grid.Column="1"
 			  Grid.ColumnSpan="2"
@@ -234,7 +229,7 @@
 				  Grid.Row="1"
 				  ColumnDefinitions="Auto,*"
 				  RowDefinitions="Auto,Auto">
-				<!--Left line-->
+
 				<Border Grid.Row="0"
 						Grid.Column="0"
 						Grid.RowSpan="2"

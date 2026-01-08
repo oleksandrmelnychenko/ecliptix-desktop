@@ -588,7 +588,6 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
             return;
         }
 
-
         if (!string.IsNullOrEmpty(_currentStrengthClass))
         {
             _mainGrid?.Classes.Remove(_currentStrengthClass);
@@ -931,7 +930,7 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
         try
         {
             TopLevel? topLevel = TopLevel.GetTopLevel(this);
-#pragma warning disable CS0618 // IClipboard is obsolete but no replacement API available
+#pragma warning disable CS0618 
             if (topLevel?.Clipboard == null)
             {
                 return;

@@ -89,5 +89,4 @@ public static class AuthenticationConstants
         public const string RECOVERY_BUTTON = "Authentication.SecureKeyRecovery.MobileVerification.Button";
     }
 
-
 }

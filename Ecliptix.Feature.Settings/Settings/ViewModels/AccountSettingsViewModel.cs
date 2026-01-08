@@ -81,7 +81,6 @@ public class AccountSettingsViewModel : Core.Core.MVVM.ViewModelBase, IActivatab
             LoadUserProfileAsync(CancellationToken.None)
                 .ConfigureAwait(false);
 
-
         });
     }
 

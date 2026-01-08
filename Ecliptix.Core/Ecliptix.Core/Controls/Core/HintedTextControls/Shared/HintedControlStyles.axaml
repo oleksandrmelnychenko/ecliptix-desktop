@@ -4,7 +4,7 @@
         xmlns:auth="clr-namespace:Ecliptix.Core.Controls.Core.HintedTextControls">
     <Design.PreviewWith>
         <Border Padding="20">
-            <!-- Add Controls for Previewer Here -->
+
         </Border>
     </Design.PreviewWith>
 
@@ -152,7 +152,6 @@
     <Style Selector="Path.strength-icon">
         <Setter Property="Fill" Value="Gray"/>
     </Style>
-
 
     <Style Selector="Grid.hinted-field:focus-within Border#FocusBorder,
                      Grid.hinted-field.dropdown-open Border#FocusBorder">

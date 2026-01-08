@@ -105,7 +105,6 @@ public sealed partial class OverlaySheetControl : ReactiveUserControl<OverlayShe
         _disposed = true;
     }
 
-
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
@@ -467,8 +466,8 @@ public sealed partial class OverlaySheetControl : ReactiveUserControl<OverlayShe
 
     private void CreateAnimations()
     {
-        CubicEaseOut showEasing = new(); // For a pop-in effect, start fast and decelerate
-        CubicEaseIn hideEasing = new(); // For pop-out, start slow and accelerate
+        CubicEaseOut showEasing = new(); 
+        CubicEaseIn hideEasing = new(); 
 
         _showAnimation = new Animation
         {
@@ -557,7 +556,7 @@ public sealed partial class OverlaySheetControl : ReactiveUserControl<OverlayShe
         }
         catch
         {
-            // UI catch
+
         }
     }
 

@@ -342,7 +342,7 @@ public sealed partial class NetworkProvider
                         }
                         catch (ObjectDisposedException)
                         {
-                            // Expected: CTS may already be disposed of during cleanup
+
                         }
                     })
                     : default;
@@ -651,7 +651,7 @@ public sealed partial class NetworkProvider
             }
             catch (OperationCanceledException) when (linkedTokenSource.Token.IsCancellationRequested)
             {
-                // Suppressed
+
             }
             finally
             {

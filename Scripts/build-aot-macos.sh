@@ -1,9 +1,6 @@
 #!/bin/bash
 
-# Ecliptix Desktop AOT Build Script for macOS
-# This script builds the application with full AOT compilation for maximum performance
-
-set -e  # Exit on error
+set -e  
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
@@ -11,14 +8,12 @@ DESKTOP_PROJECT="$PROJECT_ROOT/Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core
 
 echo "🚀 Building Ecliptix Desktop for macOS with AOT compilation..."
 
-# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m' 
 
-# Function to print colored output
 print_status() {
     echo -e "${BLUE}[AOT-INFO]${NC} $1"
 }
@@ -35,20 +30,17 @@ print_error() {
     echo -e "${RED}[AOT-ERROR]${NC} $1"
 }
 
-# Check if we're on macOS
 if [[ "$OSTYPE" != "darwin"* ]]; then
     print_error "This script is designed for macOS only"
     exit 1
 fi
 
-# Check if .NET is installed
 if ! command -v dotnet &> /dev/null; then
     print_error ".NET SDK is required but not found"
     print_error "Please install .NET from: https://dotnet.microsoft.com/download"
     exit 1
 fi
 
-# Check .NET version for AOT support (requires .NET 8+)
 DOTNET_VERSION=$(dotnet --version)
 MAJOR_VERSION=$(echo "$DOTNET_VERSION" | cut -d '.' -f 1)
 if [ "$MAJOR_VERSION" -lt 8 ]; then
@@ -56,13 +48,11 @@ if [ "$MAJOR_VERSION" -lt 8 ]; then
     exit 1
 fi
 
-# Check if project file exists
 if [ ! -f "$DESKTOP_PROJECT" ]; then
     print_error "Desktop project not found at: $DESKTOP_PROJECT"
     exit 1
 fi
 
-# Parse command line arguments
 BUILD_CONFIGURATION="Release"
 RUNTIME_ID="osx-arm64"
 INCREMENT_VERSION=""
@@ -73,7 +63,7 @@ OPTIMIZATION_LEVEL="aggressive"
 CREATE_DMG=false
 CODESIGN_IDENTITY=""
 
-while [[ $# -gt 0 ]]; do
+while [[ $
     case $1 in
         -c|--configuration)
             BUILD_CONFIGURATION="$2"
@@ -173,7 +163,6 @@ print_status "  • Runtime ID: $RUNTIME_ID"
 print_status "  • Optimization: $OPTIMIZATION_LEVEL"
 print_status "  • .NET Version: $DOTNET_VERSION"
 
-# Set optimization flags based on level
 case $OPTIMIZATION_LEVEL in
     "size")
         TRIM_MODE="link"
@@ -202,7 +191,6 @@ print_status "  • Trim Mode: $TRIM_MODE"
 print_status "  • IL Link Mode: $IL_LINK_MODE"
 print_status "  • AOT Mode: $AOT_MODE"
 
-# Increment version if requested
 if [ -n "$INCREMENT_VERSION" ]; then
     print_status "Incrementing $INCREMENT_VERSION version..."
     if "$SCRIPT_DIR/version.sh" --action increment --part "$INCREMENT_VERSION"; then
@@ -214,7 +202,6 @@ if [ -n "$INCREMENT_VERSION" ]; then
     fi
 fi
 
-# Generate build info
 print_status "Generating build information..."
 if "$SCRIPT_DIR/version.sh" --action build; then
     print_success "Build information generated"
@@ -222,10 +209,8 @@ else
     print_warning "Could not generate build information (continuing anyway)"
 fi
 
-# Navigate to project directory
 cd "$PROJECT_ROOT"
 
-# Clean previous builds if requested
 if [ "$CLEAN_BUILD" = true ]; then
     print_status "Cleaning previous builds..."
     dotnet clean "$DESKTOP_PROJECT" -c "$BUILD_CONFIGURATION" --verbosity minimal
@@ -233,7 +218,6 @@ if [ "$CLEAN_BUILD" = true ]; then
     print_success "Build artifacts cleaned"
 fi
 
-# Restore packages
 if [ "$SKIP_RESTORE" = false ]; then
     print_status "Restoring NuGet packages for AOT..."
     dotnet restore "$DESKTOP_PROJECT" --verbosity minimal
@@ -245,7 +229,6 @@ if [ "$SKIP_RESTORE" = false ]; then
     fi
 fi
 
-# Run tests
 if [ "$SKIP_TESTS" = false ]; then
     print_status "Running tests..."
     if dotnet test --verbosity minimal --nologo; then
@@ -255,27 +238,24 @@ if [ "$SKIP_TESTS" = false ]; then
     fi
 fi
 
-# Get version information
 CURRENT_VERSION=$("$SCRIPT_DIR/version.sh" --action current | grep "Current version:" | cut -d' ' -f3 2>/dev/null || echo "1.0.0")
-# Extract just the version number without build suffix and ensure proper format
+
 CLEAN_VERSION=$(echo "$CURRENT_VERSION" | sed 's/-build.*//' | sed 's/^v//')
-# Ensure we have a 3-part version (major.minor.patch)
+
 if [[ ! "$CLEAN_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     CLEAN_VERSION="1.0.0"
 fi
 BUILD_NUMBER=$(date +%H%M)
 
-# Build the application with AOT
 print_status "Building application with AOT compilation..."
 print_status "This may take several minutes for native code generation..."
 
-# Function to build for specific runtime
 build_for_runtime() {
     local runtime="$1"
     local output_dir="$PROJECT_ROOT/publish/$runtime"
-    
+
     print_status "Building for $runtime..."
-    
+
     dotnet publish "$DESKTOP_PROJECT" \
         -c "$BUILD_CONFIGURATION" \
         -r "$runtime" \
@@ -293,39 +273,34 @@ build_for_runtime() {
         -p:OptimizationPreference=Speed \
         -p:IlcOptimizationPreference=Speed \
         -p:IlcFoldIdenticalMethodBodies=true
-    
+
     return $?
 }
 
-# Build based on runtime selection
 if [ "$RUNTIME_ID" = "universal" ]; then
     print_status "Building Universal Binary for both Intel and Apple Silicon..."
-    
-    # Build for both architectures
+
     build_for_runtime "osx-x64"
     if [ $? -ne 0 ]; then
         print_error "Failed to build for Intel (osx-x64)"
         exit 1
     fi
-    
+
     build_for_runtime "osx-arm64"
     if [ $? -ne 0 ]; then
         print_error "Failed to build for Apple Silicon (osx-arm64)"
         exit 1
     fi
-    
-    # Create universal binary using lipo
+
     INTEL_DIR="$PROJECT_ROOT/publish/osx-x64"
     ARM64_DIR="$PROJECT_ROOT/publish/osx-arm64"
     BUILD_OUTPUT_DIR="$PROJECT_ROOT/publish/universal"
-    
+
     print_status "Creating universal binary..."
     mkdir -p "$BUILD_OUTPUT_DIR"
-    
-    # Copy ARM64 version as base
+
     cp -r "$ARM64_DIR"/* "$BUILD_OUTPUT_DIR/"
-    
-    # Create universal binary for the main executable
+
     if [ -f "$INTEL_DIR/Ecliptix" ] && [ -f "$ARM64_DIR/Ecliptix" ]; then
         lipo -create "$INTEL_DIR/Ecliptix" "$ARM64_DIR/Ecliptix" -output "$BUILD_OUTPUT_DIR/Ecliptix"
         print_success "Universal binary created successfully"
@@ -333,8 +308,7 @@ if [ "$RUNTIME_ID" = "universal" ]; then
         print_error "Could not find executables to create universal binary"
         exit 1
     fi
-    
-    # Create universal binaries for any .dylib files
+
     shopt -s nullglob
     for intel_lib in "$INTEL_DIR"/*.dylib; do
         if [ -f "$intel_lib" ]; then
@@ -347,10 +321,10 @@ if [ "$RUNTIME_ID" = "universal" ]; then
         fi
     done
     shopt -u nullglob
-    
+
     RUNTIME_ID="universal"
 else
-    # Single architecture build
+
     build_for_runtime "$RUNTIME_ID"
     BUILD_OUTPUT_DIR="$PROJECT_ROOT/publish/$RUNTIME_ID"
 fi
@@ -363,7 +337,6 @@ else
     exit 1
 fi
 
-# Create app bundle structure for macOS
 APP_NAME="Ecliptix"
 APP_BUNDLE="$BUILD_OUTPUT_DIR/$APP_NAME.app"
 CONTENTS_DIR="$APP_BUNDLE/Contents"
@@ -372,11 +345,9 @@ RESOURCES_DIR="$CONTENTS_DIR/Resources"
 
 print_status "Creating optimized macOS app bundle..."
 
-# Create app bundle directories
 mkdir -p "$MACOS_DIR"
 mkdir -p "$RESOURCES_DIR"
 
-# Move the executable and all dependencies to the MacOS directory
 if [ -f "$BUILD_OUTPUT_DIR/Ecliptix" ]; then
     mv "$BUILD_OUTPUT_DIR/Ecliptix" "$MACOS_DIR/"
 else
@@ -384,12 +355,10 @@ else
     exit 1
 fi
 
-# Move supporting files
 mv "$BUILD_OUTPUT_DIR"/*.dylib "$MACOS_DIR/" 2>/dev/null || true
 mv "$BUILD_OUTPUT_DIR"/*.json "$MACOS_DIR/" 2>/dev/null || true
 mv "$BUILD_OUTPUT_DIR"/*.pdb "$MACOS_DIR/" 2>/dev/null || true
 
-# Copy the icon file
 ICON_SOURCE="$PROJECT_ROOT/Ecliptix.Core/Ecliptix.Core/Assets/Branding/Platform/macOS/EcliptixLogo.icns"
 if [ -f "$ICON_SOURCE" ]; then
     cp "$ICON_SOURCE" "$RESOURCES_DIR/AppIcon.icns"
@@ -397,7 +366,7 @@ if [ -f "$ICON_SOURCE" ]; then
     print_success "Icon copied to app bundle: $RESOURCES_DIR/AppIcon.icns"
 else
     print_warning "Icon file not found at $ICON_SOURCE, app bundle will use default icon"
-    # Try alternative location
+
     ALT_ICON_SOURCE="$PROJECT_ROOT/Ecliptix.Core/Ecliptix.Core/Assets/EcliptixLogo.icns"
     if [ -f "$ALT_ICON_SOURCE" ]; then
         cp "$ALT_ICON_SOURCE" "$RESOURCES_DIR/AppIcon.icns"
@@ -406,7 +375,6 @@ else
     fi
 fi
 
-# Create optimized Info.plist for AOT build
 print_status "Creating Info.plist for AOT build..."
 cat > "$CONTENTS_DIR/Info.plist" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -460,23 +428,19 @@ cat > "$CONTENTS_DIR/Info.plist" << EOF
 </plist>
 EOF
 
-# Set proper permissions for the app bundle
 find "$APP_BUNDLE" -type f -exec chmod 644 {} \;
 find "$APP_BUNDLE" -type d -exec chmod 755 {} \;
 chmod +x "$MACOS_DIR/Ecliptix"
 
 print_success "AOT macOS app bundle created: $APP_BUNDLE"
 
-# Touch the app bundle to update modification time for icon cache
 touch "$APP_BUNDLE"
 
-# Clear macOS icon cache (without sudo to avoid password prompt)
 print_status "Clearing local icon cache..."
 rm -rf ~/Library/Caches/com.apple.iconservices.store 2>/dev/null || true
 killall Dock 2>/dev/null || true
 print_success "Icon cache cleared (Dock will restart)"
 
-# Calculate and display size information
 if command -v du &> /dev/null; then
     BUNDLE_SIZE=$(du -sh "$APP_BUNDLE" | cut -f1)
     EXECUTABLE_SIZE=$(du -sh "$MACOS_DIR/Ecliptix" | cut -f1)
@@ -484,7 +448,6 @@ if command -v du &> /dev/null; then
     print_status "Executable size: $EXECUTABLE_SIZE"
 fi
 
-# Create archive
 print_status "Creating distributable archive..."
 cd "$BUILD_OUTPUT_DIR"
 ARCHIVE_NAME="Ecliptix-$CLEAN_VERSION-$RUNTIME_ID-AOT.tar.gz"
@@ -496,7 +459,6 @@ if [ -f "$BUILD_OUTPUT_DIR/$ARCHIVE_NAME" ]; then
     print_success "Archive created: $ARCHIVE_NAME ($ARCHIVE_SIZE)"
 fi
 
-# Display comprehensive build summary
 echo ""
 print_success "🎉 AOT Build completed successfully!"
 echo ""
@@ -537,7 +499,6 @@ echo "   4. Notarize: xcrun notarytool submit '$BUILD_OUTPUT_DIR/$ARCHIVE_NAME' 
 echo "   5. Staple notarization: xcrun stapler staple '$APP_BUNDLE'"
 echo ""
 
-# Create DMG installer if requested
 if [ "$CREATE_DMG" = true ]; then
     echo ""
     print_status "Creating DMG installer..."

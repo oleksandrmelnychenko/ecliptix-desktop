@@ -99,7 +99,7 @@ public sealed class WelcomeViewModel : ViewModelBase, IRoutableViewModel, IReset
         NavToWelcomeBackCommand = ReactiveCommand.CreateFromObservable(() =>
         {
             AuthenticationViewModel hostWindow = (AuthenticationViewModel)HostScreen;
-            // Можна задати контекст, якщо потрібно, наприклад RECOVERY
+
             ((AuthenticationViewModel)HostScreen).CurrentFlowContext = AuthenticationFlowContext.SECURE_KEY_RECOVERY;
             MembershipViewType viewType = NavigationCache["WelcomeBack"];
             return hostWindow.Navigate.Execute(viewType);

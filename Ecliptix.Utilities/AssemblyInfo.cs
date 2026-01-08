@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("Ecliptix.Protocol.System")]
+[assembly: InternalsVisibleTo("Ecliptix.Protected.Protocol")]
 [assembly: InternalsVisibleTo("Ecliptix.Opaque.Protocol")]
 [assembly: InternalsVisibleTo("Ecliptix.Core")]
 [assembly: InternalsVisibleTo("Ecliptix.Core.Desktop")]

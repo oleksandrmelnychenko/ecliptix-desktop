@@ -19,7 +19,6 @@
 	<Border Padding="16,8">
 		<Grid ColumnDefinitions="Auto,*,Auto">
 
-			<!-- Avatar -->
 			<Border Grid.Column="0"
 					Width="32"
 					Height="32"
@@ -39,7 +38,6 @@
 				</Panel>
 			</Border>
 
-			<!-- User Info -->
 			<StackPanel Grid.Column="1"
 						Margin="10,0,0,0"
 						VerticalAlignment="Center">
@@ -63,7 +61,6 @@
 						   Foreground="#62748e" />
 			</StackPanel>
 
-			<!-- Menu Button -->
 			<Button Grid.Column="2"
 					CornerRadius="20"
 					Width="34"

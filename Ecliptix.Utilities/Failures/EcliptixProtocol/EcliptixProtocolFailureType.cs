@@ -17,4 +17,5 @@ public enum EcliptixProtocolFailureType
     PREPARE_LOCAL_FAILED,
     MEMORY_BUFFER_ERROR,
     STATE_MISMATCH,
+    SESSION_EXPIRED,
 }

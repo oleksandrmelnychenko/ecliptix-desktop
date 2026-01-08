@@ -21,7 +21,6 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
         IsOk = false;
     }
 
-
     public static Result<T, TE> Ok(T value) => new(value, true);
 
     public static Result<T, TE> Err(TE error) => new(error);

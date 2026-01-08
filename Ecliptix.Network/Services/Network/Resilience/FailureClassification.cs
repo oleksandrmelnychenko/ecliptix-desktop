@@ -30,6 +30,8 @@ public static class FailureClassification
 
     public static bool IsProtocolStateMismatch(NetworkFailure failure) => failure.FailureType == NetworkFailureType.PROTOCOL_STATE_MISMATCH;
 
+    public static bool IsSessionExpired(NetworkFailure failure) => failure.FailureType == NetworkFailureType.SESSION_EXPIRED;
+
     public static bool IsChainRotationMismatch(NetworkFailure failure) => IsProtocolStateMismatch(failure);
 
     public static bool IsCancellation(NetworkFailure failure) => failure.FailureType == NetworkFailureType.OPERATION_CANCELLED;

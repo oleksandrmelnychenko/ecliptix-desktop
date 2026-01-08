@@ -81,7 +81,6 @@
             HorizontalAlignment="Stretch"
             VisualIcon="SquarePen"/>
 
-
         <Button Grid.Row="3"
                 Content="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.Button.Complete]}"
                 Command="{Binding CompleteSetupCommand}"

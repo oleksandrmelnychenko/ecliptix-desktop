@@ -188,7 +188,6 @@ public partial class SideSheetControl : ReactiveUserControl<SideSheetViewModel>,
             _sheetBorder.IsVisible = false;
             _scrimBorder.IsVisible = false;
 
-
             _sheetBorder.Height = Height;
         }
     }

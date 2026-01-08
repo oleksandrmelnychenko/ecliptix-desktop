@@ -95,7 +95,6 @@
             <DropShadowEffect Color="#000000" BlurRadius="15" Opacity="0.12" OffsetX="0" OffsetY="2"/>
         </Border.Effect>
 
-
         <StackPanel Spacing="2">
 
             <Button Classes="menu-item" Command="{Binding ReplyCommand}">

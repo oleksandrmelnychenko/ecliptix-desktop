@@ -20,13 +20,10 @@
 
         <StackPanel Spacing="0">
 
-            <!-- Post Header -->
             <postHeader:PostHeaderControl DataContext="{Binding}" />
 
-            <!-- Image Carousel -->
             <media:ImageCarouselControl />
 
-            <!-- Post Actions -->
             <postInteractions:PostActionsControl DataContext="{Binding Interactions}" />
 
         </StackPanel>

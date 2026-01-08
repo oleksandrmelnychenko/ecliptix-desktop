@@ -102,7 +102,7 @@ public class IconToDrawingConverter : IMultiValueConverter
     {
         if (drawing is DrawingGroup group)
         {
-            DrawingGroup newGroup = new DrawingGroup
+            DrawingGroup newGroup = new()
             {
                 Opacity = group.Opacity,
                 Transform = group.Transform,

@@ -19,7 +19,6 @@ public class ChatSidebarViewModel : ReactiveObject
 
     public ReactiveCommand<Unit, Unit> OpenSearchCommand { get; }
 
-
     public ChatSidebarViewModel(IChatService chatService)
     {
         _chatService = chatService;

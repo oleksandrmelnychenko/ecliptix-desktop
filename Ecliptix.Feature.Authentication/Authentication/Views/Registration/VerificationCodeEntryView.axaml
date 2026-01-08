@@ -125,7 +125,6 @@
             </Border>
         </Grid>
 
-
         <Grid Grid.Row="3"
               HorizontalAlignment="Stretch"
               ColumnDefinitions="208*,176*"

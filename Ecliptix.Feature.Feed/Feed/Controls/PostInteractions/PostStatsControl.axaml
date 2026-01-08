@@ -12,13 +12,11 @@
             BorderThickness="0,1,0,0">
         <StackPanel Orientation="Horizontal" Spacing="16">
 
-            <!-- Likes Count -->
             <TextBlock IsVisible="{Binding LikesCount, Mode=OneWay, Converter={StaticResource GreaterThanZeroConverter}}">
                 <Run Text="{Binding LikesCount, Mode=OneWay, Converter={StaticResource NumberAbbreviationConverter}}" FontSize="15" FontWeight="Bold" Foreground="#1A1A1A" />
                 <Run Text="{Binding LikesCount, Mode=OneWay, Converter={StaticResource PluralConverter}, ConverterParameter='like'}" FontSize="14" Foreground="#6B7280" />
             </TextBlock>
 
-            <!-- Comments Count -->
             <TextBlock IsVisible="{Binding CommentsCount, Mode=OneWay, Converter={StaticResource GreaterThanZeroConverter}}">
                 <Run Text="{Binding CommentsCount, Mode=OneWay, Converter={StaticResource NumberAbbreviationConverter}}" FontSize="15" FontWeight="Bold" Foreground="#1A1A1A" />
                 <Run Text="{Binding CommentsCount, Mode=OneWay, Converter={StaticResource PluralConverter}, ConverterParameter='comment'}" FontSize="14" Foreground="#6B7280" />

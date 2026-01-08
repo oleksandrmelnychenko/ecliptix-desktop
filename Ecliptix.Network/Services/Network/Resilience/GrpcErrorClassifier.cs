@@ -43,6 +43,12 @@ public static class GrpcErrorClassifier
 
         return detail.Contains("header authentication failed", StringComparison.OrdinalIgnoreCase) ||
                detail.Contains("requested index", StringComparison.OrdinalIgnoreCase) && detail.Contains("not future", StringComparison.OrdinalIgnoreCase) ||
+               detail.Contains("message index too far", StringComparison.OrdinalIgnoreCase) ||
+               detail.Contains("message index too old", StringComparison.OrdinalIgnoreCase) ||
+               detail.Contains("message index already processed", StringComparison.OrdinalIgnoreCase) ||
+               detail.Contains("nonce/index", StringComparison.OrdinalIgnoreCase) ||
+               detail.Contains("index binding failed", StringComparison.OrdinalIgnoreCase) ||
+               detail.Contains("chain index", StringComparison.OrdinalIgnoreCase) ||
                detail.Contains("chain rotation", StringComparison.OrdinalIgnoreCase) ||
                detail.Contains("sequence mismatch", StringComparison.OrdinalIgnoreCase) ||
                detail.Contains("protocol state", StringComparison.OrdinalIgnoreCase) && detail.Contains("mismatch", StringComparison.OrdinalIgnoreCase) ||

@@ -8,9 +8,7 @@
              x:CompileBindings="True"
              x:DataType="core:SegmentedTextBox"
              IsPointerInteractionEnabled="False">
-    
-    <!-- All resources moved to centralized Core style files -->
-    
+
      <UserControl.Styles>
         <Style Selector="TextBox.segment">
             <Setter Property="Width" Value="{StaticResource Segment.Width}"/>
@@ -81,13 +79,13 @@
             <Setter Property="ClipToBounds" Value="False"/>
         </Style>
     </UserControl.Styles>
-    
+
     <Grid >
         <StackPanel x:Name="SegmentsPanel"
                     Orientation="Horizontal"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch"
-                    
+
                     />
         <Border x:Name="OverlayRectangle"
                    Background="{DynamicResource TransparentBrush}"

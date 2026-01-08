@@ -16,7 +16,7 @@ using Ecliptix.Network.Services.Network.Rpc;
 using Ecliptix.OPAQUE.Client;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.Transport.Identity;
-using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Protected.Protocol.Utilities;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Ecliptix.Utilities.Failures.Sodium;

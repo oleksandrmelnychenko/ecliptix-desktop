@@ -22,12 +22,13 @@ using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Serilog;
 using Splat;
+using Ecliptix.Core.Modularity.Abstractions.Main;
 using IMessageBus = Ecliptix.Core.Messaging.Core.Messaging.IMessageBus;
 using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Feature.Main.Main.ViewModels;
 
-public sealed class MasterViewModel : ViewModelBase
+public sealed class MasterViewModel : ViewModelBase, IMainHost
 {
     private readonly IModuleViewFactory _moduleViewFactory;
     private readonly CompositeDisposable _disposables = new();
@@ -84,7 +85,6 @@ public sealed class MasterViewModel : ViewModelBase
         {
             messageBus?.PublishAsync(new CloseOverlayEvent());
         });
-
 
         if (messageBus != null)
         {
@@ -148,7 +148,6 @@ public sealed class MasterViewModel : ViewModelBase
         IsOverlayOpen = true;
     }
 
-
     private async Task LoadModuleViewAsync(ModuleIdentifier moduleId)
     {
         IsLoadingView = true;
@@ -181,7 +180,6 @@ public sealed class MasterViewModel : ViewModelBase
             _currentViewIndex = nextIndex;
         }
     }
-
 
     protected override void Dispose(bool disposing)
     {

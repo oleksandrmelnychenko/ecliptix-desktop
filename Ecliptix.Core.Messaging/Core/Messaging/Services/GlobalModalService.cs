@@ -38,7 +38,7 @@ public sealed class GlobalModalService : IGlobalModalService
 
     public async Task ShowAsync(ModalLayout layout, object viewModel, bool showScrim = true, bool isDismissable = true)
     {
-        // Close all other modals before opening a new one
+
         await CloseAllAsync();
 
         switch (layout)
@@ -53,8 +53,7 @@ public sealed class GlobalModalService : IGlobalModalService
                 await _sideSheetService.ShowAsync(viewModel, showScrim, isDismissable);
                 break;
             case ModalLayout.Left:
-                // Currently no dedicated Left Side Sheet service/method.
-                // If needed, implement ISideSheetService.ShowLeftAsync and call it here.
+
                 break;
         }
     }

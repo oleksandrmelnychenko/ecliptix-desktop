@@ -39,6 +39,8 @@ public record EcliptixProtocolFailure(
 
     public static EcliptixProtocolFailure StateMismatch(string details, Exception? inner = null) => new(EcliptixProtocolFailureType.STATE_MISMATCH, details, inner);
 
+    public static EcliptixProtocolFailure SessionExpired(string details, Exception? inner = null) => new(EcliptixProtocolFailureType.SESSION_EXPIRED, details, inner);
+
     public override object ToStructuredLog()
     {
         return new
@@ -55,6 +57,7 @@ public record EcliptixProtocolFailure(
         NetworkFailureType networkFailureType = FailureType switch
         {
             EcliptixProtocolFailureType.STATE_MISMATCH => NetworkFailureType.PROTOCOL_STATE_MISMATCH,
+            EcliptixProtocolFailureType.SESSION_EXPIRED => NetworkFailureType.SESSION_EXPIRED,
             _ => NetworkFailureType.ECLIPTIX_PROTOCOL_FAILURE
         };
 

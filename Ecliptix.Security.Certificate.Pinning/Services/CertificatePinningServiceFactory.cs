@@ -57,7 +57,7 @@ public sealed class CertificatePinningServiceFactory : ICertificatePinningServic
         }
         catch (Exception)
         {
-            // Finalizer should not throw - swallow disposal exceptions
+
         }
     }
 
@@ -93,7 +93,7 @@ public sealed class CertificatePinningServiceFactory : ICertificatePinningServic
             }
             catch (Exception)
             {
-                // Disposal errors should not prevent cleanup completion
+
             }
         }
         finally

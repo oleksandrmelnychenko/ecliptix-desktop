@@ -1,6 +1,3 @@
-using System.Net;
-using System.Net.NetworkInformation;
-using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using Ecliptix.Protobuf.Protocol;
 using Grpc.Core;
@@ -32,12 +29,15 @@ public static class GrpcMetadataHandler
         string? publicIpAddress = null,
         string? platform = null)
     {
+        string resolvedLocalIp = string.IsNullOrWhiteSpace(localIpAddress) ? string.Empty : localIpAddress;
+        string resolvedPublicIp = string.IsNullOrWhiteSpace(publicIpAddress) ? string.Empty : publicIpAddress;
+
         Metadata metadata = new()
         {
             { REQUEST_ID_KEY, Guid.NewGuid().ToString() },
             { DATE_TIME_KEY, DateTimeOffset.UtcNow.ToString("O") },
-            { LOCAL_IP_ADDRESS_KEY, localIpAddress ?? GetLocalIpAddress() },
-            { PUBLIC_IP_ADDRESS_KEY, publicIpAddress ?? GetPublicIpAddress() },
+            { LOCAL_IP_ADDRESS_KEY, resolvedLocalIp },
+            { PUBLIC_IP_ADDRESS_KEY, resolvedPublicIp },
             { LOCALE_KEY, culture ?? "en-US" },
             { LINK_ID_KEY, GenerateLinkId() },
             { APPLICATION_INSTANCE_ID_KEY, appInstanceId },
@@ -49,40 +49,6 @@ public static class GrpcMetadataHandler
         };
 
         return metadata;
-    }
-
-    private static string GetLocalIpAddress()
-    {
-        try
-        {
-            string localIp = NetworkInterface.GetAllNetworkInterfaces()
-                .Where(x => x is { OperationalStatus: OperationalStatus.Up, IsReceiveOnly: false })
-                .SelectMany(x => x.GetIPProperties().UnicastAddresses)
-                .Where(x => x.Address.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(x.Address))
-                .Select(x => x.Address.ToString())
-                .FirstOrDefault() ?? "127.0.0.1";
-
-            return localIp;
-        }
-        catch
-        {
-            return "127.0.0.1";
-        }
-    }
-
-    private static string GetPublicIpAddress()
-    {
-        try
-        {
-            using UdpClient client = new();
-            client.Connect("8.8.8.8", 80);
-            IPEndPoint? endpoint = client.Client.LocalEndPoint as IPEndPoint;
-            return endpoint?.Address.ToString() ?? GetLocalIpAddress();
-        }
-        catch
-        {
-            return GetLocalIpAddress();
-        }
     }
 
     private static string GenerateLinkId() => $"link-{Guid.NewGuid():N}"[..16];

@@ -31,7 +31,6 @@ public class ProfileViewModel : Ecliptix.Core.Core.MVVM.ViewModelBase, IActivata
 
     private int _currentPageIndex;
 
-
     public ProfileViewModel(
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
@@ -119,8 +118,6 @@ public class ProfileViewModel : Ecliptix.Core.Core.MVVM.ViewModelBase, IActivata
             CurrentProfilePage = item.ViewModel;
 
         });
-
-
 
     }
 

@@ -50,7 +50,7 @@ public sealed class RsaChunkEncryptor : IRsaChunkEncryptor
                 {
                     byte[] newBuffer = ArrayPool<byte>.Shared.Rent(currentOffset + encryptedLength);
                     Array.Copy(rentedBuffer, 0, newBuffer, 0, currentOffset);
-                    ArrayPool<byte>.Shared.Return(rentedBuffer);
+                    ArrayPool<byte>.Shared.Return(rentedBuffer, clearArray: true);
                     rentedBuffer = newBuffer;
                 }
 
@@ -84,7 +84,7 @@ public sealed class RsaChunkEncryptor : IRsaChunkEncryptor
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(rentedBuffer);
+            ArrayPool<byte>.Shared.Return(rentedBuffer, clearArray: true);
         }
     }
 
@@ -128,7 +128,7 @@ public sealed class RsaChunkEncryptor : IRsaChunkEncryptor
                 {
                     byte[] newBuffer = ArrayPool<byte>.Shared.Rent(currentOffset + decryptedLength);
                     Array.Copy(rentedBuffer, 0, newBuffer, 0, currentOffset);
-                    ArrayPool<byte>.Shared.Return(rentedBuffer);
+                    ArrayPool<byte>.Shared.Return(rentedBuffer, clearArray: true);
                     rentedBuffer = newBuffer;
                 }
 
@@ -142,7 +142,7 @@ public sealed class RsaChunkEncryptor : IRsaChunkEncryptor
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(rentedBuffer);
+            ArrayPool<byte>.Shared.Return(rentedBuffer, clearArray: true);
         }
     }
 }

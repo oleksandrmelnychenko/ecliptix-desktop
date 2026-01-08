@@ -124,7 +124,7 @@ public class LanguagePickerViewModel : ReactiveObject, IActivatableViewModel, ID
         }
         catch (Exception)
         {
-            // ignored
+
         }
     }
 

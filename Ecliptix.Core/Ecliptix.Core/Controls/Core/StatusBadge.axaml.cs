@@ -67,7 +67,6 @@ public partial class StatusBadge : UserControl
     public FontWeight TooltipTitleFontWeight { get => GetValue(TooltipTitleFontWeightProperty); set => SetValue(TooltipTitleFontWeightProperty, value); }
     public IBrush BadgeBorderBrush { get => GetValue(BadgeBorderBrushProperty); set => SetValue(BadgeBorderBrushProperty, value); }
 
-
     private Popup? _infoPopup;
     private Border? _popupContentBorder;
     private Border? _containerBorder;

@@ -193,8 +193,6 @@ public sealed class AuthenticationViewModel : Core.Core.MVVM.ViewModelBase, IAut
         Navigate.Execute(MembershipViewType.MOBILE_VERIFICATION_VIEW).Subscribe();
     }
 
-
-
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -333,7 +331,6 @@ public sealed class AuthenticationViewModel : Core.Core.MVVM.ViewModelBase, IAut
         MembershipViewType.SECURE_KEY_CONFIRMATION_VIEW,
         MembershipViewType.COMPLETE_PROFILE_VIEW
     }.ToFrozenSet();
-
 
     private IRoutableViewModel GetOrCreateViewModelForView(MembershipViewType viewType, bool resetState = true)
     {

@@ -27,4 +27,8 @@ public interface IRpcServiceManager
         CancellationToken cancellationToken = default);
 
     Task<Result<RpcFlow, NetworkFailure>> InvokeServiceRequestAsync(ServiceRequest request, CancellationToken token);
+
+    Task<Result<GetServerPublicKeysResponse, NetworkFailure>> GetServerPublicKeysAsync(
+        IConnectivityService connectivityService,
+        CancellationToken cancellationToken = default);
 }

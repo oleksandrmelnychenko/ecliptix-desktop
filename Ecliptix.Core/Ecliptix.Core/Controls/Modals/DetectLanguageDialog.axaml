@@ -56,7 +56,7 @@
                     Command="{Binding DeclineCommand}"
                     Classes="secondary large"
                     MinWidth="0"/>
-                <!-- <Border Grid.Column="1"/> -->
+
                 <Button
                     Grid.Column="2"
                     x:Name="ConfirmButton"

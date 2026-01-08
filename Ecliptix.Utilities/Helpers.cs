@@ -89,7 +89,7 @@ public static class Helpers
 
     public static T ParseFromBytes<T>(byte[] data)
     {
-        // Prefer a static Parser with ParseFrom(byte[]) if present (used by lightweight DTOs and generated protos).
+
 #pragma warning disable IL2090
         PropertyInfo? parserProperty = typeof(T).GetProperty("Parser");
 #pragma warning restore IL2090

@@ -27,7 +27,6 @@ public class App : Application
                 Timestamp = DateTime.UtcNow
             };
 
-
             Log.Error(ex, "ReactiveUI Unhandled Exception: {@Context}", context);
         });
         AvaloniaXamlLoader.Load(this);

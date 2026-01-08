@@ -1,0 +1,176 @@
+using Ecliptix.Protobuf.Common;
+using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures.EcliptixProtocol;
+using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
+
+namespace Ecliptix.Protected.Protocol.Utilities;
+
+internal static class EnvelopeBuilder
+{
+    public static EnvelopeMetadata CreateEnvelopeMetadata(
+        uint requestId,
+        ByteString nonce,
+        uint ratchetIndex,
+        byte[]? channelKeyId = null,
+        EnvelopeType envelopeType = EnvelopeType.Request,
+        string? correlationId = null)
+    {
+        EnvelopeMetadata metadata = new()
+        {
+            EnvelopeId = requestId.ToString(),
+            Nonce = nonce,
+            RatchetIndex = ratchetIndex,
+            EnvelopeType = envelopeType,
+            ChannelKeyId = channelKeyId is { Length: > 0 } ? ByteString.CopyFrom(channelKeyId) : GenerateChannelKeyId()
+        };
+
+        if (!string.IsNullOrEmpty(correlationId))
+        {
+            metadata.CorrelationId = correlationId;
+        }
+
+        return metadata;
+    }
+
+    public static SecureEnvelope CreateSecureEnvelope(
+        EnvelopeMetadata metadata,
+        ByteString encryptedPayload,
+        Timestamp? timestamp = null,
+        ByteString? authenticationTag = null,
+        EnvelopeResultCode resultCode = EnvelopeResultCode.Success,
+        ByteString? errorDetails = null,
+        ByteString? headerNonce = null,
+        ByteString? dhPublicKey = null)
+    {
+        SecureEnvelope envelope = new()
+        {
+            MetaData = metadata.ToByteString(),
+            EncryptedPayload = encryptedPayload,
+            ResultCode = ByteString.CopyFrom(BitConverter.GetBytes((int)resultCode)),
+            Timestamp = timestamp ?? Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow),
+            HeaderNonce = headerNonce ?? ByteString.Empty,
+            DhPublicKey = dhPublicKey ?? ByteString.Empty
+        };
+
+        if (authenticationTag != null && !authenticationTag.IsEmpty)
+        {
+            envelope.AuthenticationTag = authenticationTag;
+        }
+
+        if (errorDetails != null && !errorDetails.IsEmpty)
+        {
+            envelope.ErrorDetails = errorDetails;
+        }
+
+        return envelope;
+    }
+
+    private static ByteString GenerateChannelKeyId()
+    {
+        byte[] keyId = new byte[16];
+        global::System.Security.Cryptography.RandomNumberGenerator.Fill(keyId);
+        return ByteString.CopyFrom(keyId);
+    }
+
+    public static Result<byte[], EcliptixProtocolFailure> EncryptMetadata(
+        EnvelopeMetadata metadata,
+        byte[] headerEncryptionKey,
+        byte[] headerNonce,
+        byte[] associatedData)
+    {
+        byte[]? metadataBytes = null;
+        byte[]? ciphertext = null;
+        byte[]? tag = null;
+        try
+        {
+            metadataBytes = metadata.ToByteArray();
+
+            ciphertext = new byte[metadataBytes.Length];
+            tag = new byte[Constants.AES_GCM_TAG_SIZE];
+
+            using (global::System.Security.Cryptography.AesGcm aesGcm =
+                new(headerEncryptionKey, Constants.AES_GCM_TAG_SIZE))
+            {
+                aesGcm.Encrypt(headerNonce, metadataBytes, ciphertext, tag, associatedData);
+            }
+
+            byte[] result = new byte[ciphertext.Length + tag.Length];
+            Buffer.BlockCopy(ciphertext, 0, result, 0, ciphertext.Length);
+            Buffer.BlockCopy(tag, 0, result, ciphertext.Length, tag.Length);
+
+            return Result<byte[], EcliptixProtocolFailure>.Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return Result<byte[], EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.Generic("Failed to encrypt metadata", ex));
+        }
+        finally
+        {
+            if (metadataBytes != null)
+            {
+                Sodium.SodiumInterop.SecureWipe(metadataBytes);
+            }
+
+            if (ciphertext != null)
+            {
+                Sodium.SodiumInterop.SecureWipe(ciphertext);
+            }
+
+            if (tag != null)
+            {
+                Sodium.SodiumInterop.SecureWipe(tag);
+            }
+        }
+    }
+
+    public static Result<EnvelopeMetadata, EcliptixProtocolFailure> DecryptMetadata(
+        byte[] encryptedMetadata,
+        byte[] headerEncryptionKey,
+        byte[] headerNonce,
+        byte[] associatedData)
+    {
+        byte[]? plaintext = null;
+        try
+        {
+            int cipherLength = encryptedMetadata.Length - Constants.AES_GCM_TAG_SIZE;
+            if (cipherLength < 0)
+            {
+                return Result<EnvelopeMetadata, EcliptixProtocolFailure>.Err(
+                    EcliptixProtocolFailure.BUFFER_TOO_SMALL("Encrypted metadata too small"));
+            }
+
+            ReadOnlySpan<byte> ciphertextSpan = encryptedMetadata.AsSpan(0, cipherLength);
+            ReadOnlySpan<byte> tagSpan = encryptedMetadata.AsSpan(cipherLength);
+
+            plaintext = new byte[cipherLength];
+
+            using (global::System.Security.Cryptography.AesGcm aesGcm =
+                new(headerEncryptionKey, Constants.AES_GCM_TAG_SIZE))
+            {
+                aesGcm.Decrypt(headerNonce, ciphertextSpan, tagSpan, plaintext, associatedData);
+            }
+
+            EnvelopeMetadata metadata = EnvelopeMetadata.Parser.ParseFrom(plaintext);
+            return Result<EnvelopeMetadata, EcliptixProtocolFailure>.Ok(metadata);
+        }
+        catch (global::System.Security.Cryptography.CryptographicException cryptoEx)
+        {
+            return Result<EnvelopeMetadata, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.StateMismatch("Header authentication failed", cryptoEx));
+        }
+        catch (Exception ex)
+        {
+            return Result<EnvelopeMetadata, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.Generic("Failed to decrypt metadata", ex));
+        }
+        finally
+        {
+            if (plaintext != null)
+            {
+                Sodium.SodiumInterop.SecureWipe(plaintext);
+            }
+        }
+    }
+}

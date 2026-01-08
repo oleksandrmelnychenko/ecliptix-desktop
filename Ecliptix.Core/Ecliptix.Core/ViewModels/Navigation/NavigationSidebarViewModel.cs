@@ -45,7 +45,6 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
     [ObservableAsProperty] public bool IsBusy { get; }
     [Reactive] public bool IsParentAnimating { get; set; }
 
-
     public string AddAccountText => LocalizationService.GetString(LocalizationKeys.ProfileMenu.ADD_ACCOUNT);
     public string LogoutText => LocalizationService.GetString(LocalizationKeys.ProfileMenu.LOGOUT);
 
@@ -307,7 +306,7 @@ public sealed partial class NavigationSidebarViewModel : Ecliptix.Core.Core.MVVM
         }
         catch (ObjectDisposedException)
         {
-            // Intentionally suppressed: Logout cancellation token source already disposed
+
         }
         finally
         {

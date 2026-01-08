@@ -1,17 +1,14 @@
 using System.Collections.Concurrent;
-using Ecliptix.Protocol.System.Native;
+using Ecliptix.Protected.Protocol.Native;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 
 namespace Ecliptix.Network.Infrastructure.Network.Core.Providers;
 
-/// <summary>
-/// Manages native protocol sessions keyed by connectId. Keeps creation, lookup, and disposal in one place
-/// to make the NetworkProvider leaner while we migrate off the managed ratchet.
-/// </summary>
 internal sealed class NativeProtocolSessionManager : IDisposable
 {
     private readonly ConcurrentDictionary<uint, NativeProtocolSession> _sessions = new();
+    private readonly ConcurrentDictionary<uint, byte[]> _serverKyberKeys = new();
     private bool _disposed;
 
     public Result<NativeProtocolSession, EcliptixProtocolFailure> CreateOrReplace(
@@ -25,7 +22,6 @@ internal sealed class NativeProtocolSessionManager : IDisposable
                 EcliptixProtocolFailure.OBJECT_DISPOSED(nameof(NativeProtocolSessionManager)));
         }
 
-        // Dispose any existing session for this connectId
         if (_sessions.TryRemove(connectId, out NativeProtocolSession? existing))
         {
             existing.Dispose();
@@ -94,6 +90,38 @@ internal sealed class NativeProtocolSessionManager : IDisposable
 
     public bool Has(uint connectId) => !_disposed && _sessions.ContainsKey(connectId);
 
+    public void StoreServerKyberKey(uint connectId, byte[] kyberPublicKey)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _serverKyberKeys[connectId] = kyberPublicKey;
+    }
+
+    public Result<byte[], EcliptixProtocolFailure> GetServerKyberKey(uint connectId)
+    {
+        if (_disposed)
+        {
+            return Result<byte[], EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.OBJECT_DISPOSED(nameof(NativeProtocolSessionManager)));
+        }
+
+        if (_serverKyberKeys.TryGetValue(connectId, out byte[]? key))
+        {
+            return Result<byte[], EcliptixProtocolFailure>.Ok(key);
+        }
+
+        return Result<byte[], EcliptixProtocolFailure>.Err(
+            EcliptixProtocolFailure.Generic("No per-connection Kyber key found"));
+    }
+
+    public void ClearServerKyberKey(uint connectId)
+    {
+        _serverKyberKeys.TryRemove(connectId, out _);
+    }
+
     public IEnumerable<uint> ActiveConnectionIds()
     {
         if (_disposed)
@@ -143,6 +171,7 @@ internal sealed class NativeProtocolSessionManager : IDisposable
         {
             session.Dispose();
         }
+        _serverKyberKeys.TryRemove(connectId, out _);
     }
 
     public void Dispose()
@@ -157,6 +186,7 @@ internal sealed class NativeProtocolSessionManager : IDisposable
             session.Dispose();
         }
         _sessions.Clear();
+        _serverKyberKeys.Clear();
         _disposed = true;
         GC.SuppressFinalize(this);
     }

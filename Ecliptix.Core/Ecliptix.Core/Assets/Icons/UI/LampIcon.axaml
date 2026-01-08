@@ -1,7 +1,6 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- Error Lamp Icon -->
     <SolidColorBrush x:Key="LampIconBrushError" Color="#ef3a3a" />
     <DrawingImage x:Key="LampIconDrawingError">
         <DrawingImage.Drawing>
@@ -12,7 +11,6 @@
         </DrawingImage.Drawing>
     </DrawingImage>
 
-    <!-- Regular Lamp Icon -->
     <SolidColorBrush x:Key="LampIconBrushRegular" Color="#d1d5de" />
     <DrawingImage x:Key="LampIconDrawingRegular">
         <DrawingImage.Drawing>

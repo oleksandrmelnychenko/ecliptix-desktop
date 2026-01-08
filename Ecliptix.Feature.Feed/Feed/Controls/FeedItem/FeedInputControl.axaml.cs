@@ -24,9 +24,6 @@ public partial class FeedInputControl : UserControl
         set => SetValue(ToggleExpandCommandProperty, value);
     }
 
-    /// <summary>
-    /// ctor().
-    /// </summary>
     public FeedInputControl()
     {
         InitializeComponent();

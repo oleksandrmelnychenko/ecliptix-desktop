@@ -14,10 +14,9 @@
 
     <ItemGroup>
         <ProjectReference Include="../Ecliptix.Utilities/Ecliptix.Utilities.csproj" />
-        <ProjectReference Include="../Ecliptix.Protocol.System/Ecliptix.Protocol.System.csproj" />
+        <ProjectReference Include="../Ecliptix.Protected.Protocol/Ecliptix.Protected.Protocol.csproj" />
     </ItemGroup>
 
-    <!-- Native libraries embedded in project -->
     <ItemGroup>
         <Content Include="Native/macos/libsslpinning.dylib" Condition="Exists('Native/macos/libsslpinning.dylib')">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -27,8 +26,7 @@
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <Link>ecliptix.client.dll</Link>
         </Content>
-        <Content Include="libcrypto-3-x64.dll"
-                 Condition="('$(RuntimeIdentifier)' == 'win-x64' OR ('$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Windows')))) AND Exists('ecliptix.client.dll')">
+        <Content Include="libcrypto-3-x64.dll" Condition="('$(RuntimeIdentifier)' == 'win-x64' OR ('$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Windows')))) AND Exists('ecliptix.client.dll')">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <TargetPath>libcrypto-3-x64.dll</TargetPath>
         </Content>
@@ -40,7 +38,14 @@
         <Content Include="libcrypto-3-x64.dll">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
-        
+
+    </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="Avalonia" Version="11.3.10" />
+      <PackageReference Include="Avalonia.Desktop" Version="11.3.10" />
+      <PackageReference Include="Avalonia.Diagnostics" Version="11.3.10" />
+      <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.10" />
+      <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.10" />
     </ItemGroup>
 
 </Project>

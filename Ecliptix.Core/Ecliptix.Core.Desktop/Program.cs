@@ -24,6 +24,8 @@ using Ecliptix.Core.Infrastructure.Network.Transport.Grpc;
 using Ecliptix.Core.Messaging.Core.Messaging;
 using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Core.Modularity.Abstractions;
+using Ecliptix.Core.Modularity.Abstractions.Authentication;
+using Ecliptix.Core.Modularity.Abstractions.Main;
 using Ecliptix.Core.Modularity.Abstractions.Splash;
 using Ecliptix.Core.Modularity.Abstractions.Suggestions;
 using Ecliptix.Core.Modularity.Modularity;
@@ -519,7 +521,9 @@ public static class Program
                 MessageBus = sp.GetRequiredService<IMessageBus>(),
                 AuthRepository = sp.GetRequiredService<IAuthRepository>(),
             }));
+        services.AddTransient<IAuthenticationHost>(sp => sp.GetRequiredService<AuthenticationViewModel>());
         services.AddTransient<MasterViewModel>();
+        services.AddTransient<IMainHost>(sp => sp.GetRequiredService<MasterViewModel>());
 
         services.AddSingleton<IViewLocator, ViewLocator>();
         services.AddSingleton<ReactiveUiViewLocatorAdapter>();
@@ -533,13 +537,14 @@ public static class Program
                 provider.GetRequiredService<IModuleManager>(),
                 provider);
 
+            Feature.Authentication.FeatureRegistration.RegisterViews(factory);
             Feature.Feed.Feed.FeatureRegistration.RegisterViews(factory);
             Feature.Chats.Chats.FeatureRegistration.RegisterViews(factory);
             Feature.Settings.Settings.FeatureRegistration.RegisterViews(factory);
             Feature.Profile.Profile.FeatureRegistration.RegisterViews(factory);
             Feature.NewContent.NewContent.FeatureRegistration.RegisterViews(factory);
 
-            Log.Information("Registered {Count} module views during ModuleViewFactory creation", 5);
+            Log.Information("Registered {Count} module views during ModuleViewFactory creation", 6);
 
             return factory;
         });

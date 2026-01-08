@@ -88,7 +88,7 @@ public sealed partial class FeedViewModel : Ecliptix.Core.Core.MVVM.ViewModelBas
 
     private async Task PostAsync()
     {
-        await Task.Delay(100); // Simulate network delay
+        await Task.Delay(100); 
     }
 
     private void ShouldShowEditPost(string postId)

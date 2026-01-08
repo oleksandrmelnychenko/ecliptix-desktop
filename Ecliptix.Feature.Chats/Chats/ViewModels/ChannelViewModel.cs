@@ -28,7 +28,7 @@ public class ChannelViewModel : ReactiveObject
         LoadPostsAsync().DoSafeAsync(ex => Log.Error(ex, "Error load posts."));
     }
 
-    public ChannelViewModel() { } // Design-time
+    public ChannelViewModel() { } 
 
     private async Task LoadPostsAsync()
     {

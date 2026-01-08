@@ -84,7 +84,7 @@ public class LanguageMenuButtonViewModel : ReactiveObject, IActivatableViewModel
 
         _isDisposed = true;
 
-        OpenLanguagePickerCommand?.Dispose();
-        _cachedLanguagePickerVm?.Dispose();
+        OpenLanguagePickerCommand.Dispose();
+        _cachedLanguagePickerVm.Dispose();
     }
 }
