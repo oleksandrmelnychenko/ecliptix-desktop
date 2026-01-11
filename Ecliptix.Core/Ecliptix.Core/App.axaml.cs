@@ -5,7 +5,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Metadata;
-using Ecliptix.Core.Modularity.Abstractions;
+using Ecliptix.Core.Modularity;
 using Ecliptix.Core.Settings;
 using ReactiveUI;
 using Serilog;

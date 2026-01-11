@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\Ecliptix.Core\Ecliptix.Core\Core\Abstractions\**\*.cs" Link="Core/Abstractions/%(RecursiveDir)%(Filename)%(Extension)" />
-    <Compile Include="..\Ecliptix.Core\Ecliptix.Core\Core\Modularity\**\*.cs" Link="Core/Modularity/%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\Ecliptix.Core\Ecliptix.Core\Abstractions\**\*.cs" Link="Abstractions/%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\Ecliptix.Core\Ecliptix.Core\Modularity\**\*.cs" Link="Modularity/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

@@ -13,10 +13,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Protobuf Include="Protobuf\\contexts\\identity_access\\membership_core.proto" GrpcServices="None" ProtoRoot="Protobuf" AdditionalImportDirs="Protobuf" />
+    <Protobuf Include="Protobuf\\contexts\\identity_access\\account.proto" GrpcServices="None" ProtoRoot="Protobuf" AdditionalImportDirs="Protobuf" />
+    <Protobuf Include="Protobuf\\contexts\\identity_access\\opaque_models.proto" GrpcServices="None" ProtoRoot="Protobuf" AdditionalImportDirs="Protobuf" />
+    <Protobuf Include="Protobuf\\contexts\\identity_access\\verification_models.proto" GrpcServices="None" ProtoRoot="Protobuf" AdditionalImportDirs="Protobuf" />
+  </ItemGroup>
+
+  <ItemGroup>
 
     <Protobuf Include="Protobuf\transport\common\event_envelope.proto" GrpcServices="None" ProtoRoot="Protobuf" AdditionalImportDirs="Protobuf" />
     <Protobuf Include="Protobuf\transport\gateway.proto" GrpcServices="Client" ProtoRoot="Protobuf" AdditionalImportDirs="Protobuf" />
-    <Protobuf Include="Protobuf\transport\identity_access.proto" GrpcServices="None" ProtoRoot="Protobuf" AdditionalImportDirs="Protobuf" />
     <Protobuf Include="Protobuf\transport\device_provisioning.proto" GrpcServices="None" ProtoRoot="Protobuf" AdditionalImportDirs="Protobuf" />
 
     <Protobuf Include="Protobuf\common\pub_key_exchange.proto" GrpcServices="None" ProtoRoot="Protobuf" AdditionalImportDirs="Protobuf" />

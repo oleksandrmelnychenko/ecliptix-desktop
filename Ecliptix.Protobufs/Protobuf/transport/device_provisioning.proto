@@ -3,15 +3,6 @@ syntax = "proto3";
 package ecliptix.transport.device_provisioning;
 option csharp_namespace = "Ecliptix.Protobuf.Transport.DeviceProvisioning";
 
-enum DeviceProvisioningEventType {
-  DEVICE_PROVISIONING_EVENT_TYPE_UNSPECIFIED = 0;
-  DEVICE_PROVISIONING_REGISTER_DEVICE = 1;
-  DEVICE_PROVISIONING_SECURE_CHANNEL_ESTABLISH = 2;
-  DEVICE_PROVISIONING_SECURE_CHANNEL_RESTORE = 3;
-  DEVICE_PROVISIONING_SECURE_CHANNEL_AUTH_ESTABLISH = 4;
-  DEVICE_PROVISIONING_GET_SERVER_PUBLIC_KEYS = 5;
-}
-
 message AppDevice {
   bytes app_instance_id = 1;
   bytes device_id = 2;
@@ -57,6 +48,9 @@ message AuthenticatedEstablishRequest {
   bytes account_unique_id = 2;
   bytes master_key_fingerprint = 3;
   bytes client_pub_key_exchange = 4;
+  bytes client_nonce = 5;
+  bytes proof = 6;
+  bytes server_nonce = 7;
 }
 
 message GetServerPublicKeysRequest {}
@@ -64,4 +58,5 @@ message GetServerPublicKeysRequest {}
 message GetServerPublicKeysResponse {
   bytes server_public_key = 1;
   bytes server_kyber_public_key = 2;
+  bytes server_nonce = 3;
 }

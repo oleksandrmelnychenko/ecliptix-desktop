@@ -1,15 +1,14 @@
-using Ecliptix.Core.Modularity.Abstractions;
-using Ecliptix.Core.Modularity.Modularity;
-using Ecliptix.Feature.Authentication.Authentication.Domain.Abstractions;
-using Ecliptix.Feature.Authentication.Authentication.Infrastructure;
-using Ecliptix.Feature.Authentication.Authentication.ViewModels.Hosts;
-using Ecliptix.Feature.Authentication.Authentication.ViewModels.Registration;
-using Ecliptix.Feature.Authentication.Authentication.ViewModels.SignIn;
-using Ecliptix.Feature.Authentication.Authentication.ViewModels.Welcome;
-using Ecliptix.Feature.Authentication.Authentication.Views.Hosts;
-using Ecliptix.Feature.Authentication.Authentication.Views.Registration;
-using Ecliptix.Feature.Authentication.Authentication.Views.SignIn;
-using Ecliptix.Feature.Authentication.Authentication.Views.Welcome;
+using Ecliptix.Core.Modularity;
+using Ecliptix.Feature.Authentication.Domain.Abstractions;
+using Ecliptix.Feature.Authentication.Services;
+using Ecliptix.Feature.Authentication.ViewModels.Hosts;
+using Ecliptix.Feature.Authentication.ViewModels.Registration;
+using Ecliptix.Feature.Authentication.ViewModels.SignIn;
+using Ecliptix.Feature.Authentication.ViewModels.Welcome;
+using Ecliptix.Feature.Authentication.Views.Hosts;
+using Ecliptix.Feature.Authentication.Views.Registration;
+using Ecliptix.Feature.Authentication.Views.SignIn;
+using Ecliptix.Feature.Authentication.Views.Welcome;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Ecliptix.Feature.Authentication;

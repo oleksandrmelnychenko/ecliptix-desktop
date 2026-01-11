@@ -69,6 +69,7 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
     public async Task<Result<SecureEnvelope, NetworkFailure>> AuthenticatedEstablishSecureChannelAsync(
         IConnectivityService connectivityService,
         AuthenticatedEstablishRequest request,
+        RpcRequestContext? requestContext = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -76,6 +77,7 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
         return await ExecuteAuthenticatedEstablishAsync(
             connectivityService,
             request,
+            requestContext,
             cancellationToken).ConfigureAwait(false);
     }
 
@@ -240,6 +242,7 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
     private async Task<Result<SecureEnvelope, NetworkFailure>> ExecuteAuthenticatedEstablishAsync(
         IConnectivityService connectivityService,
         AuthenticatedEstablishRequest request,
+        RpcRequestContext? requestContext,
         CancellationToken cancellationToken)
     {
         try
@@ -253,17 +256,17 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
                 return Result<SecureEnvelope, NetworkFailure>.Err(failure);
             }
 
-            RpcRequestContext requestContext = RpcRequestContext.CreateNew();
+            RpcRequestContext effectiveContext = requestContext ?? RpcRequestContext.CreateNew();
 
             EventEnvelope envelope = GatewayTransportFactory.BuildEnvelope(
                 route!,
                 request,
                 _metaDataProvider,
-                requestContext);
+                effectiveContext);
 
             CallOptions callOptions = _callOptionsFactory.Create(
                 RpcServiceType.EstablishAuthenticatedSecureChannel,
-                requestContext,
+                effectiveContext,
                 cancellationToken);
 
             AsyncUnaryCall<EventEnvelope> call = _gatewayClient.UnaryAsync(envelope, callOptions);

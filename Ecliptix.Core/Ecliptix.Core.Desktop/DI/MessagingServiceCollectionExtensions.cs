@@ -1,10 +1,10 @@
 using Ecliptix.Core.Messaging.Core.Messaging;
 using Ecliptix.Core.Messaging.Core.Messaging.Services;
-using Ecliptix.Core.Services.Abstractions.Core;
-using Ecliptix.Core.Services.Abstractions.Membership;
-using Ecliptix.Core.Services.Core;
-using Ecliptix.Core.Services.Core.Localization;
-using Ecliptix.Core.Services.Membership;
+using Ecliptix.Core.Shell.Abstractions.Core;
+using Ecliptix.Core.Shell.Abstractions.Membership;
+using Ecliptix.Core.Shell.Services.Core;
+using Ecliptix.Core.Shell.Services.Localization;
+using Ecliptix.Core.Shell.Services.Membership;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Ecliptix.Core.Desktop.DI;

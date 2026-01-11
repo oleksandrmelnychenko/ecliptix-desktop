@@ -1,0 +1,101 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:core="clr-namespace:Ecliptix.Core.Controls.Core;assembly=Ecliptix.Core"
+             xmlns:hintedTextControls="clr-namespace:Ecliptix.Core.Controls.Core.HintedTextControls;assembly=Ecliptix.Core"
+             xmlns:registration="clr-namespace:Ecliptix.Feature.Authentication.ViewModels.Registration"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Ecliptix.Feature.Authentication.Views.Registration.CompleteProfileView"
+             x:DataType="registration:CompleteProfileViewModel">
+
+    <Grid VerticalAlignment="Top"
+          RowSpacing="{StaticResource Spacing.Authentication}"
+          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+          HorizontalAlignment="Stretch"
+          Width="{StaticResource Content.MaxWidth}">
+
+        <StackPanel Grid.Row="0"
+                    Spacing="{StaticResource Spacing.S}"
+                    HorizontalAlignment="Left">
+
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.Title]}"
+                           FontSize="{StaticResource Font.XL}"
+                           FontWeight="Medium"
+                           Foreground="{DynamicResource OnSurface}"
+                           LineHeight="{StaticResource LineHeight.Loose}" />
+
+                <core:StepBadgeView Text="{Binding StepBadgeText}"
+                                            VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.Description]}"
+                       TextWrapping="Wrap"
+                       FontSize="{StaticResource Font.XL}"
+                       LineHeight="{StaticResource LineHeight.Subtitle}"
+                       FontWeight="Normal"
+                       Foreground="{DynamicResource OnSurfaceVariant}"
+                       />
+        </StackPanel>
+
+        <hintedTextControls:HintedTextBox
+            x:Name="ProfileNameTextBox"
+            Grid.Row="1"
+            Watermark="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.ProfileName.Watermark]}"
+            Hint="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.ProfileName.Hint]}"
+            TextForeground="{DynamicResource OnSurface}"
+            HintForeground="{DynamicResource Primary}"
+            ErrorText="{Binding ProfileNameError, Mode=OneWay}"
+            HasError="{Binding HasProfileNameError, Mode=OneWay}"
+            FocusBorderBrush="{DynamicResource Primary}"
+            MainBorderBrush="Transparent"
+            Text="{Binding ProfileName, Mode=TwoWay}"
+            Height="{StaticResource Input.Height}"
+            CornerRadius="{StaticResource Radius.L}"
+            FontSize="{StaticResource Input.FontSize}"
+            WatermarkFontSize="{StaticResource Input.WatermarkFontSize}"
+            Background="{DynamicResource Surface}"
+            FontWeight="Light"
+            HorizontalAlignment="Stretch"
+            VisualIcon="UserRound"/>
+
+        <hintedTextControls:HintedTextBox
+            x:Name="DisplayNameTextBox"
+            Grid.Row="2"
+            Watermark="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.DisplayName.Watermark]}"
+            Hint="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.DisplayName.Hint]}"
+            TextForeground="{DynamicResource OnSurface}"
+            HintForeground="{DynamicResource Primary}"
+            ErrorText="{Binding DisplayNameError, Mode=OneWay}"
+            HasError="{Binding HasDisplayNameError, Mode=OneWay}"
+            FocusBorderBrush="{DynamicResource Primary}"
+            MainBorderBrush="Transparent"
+            Text="{Binding DisplayName, Mode=TwoWay}"
+            Height="{StaticResource Input.Height}"
+            CornerRadius="{StaticResource Radius.L}"
+            FontSize="{StaticResource Input.FontSize}"
+            WatermarkFontSize="{StaticResource Input.WatermarkFontSize}"
+            Background="{DynamicResource Surface}"
+            FontWeight="Light"
+            HorizontalAlignment="Stretch"
+            VisualIcon="SquarePen"/>
+
+        <Button Grid.Row="3"
+                Content="{Binding LocalizationService[Authentication.SignUp.CompleteProfile.Button.Complete]}"
+                Command="{Binding CompleteSetupCommand}"
+                IsEnabled="{Binding CompleteSetupCommand.CanExecute}"
+                Classes="primary large glow"
+                Classes.is-busy="{Binding IsBusy}"
+                Margin="0,16,0,0"/>
+
+        <core:ErrorNotificationView
+            Grid.Row="4"
+            x:Name="ErrorNotification"
+            VerticalAlignment="Top"
+            HorizontalAlignment="Stretch"
+            Margin="0,0,0,0"/>
+
+    </Grid>
+</UserControl>
+

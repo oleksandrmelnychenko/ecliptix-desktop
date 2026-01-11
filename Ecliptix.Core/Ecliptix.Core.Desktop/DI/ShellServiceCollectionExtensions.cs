@@ -1,6 +1,6 @@
-using Ecliptix.Core.Views.Core.Configuration;
-using Ecliptix.Core.Views.Core.Factories;
-using Ecliptix.Core.Views.Core.Services;
+using Ecliptix.Core.Shell.Configuration;
+using Ecliptix.Core.Shell.Factories;
+using Ecliptix.Core.Shell.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Ecliptix.Core.Desktop.DI;

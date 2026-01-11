@@ -1,0 +1,75 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:views="clr-namespace:Ecliptix.Feature.NewContent.Views"
+             xmlns:page="clr-namespace:Ecliptix.Core.Shared.Transitions.Page;assembly=Ecliptix.Core"
+             xmlns:viewModels="clr-namespace:Ecliptix.Feature.NewContent.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:DataType="viewModels:CreateWizardViewModel"
+             x:Class="Ecliptix.Feature.NewContent.Views.CreateWizardView">
+
+    <UserControl.Styles>
+        <Style Selector="Border.sizing-container">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="ClipToBounds" Value="True"/>
+            <Setter Property="CornerRadius" Value="12"/>
+
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Width" Duration="0:0:0.3" Easing="CubicEaseOut"/>
+                    <DoubleTransition Property="Height" Duration="0:0:0.3" Easing="CubicEaseOut"/>
+                </Transitions>
+            </Setter>
+        </Style>
+    </UserControl.Styles>
+
+     <Grid>
+
+        <Border x:Name="SizingContainer" Classes="sizing-container">
+
+            <TransitioningContentControl Content="{Binding CurrentPage}">
+
+                <TransitioningContentControl.PageTransition>
+                    <page:SharedAxisPageTransition Duration="0:0:0.3"
+                                                   Orientation="Horizontal"
+                                                   SlideDistance="40"
+                                                   FadeThreshold="0.2"/>
+                </TransitioningContentControl.PageTransition>
+
+                <TransitioningContentControl.DataTemplates>
+
+                    <DataTemplate DataType="{x:Type viewModels:CreateSelectionViewModel}">
+                        <views:CreateSelectionView />
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type viewModels:NewChannelViewModel}">
+                        <views:NewChannelView />
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type viewModels:NewGroupChatViewModel}">
+                        <views:NewGroupChatView />
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type viewModels:NewPostViewModel}">
+                        <views:NewPostView />
+                    </DataTemplate>
+
+                    <DataTemplate DataType="{x:Type viewModels:NewContactViewModel}">
+                        <views:NewContactView />
+                    </DataTemplate>
+
+                </TransitioningContentControl.DataTemplates>
+            </TransitioningContentControl>
+        </Border>
+
+        <Canvas x:Name="HiddenMeasureContainer"
+                Opacity="0"
+                IsHitTestVisible="False"
+                Width="0" Height="0"/>
+    </Grid>
+</UserControl>
+

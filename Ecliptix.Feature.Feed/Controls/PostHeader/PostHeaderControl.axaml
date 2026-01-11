@@ -1,0 +1,123 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+			 xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
+			 xmlns:vm="clr-namespace:Ecliptix.Feature.Feed.ViewModels"
+			 mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="60"
+			 x:Class="Ecliptix.Feature.Feed.Controls.PostHeader.PostHeaderControl"
+			 x:DataType="vm:FeedItemViewModel">
+
+	<UserControl.Resources>
+		<ResourceDictionary>
+			<ResourceDictionary.MergedDictionaries>
+				<ResourceInclude Source="/Resources/IconGeometries.axaml"/>
+			</ResourceDictionary.MergedDictionaries>
+		</ResourceDictionary>
+	</UserControl.Resources>
+
+	<Border Padding="16,8">
+		<Grid ColumnDefinitions="Auto,*,Auto">
+
+			<Border Grid.Column="0"
+					Width="32"
+					Height="32"
+					CornerRadius="20"
+					ClipToBounds="True"
+					Background="#F0F0F0">
+				<Panel>
+					<Image asyncImageLoader:ImageLoader.Source="{Binding Post.Author.AvatarUrl}"
+						   Stretch="UniformToFill"
+						   IsVisible="{Binding Post.Author.AvatarUrl, Converter={x:Static ObjectConverters.IsNotNull}}" />
+					<TextBlock Text="{Binding Post.Author.DisplayName, Converter={StaticResource InitialsConverter}}"
+							   FontSize="16"
+							   FontWeight="SemiBold"
+							   HorizontalAlignment="Center"
+							   VerticalAlignment="Center"
+							   IsVisible="{Binding Post.Author.AvatarUrl, Converter={x:Static ObjectConverters.IsNull}}" />
+				</Panel>
+			</Border>
+
+			<StackPanel Grid.Column="1"
+						Margin="10,0,0,0"
+						VerticalAlignment="Center">
+				<StackPanel Orientation="Horizontal" Spacing="6">
+					<TextBlock Text="{Binding Post.Author.DisplayName}"
+							   FontSize="16"
+							   FontWeight="Medium"
+							   Foreground="#0f172b" />
+					<Ellipse Width="16"
+							 Height="16"
+							 Fill="#6a5acd"
+							 IsVisible="{Binding Post.Author.IsVerified}" />
+					<TextBlock Text="{Binding RelativeTime, StringFormat='· {0}'}"
+							   FontSize="14"
+							   LineHeight="20"
+							   Foreground="#62748e" />
+				</StackPanel>
+				<TextBlock Text="{Binding Post.Author.Username, StringFormat='@{0}'}"
+						   FontSize="14"
+						   LineHeight="20"
+						   Foreground="#62748e" />
+			</StackPanel>
+
+			<Button Grid.Column="2"
+					CornerRadius="20"
+					Width="34"
+					Height="34"
+					Padding="1"
+					BorderThickness="0"
+					Opacity="{Binding IsFlyoutOpen, Converter={StaticResource BoolToOpacityConverter}}"
+					IsHitTestVisible="{Binding !IsFlyoutOpen}"
+					VerticalAlignment="Center">
+				<Path Width="35"
+					  Height="4"
+					  Data="{StaticResource MenuIconGeometry}">
+					<Path.RenderTransform>
+						<TransformGroup>
+							<RotateTransform Angle="90" CenterX="2" CenterY="8"/>
+						</TransformGroup>
+					</Path.RenderTransform>
+				</Path>
+
+				<Button.Styles>
+					<Style Selector="Button">
+						<Setter Property="Background" Value="White"/>
+					</Style>
+					<Style Selector="Button:pointerover">
+						<Setter Property="Background" Value="#F3F4F6"/>
+					</Style>
+					<Style Selector="Button Path">
+						<Setter Property="Fill" Value="#4A5565"/>
+					</Style>
+					<Style Selector="Button:pointerover Path">
+						<Setter Property="Fill" Value="#6A5ACD"/>
+					</Style>
+
+					<Style Selector="FlyoutPresenter">
+						<Setter Property="BorderThickness" Value="0"/>
+					</Style>
+				</Button.Styles>
+
+				<Button.Flyout>
+					<Flyout	Placement="BottomEdgeAlignedRight"
+							Opened="Flyout_Opened"
+							Closed="Flyout_Closed">
+
+						<Border Width="180"
+								Height="42"
+								Padding="3"
+								BorderThickness="1"
+								CornerRadius="8"								
+								BoxShadow ="0 4 12 0 #15000000">
+							<Button Content="Copy link"
+									HorizontalContentAlignment="Left"
+									CornerRadius="8"
+									Command="{Binding CopyLinkCommand}" />
+						</Border>
+					</Flyout>
+				</Button.Flyout>
+			</Button>
+		</Grid>
+	</Border>
+</UserControl>

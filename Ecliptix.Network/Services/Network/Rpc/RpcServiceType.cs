@@ -10,6 +10,7 @@ public enum RpcServiceType : short
     RegisterAppDevice,
 
     ValidateMobileNumber,
+    ValidateMobileForRecovery,
     CheckMobileNumberAvailability,
 
     InitiateVerification,

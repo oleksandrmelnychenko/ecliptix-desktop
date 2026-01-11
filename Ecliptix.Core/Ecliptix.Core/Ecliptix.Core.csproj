@@ -21,8 +21,8 @@
     <ProjectReference Include="..\..\Ecliptix.Network\Ecliptix.Network.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Remove="Core\Abstractions\**\*.cs" />
-    <Compile Remove="Core\Modularity\**\*.cs" />
+    <Compile Remove="Abstractions\**\*.cs" />
+    <Compile Remove="Modularity\**\*.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AnimatedImage.Avalonia" Version="2.1.2" />

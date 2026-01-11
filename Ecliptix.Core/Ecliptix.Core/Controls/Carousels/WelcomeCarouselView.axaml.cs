@@ -9,7 +9,7 @@ using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using Ecliptix.Core.Controls.Illustrations;
-using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Shell.Abstractions.Core;
 using ReactiveUI;
 
 namespace Ecliptix.Core.Controls.Carousels;

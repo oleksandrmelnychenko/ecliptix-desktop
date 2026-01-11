@@ -1,16 +1,15 @@
 using System;
-using System.Diagnostics;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using Ecliptix.Core.Services.Abstractions.Core;
-using Ecliptix.Core.Services.Core.Localization;
+using Ecliptix.Core.Shell.Abstractions.Core;
+using Ecliptix.Core.Shell.Services.Localization;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 
 namespace Ecliptix.Core.Controls.Modals;
 
-public sealed partial class RedirectNotificationViewModel : ReactiveObject, IDisposable, IActivatableViewModel
+public sealed class RedirectNotificationViewModel : ReactiveObject, IDisposable, IActivatableViewModel
 {
     public ViewModelActivator Activator { get; } = new();
     public ReactiveCommand<Unit, Unit> SkipDelayCommand { get; }
@@ -47,7 +46,7 @@ public sealed partial class RedirectNotificationViewModel : ReactiveObject, IDis
 
         this.WhenActivated(disposables =>
         {
-            Stopwatch stopwatch = Stopwatch.StartNew();
+            int ticks = 0;
 
             Observable.FromEvent(
                     handler => _localizationService.LanguageChanged += handler,
@@ -62,8 +61,7 @@ public sealed partial class RedirectNotificationViewModel : ReactiveObject, IDis
                 .TakeUntil(SkipDelayCommand)
                 .Subscribe(_ =>
                 {
-                    double elapsed = stopwatch.Elapsed.TotalSeconds;
-                    int newRemaining = Math.Max(0, (int)Math.Ceiling(totalSeconds - elapsed));
+                    int newRemaining = Math.Max(0, totalSeconds - ticks);
 
                     if (newRemaining != SecondsRemaining)
                     {
@@ -72,13 +70,12 @@ public sealed partial class RedirectNotificationViewModel : ReactiveObject, IDis
 
                     if (SecondsRemaining <= 0)
                     {
-                        stopwatch.Stop();
                         onComplete();
                     }
+
+                    ticks++;
                 })
                 .DisposeWith(disposables);
-
-            Disposable.Create(() => stopwatch.Stop()).DisposeWith(disposables);
         });
     }
 

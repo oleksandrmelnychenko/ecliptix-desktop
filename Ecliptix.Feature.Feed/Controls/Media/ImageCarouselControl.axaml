@@ -1,0 +1,65 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ecliptix.Feature.Feed.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="600"
+             x:Class="Ecliptix.Feature.Feed.Controls.Media.ImageCarouselControl"
+             x:DataType="vm:ImageCarouselPostViewModel">
+
+    <Grid RowDefinitions="*,Auto">
+
+        <Border Grid.Row="0"
+                CornerRadius="8"
+                ClipToBounds="True">
+            <Carousel SelectedIndex="{Binding CurrentImageIndex}"
+                      ItemsSource="{Binding CarouselContent.Images}">
+                <Carousel.ItemTemplate>
+                    <DataTemplate>
+                        <Panel Background="#F3F4F6">
+                            <Image Source="{Binding ImageUrl}"
+                                   Stretch="UniformToFill"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" />
+                        </Panel>
+                    </DataTemplate>
+                </Carousel.ItemTemplate>
+            </Carousel>
+        </Border>
+
+        <StackPanel Grid.Row="0"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Bottom"
+                    Margin="0,0,0,12"
+                    Spacing="6"
+                    IsVisible="{Binding TotalImages, Converter={StaticResource GreaterThanOneConverter}}">
+            <ItemsControl ItemsSource="{Binding CarouselContent.Images}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" Spacing="6" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Ellipse Width="6"
+                                 Height="6"
+                                 Fill="#FFFFFF"
+                                 Opacity="0.6" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+
+        <Border Grid.Row="1"
+                Padding="16,10"
+                IsVisible="{Binding CarouselContent.Caption, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <TextBlock Text="{Binding CarouselContent.Caption}"
+                       TextWrapping="Wrap"
+                       FontSize="14"
+                       Foreground="#1A1A1A" />
+        </Border>
+
+    </Grid>
+
+</UserControl>

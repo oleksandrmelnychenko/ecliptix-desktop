@@ -1,4 +1,5 @@
 using Ecliptix.Core.Messaging.Core.Messaging.Services;
+using Ecliptix.Network.Services.Network.Rpc;
 using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.Transport.DeviceProvisioning;
@@ -23,6 +24,7 @@ public interface ISecrecyChannelRpcServices
     Task<Result<SecureEnvelope, NetworkFailure>> AuthenticatedEstablishSecureChannelAsync(
         IConnectivityService connectivityService,
         AuthenticatedEstablishRequest request,
+        RpcRequestContext? requestContext = null,
         CancellationToken cancellationToken = default);
 
     Task<Result<GetServerPublicKeysResponse, NetworkFailure>> GetServerPublicKeysAsync(

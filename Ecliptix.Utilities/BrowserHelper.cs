@@ -29,11 +29,11 @@ public static class BrowserHelper
                 Process.Start("xdg-open", url);
                 return true;
             }
-            return false; 
+            return false;
         }
         catch
         {
-            return false; 
+            return false;
         }
     }
 }

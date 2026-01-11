@@ -3,11 +3,8 @@ using System.Globalization;
 using System.Net;
 using System.Net.Http;
 using Ecliptix.Core.Desktop.Constants;
-using Ecliptix.Core.Infrastructure.Network.Transport;
 using Ecliptix.Core.Messaging.Core.Messaging.Services;
-using Ecliptix.Core.Services.Abstractions.Authentication;
-using Ecliptix.Core.Services.Abstractions.External;
-using Ecliptix.Core.Services.External.IpGeolocation;
+using Ecliptix.Network.Services.External.IpGeolocation;
 using Ecliptix.Network.Infrastructure.Data.Abstractions;
 using Ecliptix.Network.Infrastructure.Network.Abstractions.Core;
 using Ecliptix.Network.Infrastructure.Network.Abstractions.Transport;
@@ -24,10 +21,14 @@ using Ecliptix.Network.Services.Network.Infrastructure;
 using Ecliptix.Network.Services.Network.Resilience;
 using Ecliptix.Network.Services.Network.Rpc;
 using Ecliptix.Security.Certificate.Pinning.Services;
+using Ecliptix.Protobuf.Transport.Gateway;
+using Grpc.Net.ClientFactory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Extensions.Http;
+using Ecliptix.Core.Settings;
 
 namespace Ecliptix.Core.Desktop.DI;
 
@@ -124,6 +125,12 @@ public static class NetworkServiceCollectionExtensions
         return services;
     }
 
+    public static void AddConfiguredGrpcClients(this IServiceCollection services)
+    {
+        services.AddGrpcClient<EventGateway.EventGatewayClient>(ConfigureClient)
+            .AddInterceptor<RequestMetaDataInterceptor>();
+    }
+
     private static RetryStrategyConfiguration CreateRetryConfiguration(IConfigurationSection section)
     {
         return new RetryStrategyConfiguration
@@ -147,5 +154,19 @@ public static class NetworkServiceCollectionExtensions
                 !bool.TryParse(section[ApplicationConstants.ConfigurationKeys.USE_ADAPTIVE_RETRY], out bool adaptive) ||
                 adaptive
         };
+    }
+
+    private static void ConfigureClient(IServiceProvider serviceProvider, GrpcClientFactoryOptions options)
+    {
+        DefaultSystemSettings settings = serviceProvider.GetRequiredService<IOptions<DefaultSystemSettings>>().Value;
+
+        string endpoint = settings.DataCenterConnectionString;
+
+        if (string.IsNullOrEmpty(endpoint))
+        {
+            throw new InvalidOperationException("gRPC DATA_CENTER_CONNECTION_STRING is not configured.");
+        }
+
+        options.Address = new Uri(endpoint);
     }
 }

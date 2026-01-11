@@ -3,7 +3,7 @@ syntax = "proto3";
 package ecliptix.proto.common;
 option csharp_namespace = "Ecliptix.Protobuf.Common";
 
-import "transport/identity_access.proto";
+import "contexts/identity_access/membership_core.proto";
 
 message ApplicationInstanceSettings {
   bytes app_instance_id = 1;
@@ -16,7 +16,7 @@ message ApplicationInstanceSettings {
   bytes server_public_key = 8;
   bool is_new_instance = 9;
   WindowPlacement window_placement = 10;
-  ecliptix.transport.identity.Membership membership = 11;
+  ecliptix.proto.membership.Membership membership = 11;
   bytes server_kyber_public_key = 12;  
 }
 

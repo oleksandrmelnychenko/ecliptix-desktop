@@ -1,6 +1,6 @@
 using System;
-using Ecliptix.Core.Services.Abstractions.Core;
-using Ecliptix.Core.Services.Core.Localization;
+using Ecliptix.Core.Shell.Abstractions.Core;
+using Ecliptix.Core.Shell.Services.Localization;
 using ReactiveUI;
 
 namespace Ecliptix.Core.Controls.Modals;

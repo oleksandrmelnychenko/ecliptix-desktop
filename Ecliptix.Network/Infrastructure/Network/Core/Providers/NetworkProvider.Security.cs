@@ -49,6 +49,29 @@ public sealed partial class NetworkProvider
 
         _nativeSessions.StoreServerKyberKey(connectId, kyberKey);
 
+        if (!response.ServerNonce.IsEmpty)
+        {
+            byte[] serverNonce = response.ServerNonce.ToByteArray();
+            if (serverNonce.Length == AuthenticatedEstablishClientNonceLength)
+            {
+                _nativeSessions.StoreServerNonce(connectId, serverNonce);
+                Log.Debug("[SECURITY] Stored server nonce for connectId {ConnectId}, length: {Length}",
+                    connectId, serverNonce.Length);
+            }
+            else
+            {
+                Log.Warning("[SECURITY] Ignoring server nonce with invalid length ({Length}, expected {ExpectedLength}) for connectId {ConnectId}",
+                    serverNonce.Length, AuthenticatedEstablishClientNonceLength, connectId);
+                _nativeSessions.ClearServerNonce(connectId);
+            }
+        }
+        else
+        {
+            Log.Warning("[SECURITY] Server nonce missing in GetServerPublicKeys response for connectId {ConnectId}",
+                connectId);
+            _nativeSessions.ClearServerNonce(connectId);
+        }
+
         return Result<byte[], NetworkFailure>.Ok(kyberKey);
     }
 

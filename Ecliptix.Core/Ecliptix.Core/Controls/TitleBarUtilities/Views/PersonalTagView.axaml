@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ecliptix.Core.Controls.TitleBarUtilities.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:DataType="vm:PersonalTagViewModel"
+             x:Class="Ecliptix.Core.Controls.TitleBarUtilities.Views.PersonalTagView">
+    <UserControl.Styles>
+        <Style Selector="Button.copy-btn">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Button.copy-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#10000000"/>
+        </Style>
+        <Style Selector="PathIcon">
+            <Setter Property="Width" Value="14"/>
+            <Setter Property="Height" Value="14"/>
+            <Setter Property="Foreground" Value="#7E8C99"/>
+        </Style>
+    </UserControl.Styles>
+
+    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+
+        <TextBlock Text="{Binding Name}"
+                   FontWeight="SemiBold"
+                   Foreground="#2B579A"
+                   VerticalAlignment="Center"
+                   FontSize="14"/>
+
+        <TextBlock Text="{Binding Tag}"
+                   Foreground="#5D6C7A"
+                   VerticalAlignment="Center"
+                   FontSize="14"/>
+
+        <Button Classes="copy-btn"
+                Click="CopyButton_OnClick"
+                ToolTip.Tip="Copy tag to clipboard">
+            <PathIcon Data="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" />
+        </Button>
+
+    </StackPanel>
+</UserControl>
+

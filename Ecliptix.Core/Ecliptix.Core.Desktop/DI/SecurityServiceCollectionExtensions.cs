@@ -1,12 +1,12 @@
 using System;
 using System.IO;
 using System.Text;
+using Ecliptix.Core.Data.SecureStorage;
+using Ecliptix.Core.Data.SecureStorage.Configuration;
 using Ecliptix.Core.Desktop.Constants;
-using Ecliptix.Core.Infrastructure.Data.SecureStorage;
-using Ecliptix.Core.Infrastructure.Data.SecureStorage.Configuration;
-using Ecliptix.Core.Services.Abstractions.Security;
-using Ecliptix.Core.Services.Security;
 using Ecliptix.Core.Settings;
+using Ecliptix.Feature.Authentication.Services.Abstractions.Security;
+using Ecliptix.Feature.Authentication.Services.Security;
 using Ecliptix.Network.Infrastructure.Data.Abstractions;
 using Ecliptix.Network.Infrastructure.Security.Abstractions;
 using Ecliptix.Network.Infrastructure.Security.Platform;

@@ -9,48 +9,35 @@ using Avalonia;
 using Avalonia.ReactiveUI;
 using Avalonia.WebView.Desktop;
 using DotNetEnv;
+using Ecliptix.Core.Modularity.Messaging;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Controls.Modals.BottomSheetModal;
 using Ecliptix.Core.Controls.Modals.OverlaySheetModal;
 using Ecliptix.Core.Controls.Modals.SideSheetModal;
-using Ecliptix.Core.Core.Communication;
-using Ecliptix.Core.Core.MVVM;
+using Ecliptix.Core.MVVM;
 using Ecliptix.Core.Desktop.Constants;
 using Ecliptix.Core.Desktop.DI;
-using Ecliptix.Core.Infrastructure.Data.SecureStorage;
-using Ecliptix.Core.Infrastructure.Data.SecureStorage.Configuration;
-using Ecliptix.Core.Infrastructure.Network.Transport.Grpc;
 using Ecliptix.Core.Messaging.Core.Messaging;
 using Ecliptix.Core.Messaging.Core.Messaging.Services;
-using Ecliptix.Core.Modularity.Abstractions;
-using Ecliptix.Core.Modularity.Abstractions.Authentication;
-using Ecliptix.Core.Modularity.Abstractions.Main;
-using Ecliptix.Core.Modularity.Abstractions.Splash;
-using Ecliptix.Core.Modularity.Abstractions.Suggestions;
-using Ecliptix.Core.Modularity.Modularity;
-using Ecliptix.Core.Services.Abstractions.Authentication;
-using Ecliptix.Core.Services.Abstractions.Core;
-using Ecliptix.Core.Services.Abstractions.Membership;
-using Ecliptix.Core.Services.Abstractions.Security;
-using Ecliptix.Core.Services.Authentication;
-using Ecliptix.Core.Services.Core;
-using Ecliptix.Core.Services.Core.Localization;
-using Ecliptix.Core.Services.Membership;
-using Ecliptix.Core.Services.Security;
 using Ecliptix.Core.Settings;
-using Ecliptix.Core.Views.Core.Components.TitleBarUtilities.ViewModels;
-using Ecliptix.Core.Views.Core.Components.TitleBarUtilities.Views;
-using Ecliptix.Core.Views.Core.Configuration;
-using Ecliptix.Core.Views.Core.Factories;
-using Ecliptix.Core.Views.Core.Services;
-using Ecliptix.Feature.Authentication.Authentication.Domain.Abstractions;
-using Ecliptix.Feature.Authentication.Authentication.ViewModels.Hosts;
-using Ecliptix.Feature.Feed.Feed.Services.Abstractions;
-using Ecliptix.Feature.Feed.Feed.Services.Implementation;
-using Ecliptix.Feature.Main.Main.ViewModels;
-using Ecliptix.Feature.Splash.Splash.ViewModels;
-using Ecliptix.Feature.Suggestions.Suggestions.ViewModels;
+using Ecliptix.Core.Controls.TitleBarUtilities.ViewModels;
+using Ecliptix.Core.Controls.TitleBarUtilities.Views;
+using Ecliptix.Core.Data.SecureStorage;
+using Ecliptix.Core.Data.SecureStorage.Configuration;
+using Ecliptix.Core.Modularity;
+using Ecliptix.Core.Modularity.Splash;
+using Ecliptix.Core.Modularity.Suggestions;
+using Ecliptix.Core.Shell.Abstractions.Core;
+using Ecliptix.Core.Shell.Abstractions.Membership;
+using Ecliptix.Core.Shell.Configuration;
+using Ecliptix.Core.Shell.Factories;
+using Ecliptix.Core.Shell.Services;
+using Ecliptix.Core.Shell.Services.Core;
+using Ecliptix.Core.Shell.Services.Localization;
+using Ecliptix.Core.Shell.Services.Membership;
+using Ecliptix.Feature.Splash.ViewModels;
+using Ecliptix.Feature.Suggestions.ViewModels;
 using Ecliptix.Network.Infrastructure.Data.Abstractions;
 using Ecliptix.Network.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Network.Infrastructure.Network.Core.Providers;
@@ -62,6 +49,7 @@ using Ecliptix.Network.Infrastructure.Security.Platform;
 using Ecliptix.Network.Infrastructure.Security.Storage;
 using Ecliptix.Network.Services.Abstractions.Authentication;
 using Ecliptix.Network.Services.Abstractions.Network;
+using Ecliptix.Feature.Authentication.Services.Authentication;
 using Ecliptix.Network.Services.Network;
 using Ecliptix.Network.Services.Network.Resilience;
 using Ecliptix.Network.Services.Network.Rpc;
@@ -75,8 +63,8 @@ using Microsoft.Extensions.Options;
 using Serilog;
 using Serilog.Core;
 using Splat.Microsoft.Extensions.DependencyInjection;
-using FeatureRegistration = Ecliptix.Feature.Main.Main.FeatureRegistration;
-using IViewLocator = Ecliptix.Core.Modularity.Abstractions.IViewLocator;
+using FeatureRegistration = Ecliptix.Feature.Main.FeatureRegistration;
+using IViewLocator = Ecliptix.Core.Modularity.IViewLocator;
 
 namespace Ecliptix.Core.Desktop;
 
@@ -218,7 +206,6 @@ public static class Program
         ConfigureSecurityServices(services, configuration);
         ConfigureMessagingServices(services);
         ConfigureAuthenticationServices(services);
-        ConfigureFeedServices(services);
         ConfigureGrpc(services);
         ConfigureModules(services);
 
@@ -323,7 +310,6 @@ public static class Program
         });
 
         services.AddSingleton<ICertificatePinningServiceFactory, CertificatePinningServiceFactory>();
-        services.AddSingleton<IServerPublicKeyProvider, ServerPublicKeyProvider>();
     }
 
     private static void ConfigureMessagingServices(IServiceCollection services)
@@ -347,9 +333,6 @@ public static class Program
 
     private static void ConfigureAuthenticationServices(IServiceCollection services)
     {
-        services.AddSingleton<IAuthenticationService, OpaqueAuthenticationService>();
-        services.AddSingleton<IOpaqueRegistrationService, OpaqueRegistrationService>();
-        services.AddSingleton<ISecureKeyRecoveryService, SecureKeyRecoveryService>();
         services.AddSingleton<IIdentityService, IdentityService>();
 
         services.AddSingleton<IHardenedKeyDerivation, HardenedKeyDerivation>();
@@ -450,6 +433,8 @@ public static class Program
         Action<ModuleServiceContext, IServiceCollection> moduleServiceForwarder = (ctx, moduleServices) =>
         {
             moduleServices.AddSingleton(ctx.GetParentService<IMessageBus>());
+            moduleServices.AddSingleton(ctx.GetParentService<IConnectivityService>());
+            moduleServices.AddSingleton(ctx.GetParentService<IGlobalModalService>());
             moduleServices.AddSingleton(ctx.GetParentService<NetworkProvider>());
             moduleServices.AddSingleton(ctx.GetParentService<IRpcMetaDataProvider>());
             moduleServices.AddSingleton(ctx.GetParentService<IApplicationSecureStorageProvider>());
@@ -457,9 +442,12 @@ public static class Program
             moduleServices.AddSingleton(ctx.GetParentService<IApplicationRouter>());
             moduleServices.AddSingleton(ctx.GetParentService<IApplicationStateManager>());
             moduleServices.AddSingleton(ctx.GetParentService<ILogoutService>());
-            moduleServices.AddSingleton(ctx.GetParentService<IAuthenticationService>());
-            moduleServices.AddSingleton(ctx.GetParentService<IOpaqueRegistrationService>());
-            moduleServices.AddSingleton(ctx.GetParentService<ISecureKeyRecoveryService>());
+            moduleServices.AddSingleton(ctx.GetParentService<IIdentityService>());
+            moduleServices.AddSingleton(ctx.GetParentService<IProfileMenuService>());
+            moduleServices.AddSingleton(ctx.GetParentService<ILanguageDetectionService>());
+            moduleServices.AddSingleton(ctx.GetParentService<IModuleViewFactory>());
+            moduleServices.AddSingleton(ctx.GetParentService<Ecliptix.Core.Shell.ViewModels.MainWindowViewModel>());
+            moduleServices.AddSingleton(ctx.GetParentService<DefaultSystemSettings>());
         };
 
         services.AddSingleton(sp => new ModuleResourceManager(sp, moduleServiceForwarder));
@@ -467,25 +455,17 @@ public static class Program
         ModuleCatalog catalog = new();
         Feature.Authentication.FeatureRegistration.RegisterModule(catalog);
         FeatureRegistration.RegisterModule(catalog);
-        Feature.Feed.Feed.FeatureRegistration.RegisterModule(catalog);
-        Feature.Chats.Chats.FeatureRegistration.RegisterModule(catalog);
-        Feature.Settings.Settings.FeatureRegistration.RegisterModule(catalog);
-        Feature.Profile.Profile.FeatureRegistration.RegisterModule(catalog);
-        Feature.NewContent.NewContent.FeatureRegistration.RegisterModule(catalog);
+        Feature.Feed.FeatureRegistration.RegisterModule(catalog);
+        Feature.Chats.FeatureRegistration.RegisterModule(catalog);
+        Feature.Settings.FeatureRegistration.RegisterModule(catalog);
+        Feature.Profile.FeatureRegistration.RegisterModule(catalog);
+        Feature.NewContent.FeatureRegistration.RegisterModule(catalog);
 
         services.AddSingleton<IModuleCatalog>(catalog);
         services.AddSingleton(catalog);
 
         services.AddSingleton<IModuleMessageBus, ModuleMessageBus>();
         services.AddSingleton<IModuleManager, ModuleManager>();
-
-        FeatureRegistration.RegisterServices(services);
-        Feature.Feed.Feed.FeatureRegistration.RegisterServices(services);
-        Feature.Chats.Chats.FeatureRegistration.RegisterServices(services);
-        Feature.Settings.Settings.FeatureRegistration.RegisterServices(services);
-        Feature.Profile.Profile.FeatureRegistration.RegisterServices(services);
-        Feature.Authentication.FeatureRegistration.RegisterServices(services);
-        Feature.NewContent.NewContent.FeatureRegistration.RegisterServices(services);
 
         services.AddTransient<SuggestionsViewModel>();
         services.AddTransient<ISuggestionsViewModel, SuggestionsViewModel>();
@@ -496,7 +476,7 @@ public static class Program
         services.AddSingleton<SideSheetViewModel>();
         services.AddSingleton<OverlaySheetViewModel>();
         services.AddSingleton<ConnectivityNotificationViewModel>();
-        services.AddSingleton<Ecliptix.Core.ViewModels.Core.MainWindowViewModel>();
+        services.AddSingleton<Ecliptix.Core.Shell.ViewModels.MainWindowViewModel>();
         services.AddTransient<VerticalSeparatorViewModel>();
         services.AddTransient<LanguageMenuButtonViewModel>();
         services.AddTransient<EppBadgeViewModel>();
@@ -505,25 +485,7 @@ public static class Program
         services.AddTransient<ToggleThemeViewModel>();
         services.AddTransient<PersonalTagViewModel>();
         services.AddTransient<SplashWindowViewModel>();
-        services.AddSingleton<ISplashHostFactory, Feature.Splash.Splash.SplashHostFactory>();
-        services.AddTransient<AuthenticationViewModel>(sp => new AuthenticationViewModel(
-            new AuthenticationViewModelDependencies
-            {
-                ConnectivityService = sp.GetRequiredService<IConnectivityService>(),
-                NetworkProvider = sp.GetRequiredService<NetworkProvider>(),
-                LocalizationService = sp.GetRequiredService<ILocalizationService>(),
-                StorageProvider = sp.GetRequiredService<IApplicationSecureStorageProvider>(),
-                LanguageDetectionService = sp.GetRequiredService<ILanguageDetectionService>(),
-                Router = sp.GetRequiredService<IApplicationRouter>(),
-                GlobalModalService = sp.GetRequiredService<IGlobalModalService>(),
-                MainWindowViewModel = sp.GetRequiredService<Ecliptix.Core.ViewModels.Core.MainWindowViewModel>(),
-                Settings = sp.GetRequiredService<DefaultSystemSettings>(),
-                MessageBus = sp.GetRequiredService<IMessageBus>(),
-                AuthRepository = sp.GetRequiredService<IAuthRepository>(),
-            }));
-        services.AddTransient<IAuthenticationHost>(sp => sp.GetRequiredService<AuthenticationViewModel>());
-        services.AddTransient<MasterViewModel>();
-        services.AddTransient<IMainHost>(sp => sp.GetRequiredService<MasterViewModel>());
+        services.AddSingleton<ISplashHostFactory, Feature.Splash.Services.SplashHostFactory>();
 
         services.AddSingleton<IViewLocator, ViewLocator>();
         services.AddSingleton<ReactiveUiViewLocatorAdapter>();
@@ -538,11 +500,11 @@ public static class Program
                 provider);
 
             Feature.Authentication.FeatureRegistration.RegisterViews(factory);
-            Feature.Feed.Feed.FeatureRegistration.RegisterViews(factory);
-            Feature.Chats.Chats.FeatureRegistration.RegisterViews(factory);
-            Feature.Settings.Settings.FeatureRegistration.RegisterViews(factory);
-            Feature.Profile.Profile.FeatureRegistration.RegisterViews(factory);
-            Feature.NewContent.NewContent.FeatureRegistration.RegisterViews(factory);
+            Feature.Feed.FeatureRegistration.RegisterViews(factory);
+            Feature.Chats.FeatureRegistration.RegisterViews(factory);
+            Feature.Settings.FeatureRegistration.RegisterViews(factory);
+            Feature.Profile.FeatureRegistration.RegisterViews(factory);
+            Feature.NewContent.FeatureRegistration.RegisterViews(factory);
 
             Log.Information("Registered {Count} module views during ModuleViewFactory creation", 6);
 
@@ -614,18 +576,6 @@ public static class Program
         SetSecurePermissionsIfUnix(directory);
 
         return path;
-    }
-
-    private static void ConfigureFeedServices(IServiceCollection services)
-    {
-        services.AddSingleton<IFeedService,
-            FeedService>();
-        services.AddSingleton<IPostInteractionService,
-            PostInteractionService>();
-        services.AddSingleton<ICommentService,
-            CommentService>();
-
-        Log.Information("Feed services configured successfully");
     }
 
     private static AppBuilder BuildAvaloniaApp() =>

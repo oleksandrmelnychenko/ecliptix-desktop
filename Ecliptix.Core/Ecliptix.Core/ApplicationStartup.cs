@@ -1,9 +1,9 @@
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
-using Ecliptix.Core.Modularity.Abstractions.Splash;
-using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Modularity.Splash;
 using Ecliptix.Core.Settings;
+using Ecliptix.Core.Shell.Abstractions.Core;
 using Ecliptix.Network.Infrastructure.Network.Core.Connectivity;
 using Splat;
 

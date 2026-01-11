@@ -1,0 +1,179 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:viewModels="clr-namespace:Ecliptix.Feature.Settings.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:DataType="viewModels:SecuritySettingsViewModel"
+             x:Class="Ecliptix.Feature.Settings.Views.SecuritySettingsView">
+
+    <UserControl.Resources>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+
+        <Style Selector="TextBlock.setting-label">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="#242424" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontWeight" Value="Normal" />
+        </Style>
+
+        <Style Selector="TextBlock.setting-description">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="#888888" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="Margin" Value="0,4,0,0" />
+        </Style>
+
+        <Style Selector="Border.setting-row">
+            <Setter Property="BorderBrush" Value="#F0F0F0" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="Padding" Value="0,16" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+
+        <Style Selector="TextBox.setting-input">
+            <Setter Property="Width" Value="175" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="BorderBrush" Value="#E0E0E0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
+
+        <Style Selector="TextBox.setting-input:pointerover /template/ Border#PART_BorderElement">
+            <Setter Property="BorderBrush" Value="#C0C0C0" />
+            <Setter Property="Background" Value="#FAFAFA" />
+        </Style>
+        <Style Selector="TextBox.setting-input:focus /template/ Border#PART_BorderElement">
+            <Setter Property="BorderBrush" Value="#FF6D00" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+
+        <Style Selector="Button.accent-button">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="8" /> <Setter Property="Padding" Value="16,8" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+        <Style Selector="Button.accent-button /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background">
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                    <GradientStop Color="#FF6B35" Offset="0.0"/>
+                    <GradientStop Color="#F7931E" Offset="1.0"/>
+                </LinearGradientBrush>
+            </Setter>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.3" Easing="CubicEaseInOut"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" Easing="CubicEaseOut"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.accent-button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background">
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                    <GradientStop Color="#FF8C52" Offset="0.0"/>
+                    <GradientStop Color="#FFB84D" Offset="1.0"/>
+                </LinearGradientBrush>
+            </Setter>
+        </Style>
+        <Style Selector="Button.accent-button:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background">
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                    <GradientStop Color="#CC5529" Offset="0.0"/>
+                    <GradientStop Color="#E07A1A" Offset="1.0"/>
+                </LinearGradientBrush>
+            </Setter>
+            <Setter Property="RenderTransform" Value="scale(0.95)" />
+        </Style>
+
+        <Style Selector="Button.danger-button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="#E0E0E0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="Foreground" Value="#555" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.danger-button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#FFF0F0" /> <Setter Property="BorderBrush" Value="#FFB0B0" />
+            <Setter Property="Foreground" Value="#D32F2F" /> </Style>
+        <Style Selector="Button.danger-button:pressed /template/ ContentPresenter#PART_ContentPresenter">
+             <Setter Property="Background" Value="#FFE0E0" />
+        </Style>
+
+    </UserControl.Styles>
+
+    <ScrollViewer>
+         <StackPanel >
+
+            <Border Classes="setting-row">
+                <Grid ColumnDefinitions="Auto, *">
+                    <TextBlock Grid.Column="0" Text="New Password" Classes="setting-label"/>
+                    <TextBox Grid.Column="1" Classes="setting-input"
+                             PasswordChar="•" RevealPassword="True"
+                             Text="{Binding NewPassword}" Watermark="At least 8 chars"/>
+                </Grid>
+            </Border>
+
+            <Border Classes="setting-row">
+                <Grid ColumnDefinitions="Auto, *">
+                    <TextBlock Grid.Column="0" Text="Confirm Password" Classes="setting-label"/>
+                    <TextBox Grid.Column="1" Classes="setting-input"
+                             PasswordChar="•" RevealPassword="True"
+                             Text="{Binding ConfirmPassword}" Watermark="Re-enter password"/>
+                </Grid>
+            </Border>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+                <Button Classes="accent-button"
+                        Command="{Binding ChangePasswordCommand}"
+                        Content="Update Password"/>
+            </StackPanel>
+            <Border Height="40" />
+            <Border Classes="setting-row">
+                <Grid ColumnDefinitions="Auto, *">
+                    <TextBlock Grid.Column="0" Text="Two-Factor Authentication" Classes="setting-label"/>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <ToggleSwitch IsChecked="{Binding IsTwoFactorEnabled}"
+                                      OnContent="" OffContent=""
+                                      VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <Border Classes="setting-row">
+                <Grid ColumnDefinitions="Auto, *">
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <TextBlock Text="Active Sessions" Classes="setting-label"/>
+                        <TextBlock Text="Log out of all other devices" Classes="setting-description"/>
+                    </StackPanel>
+
+                    <Button Grid.Column="1"
+                            Classes="accent-button"
+                            Command="{Binding RevokeSessionsCommand}"
+                            Width="200"
+                            HorizontalAlignment="Right">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z"
+                                      Width="14" Height="14"/>
+                            <TextBlock Text="Revoke All Sessions"/>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+
+</UserControl>
+

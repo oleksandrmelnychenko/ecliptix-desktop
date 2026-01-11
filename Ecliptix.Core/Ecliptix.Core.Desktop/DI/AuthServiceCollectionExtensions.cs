@@ -1,7 +1,7 @@
-using Ecliptix.Core.Services.Abstractions.Authentication;
-using Ecliptix.Core.Services.Abstractions.Core;
-using Ecliptix.Core.Services.Authentication;
-using Ecliptix.Core.Services.Core;
+using Ecliptix.Core.Shell.Abstractions.Core;
+using Ecliptix.Core.Shell.Services.Core;
+using Ecliptix.Feature.Authentication.Services.Abstractions.Authentication;
+using Ecliptix.Feature.Authentication.Services.Authentication;
 using Ecliptix.Network.Infrastructure.Security.KeySplitting;
 using Ecliptix.Network.Services.Abstractions.Authentication;
 using Microsoft.Extensions.DependencyInjection;

@@ -133,7 +133,7 @@ public sealed class SideSheetService : ISideSheetService
             {
                 _isShowingSideSheet = true;
             }
-            else 
+            else
             {
                 _isShowingSideSheet = false;
                 if (_pendingRequest != null)

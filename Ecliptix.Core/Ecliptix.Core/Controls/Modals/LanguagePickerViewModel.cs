@@ -5,8 +5,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Messaging.Core.Messaging.Services;
-using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Settings;
+using Ecliptix.Core.Shell.Abstractions.Core;
 using Ecliptix.Network.Infrastructure.Data.Abstractions;
 using Ecliptix.Network.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Network.Services.Common;
@@ -74,11 +74,6 @@ public class LanguagePickerViewModel : ReactiveObject, IActivatableViewModel, ID
 
     private async Task SelectLanguageAsync(LanguagePickerItemViewModel selectedItem)
     {
-        if (selectedItem == null || selectedItem.Model == null)
-        {
-            return;
-        }
-
         if (_localizationService.CurrentCultureName == selectedItem.Model.Code)
         {
             await _sideSheetService.HideAsync();
@@ -124,7 +119,7 @@ public class LanguagePickerViewModel : ReactiveObject, IActivatableViewModel, ID
         }
         catch (Exception)
         {
-
+            // ignored
         }
     }
 

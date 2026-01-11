@@ -3,7 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
-using Ecliptix.Core.ViewModels.Navigation;
+using Ecliptix.Core.Controls.Navigation;
 
 namespace Ecliptix.Core.Controls.Navigation;
 

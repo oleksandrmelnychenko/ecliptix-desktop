@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Security.Cryptography;
 using Ecliptix.Security.Certificate.Pinning.Services;
 using Ecliptix.Utilities;
@@ -8,8 +7,12 @@ namespace Ecliptix.Network.Infrastructure.Security.Crypto;
 
 public sealed class RsaChunkEncryptor : IRsaChunkEncryptor
 {
-    private const int RSA_MAX_CHUNK_SIZE = 120;
+    private const int RSA_OPTIMAL_CHUNK_SIZE = 200;
+    private const int RSA_MAX_PLAINTEXT_SIZE = 214;
     private const int RSA_ENCRYPTED_CHUNK_SIZE = 256;
+    private const int MAX_CHUNKED_PLAINTEXT_BYTES = 1024 * 1024;
+    private const int MAX_CHUNKED_CIPHERTEXT_BYTES =
+        ((MAX_CHUNKED_PLAINTEXT_BYTES + RSA_OPTIMAL_CHUNK_SIZE - 1) / RSA_OPTIMAL_CHUNK_SIZE) * RSA_ENCRYPTED_CHUNK_SIZE;
 
     public Result<byte[], NetworkFailure> EncryptInChunks(
         CertificatePinningService certificatePinningService,
@@ -18,26 +21,41 @@ public sealed class RsaChunkEncryptor : IRsaChunkEncryptor
         ArgumentNullException.ThrowIfNull(certificatePinningService);
         ArgumentNullException.ThrowIfNull(originalData);
 
-        int chunkCount = (originalData.Length + RSA_MAX_CHUNK_SIZE - 1) / RSA_MAX_CHUNK_SIZE;
-        int estimatedSize = chunkCount * RSA_ENCRYPTED_CHUNK_SIZE;
-        byte[] rentedBuffer = ArrayPool<byte>.Shared.Rent(estimatedSize);
+        if (originalData.Length > MAX_CHUNKED_PLAINTEXT_BYTES)
+        {
+            return Result<byte[], NetworkFailure>.Err(
+                NetworkFailure.RsaEncryption(
+                    $"Payload size {originalData.Length} exceeds maximum {MAX_CHUNKED_PLAINTEXT_BYTES} bytes"));
+        }
+
+        int chunkCount = (originalData.Length + RSA_OPTIMAL_CHUNK_SIZE - 1) / RSA_OPTIMAL_CHUNK_SIZE;
+        long estimatedSizeLong = (long)chunkCount * RSA_ENCRYPTED_CHUNK_SIZE;
+        if (estimatedSizeLong > Array.MaxLength)
+        {
+            return Result<byte[], NetworkFailure>.Err(
+                NetworkFailure.RsaEncryption("Output size exceeds allowed limits"));
+        }
+
+        int estimatedSize = (int)estimatedSizeLong;
+        byte[] outputBuffer = new byte[estimatedSize];
 
         try
         {
             int currentOffset = 0;
 
-            for (int offset = 0; offset < originalData.Length; offset += RSA_MAX_CHUNK_SIZE)
+            for (int offset = 0; offset < originalData.Length; offset += RSA_OPTIMAL_CHUNK_SIZE)
             {
-                int chunkSize = Math.Min(RSA_MAX_CHUNK_SIZE, originalData.Length - offset);
+                int chunkSize = Math.Min(RSA_OPTIMAL_CHUNK_SIZE, originalData.Length - offset);
                 Memory<byte> chunk = originalData.AsMemory(offset, chunkSize);
 
                 CertificatePinningByteArrayResult chunkResult =
                     certificatePinningService.Encrypt(chunk);
 
-                if (chunkResult.Error != null)
+                if (!chunkResult.IsSuccess)
                 {
+                    string errorMessage = chunkResult.Error?.Message ?? "Unknown error";
                     return Result<byte[], NetworkFailure>.Err(
-                        NetworkFailure.RsaEncryption($"RSA encryption failed: {chunkResult.Error.Message}"));
+                        NetworkFailure.RsaEncryption($"RSA encryption failed: {errorMessage}"));
                 }
 
                 if (chunkResult.Value == null)
@@ -46,20 +64,30 @@ public sealed class RsaChunkEncryptor : IRsaChunkEncryptor
                 }
 
                 int encryptedLength = chunkResult.Value.Length;
-                if (currentOffset + encryptedLength > rentedBuffer.Length)
+                if (encryptedLength > RSA_ENCRYPTED_CHUNK_SIZE)
                 {
-                    byte[] newBuffer = ArrayPool<byte>.Shared.Rent(currentOffset + encryptedLength);
-                    Array.Copy(rentedBuffer, 0, newBuffer, 0, currentOffset);
-                    ArrayPool<byte>.Shared.Return(rentedBuffer, clearArray: true);
-                    rentedBuffer = newBuffer;
+                    return Result<byte[], NetworkFailure>.Err(
+                        NetworkFailure.RsaEncryption(
+                            $"Encrypted chunk size {encryptedLength} exceeds maximum {RSA_ENCRYPTED_CHUNK_SIZE}"));
                 }
 
-                Array.Copy(chunkResult.Value, 0, rentedBuffer, currentOffset, encryptedLength);
+                if (currentOffset > outputBuffer.Length - encryptedLength)
+                {
+                    return Result<byte[], NetworkFailure>.Err(
+                        NetworkFailure.RsaEncryption("Output buffer overflow"));
+                }
+
+                Buffer.BlockCopy(chunkResult.Value, 0, outputBuffer, currentOffset, encryptedLength);
                 currentOffset += encryptedLength;
             }
 
+            if (currentOffset == outputBuffer.Length)
+            {
+                return Result<byte[], NetworkFailure>.Ok(outputBuffer);
+            }
+
             byte[] result = new byte[currentOffset];
-            Array.Copy(rentedBuffer, 0, result, 0, currentOffset);
+            Buffer.BlockCopy(outputBuffer, 0, result, 0, currentOffset);
             return Result<byte[], NetworkFailure>.Ok(result);
         }
         catch (CryptographicException ex)
@@ -82,10 +110,6 @@ public sealed class RsaChunkEncryptor : IRsaChunkEncryptor
             return Result<byte[], NetworkFailure>.Err(
                 NetworkFailure.RsaEncryption($"Encryption failed: {ex.Message}"));
         }
-        finally
-        {
-            ArrayPool<byte>.Shared.Return(rentedBuffer, clearArray: true);
-        }
     }
 
     public Result<byte[], NetworkFailure> DecryptInChunks(
@@ -95,54 +119,77 @@ public sealed class RsaChunkEncryptor : IRsaChunkEncryptor
         ArgumentNullException.ThrowIfNull(certificatePinningService);
         ArgumentNullException.ThrowIfNull(combinedEncryptedData);
 
-        int chunkCount = (combinedEncryptedData.Length + RSA_ENCRYPTED_CHUNK_SIZE - 1) / RSA_ENCRYPTED_CHUNK_SIZE;
-        int estimatedSize = chunkCount * RSA_MAX_CHUNK_SIZE;
-        byte[] rentedBuffer = ArrayPool<byte>.Shared.Rent(estimatedSize);
-
-        try
+        if (combinedEncryptedData.Length > MAX_CHUNKED_CIPHERTEXT_BYTES)
         {
-            int currentOffset = 0;
+            return Result<byte[], NetworkFailure>.Err(
+                NetworkFailure.RsaEncryption(
+                    $"Payload size {combinedEncryptedData.Length} exceeds maximum {MAX_CHUNKED_CIPHERTEXT_BYTES} bytes"));
+        }
 
-            for (int offset = 0; offset < combinedEncryptedData.Length; offset += RSA_ENCRYPTED_CHUNK_SIZE)
+        if (combinedEncryptedData.Length % RSA_ENCRYPTED_CHUNK_SIZE != 0)
+        {
+            return Result<byte[], NetworkFailure>.Err(
+                NetworkFailure.RsaEncryption(
+                    $"Ciphertext length {combinedEncryptedData.Length} is not a multiple of block size {RSA_ENCRYPTED_CHUNK_SIZE}"));
+        }
+
+        int chunkCount = combinedEncryptedData.Length / RSA_ENCRYPTED_CHUNK_SIZE;
+        long estimatedSizeLong = (long)chunkCount * RSA_MAX_PLAINTEXT_SIZE;
+        if (estimatedSizeLong > Array.MaxLength)
+        {
+            return Result<byte[], NetworkFailure>.Err(
+                NetworkFailure.RsaEncryption("Output size exceeds allowed limits"));
+        }
+
+        int estimatedSize = (int)estimatedSizeLong;
+        byte[] outputBuffer = new byte[estimatedSize];
+
+        int currentOffset = 0;
+
+        for (int offset = 0; offset < combinedEncryptedData.Length; offset += RSA_ENCRYPTED_CHUNK_SIZE)
+        {
+            Memory<byte> encryptedChunk = combinedEncryptedData.AsMemory(offset, RSA_ENCRYPTED_CHUNK_SIZE);
+
+            CertificatePinningByteArrayResult chunkDecryptResult =
+                certificatePinningService.Decrypt(encryptedChunk);
+
+            if (!chunkDecryptResult.IsSuccess)
             {
-                int chunkSize = Math.Min(RSA_ENCRYPTED_CHUNK_SIZE, combinedEncryptedData.Length - offset);
-                Memory<byte> encryptedChunk = combinedEncryptedData.AsMemory(offset, chunkSize);
-
-                CertificatePinningByteArrayResult chunkDecryptResult =
-                    certificatePinningService.Decrypt(encryptedChunk);
-
-                if (!chunkDecryptResult.IsSuccess)
-                {
-                    return Result<byte[], NetworkFailure>.Err(
-                        NetworkFailure.RsaEncryption(
-                            $"Failed to decrypt response chunk {(offset / RSA_ENCRYPTED_CHUNK_SIZE) + 1}: {chunkDecryptResult.Error?.Message}"));
-                }
-
-                if (chunkDecryptResult.Value == null)
-                {
-                    continue;
-                }
-
-                int decryptedLength = chunkDecryptResult.Value.Length;
-                if (currentOffset + decryptedLength > rentedBuffer.Length)
-                {
-                    byte[] newBuffer = ArrayPool<byte>.Shared.Rent(currentOffset + decryptedLength);
-                    Array.Copy(rentedBuffer, 0, newBuffer, 0, currentOffset);
-                    ArrayPool<byte>.Shared.Return(rentedBuffer, clearArray: true);
-                    rentedBuffer = newBuffer;
-                }
-
-                Array.Copy(chunkDecryptResult.Value, 0, rentedBuffer, currentOffset, decryptedLength);
-                currentOffset += decryptedLength;
+                return Result<byte[], NetworkFailure>.Err(
+                    NetworkFailure.RsaEncryption(
+                        $"Failed to decrypt response chunk {(offset / RSA_ENCRYPTED_CHUNK_SIZE) + 1}: {chunkDecryptResult.Error?.Message}"));
             }
 
-            byte[] result = new byte[currentOffset];
-            Array.Copy(rentedBuffer, 0, result, 0, currentOffset);
-            return Result<byte[], NetworkFailure>.Ok(result);
+            if (chunkDecryptResult.Value == null)
+            {
+                continue;
+            }
+
+            int decryptedLength = chunkDecryptResult.Value.Length;
+            if (decryptedLength > RSA_MAX_PLAINTEXT_SIZE)
+            {
+                return Result<byte[], NetworkFailure>.Err(
+                    NetworkFailure.RsaEncryption(
+                        $"Decrypted chunk size {decryptedLength} exceeds maximum {RSA_MAX_PLAINTEXT_SIZE}"));
+            }
+
+            if (currentOffset > outputBuffer.Length - decryptedLength)
+            {
+                return Result<byte[], NetworkFailure>.Err(
+                    NetworkFailure.RsaEncryption("Output buffer overflow"));
+            }
+
+            Buffer.BlockCopy(chunkDecryptResult.Value, 0, outputBuffer, currentOffset, decryptedLength);
+            currentOffset += decryptedLength;
         }
-        finally
+
+        if (currentOffset == outputBuffer.Length)
         {
-            ArrayPool<byte>.Shared.Return(rentedBuffer, clearArray: true);
+            return Result<byte[], NetworkFailure>.Ok(outputBuffer);
         }
+
+        byte[] result = new byte[currentOffset];
+        Buffer.BlockCopy(outputBuffer, 0, result, 0, currentOffset);
+        return Result<byte[], NetworkFailure>.Ok(result);
     }
 }

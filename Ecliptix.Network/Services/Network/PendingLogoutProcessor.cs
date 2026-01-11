@@ -2,7 +2,7 @@ using Ecliptix.Network.Infrastructure.Data;
 using Ecliptix.Network.Infrastructure.Network.Core.Providers;
 using Ecliptix.Network.Services.Network.Rpc;
 using Ecliptix.Protobuf.Protocol;
-using Ecliptix.Protobuf.Transport.Identity;
+using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Membership;
 using Ecliptix.Utilities.Failures.Network;

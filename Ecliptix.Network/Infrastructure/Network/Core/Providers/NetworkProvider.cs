@@ -1,4 +1,6 @@
+using System.Buffers.Binary;
 using System.Security.Cryptography;
+using System.Text;
 using Ecliptix.Core.Messaging.Core.Messaging.Connectivity;
 using Ecliptix.Network.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Network.Infrastructure.Network.Core.Constants;
@@ -32,6 +34,9 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
     private readonly NetworkProviderServices _services;
     private readonly NetworkProviderSecurity _security;
     private const string DEFAULT_CULTURE_CODE = "en-US";
+    private const int AuthenticatedEstablishClientNonceLength = 32;
+    private static readonly byte[] AuthenticatedEstablishProofContext =
+        Encoding.ASCII.GetBytes("Ecliptix.AuthenticatedEstablish.v1");
 
     public NetworkProvider(
         NetworkProviderDependencies dependencies,
@@ -2003,7 +2008,13 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
     {
         byte[]? masterKeyBytes = null;
         byte[]? masterKeyFingerprint = null;
+        byte[]? rootKey = null;
+        byte[]? proofInput = null;
+        byte[]? proof = null;
+        byte[]? clientNonce = null;
+        byte[]? serverNonce = null;
         EcliptixIdentityKeysWrapper? nativeIdentity = null;
+        RpcRequestContext? requestContext = null;
 
         try
         {
@@ -2082,17 +2093,59 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
 
             PubKeyExchange clientExchange = updatedHandshakeResult.Unwrap();
 
+            Result<byte[], EcliptixProtocolFailure> serverNonceResult = _nativeSessions.GetServerNonce(connectId);
+            if (serverNonceResult.IsErr)
+            {
+                await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
+                return Result<Unit, NetworkFailure>.Err(serverNonceResult.UnwrapErr().ToNetworkFailure());
+            }
+
+            serverNonce = serverNonceResult.Unwrap();
+            if (serverNonce.Length != AuthenticatedEstablishClientNonceLength)
+            {
+                await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
+                return Result<Unit, NetworkFailure>.Err(
+                    NetworkFailure.InvalidRequestType(
+                        $"Server nonce has invalid length (expected {AuthenticatedEstablishClientNonceLength})"));
+            }
+
+            clientNonce = RandomNumberGenerator.GetBytes(AuthenticatedEstablishClientNonceLength);
+            requestContext = RpcRequestContext.CreateNew();
+
+            string appDeviceId = _dependencies.RpcMetaDataProvider.DeviceId.ToString("N");
+            string appInstanceId = _dependencies.RpcMetaDataProvider.AppInstanceId.ToString("N");
+
+            rootKey = DeriveRootKeyFromMasterKey(masterKeyBytes, accountGuid);
+            proofInput = BuildAuthenticatedEstablishProofInput(
+                membershipIdentifier.ToByteArray(),
+                accountIdentifier.ToByteArray(),
+                masterKeyFingerprint,
+                clientExchange.ToByteArray(),
+                clientNonce,
+                serverNonce,
+                requestContext.IdempotencyKey,
+                appDeviceId,
+                appInstanceId);
+            proof = HMACSHA256.HashData(rootKey, proofInput);
+
             AuthenticatedEstablishRequest authenticatedRequest = new()
             {
                 MembershipUniqueId = membershipIdentifier,
                 AccountUniqueId = accountIdentifier,
                 ClientPubKeyExchange = clientExchange.ToByteString(),
-                MasterKeyFingerprint = ByteString.CopyFrom(masterKeyFingerprint)
+                MasterKeyFingerprint = ByteString.CopyFrom(masterKeyFingerprint),
+                ClientNonce = ByteString.CopyFrom(clientNonce),
+                Proof = ByteString.CopyFrom(proof),
+                ServerNonce = ByteString.CopyFrom(serverNonce)
             };
+
+            _nativeSessions.ClearServerNonce(connectId);
 
             Result<SecureEnvelope, NetworkFailure> serverResponseResult =
                 await _dependencies.RpcServiceManager.EstablishAuthenticatedSecrecyChannelAsync(
-                    _services.ConnectivityService, authenticatedRequest).ConfigureAwait(false);
+                    _services.ConnectivityService,
+                    authenticatedRequest,
+                    requestContext).ConfigureAwait(false);
 
             if (serverResponseResult.IsErr)
             {
@@ -2111,16 +2164,12 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
                     NetworkFailure.RsaEncryption("Failed to initialize certificate pinning service"));
             }
 
-            byte[] rootKey = DeriveRootKeyFromMasterKey(masterKeyBytes, accountGuid);
-
             Result<PubKeyExchange, NetworkFailure> processResult =
                 ProcessAuthenticatedHandshakeResponse(
                     serverResponseResult.Unwrap(),
                     certificatePinningService.Value!,
                     connectId,
                     rootKey);
-
-            CryptographicOperations.ZeroMemory(rootKey);
 
             if (processResult.IsErr)
             {
@@ -2176,6 +2225,26 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         }
         finally
         {
+            if (proofInput != null)
+            {
+                CryptographicOperations.ZeroMemory(proofInput);
+            }
+            if (proof != null)
+            {
+                CryptographicOperations.ZeroMemory(proof);
+            }
+            if (clientNonce != null)
+            {
+                CryptographicOperations.ZeroMemory(clientNonce);
+            }
+            if (serverNonce != null)
+            {
+                CryptographicOperations.ZeroMemory(serverNonce);
+            }
+            if (rootKey != null)
+            {
+                CryptographicOperations.ZeroMemory(rootKey);
+            }
             if (masterKeyBytes != null)
             {
                 CryptographicOperations.ZeroMemory(masterKeyBytes);
@@ -2191,6 +2260,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
     {
 
         _nativeSessions.ClearServerKyberKey(connectId);
+        _nativeSessions.ClearServerNonce(connectId);
 
         Result<Unit, SecureStorageFailure> deleteResult =
             await _dependencies.SecureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
@@ -2201,5 +2271,52 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
                 "[CLIENT-AUTH-CLEANUP] Failed to delete protocol state during authentication cleanup. ConnectId: {ConnectId}, ERROR: {Error}",
                 connectId, deleteResult.UnwrapErr().Message);
         }
+    }
+
+    private static byte[] BuildAuthenticatedEstablishProofInput(
+        byte[] membershipId,
+        byte[] accountId,
+        byte[] masterKeyFingerprint,
+        byte[] clientPubKeyExchange,
+        byte[] clientNonce,
+        byte[] serverNonce,
+        string idempotencyKey,
+        string appDeviceId,
+        string appInstanceId)
+    {
+        byte[] idempotencyBytes = Encoding.UTF8.GetBytes(idempotencyKey);
+        byte[] appDeviceBytes = Encoding.UTF8.GetBytes(appDeviceId);
+        byte[] appInstanceBytes = Encoding.UTF8.GetBytes(appInstanceId);
+        byte[][] parts =
+        [
+            AuthenticatedEstablishProofContext,
+            membershipId,
+            accountId,
+            masterKeyFingerprint,
+            clientPubKeyExchange,
+            clientNonce,
+            serverNonce,
+            idempotencyBytes,
+            appDeviceBytes,
+            appInstanceBytes
+        ];
+
+        int totalLength = 0;
+        foreach (byte[] part in parts)
+        {
+            totalLength += sizeof(uint) + part.Length;
+        }
+
+        byte[] buffer = new byte[totalLength];
+        int offset = 0;
+        foreach (byte[] part in parts)
+        {
+            BinaryPrimitives.WriteUInt32BigEndian(buffer.AsSpan(offset, sizeof(uint)), (uint)part.Length);
+            offset += sizeof(uint);
+            part.CopyTo(buffer, offset);
+            offset += part.Length;
+        }
+
+        return buffer;
     }
 }

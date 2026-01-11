@@ -19,6 +19,7 @@ public interface IRpcServiceManager
     Task<Result<SecureEnvelope, NetworkFailure>> EstablishAuthenticatedSecrecyChannelAsync(
         IConnectivityService connectivityService,
         AuthenticatedEstablishRequest request,
+        RpcRequestContext? requestContext = null,
         CancellationToken cancellationToken = default);
 
     Task<Result<RestoreChannelResponse, NetworkFailure>> RestoreSecrecyChannelAsync(

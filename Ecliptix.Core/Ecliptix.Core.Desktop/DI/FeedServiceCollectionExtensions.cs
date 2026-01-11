@@ -1,5 +1,5 @@
-using Ecliptix.Feature.Feed.Feed.Services.Abstractions;
-using Ecliptix.Feature.Feed.Feed.Services.Implementation;
+using Ecliptix.Feature.Feed.Services.Abstractions;
+using Ecliptix.Feature.Feed.Services.Implementation;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 

@@ -1,0 +1,164 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+			 xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
+			 xmlns:vm="clr-namespace:Ecliptix.Feature.Suggestions.ViewModels"
+			 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+			 x:DataType="vm:SuggestionsViewModel"
+			 x:Class="Ecliptix.Feature.Suggestions.Views.SuggestionsView">
+
+	<Grid Width="320" Background="LightGray">
+
+		<Grid Margin="24"
+			  RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+			  Background="White">
+
+			<StackPanel Grid.Row="0"
+						Margin="20,20,20,8"
+						Height="40"
+						Spacing="12"
+						Orientation="Horizontal">
+
+				<Grid Width="40" Height="40">
+					<Path Stroke="#111827"
+
+						  VerticalAlignment="Center"
+						  HorizontalAlignment="Center"
+						  StrokeThickness="2"
+						  StrokeLineCap="Round"
+						  Data="M16 7 H22 V13
+						  M22 7 L13.5 15.5 L8.5 10.5 L2 17"
+						  Width="24"
+						  Height="24"
+						  Stretch="None"/>
+				</Grid>
+
+				<TextBlock Text="Trending Now"
+						   FontWeight="600"
+						   LineHeight="22.5"
+						   VerticalAlignment="Center"
+						   Foreground="#101828"
+						   FontSize="15" />
+			</StackPanel>
+
+			<ItemsControl Grid.Row="1"
+						  Margin="0,0,0,0"
+						  ItemsSource="{Binding TrendingItems}">
+				<ItemsControl.ItemTemplate>
+					<DataTemplate>
+						<Border Margin="0,0,0,8"
+								Height="114.5"
+								Width="248"
+								CornerRadius="14"
+								Background="#f5f5f5">
+
+							<Grid Margin="12"
+								  ColumnDefinitions="Auto,Auto"
+								  ColumnSpacing="12"
+								  Background="Cyan">
+
+								<Border Grid.Column="0"
+										VerticalAlignment="Top"
+										HorizontalAlignment="Center"
+										Width="48"
+										Height="48"
+										CornerRadius="30"
+										Background="#C37BFF">
+
+									<Border VerticalAlignment="Center"
+											HorizontalAlignment="Center"
+											Width="44"
+											Height="44"
+											CornerRadius="30"
+											Background="#fff">
+
+										<Border	VerticalAlignment="Center"
+												HorizontalAlignment="Center"
+												Width="40"
+												Height="40"
+												CornerRadius="30"
+												ClipToBounds="True"
+												Background="#8a7ae0">
+											<Panel>
+												<Image asyncImageLoader:ImageLoader.Source="{Binding Author.AvatarUrl}"
+													   Stretch="Fill"
+													   IsVisible="{Binding Author.AvatarUrl, Converter={x:Static ObjectConverters.IsNotNull}}" />
+												<TextBlock Text="{Binding Author.DisplayName, Converter={StaticResource InitialsConverter}}"
+														   FontSize="16"
+														   Foreground="#fff"
+														   FontWeight="SemiBold"
+														   HorizontalAlignment="Center"
+														   VerticalAlignment="Center"
+														   IsVisible="{Binding Author.AvatarUrl, Converter={x:Static ObjectConverters.IsNull}}" />
+											</Panel>
+										</Border>
+									</Border>
+								</Border>
+
+								<TextBlock Grid.Column="1"
+										   Text="{Binding Title}"
+										   VerticalAlignment="Center"
+										   Margin="0,0,0,0"/>
+							</Grid>
+						</Border>
+					</DataTemplate>
+				</ItemsControl.ItemTemplate>
+			</ItemsControl>
+
+			<StackPanel Grid.Row="2"
+						Margin="20,20,20,8"
+						Height="40"
+						Spacing="12"
+						Orientation="Horizontal">
+
+				<Grid Width="40" Height="40">
+
+					<Path Stroke="Black"
+						  StrokeThickness="2"
+						  StrokeLineCap="Round"
+						  Stretch="None"
+						  VerticalAlignment="Center"
+						  HorizontalAlignment="Center"
+						  Data="
+						  M11.017,2.814
+						  a1,1 0 0 1 1.966,0
+						  l1.051,5.558
+						  a2,2 0 0 0 1.594,1.594
+						  l5.558,1.051
+						  a1,1 0 0 1 0,1.966
+						  l-5.558,1.051
+						  a2,2 0 0 0-1.594,1.594
+						  l-1.051,5.558
+						  a1,1 0 0 1-1.966,0
+						  l-1.051-5.558
+						  a2,2 0 0 0-1.594-1.594
+						  l-5.558-1.051
+						  a1,1 0 0 1 0-1.966
+						  l5.558-1.051
+						  a2,2 0 0 0 1.594-1.594
+						  z
+						  M20,2 L20,6
+						  M22,4 L18,4
+						  M4,20 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0
+						  " />
+				</Grid>
+
+				<TextBlock Text="You Might Like"
+						   FontWeight="600"
+						   LineHeight="22.5"
+						   VerticalAlignment="Center"
+						   Foreground="#101828"
+						   FontSize="15" />
+			</StackPanel>
+
+			<Button Grid.Row="4"
+					Content="Show more suggestions"
+					Foreground="#6a5acd"
+					Height="45"
+					FontSize="14"
+					FontWeight="600"
+					HorizontalAlignment="Stretch"/>
+		</Grid>
+	</Grid>
+</UserControl>

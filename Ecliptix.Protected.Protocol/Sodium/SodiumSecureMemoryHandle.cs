@@ -484,6 +484,57 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         }
     }
 
+    public Result<TResult, SodiumFailure> WithWriteAccess<TResult>(
+        Func<Span<byte>, Result<TResult, SodiumFailure>> operation)
+    {
+        if (IsInvalid || IsClosed)
+        {
+            return Result<TResult, SodiumFailure>.Err(
+                SodiumFailure.NullPointer(string.Format(SodiumFailureMessages.OBJECT_DISPOSED,
+                    nameof(SodiumSecureMemoryHandle))));
+        }
+
+        _lock.EnterWriteLock();
+        bool success = false;
+
+        try
+        {
+            DangerousAddRef(ref success);
+            if (!success)
+            {
+                return Result<TResult, SodiumFailure>.Err(
+                    SodiumFailure.MemoryProtectionFailed(SodiumFailureMessages.REFERENCE_COUNT_FAILED));
+            }
+
+            if (IsInvalid || IsClosed)
+            {
+                return Result<TResult, SodiumFailure>.Err(
+                    SodiumFailure.OBJECT_DISPOSED(string.Format(SodiumFailureMessages.DISPOSED_AFTER_ADD_REF,
+                        nameof(SodiumSecureMemoryHandle))));
+            }
+
+            unsafe
+            {
+                Span<byte> span = new((void*)handle, Length);
+                return operation(span);
+            }
+        }
+        catch (Exception ex)
+        {
+            return Result<TResult, SodiumFailure>.Err(
+                SodiumFailure.MemoryProtectionFailed(ProtocolSystemConstants.ErrorMessages.UNEXPECTED_WRITE_ERROR, ex));
+        }
+        finally
+        {
+            if (success)
+            {
+                DangerousRelease();
+            }
+
+            _lock.ExitWriteLock();
+        }
+    }
+
     [SupportedOSPlatform("windows")]
     [DllImport(ProtocolSystemConstants.Libraries.KERNEL_32, SetLastError = true)]
     private static extern bool VirtualLock(IntPtr lpAddress, UIntPtr dwSize);

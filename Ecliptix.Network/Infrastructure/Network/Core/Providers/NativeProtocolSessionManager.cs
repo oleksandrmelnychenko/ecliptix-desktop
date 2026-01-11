@@ -9,6 +9,7 @@ internal sealed class NativeProtocolSessionManager : IDisposable
 {
     private readonly ConcurrentDictionary<uint, NativeProtocolSession> _sessions = new();
     private readonly ConcurrentDictionary<uint, byte[]> _serverKyberKeys = new();
+    private readonly ConcurrentDictionary<uint, byte[]> _serverNonces = new();
     private bool _disposed;
 
     public Result<NativeProtocolSession, EcliptixProtocolFailure> CreateOrReplace(
@@ -100,6 +101,16 @@ internal sealed class NativeProtocolSessionManager : IDisposable
         _serverKyberKeys[connectId] = kyberPublicKey;
     }
 
+    public void StoreServerNonce(uint connectId, byte[] serverNonce)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _serverNonces[connectId] = serverNonce;
+    }
+
     public Result<byte[], EcliptixProtocolFailure> GetServerKyberKey(uint connectId)
     {
         if (_disposed)
@@ -117,9 +128,31 @@ internal sealed class NativeProtocolSessionManager : IDisposable
             EcliptixProtocolFailure.Generic("No per-connection Kyber key found"));
     }
 
+    public Result<byte[], EcliptixProtocolFailure> GetServerNonce(uint connectId)
+    {
+        if (_disposed)
+        {
+            return Result<byte[], EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.OBJECT_DISPOSED(nameof(NativeProtocolSessionManager)));
+        }
+
+        if (_serverNonces.TryGetValue(connectId, out byte[]? nonce))
+        {
+            return Result<byte[], EcliptixProtocolFailure>.Ok(nonce);
+        }
+
+        return Result<byte[], EcliptixProtocolFailure>.Err(
+            EcliptixProtocolFailure.Generic("No server nonce found"));
+    }
+
     public void ClearServerKyberKey(uint connectId)
     {
         _serverKyberKeys.TryRemove(connectId, out _);
+    }
+
+    public void ClearServerNonce(uint connectId)
+    {
+        _serverNonces.TryRemove(connectId, out _);
     }
 
     public IEnumerable<uint> ActiveConnectionIds()
@@ -172,6 +205,7 @@ internal sealed class NativeProtocolSessionManager : IDisposable
             session.Dispose();
         }
         _serverKyberKeys.TryRemove(connectId, out _);
+        _serverNonces.TryRemove(connectId, out _);
     }
 
     public void Dispose()
@@ -187,6 +221,7 @@ internal sealed class NativeProtocolSessionManager : IDisposable
         }
         _sessions.Clear();
         _serverKyberKeys.Clear();
+        _serverNonces.Clear();
         _disposed = true;
         GC.SuppressFinalize(this);
     }

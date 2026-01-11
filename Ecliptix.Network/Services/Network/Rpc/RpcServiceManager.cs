@@ -63,12 +63,21 @@ public sealed class RpcServiceManager : IRpcServiceManager
     public async Task<Result<SecureEnvelope, NetworkFailure>> EstablishAuthenticatedSecrecyChannelAsync(
         IConnectivityService connectivityService,
         AuthenticatedEstablishRequest request,
+        RpcRequestContext? requestContext = null,
         CancellationToken cancellationToken = default)
     {
         return await _secrecyChannelRpcServices.AuthenticatedEstablishSecureChannelAsync(connectivityService,
             request,
+            requestContext,
             cancellationToken).ConfigureAwait(false);
     }
+
+    Task<Result<SecureEnvelope, NetworkFailure>> IRpcServiceManager.EstablishAuthenticatedSecrecyChannelAsync(
+        IConnectivityService connectivityService,
+        AuthenticatedEstablishRequest request,
+        RpcRequestContext? requestContext,
+        CancellationToken cancellationToken) =>
+        EstablishAuthenticatedSecrecyChannelAsync(connectivityService, request, requestContext, cancellationToken);
 
     public async Task<Result<RpcFlow, NetworkFailure>> InvokeServiceRequestAsync(ServiceRequest request,
         CancellationToken token)

@@ -8,51 +8,6 @@ namespace Ecliptix.Utilities;
 
 public static class Helpers
 {
-    private static readonly RandomNumberGenerator Rng = RandomNumberGenerator.Create();
-
-    public static uint GenerateRandomUInt32(bool excludeZero = false)
-    {
-        byte[] buffer = new byte[UtilityConstants.Cryptography.U_INT_32_SIZE_BYTES];
-        uint value;
-        int attempts = 0;
-        do
-        {
-            Rng.GetBytes(buffer);
-            value = BitConverter.ToUInt32(buffer, 0);
-
-            if (++attempts > UtilityConstants.Cryptography.MAX_ENTROPY_CHECK_ATTEMPTS && IsLowEntropy(buffer))
-            {
-                throw new InvalidOperationException(UtilityConstants.ErrorMessages.INSUFFICIENT_ENTROPY);
-            }
-        } while (excludeZero && value == 0);
-
-        return value;
-    }
-
-    private static bool IsLowEntropy(byte[] data)
-    {
-        if (data.All(b => b == UtilityConstants.Cryptography.MIN_BYTE_VALUE) || data.All(b => b == UtilityConstants.Cryptography.MAX_BYTE_VALUE))
-        {
-            return true;
-        }
-
-        if (data.All(b => b == data[0]))
-        {
-            return true;
-        }
-
-        bool isSequential = true;
-        for (int i = 1; i < data.Length && isSequential; i++)
-        {
-            if (data[i] != (byte)(data[i - 1] + 1))
-            {
-                isSequential = false;
-            }
-        }
-
-        return isSequential;
-    }
-
     public static ByteString GuidToByteString(Guid guid)
     {
         byte[] bytes = guid.ToByteArray();
@@ -78,28 +33,21 @@ public static class Helpers
         return result;
     }
 
-    public static uint GenerateRandomUInt32InRange(uint min, uint max)
-    {
-        using RandomNumberGenerator rng = RandomNumberGenerator.Create();
-        byte[] bytes = new byte[UtilityConstants.Cryptography.U_INT_32_SIZE_BYTES];
-        rng.GetBytes(bytes);
-        uint value = BitConverter.ToUInt32(bytes, 0);
-        return min + value % (max - min + 1);
-    }
-
     public static T ParseFromBytes<T>(byte[] data)
     {
 
 #pragma warning disable IL2090
         PropertyInfo? parserProperty = typeof(T).GetProperty("Parser");
 #pragma warning restore IL2090
-        if (parserProperty?.GetValue(null) is { } parserInstance)
+        if (parserProperty?.GetValue(null) is not { } parserInstance)
         {
-            MethodInfo? parseMethod = parserInstance.GetType().GetMethod("ParseFrom", new[] { typeof(byte[]) });
-            if (parseMethod != null)
-            {
-                return (T)parseMethod.Invoke(parserInstance, new object?[] { data })!;
-            }
+            throw new InvalidOperationException($"No parser available for type {typeof(T).Name}");
+        }
+
+        MethodInfo? parseMethod = parserInstance.GetType().GetMethod("ParseFrom", new[] { typeof(byte[]) });
+        if (parseMethod != null)
+        {
+            return (T)parseMethod.Invoke(parserInstance, [data])!;
         }
 
         throw new InvalidOperationException($"No parser available for type {typeof(T).Name}");
@@ -165,5 +113,4 @@ public static class Helpers
             contextType,
             operationContextId);
     }
-
 }

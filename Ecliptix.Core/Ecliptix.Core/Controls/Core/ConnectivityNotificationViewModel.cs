@@ -7,7 +7,7 @@ using Ecliptix.Core.Messaging.Core.Messaging;
 using Ecliptix.Core.Messaging.Core.Messaging.Connectivity;
 using Ecliptix.Core.Messaging.Core.Messaging.Events;
 using Ecliptix.Core.Messaging.Core.Messaging.Services;
-using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Shell.Abstractions.Core;
 using Ecliptix.Network.Services.Network.Infrastructure;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;

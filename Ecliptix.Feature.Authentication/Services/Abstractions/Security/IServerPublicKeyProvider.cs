@@ -1,0 +1,6 @@
+namespace Ecliptix.Feature.Authentication.Services.Abstractions.Security;
+
+public interface IServerPublicKeyProvider
+{
+    byte[] GetServerPublicKey();
+}

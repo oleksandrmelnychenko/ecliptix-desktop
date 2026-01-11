@@ -713,7 +713,6 @@ public enum IconKind
     Table,
     Undo,
     Worm,
-    Activity,
     FileDown,
     GitCompare,
     SquareScissors,

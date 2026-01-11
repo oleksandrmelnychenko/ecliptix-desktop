@@ -45,15 +45,13 @@ internal sealed class SecureMemoryBuffer : IDisposable
     {
         if (!_disposed)
         {
-            using SecurePooledArray<byte> tempBuffer = SecureArrayPool.Rent<byte>(AllocatedSize);
-            Result<Unit, SodiumFailure> readResult = _handle.Read(tempBuffer.AsSpan());
+            Result<byte[], SodiumFailure> readResult = _handle.ReadBytes(Length);
             if (readResult.IsErr)
             {
                 throw new InvalidOperationException(ProtocolSystemConstants.ErrorMessages.FAILED_TO_READ_SECURE_MEMORY + readResult.UnwrapErr());
             }
 
-            byte[] result = new byte[Length];
-            tempBuffer.AsSpan()[..Length].CopyTo(result);
+            byte[] result = readResult.Unwrap();
             return result.AsSpan(0, Length);
         }
 

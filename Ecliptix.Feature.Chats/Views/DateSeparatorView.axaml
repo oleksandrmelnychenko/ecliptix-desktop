@@ -1,0 +1,16 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ecliptix.Feature.Chats.ViewModels.Messages"
+             x:DataType="vm:DateSeparatorViewModel"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Ecliptix.Feature.Chats.Views.DateSeparatorView">
+    <Border Margin="0,16"> <TextBlock Text="{Binding DateDisplay}"
+                                      HorizontalAlignment="Center"
+                                      Foreground="#909090"
+                                      FontSize="12"
+                                      FontWeight="Medium"/>
+    </Border>
+</UserControl>
+

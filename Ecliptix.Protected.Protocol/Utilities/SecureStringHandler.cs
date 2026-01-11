@@ -6,13 +6,13 @@ using Ecliptix.Utilities.Failures.Sodium;
 
 namespace Ecliptix.Protected.Protocol.Utilities;
 
-internal sealed class SecureStringHandler : IDisposable
+public sealed class SecureStringHandler : IDisposable
 {
     private readonly SodiumSecureMemoryHandle _handle;
     private readonly int _length;
     private bool _disposed;
 
-    internal SecureStringHandler(SodiumSecureMemoryHandle handle, int length)
+    public SecureStringHandler(SodiumSecureMemoryHandle handle, int length)
     {
         _handle = handle;
         _length = length;
@@ -66,23 +66,34 @@ internal sealed class SecureStringHandler : IDisposable
                 SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.SECURE_STRING_HANDLER_DISPOSED));
         }
 
-        byte[]? tempBytes = null;
-        try
+        T? result = default;
+        Exception? operationError = null;
+
+        Result<Unit, SodiumFailure> readResult = _handle.WithReadAccess(span =>
         {
-            tempBytes = new byte[_length];
-            Result<Unit, SodiumFailure> readResult = _handle.Read(tempBytes);
-            if (readResult.IsErr)
+            try
             {
-                return Result<T, SodiumFailure>.Err(readResult.UnwrapErr());
+                result = operation(span[.._length]);
+            }
+            catch (Exception ex)
+            {
+                operationError = ex;
             }
 
-            T result = operation(tempBytes.AsSpan(0, _length));
-            return Result<T, SodiumFailure>.Ok(result);
-        }
-        finally
+            return Result<Unit, SodiumFailure>.Ok(Unit.Value);
+        });
+
+        if (operationError != null)
         {
-            CryptographicOperations.ZeroMemory(tempBytes);
+            throw operationError;
         }
+
+        if (readResult.IsErr)
+        {
+            return Result<T, SodiumFailure>.Err(readResult.UnwrapErr());
+        }
+
+        return Result<T, SodiumFailure>.Ok(result!);
     }
 
     public int ByteLength => _length;

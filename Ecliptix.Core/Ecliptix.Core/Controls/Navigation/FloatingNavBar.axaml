@@ -3,7 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="clr-namespace:Ecliptix.Core.Controls.Navigation"
-             xmlns:nav="clr-namespace:Ecliptix.Core.Modularity.Abstractions.Navigation;assembly=Ecliptix.Core.Modularity"
+             xmlns:nav="clr-namespace:Ecliptix.Core.Modularity.Navigation;assembly=Ecliptix.Core.Modularity"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ecliptix.Core.Controls.Navigation.FloatingNavBar">
     <UserControl.Resources>

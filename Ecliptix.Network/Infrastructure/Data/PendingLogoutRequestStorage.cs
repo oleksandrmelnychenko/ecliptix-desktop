@@ -1,6 +1,6 @@
 using Ecliptix.Network.Infrastructure.Data.Abstractions;
 using Ecliptix.Network.Services.Common;
-using Ecliptix.Protobuf.Transport.Identity;
+using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Membership;
 using Google.Protobuf;

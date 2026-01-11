@@ -2,8 +2,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="clr-namespace:Ecliptix.Core.ViewModels.Navigation"
-             xmlns:models="clr-namespace:Ecliptix.Core.Models.Navigation"
+             xmlns:vm="clr-namespace:Ecliptix.Core.Controls.Navigation"
+             xmlns:nav="clr-namespace:Ecliptix.Core.Controls.Navigation"
              mc:Ignorable="d"
              d:DesignWidth="280"
              d:DesignHeight="800"
@@ -216,7 +216,7 @@
                     Margin="0,10,0,0">
             <ItemsControl ItemsSource="{Binding MenuItems}">
                 <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="models:NavigationMenuItem">
+                    <DataTemplate x:DataType="nav:NavigationMenuItem">
                         <Button Classes="copilot-sidebar-button"
                                 Classes.selected="{Binding IsSelected}"
                                 Command="{Binding $parent[UserControl].((vm:NavigationSidebarViewModel)DataContext).NavigateCommand}"

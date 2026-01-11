@@ -136,7 +136,7 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
             {
                 _isShowingBottomSheet = true;
             }
-            else 
+            else
             {
                 _isShowingBottomSheet = false;
                 if (_pendingRequest != null)

@@ -136,7 +136,7 @@ internal sealed class OverlaySheetService : IOverlaySheetService, IDisposable
             {
                 _isShowingOverlaySheet = true;
             }
-            else 
+            else
             {
                 _isShowingOverlaySheet = false;
                 if (_pendingRequest != null)

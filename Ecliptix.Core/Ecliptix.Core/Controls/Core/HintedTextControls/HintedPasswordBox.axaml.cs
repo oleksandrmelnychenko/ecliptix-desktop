@@ -15,7 +15,7 @@ using Avalonia.Threading;
 using Ecliptix.Core.Controls.Common;
 using Ecliptix.Core.Controls.Constants;
 using Ecliptix.Core.Controls.EventArgs;
-using Ecliptix.Core.Services.Membership;
+using Ecliptix.Core.Shell.Abstractions.Membership;
 using ReactiveUI;
 
 namespace Ecliptix.Core.Controls.Core.HintedTextControls;
