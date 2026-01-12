@@ -276,7 +276,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
                     if (_applicationInstanceSettings.IsSome)
                     {
                         state.MembershipId =
-                            _applicationInstanceSettings.Value!.Membership?.UniqueIdentifier.ToBase64() ??
+                            _applicationInstanceSettings.Value!.Membership?.MembershipId.ToBase64() ??
                             string.Empty;
                     }
 
@@ -347,7 +347,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
     public async Task<Result<Unit, NetworkFailure>> FetchServerPublicKeysAsync(
         CancellationToken cancellationToken = default)
     {
-        Result<GetServerPublicKeysResponse, NetworkFailure> rpcResult =
+        Result<ServerPublicKeysResponse, NetworkFailure> rpcResult =
             await _dependencies.RpcServiceManager.GetServerPublicKeysAsync(
                 _services.ConnectivityService,
                 cancellationToken).ConfigureAwait(false);
@@ -357,7 +357,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
             return Result<Unit, NetworkFailure>.Err(rpcResult.UnwrapErr());
         }
 
-        GetServerPublicKeysResponse response = rpcResult.Unwrap();
+        ServerPublicKeysResponse response = rpcResult.Unwrap();
 
         Result<Unit, InternalServiceApiFailure> persistPublicKeyResult =
             await _dependencies.ApplicationSecureStorageProvider.SetServerPublicKeyAsync(response.ServerPublicKey)
@@ -468,8 +468,8 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         InitializeApplicationSettings(applicationInstanceSettings);
         SetupRpcMetadata(applicationInstanceSettings);
 
-        RestoreChannelRequest request = new();
-        Result<RestoreChannelResponse, NetworkFailure> restoreResponse =
+        SessionRecoveryRequest request = new();
+        Result<SessionRecoveryResponse, NetworkFailure> restoreResponse =
             await ExecuteRestoreChannelByRetryModeAsync(
                 request,
                 ecliptixSecrecyChannelState.ConnectId,
@@ -512,8 +512,8 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
             culture);
     }
 
-    private async Task<Result<RestoreChannelResponse, NetworkFailure>> ExecuteRestoreChannelByRetryModeAsync(
-        RestoreChannelRequest request,
+    private async Task<Result<SessionRecoveryResponse, NetworkFailure>> ExecuteRestoreChannelByRetryModeAsync(
+        SessionRecoveryRequest request,
         uint connectId,
         RestoreRetryMode retryMode,
         CancellationToken cancellationToken)
@@ -526,13 +526,13 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
                 await ExecuteWithManualRetryAsync(request, connectId, cancellationToken),
             RestoreRetryMode.DIRECT_NO_RETRY =>
                 await ExecuteDirectRestoreAsync(request, cancellationToken),
-            _ => Result<RestoreChannelResponse, NetworkFailure>.Err(
+            _ => Result<SessionRecoveryResponse, NetworkFailure>.Err(
                 NetworkFailure.InvalidRequestType($"Unknown retry mode: {retryMode}"))
         };
     }
 
-    private async Task<Result<RestoreChannelResponse, NetworkFailure>> ExecuteWithAutoRetryAsync(
-        RestoreChannelRequest request,
+    private async Task<Result<SessionRecoveryResponse, NetworkFailure>> ExecuteWithAutoRetryAsync(
+        SessionRecoveryRequest request,
         uint connectId,
         CancellationToken cancellationToken)
     {
@@ -551,8 +551,8 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
             cancellationToken: combinedCts.Token).ConfigureAwait(false);
     }
 
-    private async Task<Result<RestoreChannelResponse, NetworkFailure>> ExecuteWithManualRetryAsync(
-        RestoreChannelRequest request,
+    private async Task<Result<SessionRecoveryResponse, NetworkFailure>> ExecuteWithManualRetryAsync(
+        SessionRecoveryRequest request,
         uint connectId,
         CancellationToken cancellationToken)
     {
@@ -570,8 +570,8 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
             cancellationToken: combinedCts.Token).ConfigureAwait(false);
     }
 
-    private async Task<Result<RestoreChannelResponse, NetworkFailure>> ExecuteDirectRestoreAsync(
-        RestoreChannelRequest request,
+    private async Task<Result<SessionRecoveryResponse, NetworkFailure>> ExecuteDirectRestoreAsync(
+        SessionRecoveryRequest request,
         CancellationToken cancellationToken)
     {
         try
@@ -583,7 +583,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         }
         catch (Exception ex)
         {
-            return Result<RestoreChannelResponse, NetworkFailure>.Err(
+            return Result<SessionRecoveryResponse, NetworkFailure>.Err(
                 NetworkFailure.DataCenterNotResponding(ex.Message));
         }
     }
@@ -624,22 +624,22 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
     }
 
     private async Task<Result<bool, NetworkFailure>> ProcessRestoreResponseAsync(
-        RestoreChannelResponse response,
+        SessionRecoveryResponse response,
         EcliptixSessionState sessionState,
         bool enablePendingRegistration)
     {
-        return response.Status switch
+        return response.Result switch
         {
-            RestoreChannelResponse.Types.Status.SessionRestored =>
+            SessionRecoveryResponse.Types.Result.SessionRecoveryResultRestored =>
                 await HandleSessionRestoredAsync(response, sessionState, enablePendingRegistration).ConfigureAwait(false),
-            RestoreChannelResponse.Types.Status.SessionNotFound =>
+            SessionRecoveryResponse.Types.Result.SessionRecoveryResultNotFound =>
                 await HandleSessionNotFoundAsync(sessionState.ConnectId),
             _ => Result<bool, NetworkFailure>.Ok(false)
         };
     }
 
     private async Task<Result<bool, NetworkFailure>> HandleSessionRestoredAsync(
-        RestoreChannelResponse response,
+        SessionRecoveryResponse response,
         EcliptixSessionState sessionState,
         bool enablePendingRegistration)
     {
@@ -824,7 +824,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
 
     private async Task<Result<Unit, EcliptixProtocolFailure>> SyncSecrecyChannelAsync(
         EcliptixSessionState currentState,
-        RestoreChannelResponse peerSecrecyChannelState)
+        SessionRecoveryResponse peerSecrecyChannelState)
     {
         Result<Unit, EcliptixProtocolFailure> restoreResult =
             await RestoreNativeSessionFromStateAsync(currentState).ConfigureAwait(false);
@@ -858,8 +858,8 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
 
         (uint localSending, uint localReceiving) = chainResult.Unwrap();
 
-        uint serverReceiving = peerSecrecyChannelState.ReceivingChainLength;
-        uint serverSending = peerSecrecyChannelState.SendingChainLength;
+        uint serverReceiving = (uint)peerSecrecyChannelState.ReceivingChainIndex;
+        uint serverSending = (uint)peerSecrecyChannelState.SendingChainIndex;
 
         if (localSending != serverReceiving || localReceiving != serverSending)
         {
@@ -915,10 +915,10 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         if (!resolvedFromState)
         {
             if (_applicationInstanceSettings.IsSome &&
-                _applicationInstanceSettings.Value!.Membership?.UniqueIdentifier != null)
+                _applicationInstanceSettings.Value!.Membership?.MembershipId != null)
             {
                 membershipGuid =
-                    Helpers.FromByteStringToGuid(_applicationInstanceSettings.Value!.Membership!.UniqueIdentifier);
+                    Helpers.FromByteStringToGuid(_applicationInstanceSettings.Value!.Membership!.MembershipId);
             }
             else
             {
@@ -929,10 +929,10 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
 
         if (resolvedFromState &&
             _applicationInstanceSettings.IsSome &&
-            _applicationInstanceSettings.Value!.Membership?.UniqueIdentifier != null)
+            _applicationInstanceSettings.Value!.Membership?.MembershipId != null)
         {
             Guid expectedMembershipId =
-                Helpers.FromByteStringToGuid(_applicationInstanceSettings.Value!.Membership!.UniqueIdentifier);
+                Helpers.FromByteStringToGuid(_applicationInstanceSettings.Value!.Membership!.MembershipId);
             if (expectedMembershipId != membershipGuid)
             {
                 return Result<Unit, EcliptixProtocolFailure>.Err(
@@ -1235,7 +1235,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
 
         if (_applicationInstanceSettings.IsSome && string.IsNullOrWhiteSpace(state.MembershipId))
         {
-            state.MembershipId = _applicationInstanceSettings.Value!.Membership?.UniqueIdentifier.ToBase64() ??
+            state.MembershipId = _applicationInstanceSettings.Value!.Membership?.MembershipId.ToBase64() ??
                                  string.Empty;
         }
 
@@ -2128,15 +2128,21 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
                 appInstanceId);
             proof = HMACSHA256.HashData(rootKey, proofInput);
 
-            AuthenticatedEstablishRequest authenticatedRequest = new()
+            AuthenticatedSessionHandshakeRequest authenticatedRequest = new()
             {
-                MembershipUniqueId = membershipIdentifier,
-                AccountUniqueId = accountIdentifier,
-                ClientPubKeyExchange = clientExchange.ToByteString(),
-                MasterKeyFingerprint = ByteString.CopyFrom(masterKeyFingerprint),
-                ClientNonce = ByteString.CopyFrom(clientNonce),
-                Proof = ByteString.CopyFrom(proof),
-                ServerNonce = ByteString.CopyFrom(serverNonce)
+                Identity = new AuthenticatedSessionHandshakeRequest.Types.Identity
+                {
+                    MembershipId = membershipIdentifier,
+                    AccountId = accountIdentifier
+                },
+                Cryptography = new AuthenticatedSessionHandshakeRequest.Types.Cryptography
+                {
+                    MasterKeyFingerprint = ByteString.CopyFrom(masterKeyFingerprint),
+                    PubKeyExchange = clientExchange.ToByteString(),
+                    ClientNonce = ByteString.CopyFrom(clientNonce),
+                    Proof = ByteString.CopyFrom(proof),
+                    ServerNonce = ByteString.CopyFrom(serverNonce)
+                }
             };
 
             _nativeSessions.ClearServerNonce(connectId);
@@ -2202,7 +2208,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
                 NativeIsInitiator = true,
                 AccountId = accountIdentifier,
                 MembershipId = _applicationInstanceSettings.IsSome
-                    ? _applicationInstanceSettings.Value!.Membership?.UniqueIdentifier.ToBase64() ?? string.Empty
+                    ? _applicationInstanceSettings.Value!.Membership?.MembershipId.ToBase64() ?? string.Empty
                     : string.Empty
             };
 

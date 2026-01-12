@@ -50,9 +50,9 @@ public sealed class RpcServiceManager : IRpcServiceManager
             cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<Result<RestoreChannelResponse, NetworkFailure>> RestoreSecrecyChannelAsync(
+    public async Task<Result<SessionRecoveryResponse, NetworkFailure>> RestoreSecrecyChannelAsync(
         IConnectivityService connectivityService,
-        RestoreChannelRequest request,
+        SessionRecoveryRequest request,
         CancellationToken cancellationToken = default)
     {
         return await _secrecyChannelRpcServices.RestoreAppDeviceSecrecyChannelAsync(connectivityService,
@@ -62,7 +62,7 @@ public sealed class RpcServiceManager : IRpcServiceManager
 
     public async Task<Result<SecureEnvelope, NetworkFailure>> EstablishAuthenticatedSecrecyChannelAsync(
         IConnectivityService connectivityService,
-        AuthenticatedEstablishRequest request,
+        AuthenticatedSessionHandshakeRequest request,
         RpcRequestContext? requestContext = null,
         CancellationToken cancellationToken = default)
     {
@@ -74,7 +74,7 @@ public sealed class RpcServiceManager : IRpcServiceManager
 
     Task<Result<SecureEnvelope, NetworkFailure>> IRpcServiceManager.EstablishAuthenticatedSecrecyChannelAsync(
         IConnectivityService connectivityService,
-        AuthenticatedEstablishRequest request,
+        AuthenticatedSessionHandshakeRequest request,
         RpcRequestContext? requestContext,
         CancellationToken cancellationToken) =>
         EstablishAuthenticatedSecrecyChannelAsync(connectivityService, request, requestContext, cancellationToken);
@@ -93,7 +93,7 @@ public sealed class RpcServiceManager : IRpcServiceManager
         return Result<RpcFlow, NetworkFailure>.Err(NetworkFailure.InvalidRequestType("Unknown action type"));
     }
 
-    public async Task<Result<GetServerPublicKeysResponse, NetworkFailure>> GetServerPublicKeysAsync(
+    public async Task<Result<ServerPublicKeysResponse, NetworkFailure>> GetServerPublicKeysAsync(
         IConnectivityService connectivityService,
         CancellationToken cancellationToken = default)
     {

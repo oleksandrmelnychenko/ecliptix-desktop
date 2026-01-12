@@ -19,8 +19,8 @@ public enum RpcServiceType : short
     RegistrationInit,
     RegistrationComplete,
 
-    RecoverySecretKeyInit,
-    RecoverySecretKeyComplete,
+    RecoveryInit,
+    RecoveryComplete,
 
     SignInInitRequest,
     SignInCompleteRequest,
@@ -28,7 +28,7 @@ public enum RpcServiceType : short
     Logout,
     AnonymousLogout,
 
-    GetAccountProfile,
-    CheckProfileNameAvailability,
-    CreateOrUpdateProfile
+    ProfileLookup,
+    ProfileNameAvailability,
+    ProfileUpsert
 }

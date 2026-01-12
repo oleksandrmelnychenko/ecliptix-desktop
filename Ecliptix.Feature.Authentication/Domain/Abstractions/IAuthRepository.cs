@@ -7,24 +7,24 @@ using MembershipProto = Ecliptix.Protobuf.Membership.Membership;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Authentication;
 using Google.Protobuf;
-using CountdownUpdateStatus = Ecliptix.Protobuf.Membership.VerificationCountdownUpdate.Types.CountdownUpdateStatus;
+using OtpCountdownStatus = Ecliptix.Protobuf.Membership.OtpCountdownUpdate.Types.Status;
 
 namespace Ecliptix.Feature.Authentication.Domain.Abstractions;
 
 public interface IAuthRepository
 {
     Task<Result<Unit, AuthenticationFailure>> SignInAsync(string phoneNumber, SecureTextBuffer secureKey, uint connectId, CancellationToken cancellationToken);
-    Task<Result<ValidateMobileNumberResponse, string>> ValidateMobileNumberAsync(string mobileNumber, uint connectId, CancellationToken cancellationToken = default);
-    Task<Result<CheckMobileNumberAvailabilityResponse, string>> CheckMobileNumberAvailabilityAsync(ByteString mobileNumberIdentifier, uint connectId, CancellationToken cancellationToken = default);
+    Task<Result<MobileNumberValidateResponse, string>> ValidateMobileNumberAsync(string mobileNumber, uint connectId, CancellationToken cancellationToken = default);
+    Task<Result<MobileNumberAvailabilityResponse, string>> CheckMobileNumberAvailabilityAsync(ByteString mobileNumberIdentifier, uint connectId, CancellationToken cancellationToken = default);
     Task<Result<Unit, string>> InitiateRegistrationOtpAsync(
         ByteString mobileNumberIdentifier,
-        VerificationPurpose purpose,
-        Action<uint, Guid, CountdownUpdateStatus, string?, string?, bool>? onCountdownUpdate,
+        OtpVerificationPurpose purpose,
+        Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>? onCountdownUpdate,
         CancellationToken cancellationToken = default);
     Task<Result<Unit, string>> ResendRegistrationOtpAsync(
         Guid sessionIdentifier,
         ByteString mobileNumberIdentifier,
-        Action<uint, Guid, CountdownUpdateStatus, string?, string?, bool>? onCountdownUpdate,
+        Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>? onCountdownUpdate,
         CancellationToken cancellationToken = default);
     Task<Result<MembershipProto, string>> VerifyRegistrationOtpAsync(Guid sessionIdentifier, string otpCode, uint connectId, CancellationToken cancellationToken = default);
     Task<Result<Unit, string>> CleanupRegistrationSessionAsync(Guid sessionIdentifier, CancellationToken cancellationToken = default);
@@ -33,12 +33,12 @@ public interface IAuthRepository
     Task<Result<ByteString, string>> ValidateMobileForRecoveryAsync(string mobileNumber, uint connectId, CancellationToken cancellationToken = default);
     Task<Result<Unit, string>> InitiateSecureKeyResetOtpAsync(
         ByteString mobileNumberIdentifier,
-        Action<uint, Guid, CountdownUpdateStatus, string?, string?, bool>? onCountdownUpdate,
+        Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>? onCountdownUpdate,
         CancellationToken cancellationToken = default);
     Task<Result<Unit, string>> ResendSecureKeyResetOtpAsync(
         Guid sessionIdentifier,
         ByteString mobileNumberIdentifier,
-        Action<uint, Guid, CountdownUpdateStatus, string?, string?, bool>? onCountdownUpdate,
+        Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>? onCountdownUpdate,
         CancellationToken cancellationToken = default);
     Task<Result<MembershipProto, string>> VerifySecureKeyResetOtpAsync(Guid sessionIdentifier, string otpCode, uint connectId, CancellationToken cancellationToken = default);
     Task<Result<Unit, string>> CleanupSecureKeyResetSessionAsync(Guid sessionIdentifier, CancellationToken cancellationToken = default);

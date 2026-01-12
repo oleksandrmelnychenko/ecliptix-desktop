@@ -17,7 +17,7 @@ using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Google.Protobuf;
 using Unit = Ecliptix.Utilities.Unit;
-using CountdownUpdateStatus = Ecliptix.Protobuf.Membership.VerificationCountdownUpdate.Types.CountdownUpdateStatus;
+using OtpCountdownStatus = Ecliptix.Protobuf.Membership.OtpCountdownUpdate.Types.Status;
 
 namespace Ecliptix.Feature.Authentication.Services.Authentication;
 
@@ -39,7 +39,7 @@ public sealed class SecureKeyRecoveryService(
         uint connectId,
         CancellationToken cancellationToken = default)
     {
-        Result<ValidateMobileNumberResponse, string> result =
+        Result<MobileNumberValidateResponse, string> result =
             await registrationService
                 .ValidateMobileForRecoveryAsync(mobileNumber, connectId, cancellationToken)
                 .ConfigureAwait(false);
@@ -49,36 +49,36 @@ public sealed class SecureKeyRecoveryService(
             return Result<ByteString, string>.Err(result.UnwrapErr());
         }
 
-        ValidateMobileNumberResponse response = result.Unwrap();
+        MobileNumberValidateResponse response = result.Unwrap();
 
-        if (response.Result == VerificationResult.InvalidMobile)
+        if (response.Result == OtpVerificationResult.InvalidMobile)
         {
             return Result<ByteString, string>.Err(response.Message);
         }
 
-        if (response.MobileNumberIdentifier.IsEmpty)
+        if (response.MobileNumberId.IsEmpty)
         {
             return Result<ByteString, string>.Err(
                 localizationService[AuthenticationConstants.MOBILE_NUMBER_IDENTIFIER_REQUIRED_KEY]);
         }
 
-        return Result<ByteString, string>.Ok(response.MobileNumberIdentifier);
+        return Result<ByteString, string>.Ok(response.MobileNumberId);
     }
 
     public Task<Result<Unit, string>> InitiateSecureKeyResetOtpAsync(
         ByteString mobileNumberIdentifier,
-        Action<uint, Guid, CountdownUpdateStatus, string?>? onCountdownUpdate = null,
+        Action<uint, Guid, OtpCountdownStatus, string?>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default) =>
         registrationService.InitiateOtpVerificationAsync(
             mobileNumberIdentifier,
-            VerificationPurpose.PasswordRecovery,
+            OtpVerificationPurpose.PasswordRecovery,
             onCountdownUpdate,
             cancellationToken);
 
     public Task<Result<Unit, string>> ResendSecureKeyResetOtpAsync(
         Guid sessionIdentifier,
         ByteString mobileNumberIdentifier,
-        Action<uint, Guid, CountdownUpdateStatus, string?>? onCountdownUpdate = null,
+        Action<uint, Guid, OtpCountdownStatus, string?>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default) =>
         registrationService.ResendOtpVerificationAsync(
             sessionIdentifier,
@@ -127,7 +127,7 @@ public sealed class SecureKeyRecoveryService(
 
             registrationResult = requestResult.Unwrap();
 
-            Result<OpaqueRecoverySecureKeyInitResponse, string> initResult =
+            Result<OpaqueRecoveryInitResponse, string> initResult =
                 await InitiateSecureKeyRecoveryAsync(membershipIdentifier, registrationResult.GetRequestCopy(),
                     connectId, cancellationToken).ConfigureAwait(false);
 
@@ -136,7 +136,7 @@ public sealed class SecureKeyRecoveryService(
                 return Result<Unit, string>.Err(initResult.UnwrapErr());
             }
 
-            OpaqueRecoverySecureKeyInitResponse initResponse = initResult.Unwrap();
+            OpaqueRecoveryInitResponse initResponse = initResult.Unwrap();
 
             Result<Unit, string> processResult =
                 await ProcessSecureKeyRecoveryInitResponse(initResponse).ConfigureAwait(false);
@@ -220,24 +220,24 @@ public sealed class SecureKeyRecoveryService(
     }
 
     private async Task<Result<Unit, string>> ProcessSecureKeyRecoveryInitResponse(
-        OpaqueRecoverySecureKeyInitResponse initResponse)
+        OpaqueRecoveryInitResponse initResponse)
     {
-        if (initResponse.Result != OpaqueRecoverySecureKeyInitResponse.Types.RecoveryResult.Succeeded)
+        if (initResponse.Result != OpaqueOperationResult.Succeeded)
         {
             string errorMessage = initResponse.Result switch
             {
-                OpaqueRecoverySecureKeyInitResponse.Types.RecoveryResult.InvalidCredentials =>
+                OpaqueOperationResult.InvalidCredentials =>
                     localizationService[AuthenticationConstants.INVALID_CREDENTIALS_KEY],
                 _ => localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY]
             };
             return Result<Unit, string>.Err(errorMessage);
         }
 
-        if (initResponse.Membership?.AccountUniqueIdentifier != null &&
-            initResponse.Membership.AccountUniqueIdentifier.Length > 0)
+        if (initResponse.Membership?.AccountId != null &&
+            initResponse.Membership.AccountId.Length > 0)
         {
             await applicationSecureStorageProvider
-                .SetCurrentAccountIdAsync(initResponse.Membership.AccountUniqueIdentifier)
+                .SetCurrentAccountIdAsync(initResponse.Membership.AccountId)
                 .ConfigureAwait(false);
         }
 
@@ -246,7 +246,7 @@ public sealed class SecureKeyRecoveryService(
 
     private async Task<Result<Unit, string>> FinalizeSecureKeyRecoveryAsync(
         OpaqueClient opaqueClient,
-        OpaqueRecoverySecureKeyInitResponse initResponse,
+        OpaqueRecoveryInitResponse initResponse,
         RegistrationResult registrationResult,
         ByteString membershipIdentifier,
         uint connectId,
@@ -262,22 +262,22 @@ public sealed class SecureKeyRecoveryService(
 
             recoveryRecord = opaqueClient.FinalizeRegistration(serverRecoveryResponse, registrationResult);
 
-            OpaqueRecoverySecretKeyCompleteRequest completeRequest = new()
+            OpaqueRecoveryCompleteRequest completeRequest = new()
             {
                 PeerRecoveryRecord = ByteString.CopyFrom(recoveryRecord),
-                MembershipIdentifier = membershipIdentifier
+                MembershipId = membershipIdentifier
             };
 
-            TaskCompletionSource<OpaqueRecoverySecretKeyCompleteResponse> responseSource = new();
+            TaskCompletionSource<OpaqueRecoveryCompleteResponse> responseSource = new();
 
             Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
                 connectId,
-                RpcServiceType.RecoverySecretKeyComplete,
+                RpcServiceType.RecoveryComplete,
                 SecureByteStringInterop.WithByteStringAsSpan(completeRequest.ToByteString(), span => span.ToArray()),
                 payload =>
                 {
-                    OpaqueRecoverySecretKeyCompleteResponse response =
-                        Helpers.ParseFromBytes<OpaqueRecoverySecretKeyCompleteResponse>(payload);
+                    OpaqueRecoveryCompleteResponse response =
+                        Helpers.ParseFromBytes<OpaqueRecoveryCompleteResponse>(payload);
                     responseSource.TrySetResult(response);
 
                     return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
@@ -334,7 +334,7 @@ public sealed class SecureKeyRecoveryService(
         }
     }
 
-    private async Task<Result<OpaqueRecoverySecureKeyInitResponse, string>> InitiateSecureKeyRecoveryAsync(
+    private async Task<Result<OpaqueRecoveryInitResponse, string>> InitiateSecureKeyRecoveryAsync(
         ByteString membershipIdentifier,
         byte[] recoveryRequest,
         uint connectId,
@@ -342,27 +342,27 @@ public sealed class SecureKeyRecoveryService(
     {
         if (membershipIdentifier.IsEmpty)
         {
-            return Result<OpaqueRecoverySecureKeyInitResponse, string>.Err(
+            return Result<OpaqueRecoveryInitResponse, string>.Err(
                 localizationService[AuthenticationConstants.MEMBERSHIP_IDENTIFIER_REQUIRED_KEY]);
         }
 
         try
         {
-            OpaqueRecoverySecureKeyInitRequest request = new()
+            OpaqueRecoveryInitRequest request = new()
             {
                 PeerOprf = ByteString.CopyFrom(recoveryRequest),
-                MembershipIdentifier = membershipIdentifier
+                MembershipId = membershipIdentifier
             };
 
-            TaskCompletionSource<OpaqueRecoverySecureKeyInitResponse> responseSource = new();
+            TaskCompletionSource<OpaqueRecoveryInitResponse> responseSource = new();
 
             Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
                 connectId,
-                RpcServiceType.RecoverySecretKeyInit,
+                RpcServiceType.RecoveryInit,
                 SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()), payload =>
                 {
-                    OpaqueRecoverySecureKeyInitResponse response =
-                        Helpers.ParseFromBytes<OpaqueRecoverySecureKeyInitResponse>(payload);
+                    OpaqueRecoveryInitResponse response =
+                        Helpers.ParseFromBytes<OpaqueRecoveryInitResponse>(payload);
                     responseSource.TrySetResult(response);
 
                     return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
@@ -370,15 +370,15 @@ public sealed class SecureKeyRecoveryService(
 
             if (networkResult.IsErr)
             {
-                return Result<OpaqueRecoverySecureKeyInitResponse, string>.Err(networkResult.UnwrapErr().Message);
+                return Result<OpaqueRecoveryInitResponse, string>.Err(networkResult.UnwrapErr().Message);
             }
 
-            OpaqueRecoverySecureKeyInitResponse initResponse = await responseSource.Task.ConfigureAwait(false);
-            return Result<OpaqueRecoverySecureKeyInitResponse, string>.Ok(initResponse);
+            OpaqueRecoveryInitResponse initResponse = await responseSource.Task.ConfigureAwait(false);
+            return Result<OpaqueRecoveryInitResponse, string>.Ok(initResponse);
         }
         catch (Exception ex)
         {
-            return Result<OpaqueRecoverySecureKeyInitResponse, string>.Err(ex.Message);
+            return Result<OpaqueRecoveryInitResponse, string>.Err(ex.Message);
         }
     }
 }

@@ -27,7 +27,7 @@ using Serilog;
 using AuthenticationFlowContext = Ecliptix.Core.Modularity.Authentication.AuthenticationFlowContext;
 using MembershipViewType = Ecliptix.Core.Modularity.Authentication.MembershipViewType;
 using Unit = System.Reactive.Unit;
-using CountdownUpdateStatus = Ecliptix.Protobuf.Membership.VerificationCountdownUpdate.Types.CountdownUpdateStatus;
+using OtpCountdownStatus = Ecliptix.Protobuf.Membership.OtpCountdownUpdate.Types.Status;
 
 namespace Ecliptix.Feature.Authentication.ViewModels.Registration;
 
@@ -213,8 +213,8 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
     [Reactive] private uint CooldownBufferSeconds { get; set; }
 
     [Reactive]
-    private CountdownUpdateStatus CurrentStatus { get; set; } =
-        CountdownUpdateStatus.Active;
+    private OtpCountdownStatus CurrentStatus { get; set; } =
+        OtpCountdownStatus.OtpCountdownStatusActive;
 
     [Reactive] private bool IsMaxAttemptsReached { get; set; }
 
@@ -338,17 +338,17 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
     private Task<Result<Ecliptix.Utilities.Unit, string>> CreateInitiateTask(long countdownVersion)
     {
         CancellationToken cancellationToken = _cancellationTokenSource?.Token ?? CancellationToken.None;
-        Action<uint, Guid, CountdownUpdateStatus, string?, string?, bool> callback =
+        Action<uint, Guid, OtpCountdownStatus, string?, string?, bool> callback =
             CreateCountdownCallback(countdownVersion);
 
         return _flowContext == AuthenticationFlowContext.REGISTRATION
             ? _authRepository.InitiateRegistrationOtpAsync(_mobileNumberIdentifier,
-                VerificationPurpose.Registration, callback, cancellationToken)
+                OtpVerificationPurpose.Registration, callback, cancellationToken)
             : _authRepository.InitiateSecureKeyResetOtpAsync(_mobileNumberIdentifier, callback,
                 cancellationToken);
     }
 
-    private Action<uint, Guid, CountdownUpdateStatus, string?, string?, bool>
+    private Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>
         CreateCountdownCallback(long countdownVersion)
     {
         return (seconds, identifier, status, message, messageKey, alreadyVerified) =>
@@ -374,8 +374,8 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
     {
         bool shouldSetError = result.IsErr
                               && !_isDisposed
-                              && CurrentStatus != CountdownUpdateStatus
-                                  .ServerUnavailable;
+                              && CurrentStatus != OtpCountdownStatus
+                                  .OtpCountdownStatusServerUnavailable;
 
         if (shouldSetError)
         {
@@ -452,12 +452,12 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
 
     private async Task StoreMembershipData(MembershipProto membership)
     {
-        await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership.UniqueIdentifier);
+        await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership.MembershipId);
 
-        if (membership.AccountUniqueIdentifier != null && membership.AccountUniqueIdentifier.Length > 0)
+        if (membership.AccountId != null && membership.AccountId.Length > 0)
         {
             await _applicationSecureStorageProvider
-                .SetCurrentAccountIdAsync(membership.AccountUniqueIdentifier)
+                .SetCurrentAccountIdAsync(membership.AccountId)
                 .ConfigureAwait(false);
         }
     }
@@ -548,7 +548,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
         CancellationToken cancellationToken,
         long countdownVersion)
     {
-        Action<uint, Guid, CountdownUpdateStatus, string?, string?, bool> countdownCallback =
+        Action<uint, Guid, OtpCountdownStatus, string?, string?, bool> countdownCallback =
             CreateCountdownCallback(countdownVersion);
 
         return _flowContext == AuthenticationFlowContext.REGISTRATION
@@ -592,7 +592,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             {
                 PublishError(error);
                 SecondsRemaining = 0;
-                CurrentStatus = CountdownUpdateStatus.Expired;
+                CurrentStatus = OtpCountdownStatus.OtpCountdownStatusExpired;
             }
         });
     }
@@ -645,7 +645,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
 
                     ErrorMessage = string.Empty;
                     HasError = false;
-                    CurrentStatus = CountdownUpdateStatus.Expired;
+                    CurrentStatus = OtpCountdownStatus.OtpCountdownStatusExpired;
                     _cooldownTimer?.Dispose();
                     _cooldownTimer = null;
                 });
@@ -863,12 +863,12 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             title = _localizationService[LocalizationKeys.Verification.Redirect.Title.SERVER_ERROR];
             subtitle = _localizationService[LocalizationKeys.Verification.Redirect.Subtitle.TRY_AGAIN];
         }
-        else if (CurrentStatus == CountdownUpdateStatus.SessionExpired)
+        else if (CurrentStatus == OtpCountdownStatus.OtpCountdownStatusSessionExpired)
         {
             title = _localizationService[LocalizationKeys.Verification.Redirect.Title.SESSION_EXPIRED];
             subtitle = _localizationService[LocalizationKeys.Verification.Redirect.Subtitle.TIMEOUT];
         }
-        else if (CurrentStatus == CountdownUpdateStatus.NotFound)
+        else if (CurrentStatus == OtpCountdownStatus.OtpCountdownStatusNotFound)
         {
             title = _localizationService[LocalizationKeys.Verification.Redirect.Title.SESSION_NOT_FOUND];
             subtitle = _localizationService[LocalizationKeys.Verification.Redirect.Subtitle.INVALID_STATE];
@@ -909,7 +909,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
     private void HandleCountdownUpdate(
         uint seconds,
         Guid identifier,
-        CountdownUpdateStatus status,
+        OtpCountdownStatus status,
         string? message,
         string? messageKey,
         bool alreadyVerified)
@@ -936,7 +936,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             HasError = false;
             HasValidSession = false;
             SecondsRemaining = 0;
-            CurrentStatus = CountdownUpdateStatus.Expired;
+            CurrentStatus = OtpCountdownStatus.OtpCountdownStatusExpired;
 
             if (HostScreen is AuthenticationViewModel hostWindow)
             {
@@ -952,7 +952,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
                                 IsMessageKey(normalizedMessageKey, VerificationMessageKeys.OTP_MAX_ATTEMPTS_REACHED);
         bool isRateLimitKey = IsRateLimitKey(normalizedMessageKey);
 
-        if (_initialTotalSeconds == null && seconds > 0 && status == CountdownUpdateStatus.Active)
+        if (_initialTotalSeconds == null && seconds > 0 && status == OtpCountdownStatus.OtpCountdownStatusActive)
         {
             _initialTotalSeconds = seconds;
         }
@@ -961,15 +961,15 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
         {
             if (IsMessageKey(normalizedMessageKey, VerificationMessageKeys.VERIFICATION_FLOW_EXPIRED))
             {
-                status = CountdownUpdateStatus.SessionExpired;
+                status = OtpCountdownStatus.OtpCountdownStatusSessionExpired;
             }
             else if (IsMessageKey(normalizedMessageKey, VerificationMessageKeys.OTP_EXPIRED))
             {
-                status = CountdownUpdateStatus.Expired;
+                status = OtpCountdownStatus.OtpCountdownStatusExpired;
             }
             else if (IsMessageKey(normalizedMessageKey, VerificationMessageKeys.RESEND_COOLDOWN))
             {
-                status = CountdownUpdateStatus.ResendCooldown;
+                status = OtpCountdownStatus.OtpCountdownStatusResendCooldown;
             }
         }
 
@@ -978,27 +978,27 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             IsMaxAttemptsReached = true;
         }
 
-        if (status == CountdownUpdateStatus.Failed &&
+        if (status == OtpCountdownStatus.OtpCountdownStatusFailed &&
             TryExtractCooldownSeconds(resolvedMessage, out uint cooldownSeconds, out string? normalizedMessage))
         {
-            status = CountdownUpdateStatus.ResendCooldown;
+            status = OtpCountdownStatus.OtpCountdownStatusResendCooldown;
             seconds = cooldownSeconds;
             resolvedMessage = normalizedMessage;
         }
 
-        if (status == CountdownUpdateStatus.Active && seconds == 0)
+        if (status == OtpCountdownStatus.OtpCountdownStatusActive && seconds == 0)
         {
-            status = CountdownUpdateStatus.Expired;
+            status = OtpCountdownStatus.OtpCountdownStatusExpired;
         }
 
-        if (status == CountdownUpdateStatus.Failed &&
+        if (status == OtpCountdownStatus.OtpCountdownStatusFailed &&
             (isMaxAttemptsKey || isRateLimitKey || IsRateLimitMessage(normalizedMessageKey, resolvedMessage)))
         {
             IsMaxAttemptsReached = true;
         }
         else
         {
-            IsMaxAttemptsReached = status == CountdownUpdateStatus.MaxAttemptsReached;
+            IsMaxAttemptsReached = status == OtpCountdownStatus.OtpCountdownStatusMaxAttemptsReached;
         }
 
         if (_initialTotalSeconds.HasValue && _initialTotalSeconds.Value > 0)
@@ -1015,21 +1015,21 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
     }
 
     private uint ProcessCountdownStatus(
-        CountdownUpdateStatus status,
+        OtpCountdownStatus status,
         uint seconds,
         string? message)
     {
         return status switch
         {
-            CountdownUpdateStatus.Active => seconds,
-            CountdownUpdateStatus.Expired => HandleExpiredStatus(message),
-            CountdownUpdateStatus.ResendCooldown => HandleResendCooldown(message,
+            OtpCountdownStatus.OtpCountdownStatusActive => seconds,
+            OtpCountdownStatus.OtpCountdownStatusExpired => HandleExpiredStatus(message),
+            OtpCountdownStatus.OtpCountdownStatusResendCooldown => HandleResendCooldown(message,
                 seconds),
-            CountdownUpdateStatus.Failed => HandleFailedStatus(message),
-            CountdownUpdateStatus.NotFound => HandleNotFoundStatus(),
-            CountdownUpdateStatus.MaxAttemptsReached => HandleMaxAttemptsStatus(),
-            CountdownUpdateStatus.SessionExpired => HandleSessionExpiredStatus(),
-            CountdownUpdateStatus.ServerUnavailable => HandleUnavailable(message),
+            OtpCountdownStatus.OtpCountdownStatusFailed => HandleFailedStatus(message),
+            OtpCountdownStatus.OtpCountdownStatusNotFound => HandleNotFoundStatus(),
+            OtpCountdownStatus.OtpCountdownStatusMaxAttemptsReached => HandleMaxAttemptsStatus(),
+            OtpCountdownStatus.OtpCountdownStatusSessionExpired => HandleSessionExpiredStatus(),
+            OtpCountdownStatus.OtpCountdownStatusServerUnavailable => HandleUnavailable(message),
             _ => Math.Min(seconds, SecondsRemaining)
         };
     }
@@ -1222,7 +1222,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             SecondsRemaining = 0;
             RemainingTime = AuthenticationConstants.INITIAL_REMAINING_TIME;
             IsMaxAttemptsReached = false;
-            CurrentStatus = CountdownUpdateStatus.Active;
+            CurrentStatus = OtpCountdownStatus.OtpCountdownStatusActive;
             lock (_sessionLock)
             {
                 _verificationSessionIdentifier = Guid.Empty;
@@ -1234,7 +1234,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
     private static bool CanResendVerification(
         uint secondsRemaining,
         bool hasValidSession,
-        CountdownUpdateStatus status,
+        OtpCountdownStatus status,
         uint cooldownBufferSeconds,
         bool isInNetworkOutage)
     {
@@ -1243,7 +1243,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             return false;
         }
 
-        if (status == CountdownUpdateStatus.ResendCooldown)
+        if (status == OtpCountdownStatus.OtpCountdownStatusResendCooldown)
         {
             return cooldownBufferSeconds == 0;
         }
@@ -1253,6 +1253,6 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             return false;
         }
 
-        return status == CountdownUpdateStatus.Expired;
+        return status == OtpCountdownStatus.OtpCountdownStatusExpired;
     }
 }

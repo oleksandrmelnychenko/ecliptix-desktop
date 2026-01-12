@@ -21,8 +21,8 @@ public sealed class RetryPolicyProvider(RetryStrategyConfiguration retryStrategy
             [RpcServiceType.Logout] = new(ShouldRetry: false, ReinitOnCompleteFailure: false),
             [RpcServiceType.AnonymousLogout] = new(ShouldRetry: false, ReinitOnCompleteFailure: false),
             [RpcServiceType.EstablishAuthenticatedSecureChannel] = new(ShouldRetry: true, ReinitOnCompleteFailure: true),
-            [RpcServiceType.RecoverySecretKeyInit] = new(ShouldRetry: true, ReinitOnCompleteFailure: false),
-            [RpcServiceType.RecoverySecretKeyComplete] = new(ShouldRetry: true, ReinitOnCompleteFailure: true),
+            [RpcServiceType.RecoveryInit] = new(ShouldRetry: true, ReinitOnCompleteFailure: false),
+            [RpcServiceType.RecoveryComplete] = new(ShouldRetry: true, ReinitOnCompleteFailure: true),
         }.ToFrozenDictionary();
 
     private sealed record ServiceRetryConfig(bool ShouldRetry, bool ReinitOnCompleteFailure);

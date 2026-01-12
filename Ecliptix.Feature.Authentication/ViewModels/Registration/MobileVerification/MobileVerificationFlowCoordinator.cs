@@ -47,7 +47,7 @@ internal sealed class MobileVerificationFlowCoordinator(
     {
         string fullNumber = PhoneNumberHelper.CombineWithPrefix(phonePrefix, rawMobileNumber);
 
-        Result<ValidateMobileNumberResponse, string> validationResult =
+        Result<MobileNumberValidateResponse, string> validationResult =
             await authRepository.ValidateMobileNumberAsync(fullNumber, connectId, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -56,9 +56,9 @@ internal sealed class MobileVerificationFlowCoordinator(
             return Result<MobileVerificationFlowOutcome, string>.Err(validationResult.UnwrapErr());
         }
 
-        ValidateMobileNumberResponse validateMobileNumberResponse = validationResult.Unwrap();
+        MobileNumberValidateResponse validateMobileNumberResponse = validationResult.Unwrap();
 
-        if (validateMobileNumberResponse.Result != VerificationResult.Succeeded)
+        if (validateMobileNumberResponse.Result != OtpVerificationResult.Succeeded)
         {
             string errorMessage = !string.IsNullOrEmpty(validateMobileNumberResponse.Message)
                 ? validateMobileNumberResponse.Message
@@ -66,14 +66,14 @@ internal sealed class MobileVerificationFlowCoordinator(
             return Result<MobileVerificationFlowOutcome, string>.Err(errorMessage);
         }
 
-        if (validateMobileNumberResponse.MobileNumberIdentifier.IsEmpty)
+        if (validateMobileNumberResponse.MobileNumberId.IsEmpty)
         {
             return Result<MobileVerificationFlowOutcome, string>.Err(
                 localizationService[AuthenticationConstants.MOBILE_NUMBER_IDENTIFIER_REQUIRED_KEY]);
         }
 
         return await HandleMobileAvailabilityCheckAsync(
-            validateMobileNumberResponse.MobileNumberIdentifier,
+            validateMobileNumberResponse.MobileNumberId,
             fullNumber,
             connectId,
             cancellationToken);
@@ -85,7 +85,7 @@ internal sealed class MobileVerificationFlowCoordinator(
         uint connectId,
         CancellationToken cancellationToken)
     {
-        Result<CheckMobileNumberAvailabilityResponse, string> statusResult =
+        Result<MobileNumberAvailabilityResponse, string> statusResult =
             await authRepository.CheckMobileNumberAvailabilityAsync(mobileNumberIdentifier, connectId,
                 cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -95,25 +95,25 @@ internal sealed class MobileVerificationFlowCoordinator(
             return Result<MobileVerificationFlowOutcome, string>.Err(statusResult.UnwrapErr());
         }
 
-        CheckMobileNumberAvailabilityResponse statusResponse = statusResult.Unwrap();
+        MobileNumberAvailabilityResponse statusResponse = statusResult.Unwrap();
         return await HandleAvailabilityStatusAsync(statusResponse, mobileNumberIdentifier, fullNumber,
             cancellationToken);
     }
 
     private async Task<Result<MobileVerificationFlowOutcome, string>> HandleAvailabilityStatusAsync(
-        CheckMobileNumberAvailabilityResponse statusResponse,
+        MobileNumberAvailabilityResponse statusResponse,
         ByteString mobileNumberIdentifier,
         string fullNumber,
         CancellationToken cancellationToken)
     {
         return statusResponse.Status switch
         {
-            MobileAvailabilityStatus.Available or MobileAvailabilityStatus.RegistrationExpired =>
+            MobileNumberAvailabilityStatus.MobileNumberAvailabilityAvailable or MobileNumberAvailabilityStatus.MobileNumberAvailabilityRegistrationExpired =>
                 Result<MobileVerificationFlowOutcome, string>.Ok(
                     new MobileVerificationOtpOutcome(fullNumber, mobileNumberIdentifier)),
-            MobileAvailabilityStatus.IncompleteRegistration => await HandleIncompleteRegistrationAsync(statusResponse,
+            MobileNumberAvailabilityStatus.MobileNumberAvailabilityIncompleteRegistration => await HandleIncompleteRegistrationAsync(statusResponse,
                 mobileNumberIdentifier, fullNumber, cancellationToken),
-            MobileAvailabilityStatus.DataCorruption => Result<MobileVerificationFlowOutcome, string>.Err(
+            MobileNumberAvailabilityStatus.MobileNumberAvailabilityDataCorruption => Result<MobileVerificationFlowOutcome, string>.Err(
                 ResolveLocalization(statusResponse.LocalizationKey, "MobileVerification.ERROR.DataCorruption")),
             _ => Result<MobileVerificationFlowOutcome, string>.Err(ResolveLocalization(statusResponse.LocalizationKey,
                 "MobileVerification.ERROR.MobileAlreadyRegistered"))
@@ -121,7 +121,7 @@ internal sealed class MobileVerificationFlowCoordinator(
     }
 
     private async Task<Result<MobileVerificationFlowOutcome, string>> HandleIncompleteRegistrationAsync(
-        CheckMobileNumberAvailabilityResponse statusResponse,
+        MobileNumberAvailabilityResponse statusResponse,
         ByteString mobileNumberIdentifier,
         string fullNumber,
         CancellationToken cancellationToken)
@@ -143,29 +143,29 @@ internal sealed class MobileVerificationFlowCoordinator(
     }
 
     private async Task StoreIncompleteMembershipAsync(
-        CheckMobileNumberAvailabilityResponse statusResponse,
+        MobileNumberAvailabilityResponse statusResponse,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         MembershipProto membership = new()
         {
-            UniqueIdentifier = statusResponse.ExistingMembershipId,
+            MembershipId = statusResponse.ExistingMembershipId,
             Status = statusResponse.HasActivityStatus
                 ? statusResponse.ActivityStatus
                 : MembershipActivityStatus.Active,
             CreationStatus = statusResponse.CreationStatus
         };
 
-        if (statusResponse.AccountUniqueIdentifier != null && !statusResponse.AccountUniqueIdentifier.IsEmpty)
+        if (statusResponse.AccountId != null && !statusResponse.AccountId.IsEmpty)
         {
-            membership.AccountUniqueIdentifier = statusResponse.AccountUniqueIdentifier;
+            membership.AccountId = statusResponse.AccountId;
         }
 
-        await applicationSecureStorageProvider.SetApplicationMembershipAsync(membership.UniqueIdentifier);
+        await applicationSecureStorageProvider.SetApplicationMembershipAsync(membership.MembershipId);
 
-        if (statusResponse.AccountUniqueIdentifier != null && !statusResponse.AccountUniqueIdentifier.IsEmpty)
+        if (statusResponse.AccountId != null && !statusResponse.AccountId.IsEmpty)
         {
-            await applicationSecureStorageProvider.SetCurrentAccountIdAsync(statusResponse.AccountUniqueIdentifier)
+            await applicationSecureStorageProvider.SetCurrentAccountIdAsync(statusResponse.AccountId)
                 .ConfigureAwait(false);
         }
     }

@@ -94,7 +94,7 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
 
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
         settings.Membership = membershipId is { Length: > 0 }
-            ? new Membership { UniqueIdentifier = membershipId }
+            ? new Membership { MembershipId = membershipId }
             : null;
         return await StoreSettingsAsync(settings);
     }
@@ -433,7 +433,7 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         ApplicationInstanceSettings settings = ApplicationInstanceSettings.Parser.ParseFrom(payload);
 
         settings.Membership = settings.MembershipId.Length > 0
-            ? new Membership { UniqueIdentifier = settings.MembershipId }
+            ? new Membership { MembershipId = settings.MembershipId }
             : null;
 
         if (settings.WindowPlacement != null)

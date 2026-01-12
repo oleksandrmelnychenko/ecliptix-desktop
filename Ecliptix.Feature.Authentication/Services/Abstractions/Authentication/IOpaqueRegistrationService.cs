@@ -6,30 +6,30 @@ using Ecliptix.Protobuf.Membership;
 using MembershipProto = Ecliptix.Protobuf.Membership.Membership;
 using Ecliptix.Utilities;
 using Google.Protobuf;
-using CountdownUpdateStatus = Ecliptix.Protobuf.Membership.VerificationCountdownUpdate.Types.CountdownUpdateStatus;
+using OtpCountdownStatus = Ecliptix.Protobuf.Membership.OtpCountdownUpdate.Types.Status;
 
 namespace Ecliptix.Feature.Authentication.Services.Abstractions.Authentication;
 
 public interface IOpaqueRegistrationService
 {
-    Task<Result<ValidateMobileNumberResponse, string>> ValidateMobileNumberAsync(string mobileNumber,
+    Task<Result<MobileNumberValidateResponse, string>> ValidateMobileNumberAsync(string mobileNumber,
         uint connectId, CancellationToken cancellationToken = default);
 
-    Task<Result<ValidateMobileNumberResponse, string>> ValidateMobileForRecoveryAsync(string mobileNumber,
+    Task<Result<MobileNumberValidateResponse, string>> ValidateMobileForRecoveryAsync(string mobileNumber,
         uint connectId, CancellationToken cancellationToken = default);
 
-    Task<Result<CheckMobileNumberAvailabilityResponse, string>> CheckMobileNumberAvailabilityAsync(
+    Task<Result<MobileNumberAvailabilityResponse, string>> CheckMobileNumberAvailabilityAsync(
         ByteString mobileNumberIdentifier,
         uint connectId, CancellationToken cancellationToken = default);
 
     Task<Result<Unit, string>> InitiateOtpVerificationAsync(
         ByteString mobileNumberIdentifier,
-        VerificationPurpose purpose = VerificationPurpose.Registration,
-        Action<uint, Guid, CountdownUpdateStatus, string?>? onCountdownUpdate = null,
+        OtpVerificationPurpose purpose = OtpVerificationPurpose.Registration,
+        Action<uint, Guid, OtpCountdownStatus, string?>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default);
 
     Task<Result<Unit, string>> ResendOtpVerificationAsync(Guid sessionIdentifier, ByteString mobileNumberIdentifier,
-        Action<uint, Guid, CountdownUpdateStatus, string?>? onCountdownUpdate = null,
+        Action<uint, Guid, OtpCountdownStatus, string?>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default);
 
     Task<Result<MembershipProto, string>> VerifyOtpAsync(Guid sessionIdentifier, string otpCode,

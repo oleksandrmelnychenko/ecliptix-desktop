@@ -166,8 +166,8 @@ public sealed class ApplicationInitializer(
     }
 
     private static Option<string> ExtractMembershipId(ApplicationInstanceSettings applicationInstanceSettings) =>
-        applicationInstanceSettings.Membership?.UniqueIdentifier is { IsEmpty: false }
-            ? Option<string>.Some(Helpers.FromByteStringToGuid(applicationInstanceSettings.Membership.UniqueIdentifier)
+        applicationInstanceSettings.Membership?.MembershipId is { IsEmpty: false }
+            ? Option<string>.Some(Helpers.FromByteStringToGuid(applicationInstanceSettings.Membership.MembershipId)
                 .ToString())
             : Option<string>.None;
 
@@ -350,7 +350,7 @@ public sealed class ApplicationInitializer(
         string accountId,
         SodiumSecureMemoryHandle masterKeyHandle)
     {
-        if (applicationInstanceSettings.Membership?.UniqueIdentifier == null)
+        if (applicationInstanceSettings.Membership?.MembershipId == null)
         {
             return Result<uint, NetworkFailure>.Err(
                 NetworkFailure.InvalidRequestType(
@@ -365,7 +365,7 @@ public sealed class ApplicationInitializer(
                     "Account information is missing for authenticated protocol"));
         }
 
-        ByteString membershipByteString = applicationInstanceSettings.Membership.UniqueIdentifier;
+        ByteString membershipByteString = applicationInstanceSettings.Membership.MembershipId;
         ByteString accountByteString = applicationInstanceSettings.CurrentAccountId;
 
         Result<Unit, NetworkFailure> recreateResult =
@@ -487,7 +487,7 @@ public sealed class ApplicationInitializer(
         }
 
         string membershipIdString = SecureByteStringInterop.WithByteStringAsSpan(
-            applicationInstanceSettings.Membership!.UniqueIdentifier!,
+            applicationInstanceSettings.Membership!.MembershipId!,
             span => new Guid(span.ToArray()).ToString());
 
         bool hasRevocationProof = await LogoutService.HasRevocationProofAsync(
@@ -569,25 +569,25 @@ public sealed class ApplicationInitializer(
     private async Task<Result<Unit, NetworkFailure>> RegisterDeviceAsync(uint connectId,
         ApplicationInstanceSettings settings)
     {
-        AppDevice appDevice = new()
+        Device device = new()
         {
-            AppInstanceId = settings.AppInstanceId,
+            ApplicationInstanceId = settings.AppInstanceId,
             DeviceId = settings.DeviceId,
-            DeviceType = AppDevice.Types.DeviceType.Desktop
+            DeviceType = DeviceType.Desktop
         };
 
         return await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
             RpcServiceType.RegisterAppDevice,
-            SecureByteStringInterop.WithByteStringAsSpan(appDevice.ToByteString(),
+            SecureByteStringInterop.WithByteStringAsSpan(device.ToByteString(),
                 span => span.ToArray()),
             decryptedPayload =>
             {
                 DeviceRegistrationResponse reply =
                     Helpers.ParseFromBytes<DeviceRegistrationResponse>(decryptedPayload);
 
-                if (reply.Status is DeviceRegistrationResponse.Types.Status.InvalidRequest
-                    or DeviceRegistrationResponse.Types.Status.InternalError)
+                if (reply.Result is DeviceRegistrationResponse.Types.Result.DeviceRegistrationResultInvalidRequest
+                    or DeviceRegistrationResponse.Types.Result.DeviceRegistrationResultInternalError)
                 {
                     return Task.FromResult(Result<Unit, NetworkFailure>.Err(
                         NetworkFailure.InvalidRequestType(

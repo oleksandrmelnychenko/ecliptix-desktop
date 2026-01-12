@@ -18,6 +18,7 @@ using Ecliptix.Core.Shell.Abstractions.Core;
 using Ecliptix.Feature.Authentication.Domain.Abstractions;
 using Ecliptix.Feature.Authentication.ViewModels.Registration;
 using Ecliptix.Feature.Authentication.ViewModels.Registration.MobileVerification;
+using Ecliptix.Feature.Authentication.ViewModels.Registration.SecureKeyConfirmation;
 using Ecliptix.Feature.Authentication.ViewModels.SignIn;
 using Ecliptix.Feature.Authentication.ViewModels.Welcome;
 using Ecliptix.Network.Infrastructure.Data.Abstractions;

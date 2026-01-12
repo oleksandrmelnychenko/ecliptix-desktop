@@ -10,7 +10,7 @@ using Avalonia.ReactiveUI;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Controls.Core.HintedTextControls;
 using Ecliptix.Core.Controls.EventArgs;
-using Ecliptix.Feature.Authentication.ViewModels.Registration;
+using Ecliptix.Feature.Authentication.ViewModels.Registration.SecureKeyConfirmation;
 using ReactiveUI;
 
 namespace Ecliptix.Feature.Authentication.Views.Registration;

@@ -8,14 +8,14 @@ using Ecliptix.Network.Infrastructure.Network.Core.Providers;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
-using CountdownUpdateStatus = Ecliptix.Protobuf.Membership.VerificationCountdownUpdate.Types.CountdownUpdateStatus;
+using OtpCountdownStatus = Ecliptix.Protobuf.Membership.OtpCountdownUpdate.Types.Status;
 
 namespace Ecliptix.Feature.Authentication.Services.Authentication.Internal;
 
 internal sealed class VerificationStreamManager(NetworkProvider networkProvider) : IDisposable
 {
     private readonly ConcurrentDictionary<Guid, uint> _activeStreams = new();
-    private readonly ConcurrentDictionary<Guid, VerificationPurpose> _activeSessionPurposes = new();
+    private readonly ConcurrentDictionary<Guid, OtpVerificationPurpose> _activeSessionPurposes = new();
     private readonly CancellationTokenSource _disposalCts = new();
     private readonly List<Task> _backgroundCleanupTasks = new();
     private bool _isDisposed;
@@ -23,10 +23,10 @@ internal sealed class VerificationStreamManager(NetworkProvider networkProvider)
     public bool TryGetActiveStream(Guid sessionIdentifier, out uint connectId) =>
         _activeStreams.TryGetValue(sessionIdentifier, out connectId);
 
-    public VerificationPurpose GetSessionPurpose(Guid sessionIdentifier) =>
-        _activeSessionPurposes.GetValueOrDefault(sessionIdentifier, VerificationPurpose.Registration);
+    public OtpVerificationPurpose GetSessionPurpose(Guid sessionIdentifier) =>
+        _activeSessionPurposes.GetValueOrDefault(sessionIdentifier, OtpVerificationPurpose.Registration);
 
-    public void RegisterStream(Guid verificationIdentifier, uint streamConnectId, VerificationPurpose purpose)
+    public void RegisterStream(Guid verificationIdentifier, uint streamConnectId, OtpVerificationPurpose purpose)
     {
         if (_isDisposed || verificationIdentifier == Guid.Empty)
         {
@@ -40,8 +40,8 @@ internal sealed class VerificationStreamManager(NetworkProvider networkProvider)
     public void ProcessVerificationUpdate(
         Guid verificationIdentifier,
         uint streamConnectId,
-        CountdownUpdateStatus status,
-        VerificationPurpose purpose)
+        OtpCountdownStatus status,
+        OtpVerificationPurpose purpose)
     {
         bool shouldCleanup = ShouldCleanupStream(status);
 
@@ -60,7 +60,7 @@ internal sealed class VerificationStreamManager(NetworkProvider networkProvider)
 
     public async Task<Result<Unit, string>> CloseStreamAsync(Guid sessionIdentifier)
     {
-        _activeSessionPurposes.TryRemove(sessionIdentifier, out VerificationPurpose _);
+        _activeSessionPurposes.TryRemove(sessionIdentifier, out OtpVerificationPurpose _);
 
         if (!_activeStreams.TryRemove(sessionIdentifier, out uint connectId))
         {
@@ -102,13 +102,13 @@ internal sealed class VerificationStreamManager(NetworkProvider networkProvider)
         _activeSessionPurposes.Clear();
     }
 
-    private static bool ShouldCleanupStream(CountdownUpdateStatus status)
+    private static bool ShouldCleanupStream(OtpCountdownStatus status)
     {
         return status switch
         {
-            CountdownUpdateStatus.Failed => true,
-            CountdownUpdateStatus.MaxAttemptsReached => true,
-            CountdownUpdateStatus.NotFound => true,
+            OtpCountdownStatus.OtpCountdownStatusFailed => true,
+            OtpCountdownStatus.OtpCountdownStatusMaxAttemptsReached => true,
+            OtpCountdownStatus.OtpCountdownStatusNotFound => true,
             _ => false
         };
     }

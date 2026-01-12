@@ -96,8 +96,8 @@ public sealed class WelcomeBackViewModel : ViewModelBase, IRoutableViewModel, IR
         {
             ApplicationInstanceSettings settings = settingsResult.Unwrap();
             if (settings.Membership != null &&
-                settings.Membership.UniqueIdentifier != null &&
-                !settings.Membership.UniqueIdentifier.IsEmpty)
+                settings.Membership.MembershipId != null &&
+                !settings.Membership.MembershipId.IsEmpty)
             {
                 hasValidMembership = true;
             }

@@ -9,7 +9,7 @@ using MembershipProto = Ecliptix.Protobuf.Membership.Membership;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Authentication;
 using Google.Protobuf;
-using CountdownUpdateStatus = Ecliptix.Protobuf.Membership.VerificationCountdownUpdate.Types.CountdownUpdateStatus;
+using OtpCountdownStatus = Ecliptix.Protobuf.Membership.OtpCountdownUpdate.Types.Status;
 
 namespace Ecliptix.Feature.Authentication.Services;
 
@@ -30,13 +30,13 @@ public sealed class AuthRepository(
         CancellationToken cancellationToken)
         => _authService.SignInAsync(phoneNumber, secureKey, connectId, cancellationToken);
 
-    public Task<Result<ValidateMobileNumberResponse, string>> ValidateMobileNumberAsync(
+    public Task<Result<MobileNumberValidateResponse, string>> ValidateMobileNumberAsync(
         string mobileNumber,
         uint connectId,
         CancellationToken cancellationToken = default) =>
         _registrationService.ValidateMobileNumberAsync(mobileNumber, connectId, cancellationToken);
 
-    public Task<Result<CheckMobileNumberAvailabilityResponse, string>> CheckMobileNumberAvailabilityAsync(
+    public Task<Result<MobileNumberAvailabilityResponse, string>> CheckMobileNumberAvailabilityAsync(
         ByteString mobileNumberIdentifier,
         uint connectId,
         CancellationToken cancellationToken = default) =>
@@ -44,8 +44,8 @@ public sealed class AuthRepository(
 
     public Task<Result<Unit, string>> InitiateRegistrationOtpAsync(
         ByteString mobileNumberIdentifier,
-        VerificationPurpose purpose,
-        Action<uint, Guid, CountdownUpdateStatus, string?, string?, bool>? onCountdownUpdate,
+        OtpVerificationPurpose purpose,
+        Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>? onCountdownUpdate,
         CancellationToken cancellationToken = default) =>
         _registrationService.InitiateOtpVerificationAsync(
             mobileNumberIdentifier,
@@ -56,7 +56,7 @@ public sealed class AuthRepository(
     public Task<Result<Unit, string>> ResendRegistrationOtpAsync(
         Guid sessionIdentifier,
         ByteString mobileNumberIdentifier,
-        Action<uint, Guid, CountdownUpdateStatus, string?, string?, bool>? onCountdownUpdate,
+        Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>? onCountdownUpdate,
         CancellationToken cancellationToken = default) =>
         _registrationService.ResendOtpVerificationAsync(
             sessionIdentifier,
@@ -91,7 +91,7 @@ public sealed class AuthRepository(
 
     public Task<Result<Unit, string>> InitiateSecureKeyResetOtpAsync(
         ByteString mobileNumberIdentifier,
-        Action<uint, Guid, CountdownUpdateStatus, string?, string?, bool>? onCountdownUpdate,
+        Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>? onCountdownUpdate,
         CancellationToken cancellationToken = default) =>
         _recoveryService.InitiateSecureKeyResetOtpAsync(
             mobileNumberIdentifier,
@@ -101,7 +101,7 @@ public sealed class AuthRepository(
     public Task<Result<Unit, string>> ResendSecureKeyResetOtpAsync(
         Guid sessionIdentifier,
         ByteString mobileNumberIdentifier,
-        Action<uint, Guid, CountdownUpdateStatus, string?, string?, bool>? onCountdownUpdate,
+        Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>? onCountdownUpdate,
         CancellationToken cancellationToken = default) =>
         _recoveryService.ResendSecureKeyResetOtpAsync(
             sessionIdentifier,
@@ -128,8 +128,8 @@ public sealed class AuthRepository(
         CancellationToken cancellationToken = default) =>
         _recoveryService.CompleteSecureKeyResetAsync(membershipIdentifier, secureKey, connectId, cancellationToken);
 
-    private static Action<uint, Guid, CountdownUpdateStatus, string?>? AdaptCountdownCallback(
-        Action<uint, Guid, CountdownUpdateStatus, string?, string?, bool>? callback)
+    private static Action<uint, Guid, OtpCountdownStatus, string?>? AdaptCountdownCallback(
+        Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>? callback)
     {
         if (callback == null)
         {

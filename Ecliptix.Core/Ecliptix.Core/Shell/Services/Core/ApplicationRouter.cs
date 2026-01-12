@@ -207,25 +207,25 @@ public sealed class ApplicationRouter(
     private async Task RegisterDeviceAsync(uint connectId,
         ApplicationInstanceSettings settings)
     {
-        AppDevice appDevice = new()
+        Device device = new()
         {
-            AppInstanceId = settings.AppInstanceId,
+            ApplicationInstanceId = settings.AppInstanceId,
             DeviceId = settings.DeviceId,
-            DeviceType = AppDevice.Types.DeviceType.Desktop
+            DeviceType = DeviceType.Desktop
         };
 
         await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
             RpcServiceType.RegisterAppDevice,
-            SecureByteStringInterop.WithByteStringAsSpan(appDevice.ToByteString(),
+            SecureByteStringInterop.WithByteStringAsSpan(device.ToByteString(),
                 span => span.ToArray()),
             decryptedPayload =>
             {
                 DeviceRegistrationResponse reply =
                     Helpers.ParseFromBytes<DeviceRegistrationResponse>(decryptedPayload);
 
-                if (reply.Status is DeviceRegistrationResponse.Types.Status.InvalidRequest
-                    or DeviceRegistrationResponse.Types.Status.InternalError)
+                if (reply.Result is DeviceRegistrationResponse.Types.Result.DeviceRegistrationResultInvalidRequest
+                    or DeviceRegistrationResponse.Types.Result.DeviceRegistrationResultInternalError)
                 {
                     return Task.FromResult(Result<Unit, NetworkFailure>.Err(
                         NetworkFailure.InvalidRequestType(

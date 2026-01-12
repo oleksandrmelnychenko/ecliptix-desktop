@@ -43,8 +43,8 @@ internal static class GatewayTransportFactory
             Client = new ClientContext
             {
                 Locale = metaDataProvider.Culture ?? string.Empty,
-                ApplicationInstanceId = metaDataProvider.AppInstanceId.ToString("N"),
-                AppDeviceId = metaDataProvider.DeviceId.ToString("N"),
+                ApplicationInstanceId = ByteString.CopyFrom(metaDataProvider.AppInstanceId.ToByteArray()),
+                DeviceId = ByteString.CopyFrom(metaDataProvider.DeviceId.ToByteArray()),
                 IdempotencyKey = requestContext?.IdempotencyKey ?? string.Empty,
                 Platform = metaDataProvider.Platform
             },

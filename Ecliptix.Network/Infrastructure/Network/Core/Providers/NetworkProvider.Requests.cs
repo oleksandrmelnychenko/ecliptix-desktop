@@ -511,7 +511,7 @@ public sealed partial class NetworkProvider
         {
             return serviceType is
                 RpcServiceType.RegistrationComplete or
-                RpcServiceType.RecoverySecretKeyComplete or
+                RpcServiceType.RecoveryComplete or
                 RpcServiceType.SignInCompleteRequest;
         }
 

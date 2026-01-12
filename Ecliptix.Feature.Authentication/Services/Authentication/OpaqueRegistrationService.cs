@@ -26,8 +26,8 @@ using Grpc.Core;
 using ReactiveUI;
 using Serilog;
 using Unit = Ecliptix.Utilities.Unit;
-using CountdownUpdateStatus = Ecliptix.Protobuf.Membership.VerificationCountdownUpdate.Types.CountdownUpdateStatus;
-using VerificationRequestType = Ecliptix.Protobuf.Membership.InitiateVerificationRequest.Types.Type;
+using OtpCountdownStatus = Ecliptix.Protobuf.Membership.OtpCountdownUpdate.Types.Status;
+using VerificationRequestType = Ecliptix.Protobuf.Membership.OtpVerificationRequest.Types.Type;
 
 namespace Ecliptix.Feature.Authentication.Services.Authentication;
 
@@ -41,20 +41,20 @@ public sealed class OpaqueRegistrationService(
     private readonly RegistrationStateManager _stateManager = new();
     private readonly VerificationStreamManager _streamManager = new(networkProvider);
 
-    public async Task<Result<ValidateMobileNumberResponse, string>> ValidateMobileNumberAsync(
+    public async Task<Result<MobileNumberValidateResponse, string>> ValidateMobileNumberAsync(
         string mobileNumber,
         uint connectId,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(mobileNumber))
         {
-            return Result<ValidateMobileNumberResponse, string>.Err(
+            return Result<MobileNumberValidateResponse, string>.Err(
                 localizationService[AuthenticationConstants.MOBILE_NUMBER_REQUIRED_KEY]);
         }
 
-        ValidateMobileNumberRequest request = new() { MobileNumber = mobileNumber };
+        MobileNumberValidateRequest request = new() { MobileNumber = mobileNumber };
 
-        TaskCompletionSource<ValidateMobileNumberResponse> responseSource =
+        TaskCompletionSource<MobileNumberValidateResponse> responseSource =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
@@ -62,7 +62,7 @@ public sealed class OpaqueRegistrationService(
             RpcServiceType.ValidateMobileNumber,
             SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()), payload =>
             {
-                ValidateMobileNumberResponse response = Helpers.ParseFromBytes<ValidateMobileNumberResponse>(payload);
+                MobileNumberValidateResponse response = Helpers.ParseFromBytes<MobileNumberValidateResponse>(payload);
                 responseSource.TrySetResult(response);
 
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
@@ -70,27 +70,27 @@ public sealed class OpaqueRegistrationService(
 
         if (networkResult.IsErr)
         {
-            return Result<ValidateMobileNumberResponse, string>.Err(networkResult.UnwrapErr().Message);
+            return Result<MobileNumberValidateResponse, string>.Err(networkResult.UnwrapErr().Message);
         }
 
-        ValidateMobileNumberResponse identifier = await responseSource.Task.ConfigureAwait(false);
-        return Result<ValidateMobileNumberResponse, string>.Ok(identifier);
+        MobileNumberValidateResponse identifier = await responseSource.Task.ConfigureAwait(false);
+        return Result<MobileNumberValidateResponse, string>.Ok(identifier);
     }
 
-    public async Task<Result<ValidateMobileNumberResponse, string>> ValidateMobileForRecoveryAsync(
+    public async Task<Result<MobileNumberValidateResponse, string>> ValidateMobileForRecoveryAsync(
         string mobileNumber,
         uint connectId,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(mobileNumber))
         {
-            return Result<ValidateMobileNumberResponse, string>.Err(
+            return Result<MobileNumberValidateResponse, string>.Err(
                 localizationService[AuthenticationConstants.MOBILE_NUMBER_REQUIRED_KEY]);
         }
 
-        ValidateMobileNumberRequest request = new() { MobileNumber = mobileNumber };
+        MobileNumberValidateRequest request = new() { MobileNumber = mobileNumber };
 
-        TaskCompletionSource<ValidateMobileNumberResponse> responseSource =
+        TaskCompletionSource<MobileNumberValidateResponse> responseSource =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
@@ -98,7 +98,7 @@ public sealed class OpaqueRegistrationService(
             RpcServiceType.ValidateMobileForRecovery,
             SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()), payload =>
             {
-                ValidateMobileNumberResponse response = Helpers.ParseFromBytes<ValidateMobileNumberResponse>(payload);
+                MobileNumberValidateResponse response = Helpers.ParseFromBytes<MobileNumberValidateResponse>(payload);
                 responseSource.TrySetResult(response);
 
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
@@ -106,14 +106,14 @@ public sealed class OpaqueRegistrationService(
 
         if (networkResult.IsErr)
         {
-            return Result<ValidateMobileNumberResponse, string>.Err(networkResult.UnwrapErr().Message);
+            return Result<MobileNumberValidateResponse, string>.Err(networkResult.UnwrapErr().Message);
         }
 
-        ValidateMobileNumberResponse identifier = await responseSource.Task.ConfigureAwait(false);
-        return Result<ValidateMobileNumberResponse, string>.Ok(identifier);
+        MobileNumberValidateResponse identifier = await responseSource.Task.ConfigureAwait(false);
+        return Result<MobileNumberValidateResponse, string>.Ok(identifier);
     }
 
-    public async Task<Result<CheckMobileNumberAvailabilityResponse, string>>
+    public async Task<Result<MobileNumberAvailabilityResponse, string>>
         CheckMobileNumberAvailabilityAsync(
             ByteString mobileNumberIdentifier,
             uint connectId,
@@ -121,13 +121,13 @@ public sealed class OpaqueRegistrationService(
     {
         if (mobileNumberIdentifier.IsEmpty)
         {
-            return Result<CheckMobileNumberAvailabilityResponse, string>.Err(
+            return Result<MobileNumberAvailabilityResponse, string>.Err(
                 localizationService[AuthenticationConstants.MOBILE_NUMBER_IDENTIFIER_REQUIRED_KEY]);
         }
 
-        CheckMobileNumberAvailabilityRequest request = new() { MobileNumberId = mobileNumberIdentifier };
+        MobileNumberAvailabilityRequest request = new() { MobileNumberId = mobileNumberIdentifier };
 
-        TaskCompletionSource<CheckMobileNumberAvailabilityResponse> responseSource =
+        TaskCompletionSource<MobileNumberAvailabilityResponse> responseSource =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
@@ -135,25 +135,25 @@ public sealed class OpaqueRegistrationService(
             RpcServiceType.CheckMobileNumberAvailability,
             SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()), payload =>
             {
-                CheckMobileNumberAvailabilityResponse response =
-                    Helpers.ParseFromBytes<CheckMobileNumberAvailabilityResponse>(payload);
+                MobileNumberAvailabilityResponse response =
+                    Helpers.ParseFromBytes<MobileNumberAvailabilityResponse>(payload);
                 responseSource.TrySetResult(response);
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
             }, allowDuplicates: true, token: cancellationToken).ConfigureAwait(false);
 
         if (networkResult.IsErr)
         {
-            return Result<CheckMobileNumberAvailabilityResponse, string>.Err(networkResult.UnwrapErr().Message);
+            return Result<MobileNumberAvailabilityResponse, string>.Err(networkResult.UnwrapErr().Message);
         }
 
-        CheckMobileNumberAvailabilityResponse statusResponse = await responseSource.Task.ConfigureAwait(false);
-        return Result<CheckMobileNumberAvailabilityResponse, string>.Ok(statusResponse);
+        MobileNumberAvailabilityResponse statusResponse = await responseSource.Task.ConfigureAwait(false);
+        return Result<MobileNumberAvailabilityResponse, string>.Ok(statusResponse);
     }
 
     public async Task<Result<Unit, string>> InitiateOtpVerificationAsync(
         ByteString mobileNumberIdentifier,
-        VerificationPurpose purpose = VerificationPurpose.Registration,
-        Action<uint, Guid, CountdownUpdateStatus, string?>? onCountdownUpdate = null,
+        OtpVerificationPurpose purpose = OtpVerificationPurpose.Registration,
+        Action<uint, Guid, OtpCountdownStatus, string?>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default)
     {
         if (mobileNumberIdentifier.IsEmpty)
@@ -174,11 +174,11 @@ public sealed class OpaqueRegistrationService(
 
         uint streamConnectId = protocolResult.Unwrap();
 
-        InitiateVerificationRequest request = new()
+        OtpVerificationRequest request = new()
         {
-            MobileNumberIdentifier = mobileNumberIdentifier,
+            MobileNumberId = mobileNumberIdentifier,
             Purpose = purpose,
-            Type = VerificationRequestType.SendOtp
+            Type = VerificationRequestType.OtpRequestTypeSend
         };
 
         Result<Unit, NetworkFailure> streamResult = await networkProvider.ExecuteReceiveStreamRequestAsync(
@@ -201,7 +201,7 @@ public sealed class OpaqueRegistrationService(
     public async Task<Result<Unit, string>> ResendOtpVerificationAsync(
         Guid sessionIdentifier,
         ByteString mobileNumberIdentifier,
-        Action<uint, Guid, CountdownUpdateStatus, string?>? onCountdownUpdate = null,
+        Action<uint, Guid, OtpCountdownStatus, string?>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default)
     {
         if (sessionIdentifier == AuthenticationConstants.EmptyGuid)
@@ -222,13 +222,13 @@ public sealed class OpaqueRegistrationService(
                 localizationService[AuthenticationConstants.VERIFICATION_SESSION_EXPIRED_KEY]);
         }
 
-        VerificationPurpose purpose = _streamManager.GetSessionPurpose(sessionIdentifier);
+        OtpVerificationPurpose purpose = _streamManager.GetSessionPurpose(sessionIdentifier);
 
-        InitiateVerificationRequest request = new()
+        OtpVerificationRequest request = new()
         {
-            MobileNumberIdentifier = mobileNumberIdentifier,
+            MobileNumberId = mobileNumberIdentifier,
             Purpose = purpose,
-            Type = VerificationRequestType.ResendOtp
+            Type = VerificationRequestType.OtpRequestTypeResend
         };
 
         Result<Unit, NetworkFailure> result = await networkProvider.ExecuteReceiveStreamRequestAsync(
@@ -266,9 +266,9 @@ public sealed class OpaqueRegistrationService(
                 localizationService[AuthenticationConstants.NO_ACTIVE_VERIFICATION_SESSION_KEY]);
         }
 
-        VerificationPurpose purpose = _streamManager.GetSessionPurpose(sessionIdentifier);
+        OtpVerificationPurpose purpose = _streamManager.GetSessionPurpose(sessionIdentifier);
 
-        VerifyCodeRequest request = new() { Code = otpCode, Purpose = purpose, StreamConnectId = activeStreamId };
+        OtpCodeVerifyRequest request = new() { Code = otpCode, Purpose = purpose, StreamConnectId = activeStreamId };
 
         TaskCompletionSource<Result<MembershipProto, string>> responseSource =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -278,9 +278,9 @@ public sealed class OpaqueRegistrationService(
             RpcServiceType.VerifyOtp,
             SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()), payload =>
             {
-                VerifyCodeResponse response = Helpers.ParseFromBytes<VerifyCodeResponse>(payload);
+                OtpCodeVerifyResponse response = Helpers.ParseFromBytes<OtpCodeVerifyResponse>(payload);
 
-                if (response.Result == VerificationResult.Succeeded && response.Membership != null)
+                if (response.Result == OtpVerificationResult.Succeeded && response.Membership != null)
                 {
                     responseSource.TrySetResult(Result<MembershipProto, string>.Ok(response.Membership));
                 }
@@ -405,13 +405,13 @@ public sealed class OpaqueRegistrationService(
 
     private static void HandleVerificationStreamFailure(
         NetworkFailure failure,
-        Action<uint, Guid, CountdownUpdateStatus, string?>? onCountdownUpdate)
+        Action<uint, Guid, OtpCountdownStatus, string?>? onCountdownUpdate)
     {
         if (IsVerificationSessionMissing(failure))
         {
             RxApp.MainThreadScheduler.Schedule(() =>
                 onCountdownUpdate?.Invoke(0, Guid.Empty,
-                    CountdownUpdateStatus.NotFound,
+                    OtpCountdownStatus.OtpCountdownStatusNotFound,
                     AuthenticationConstants.ErrorMessages.SESSION_EXPIRED_START_OVER));
         }
 
@@ -424,7 +424,7 @@ public sealed class OpaqueRegistrationService(
         string errorMessage = GetNetworkFailureMessage(failure);
         RxApp.MainThreadScheduler.Schedule(() =>
             onCountdownUpdate?.Invoke(0, Guid.Empty,
-                CountdownUpdateStatus.ServerUnavailable,
+                OtpCountdownStatus.OtpCountdownStatusServerUnavailable,
                 errorMessage));
     }
 
@@ -508,7 +508,7 @@ public sealed class OpaqueRegistrationService(
         Log.Information("[ECLIPTIX-OPAQUE-REGISTRATION] ProcessInitializationResponse: Result={Result}, PeerOprfLength={PeerOprfLength}",
             initResponse.Result, initResponse.PeerOprf?.Length ?? 0);
 
-        if (initResponse.Result == OpaqueRegistrationInitResponse.Types.UpdateResult.Succeeded)
+        if (initResponse.Result == OpaqueOperationResult.Succeeded)
         {
             Log.Information("[ECLIPTIX-OPAQUE-REGISTRATION] Result is Succeeded, proceeding to finalization");
             return Result<Unit, RegistrationAttemptResult>.Ok(Unit.Value);
@@ -519,7 +519,7 @@ public sealed class OpaqueRegistrationService(
 
         string errorMessage = initResponse.Result switch
         {
-            OpaqueRegistrationInitResponse.Types.UpdateResult.InvalidCredentials =>
+            OpaqueOperationResult.InvalidCredentials =>
                 localizationService[AuthenticationConstants.INVALID_CREDENTIALS_KEY],
             _ => localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY]
         };
@@ -584,7 +584,7 @@ public sealed class OpaqueRegistrationService(
             OpaqueRegistrationCompleteRequest completeRequest = new()
             {
                 PeerRegistrationRecord = ByteString.CopyFrom(registrationRecord),
-                MembershipIdentifier = membershipIdentifier
+                MembershipId = membershipIdentifier
             };
 
             TaskCompletionSource<OpaqueRegistrationCompleteResponse> responseSource =
@@ -618,17 +618,17 @@ public sealed class OpaqueRegistrationService(
             OpaqueRegistrationCompleteResponse completeResponse =
                 await responseSource.Task.ConfigureAwait(false);
 
-            if (completeResponse.Result != OpaqueRegistrationCompleteResponse.Types.RegistrationResult.Succeeded)
+            if (completeResponse.Result != OpaqueOperationResult.Succeeded)
             {
                 return CreateAttemptFailure(
                     localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY],
                     false);
             }
 
-            if (completeResponse.ActiveAccount?.UniqueIdentifier != null)
+            if (completeResponse.ActiveAccount?.MembershipId != null)
             {
                 await applicationSecureStorageProvider
-                    .SetCurrentAccountIdAsync(completeResponse.ActiveAccount.UniqueIdentifier)
+                    .SetCurrentAccountIdAsync(completeResponse.ActiveAccount.MembershipId)
                     .ConfigureAwait(false);
             }
 
@@ -882,7 +882,7 @@ public sealed class OpaqueRegistrationService(
         OpaqueRegistrationInitRequest request = new()
         {
             PeerOprf = ByteString.CopyFrom(registrationRequest),
-            MembershipIdentifier = membershipIdentifier
+            MembershipId = membershipIdentifier
         };
 
         TaskCompletionSource<OpaqueRegistrationInitResponse> responseSource =
@@ -910,11 +910,11 @@ public sealed class OpaqueRegistrationService(
     }
 
     private void ProcessVerificationUpdate(
-        VerificationCountdownUpdate verificationCountdownUpdate,
+        OtpCountdownUpdate verificationCountdownUpdate,
         Guid verificationIdentifier,
         uint streamConnectId,
-        VerificationPurpose purpose,
-        Action<uint, Guid, CountdownUpdateStatus, string?>? onCountdownUpdate)
+        OtpVerificationPurpose purpose,
+        Action<uint, Guid, OtpCountdownStatus, string?>? onCountdownUpdate)
     {
         _streamManager.ProcessVerificationUpdate(
             verificationIdentifier,
@@ -933,25 +933,25 @@ public sealed class OpaqueRegistrationService(
     private Task<Result<Unit, NetworkFailure>> HandleVerificationStreamResponse(
         byte[] payload,
         uint streamConnectId,
-        Action<uint, Guid, CountdownUpdateStatus, string?>? onCountdownUpdate,
-        VerificationPurpose purpose = VerificationPurpose.Registration)
+        Action<uint, Guid, OtpCountdownStatus, string?>? onCountdownUpdate,
+        OtpVerificationPurpose purpose = OtpVerificationPurpose.Registration)
     {
-        VerificationCountdownUpdate verificationCountdownUpdate =
-            Helpers.ParseFromBytes<VerificationCountdownUpdate>(payload);
+        OtpCountdownUpdate verificationCountdownUpdate =
+            Helpers.ParseFromBytes<OtpCountdownUpdate>(payload);
 
-        if (verificationCountdownUpdate.SessionIdentifier == null ||
-            verificationCountdownUpdate.SessionIdentifier.IsEmpty)
+        if (verificationCountdownUpdate.SessionId == null ||
+            verificationCountdownUpdate.SessionId.IsEmpty)
         {
             RxApp.MainThreadScheduler.Schedule(() =>
                 onCountdownUpdate?.Invoke(0, Guid.Empty,
-                    CountdownUpdateStatus.Failed,
+                    OtpCountdownStatus.OtpCountdownStatusFailed,
                     verificationCountdownUpdate.Message));
             return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
         }
 
         try
         {
-            Guid verificationIdentifier = Helpers.FromByteStringToGuid(verificationCountdownUpdate.SessionIdentifier);
+            Guid verificationIdentifier = Helpers.FromByteStringToGuid(verificationCountdownUpdate.SessionId);
             ProcessVerificationUpdate(verificationCountdownUpdate, verificationIdentifier, streamConnectId, purpose,
                 onCountdownUpdate);
             return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));

@@ -18,18 +18,18 @@ public interface IRpcServiceManager
 
     Task<Result<SecureEnvelope, NetworkFailure>> EstablishAuthenticatedSecrecyChannelAsync(
         IConnectivityService connectivityService,
-        AuthenticatedEstablishRequest request,
+        AuthenticatedSessionHandshakeRequest request,
         RpcRequestContext? requestContext = null,
         CancellationToken cancellationToken = default);
 
-    Task<Result<RestoreChannelResponse, NetworkFailure>> RestoreSecrecyChannelAsync(
+    Task<Result<SessionRecoveryResponse, NetworkFailure>> RestoreSecrecyChannelAsync(
         IConnectivityService connectivityService,
-        RestoreChannelRequest request,
+        SessionRecoveryRequest request,
         CancellationToken cancellationToken = default);
 
     Task<Result<RpcFlow, NetworkFailure>> InvokeServiceRequestAsync(ServiceRequest request, CancellationToken token);
 
-    Task<Result<GetServerPublicKeysResponse, NetworkFailure>> GetServerPublicKeysAsync(
+    Task<Result<ServerPublicKeysResponse, NetworkFailure>> GetServerPublicKeysAsync(
         IConnectivityService connectivityService,
         CancellationToken cancellationToken = default);
 }

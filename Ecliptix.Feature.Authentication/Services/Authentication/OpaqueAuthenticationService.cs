@@ -183,9 +183,9 @@ public sealed class OpaqueAuthenticationService(
     {
         return initResponse.Result switch
         {
-            OpaqueSignInInitResponse.Types.SignInResult.InvalidCredentials => Result<Unit, ValidationFailure>.Err(
+            OpaqueOperationResult.InvalidCredentials => Result<Unit, ValidationFailure>.Err(
                 ValidationFailure.SignInFailed(initResponse.Message)),
-            OpaqueSignInInitResponse.Types.SignInResult.LoginAttemptExceeded => Result<Unit, ValidationFailure>.Err(
+            OpaqueOperationResult.LoginAttemptsExceeded => Result<Unit, ValidationFailure>.Err(
                 ValidationFailure.LoginAttemptExceeded(initResponse.Message)),
             _ when !string.IsNullOrEmpty(initResponse.Message) =>
                 Result<Unit, ValidationFailure>.Err(
@@ -503,16 +503,16 @@ public sealed class OpaqueAuthenticationService(
         }
 
         MembershipProto membership = signInResult.Membership.Value!;
-        ByteString membershipIdentifier = membership.UniqueIdentifier;
+        ByteString membershipIdentifier = membership.MembershipId;
 
         ByteString? accountIdentifier = signInResult.ActiveAccount.Match(
-            account => account.UniqueIdentifier ?? null,
+            account => account.MembershipId ?? null,
             () => null);
 
-        if (accountIdentifier == null && membership.AccountUniqueIdentifier != null &&
-            membership.AccountUniqueIdentifier.Length > 0)
+        if (accountIdentifier == null && membership.AccountId != null &&
+            membership.AccountId.Length > 0)
         {
-            accountIdentifier = membership.AccountUniqueIdentifier;
+            accountIdentifier = membership.AccountId;
         }
 
         if (accountIdentifier == null || accountIdentifier.IsEmpty)
@@ -638,7 +638,7 @@ public sealed class OpaqueAuthenticationService(
 
         OpaqueSignInFinalizeResponse capturedResponse = await responseCompletionSource.Task.ConfigureAwait(false);
 
-        if (capturedResponse.Result == OpaqueSignInFinalizeResponse.Types.SignInResult.InvalidCredentials)
+        if (capturedResponse.Result == OpaqueOperationResult.InvalidCredentials)
         {
             string message = !string.IsNullOrEmpty(capturedResponse.Message)
                 ? capturedResponse.Message
@@ -811,7 +811,7 @@ public sealed class OpaqueAuthenticationService(
         ByteString accountIdentifier)
     {
         MembershipProto membership = signInResult.Membership.Value!;
-        ByteString membershipIdentifier = membership.UniqueIdentifier;
+        ByteString membershipIdentifier = membership.MembershipId;
         Guid accountId = Helpers.FromByteStringToGuid(accountIdentifier);
 
         Result<Unit, AuthenticationFailure> storeResult = await identityService

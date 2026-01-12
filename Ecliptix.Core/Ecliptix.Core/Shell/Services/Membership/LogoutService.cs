@@ -121,13 +121,13 @@ internal sealed class LogoutService(
 
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
 
-        if (settings.Membership?.UniqueIdentifier == null)
+        if (settings.Membership?.MembershipId == null)
         {
             return Result<string, LogoutFailure>.Err(
                 LogoutFailure.InvalidMembershipIdentifier("No active session found"));
         }
 
-        string membershipId = Helpers.FromByteStringToGuid(settings.Membership.UniqueIdentifier).ToString();
+        string membershipId = Helpers.FromByteStringToGuid(settings.Membership.MembershipId).ToString();
         return Result<string, LogoutFailure>.Ok(membershipId);
     }
 
@@ -176,11 +176,11 @@ internal sealed class LogoutService(
 
         LogoutRequest logoutRequest = new()
         {
-            MembershipIdentifier = membershipIdBytes,
+            MembershipId = membershipIdBytes,
             LogoutReason = reason.ToString(),
-            Timestamp = timestamp,
+            Timestamp = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow),
             Scope = LogoutScope.ThisDevice,
-            AccountIdentifier = settings.CurrentAccountId
+            AccountId = settings.CurrentAccountId
         };
 
         Result<Unit, LogoutFailure> hmacResult =
@@ -214,7 +214,7 @@ internal sealed class LogoutService(
             {
                 LogoutResponse logoutResponse = LogoutResponse.Parser.ParseFrom(responsePayload);
 
-                if (logoutResponse.Result != LogoutResponse.Types.Result.Succeeded)
+                if (logoutResponse.Result != LogoutResponse.Types.Result.LogoutResultSucceeded)
                 {
                     Log.Warning("[LOGOUT] Server returned non-success status: {Status}", logoutResponse.Result);
                 }
@@ -253,14 +253,9 @@ internal sealed class LogoutService(
         uint connectId,
         CancellationToken cancellationToken)
     {
-        Result<Unit, LogoutFailure> proofVerification =
-            await _logoutProofHandler.VerifyRevocationProofAsync(response, membershipId, accountId, connectId);
-
-        if (proofVerification.IsErr)
-        {
-            Log.Error("[LOGOUT] Revocation proof verification failed for MembershipId: {MembershipId}",
-                membershipId);
-        }
+        // Note: Anonymous logout (LogoutResponse) does not include revocation proof
+        // Revocation proof verification is only available for authenticated logout (AuthenticatedLogoutResponse)
+        Log.Debug("[LOGOUT] Anonymous logout completed for MembershipId: {MembershipId}", membershipId);
 
         await CompleteLogoutWithCleanupAsync(membershipId, accountId, reason, connectId, CLEAR_PENDING_LOGOUT, cancellationToken)
             .ConfigureAwait(false);
@@ -313,16 +308,16 @@ internal sealed class LogoutService(
     {
         return response.Result switch
         {
-            LogoutResponse.Types.Result.Succeeded => Result<LogoutResponse, LogoutFailure>.Ok(response),
-            LogoutResponse.Types.Result.AlreadyLoggedOut => Result<LogoutResponse, LogoutFailure>.Err(
+            LogoutResponse.Types.Result.LogoutResultSucceeded => Result<LogoutResponse, LogoutFailure>.Ok(response),
+            LogoutResponse.Types.Result.LogoutResultAlreadyLoggedOut => Result<LogoutResponse, LogoutFailure>.Err(
                 LogoutFailure.AlreadyLoggedOut("Session is already logged out on the server")),
-            LogoutResponse.Types.Result.SessionNotFound => Result<LogoutResponse, LogoutFailure>.Err(
+            LogoutResponse.Types.Result.LogoutResultSessionNotFound => Result<LogoutResponse, LogoutFailure>.Err(
                 LogoutFailure.SESSION_NOT_FOUND("Active session was not found on the server")),
-            LogoutResponse.Types.Result.InvalidTimestamp => Result<LogoutResponse, LogoutFailure>.Err(
+            LogoutResponse.Types.Result.LogoutResultInvalidTimestamp => Result<LogoutResponse, LogoutFailure>.Err(
                 LogoutFailure.UnexpectedError("Server rejected logout due to timestamp mismatch")),
-            LogoutResponse.Types.Result.InvalidHmac => Result<LogoutResponse, LogoutFailure>.Err(
+            LogoutResponse.Types.Result.LogoutResultInvalidHmac => Result<LogoutResponse, LogoutFailure>.Err(
                 LogoutFailure.CryptographicOperationFailed("Server rejected logout due to invalid HMAC")),
-            LogoutResponse.Types.Result.Failed => Result<LogoutResponse, LogoutFailure>.Err(
+            LogoutResponse.Types.Result.LogoutResultFailed => Result<LogoutResponse, LogoutFailure>.Err(
                 LogoutFailure.UnexpectedError("Server failed to complete logout")),
             _ => Result<LogoutResponse, LogoutFailure>.Err(
                 LogoutFailure.UnexpectedError("Server returned unknown logout status"))

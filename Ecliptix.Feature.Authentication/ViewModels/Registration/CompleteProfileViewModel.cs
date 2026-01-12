@@ -174,25 +174,25 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
 
             Guid currentAccountId = accountIdOpt.Value;
 
-            CreateOrUpdateProfileRequest request = new()
+            ProfileUpsertRequest request = new()
             {
                 AccountId = Helpers.GuidToByteString(currentAccountId),
                 ProfileName = ProfileName,
                 DisplayName = DisplayName
             };
 
-            TaskCompletionSource<CreateOrUpdateProfileResponse> responseSource =
+            TaskCompletionSource<ProfileUpsertResponse> responseSource =
                 new(TaskCreationOptions.RunContinuationsAsynchronously);
 
             uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
 
             Result<EUnit, NetworkFailure> networkResult = await NetworkProvider.ExecuteUnaryRequestAsync(
                 connectId,
-                RpcServiceType.CreateOrUpdateProfile,
+                RpcServiceType.ProfileUpsert,
                 request.ToByteArray(),
                 payload =>
                 {
-                    CreateOrUpdateProfileResponse response = Helpers.ParseFromBytes<CreateOrUpdateProfileResponse>(payload);
+                    ProfileUpsertResponse response = Helpers.ParseFromBytes<ProfileUpsertResponse>(payload);
                     responseSource.TrySetResult(response);
                     return Task.FromResult(Result<EUnit, NetworkFailure>.Ok(EUnit.Value));
                 },
@@ -207,7 +207,7 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
                 return;
             }
 
-            CreateOrUpdateProfileResponse response = await responseSource.Task;
+            ProfileUpsertResponse response = await responseSource.Task;
 
             if (response.IsSuccess)
             {

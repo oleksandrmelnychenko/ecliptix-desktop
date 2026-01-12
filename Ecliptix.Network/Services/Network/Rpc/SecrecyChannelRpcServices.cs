@@ -53,9 +53,9 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
             ConnectivityReason.HANDSHAKE_SUCCEEDED).ConfigureAwait(false);
     }
 
-    public async Task<Result<RestoreChannelResponse, NetworkFailure>> RestoreAppDeviceSecrecyChannelAsync(
+    public async Task<Result<SessionRecoveryResponse, NetworkFailure>> RestoreAppDeviceSecrecyChannelAsync(
         IConnectivityService connectivityService,
-        RestoreChannelRequest request,
+        SessionRecoveryRequest request,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -68,7 +68,7 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
 
     public async Task<Result<SecureEnvelope, NetworkFailure>> AuthenticatedEstablishSecureChannelAsync(
         IConnectivityService connectivityService,
-        AuthenticatedEstablishRequest request,
+        AuthenticatedSessionHandshakeRequest request,
         RpcRequestContext? requestContext = null,
         CancellationToken cancellationToken = default)
     {
@@ -163,9 +163,9 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
         }
     }
 
-    private async Task<Result<RestoreChannelResponse, NetworkFailure>> ExecuteRestoreAsync(
+    private async Task<Result<SessionRecoveryResponse, NetworkFailure>> ExecuteRestoreAsync(
         IConnectivityService connectivityService,
-        RestoreChannelRequest request,
+        SessionRecoveryRequest request,
         CancellationToken cancellationToken)
     {
         try
@@ -176,7 +176,7 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
                     $"Unsupported RPC service type: {RpcServiceType.RestoreSecrecyChannel}");
                 await connectivityService.PublishAsync(ConnectivityIntent.Disconnected(failure), cancellationToken)
                     .ConfigureAwait(false);
-                return Result<RestoreChannelResponse, NetworkFailure>.Err(failure);
+                return Result<SessionRecoveryResponse, NetworkFailure>.Err(failure);
             }
 
             RpcRequestContext requestContext = RpcRequestContext.CreateNew();
@@ -203,17 +203,17 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
                         ConnectivityIntent.Disconnected(outcomeFailure),
                         cancellationToken)
                     .ConfigureAwait(false);
-                return Result<RestoreChannelResponse, NetworkFailure>.Err(outcomeFailure);
+                return Result<SessionRecoveryResponse, NetworkFailure>.Err(outcomeFailure);
             }
 
-            RestoreChannelResponse parsed = RestoreChannelResponse.Parser.ParseFrom(response.Payload);
+            SessionRecoveryResponse parsed = SessionRecoveryResponse.Parser.ParseFrom(response.Payload);
 
             await connectivityService.PublishAsync(
                     ConnectivityIntent.Connected(response.Metadata?.Security?.ConnectId, ConnectivityReason.HANDSHAKE_SUCCEEDED),
                     cancellationToken)
                 .ConfigureAwait(false);
 
-            return Result<RestoreChannelResponse, NetworkFailure>.Ok(parsed);
+            return Result<SessionRecoveryResponse, NetworkFailure>.Ok(parsed);
         }
         catch (RpcException rpcEx)
         {
@@ -226,7 +226,7 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
             await connectivityService.PublishAsync(
                     ConnectivityIntent.Disconnected(failure))
                 .ConfigureAwait(false);
-            return Result<RestoreChannelResponse, NetworkFailure>.Err(failure);
+            return Result<SessionRecoveryResponse, NetworkFailure>.Err(failure);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -234,14 +234,14 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
         }
         catch (Exception ex)
         {
-            return Result<RestoreChannelResponse, NetworkFailure>.Err(
+            return Result<SessionRecoveryResponse, NetworkFailure>.Err(
                 NetworkFailure.DataCenterNotResponding(ex.Message, ex));
         }
     }
 
     private async Task<Result<SecureEnvelope, NetworkFailure>> ExecuteAuthenticatedEstablishAsync(
         IConnectivityService connectivityService,
-        AuthenticatedEstablishRequest request,
+        AuthenticatedSessionHandshakeRequest request,
         RpcRequestContext? requestContext,
         CancellationToken cancellationToken)
     {
@@ -347,7 +347,7 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
         }
     }
 
-    public async Task<Result<GetServerPublicKeysResponse, NetworkFailure>> GetServerPublicKeysAsync(
+    public async Task<Result<ServerPublicKeysResponse, NetworkFailure>> GetServerPublicKeysAsync(
         IConnectivityService connectivityService,
         CancellationToken cancellationToken = default)
     {
@@ -359,12 +359,12 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
                     $"Unsupported RPC service type: {RpcServiceType.GetServerPublicKeys}");
                 await connectivityService.PublishAsync(ConnectivityIntent.Disconnected(failure), cancellationToken)
                     .ConfigureAwait(false);
-                return Result<GetServerPublicKeysResponse, NetworkFailure>.Err(failure);
+                return Result<ServerPublicKeysResponse, NetworkFailure>.Err(failure);
             }
 
             RpcRequestContext requestContext = RpcRequestContext.CreateNew();
 
-            GetServerPublicKeysRequest request = new();
+            ServerPublicKeysRequest request = new();
             EventEnvelope envelope = GatewayTransportFactory.BuildEnvelope(
                 route!,
                 request,
@@ -386,11 +386,11 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
                         ConnectivityIntent.Disconnected(outcomeFailure),
                         cancellationToken)
                     .ConfigureAwait(false);
-                return Result<GetServerPublicKeysResponse, NetworkFailure>.Err(outcomeFailure);
+                return Result<ServerPublicKeysResponse, NetworkFailure>.Err(outcomeFailure);
             }
 
-            GetServerPublicKeysResponse payload = GetServerPublicKeysResponse.Parser.ParseFrom(response.Payload);
-            return Result<GetServerPublicKeysResponse, NetworkFailure>.Ok(payload);
+            ServerPublicKeysResponse payload = ServerPublicKeysResponse.Parser.ParseFrom(response.Payload);
+            return Result<ServerPublicKeysResponse, NetworkFailure>.Ok(payload);
         }
         catch (RpcException rpcEx)
         {
@@ -403,7 +403,7 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
             await connectivityService.PublishAsync(
                     ConnectivityIntent.Disconnected(failure))
                 .ConfigureAwait(false);
-            return Result<GetServerPublicKeysResponse, NetworkFailure>.Err(failure);
+            return Result<ServerPublicKeysResponse, NetworkFailure>.Err(failure);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -411,7 +411,7 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
         }
         catch (Exception ex)
         {
-            return Result<GetServerPublicKeysResponse, NetworkFailure>.Err(
+            return Result<ServerPublicKeysResponse, NetworkFailure>.Err(
                 NetworkFailure.DataCenterNotResponding(ex.Message, ex));
         }
     }

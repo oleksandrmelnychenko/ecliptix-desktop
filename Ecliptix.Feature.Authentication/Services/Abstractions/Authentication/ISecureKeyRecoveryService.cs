@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Ecliptix.Feature.Authentication.Services.Authentication;
 using Ecliptix.Utilities;
 using Google.Protobuf;
-using CountdownUpdateStatus = Ecliptix.Protobuf.Membership.VerificationCountdownUpdate.Types.CountdownUpdateStatus;
+using OtpCountdownStatus = Ecliptix.Protobuf.Membership.OtpCountdownUpdate.Types.Status;
 
 namespace Ecliptix.Feature.Authentication.Services.Abstractions.Authentication;
 
@@ -14,11 +14,11 @@ public interface ISecureKeyRecoveryService
         uint connectId, CancellationToken cancellationToken = default);
 
     Task<Result<Unit, string>> InitiateSecureKeyResetOtpAsync(ByteString mobileNumberIdentifier,
-        Action<uint, Guid, CountdownUpdateStatus, string?>? onCountdownUpdate = null,
+        Action<uint, Guid, OtpCountdownStatus, string?>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default);
 
     Task<Result<Unit, string>> ResendSecureKeyResetOtpAsync(Guid sessionIdentifier, ByteString mobileNumberIdentifier,
-        Action<uint, Guid, CountdownUpdateStatus, string?>? onCountdownUpdate = null,
+        Action<uint, Guid, OtpCountdownStatus, string?>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default);
 
     Task<Result<Protobuf.Membership.Membership, string>> VerifySecureKeyResetOtpAsync(Guid sessionIdentifier, string otpCode,

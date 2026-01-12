@@ -19,7 +19,7 @@ public class LogoutProofHandler(
     IApplicationSecureStorageProvider applicationSecureStorageProvider)
 {
     public async Task<Result<Unit, LogoutFailure>> VerifyRevocationProofAsync(
-        LogoutResponse response,
+        AuthenticatedLogoutResponse response,
         string membershipId,
         string accountId,
         uint connectId) =>
@@ -34,7 +34,7 @@ public class LogoutProofHandler(
     private static async Task<Result<Unit, LogoutFailure>> VerifyRevocationProofInternalAsync(
         IIdentityService identityService,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
-        LogoutResponse response,
+        AuthenticatedLogoutResponse response,
         string membershipId,
         string accountId,
         uint connectId)
@@ -61,12 +61,12 @@ public class LogoutProofHandler(
             membershipId,
             accountId,
             connectId,
-            response.ServerTimestamp,
+            response.ServerTimestamp?.Seconds ?? 0,
             parsed,
             revocationProof);
     }
 
-    private static Result<byte[], LogoutFailure> ValidateRevocationProofFormat(LogoutResponse response)
+    private static Result<byte[], LogoutFailure> ValidateRevocationProofFormat(AuthenticatedLogoutResponse response)
     {
         if (response.RevocationProof == null || response.RevocationProof.IsEmpty)
         {
@@ -408,8 +408,8 @@ public class LogoutProofHandler(
 
             hmacKey = hmacKeyResult.Unwrap();
 
-            string canonical = $"logout:v1:{request.MembershipIdentifier.ToBase64()}:" +
-                               $"{request.Timestamp}:{request.Scope}:{request.LogoutReason}";
+            string canonical = $"logout:v1:{request.MembershipId.ToBase64()}:" +
+                               $"{request.Timestamp?.Seconds ?? 0}:{request.Scope}:{request.LogoutReason}";
             byte[] canonicalBytes = Encoding.UTF8.GetBytes(canonical);
 
             byte[] hmacProof = LogoutKeyDerivation.ComputeHmac(hmacKey, canonicalBytes);

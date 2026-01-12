@@ -125,24 +125,24 @@ public class AccountSettingsViewModel : Ecliptix.Core.MVVM.ViewModelBase, IActiv
             Guid currentAccountId = accountIdOpt.Value;
 
             ByteString accountId = ByteString.CopyFrom(currentAccountId.ToByteArray());
-            GetAccountProfileRequest request = new()
+            ProfileLookupRequest request = new()
             {
                 CurrentAccountId = accountId,
                 ByAccountId = accountId
             };
 
-            TaskCompletionSource<GetAccountProfileResponse> responseSource =
+            TaskCompletionSource<ProfileLookupResponse> responseSource =
                 new(TaskCreationOptions.RunContinuationsAsynchronously);
 
             uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
 
             Result<EUnit, NetworkFailure> networkResult = await NetworkProvider.ExecuteUnaryRequestAsync(
                 connectId,
-                RpcServiceType.GetAccountProfile,
+                RpcServiceType.ProfileLookup,
                 request.ToByteArray(),
                 payload =>
                 {
-                    GetAccountProfileResponse response = GetAccountProfileResponse.Parser.ParseFrom(payload);
+                    ProfileLookupResponse response = ProfileLookupResponse.Parser.ParseFrom(payload);
                     responseSource.TrySetResult(response);
                     return Task.FromResult(Result<EUnit, NetworkFailure>.Ok(EUnit.Value));
                 },
@@ -156,7 +156,7 @@ public class AccountSettingsViewModel : Ecliptix.Core.MVVM.ViewModelBase, IActiv
                 return;
             }
 
-            GetAccountProfileResponse response = await responseSource.Task.ConfigureAwait(false);
+            ProfileLookupResponse response = await responseSource.Task.ConfigureAwait(false);
 
             if (response.Profile != null)
             {

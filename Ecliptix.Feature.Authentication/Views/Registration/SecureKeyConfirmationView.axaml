@@ -4,9 +4,9 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:coreControls="clr-namespace:Ecliptix.Core.Controls.Core;assembly=Ecliptix.Core"
              xmlns:hintedTextControls="clr-namespace:Ecliptix.Core.Controls.Core.HintedTextControls;assembly=Ecliptix.Core"
-             xmlns:signUp="clr-namespace:Ecliptix.Feature.Authentication.ViewModels.Registration"
+             xmlns:secureKeyConfirmation="clr-namespace:Ecliptix.Feature.Authentication.ViewModels.Registration.SecureKeyConfirmation"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:DataType="signUp:SecureKeyConfirmationViewModel"
+             x:DataType="secureKeyConfirmation:SecureKeyConfirmationViewModel"
              x:Class="Ecliptix.Feature.Authentication.Views.Registration.SecureKeyConfirmationView"
              MinWidth="{StaticResource Content.MaxWidth}"
              Width="{StaticResource Content.MaxWidth}">

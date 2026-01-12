@@ -22,7 +22,7 @@ public sealed partial class NetworkProvider
     {
         Log.Debug("[SECURITY] Fetching fresh per-connection Kyber key for connectId {ConnectId}", connectId);
 
-        Result<GetServerPublicKeysResponse, NetworkFailure> rpcResult =
+        Result<ServerPublicKeysResponse, NetworkFailure> rpcResult =
             await _dependencies.RpcServiceManager.GetServerPublicKeysAsync(
                 _services.ConnectivityService,
                 cancellationToken).ConfigureAwait(false);
@@ -33,7 +33,7 @@ public sealed partial class NetworkProvider
             return Result<byte[], NetworkFailure>.Err(rpcResult.UnwrapErr());
         }
 
-        GetServerPublicKeysResponse response = rpcResult.Unwrap();
+        ServerPublicKeysResponse response = rpcResult.Unwrap();
 
         if (response.ServerKyberPublicKey.IsEmpty)
         {
