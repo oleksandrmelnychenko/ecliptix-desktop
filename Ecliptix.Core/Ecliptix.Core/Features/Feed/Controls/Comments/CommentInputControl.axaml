@@ -5,6 +5,7 @@
 			 xmlns:feedModels="clr-namespace:Ecliptix.Core.Features.Feed.Models"
 			 xmlns:vm="clr-namespace:Ecliptix.Core.Features.Feed.ViewModels"
 			 mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="60"
+			 MaxWidth="600"
 			 x:Class="Ecliptix.Core.Features.Feed.Controls.Comments.CommentInputControl"
 			 x:DataType="vm:CommentSectionViewModel">
 
