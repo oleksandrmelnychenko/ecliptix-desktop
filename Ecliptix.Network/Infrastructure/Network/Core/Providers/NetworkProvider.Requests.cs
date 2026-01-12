@@ -57,21 +57,17 @@ public sealed partial class NetworkProvider
     {
         private readonly NetworkProvider _provider;
 
-        private NetworkProviderDependencies dependencies => _provider._dependencies;
-        private NetworkProviderServices services => _provider._services;
-        private NetworkProviderSecurity security => _provider._security;
+        private NetworkProviderDependencies Dependencies => _provider._dependencies;
+        private NetworkProviderServices Services => _provider._services;
+        private NetworkProviderSecurity Security => _provider._security;
 
-        private NativeProtocolSessionManager _nativeSessions => _provider._nativeSessions;
-        private ConcurrentDictionary<uint, CancellationTokenSource> _activeStreams => _provider._activeStreams;
-        private ConcurrentDictionary<string, CancellationTokenSource> _pendingRequests => _provider._pendingRequests;
-        private CancellationTokenSource _shutdownCancellationToken => _provider._shutdownCancellationToken;
-        private Lock _outageLock => _provider._outageLock;
-        private ref int _outageState => ref _provider._outageState;
-        private TaskCompletionSource<bool> _outageCompletionSource
-        {
-            get => _provider._outageCompletionSource;
-            set => _provider._outageCompletionSource = value;
-        }
+        private NativeProtocolSessionManager NativeSessions => _provider._nativeSessions;
+        private ConcurrentDictionary<uint, CancellationTokenSource> ActiveStreams => _provider._activeStreams;
+        private ConcurrentDictionary<string, CancellationTokenSource> PendingRequests => _provider._pendingRequests;
+        private CancellationTokenSource ShutdownCancellationToken => _provider._shutdownCancellationToken;
+        private Lock OutageLock => _provider._outageLock;
+        private ref int OutageState => ref _provider._outageState;
+        private TaskCompletionSource<bool> OutageCompletionSource => _provider._outageCompletionSource;
 
         internal RequestPipeline(NetworkProvider provider)
         {
@@ -128,7 +124,7 @@ public sealed partial class NetworkProvider
             ServiceRequestParams request)
         {
             RpcRequestContext effectiveContext = request.RequestContext ?? RpcRequestContext.CreateNew();
-            RetryBehavior retryBehavior = security.RetryPolicyProvider.GetRetryBehavior(request.ServiceType);
+            RetryBehavior retryBehavior = Security.RetryPolicyProvider.GetRetryBehavior(request.ServiceType);
 
             string requestKey = GenerateRequestKey(request.ConnectId, request.ServiceType, request.PlainBuffer);
             bool shouldAllowDuplicates = request.AllowDuplicateRequests || CanServiceTypeBeDuplicated(request.ServiceType);
@@ -141,7 +137,7 @@ public sealed partial class NetworkProvider
             }
 
             using RequestCancellationContext cancellationContext =
-                new(request.CancellationToken, requestCts, shouldAllowDuplicates, requestKey, _pendingRequests);
+                new(request.CancellationToken, requestCts, shouldAllowDuplicates, requestKey, PendingRequests);
 
             try
             {
@@ -208,7 +204,7 @@ public sealed partial class NetworkProvider
                 return null;
             }
 
-            if (_pendingRequests.TryAdd(requestKey, cancellationTokenSource))
+            if (PendingRequests.TryAdd(requestKey, cancellationTokenSource))
             {
                 return null;
             }
@@ -226,7 +222,7 @@ public sealed partial class NetworkProvider
             await WaitForOutageRecoveryAsync(operationToken, waitForRecovery).ConfigureAwait(false);
             operationToken.ThrowIfCancellationRequested();
 
-            if (_nativeSessions.Get(requestContext.ConnectId).IsErr)
+            if (NativeSessions.Get(requestContext.ConnectId).IsErr)
             {
                 return HandleMissingConnection();
             }
@@ -238,7 +234,7 @@ public sealed partial class NetworkProvider
                     logicalOperationId, requestContext, operationToken)
                 .ConfigureAwait(false);
 
-            if (networkResult.IsOk && Volatile.Read(ref _outageState) == 1)
+            if (networkResult.IsOk && Volatile.Read(ref OutageState) == 1)
             {
                 _provider.ExitOutage();
             }
@@ -251,7 +247,7 @@ public sealed partial class NetworkProvider
             NetworkFailure noConnectionFailure = NetworkFailure.DataCenterNotResponding(
                 "Connection unavailable - server may be recovering");
 
-            _ = services.ConnectivityService.PublishAsync(
+            _ = Services.ConnectivityService.PublishAsync(
                 ConnectivityIntent.ServerShutdown(noConnectionFailure)).ContinueWith(
                 task =>
                 {
@@ -401,7 +397,7 @@ public sealed partial class NetworkProvider
                 SecureEnvelope encryptedPayload = encryptResult.Unwrap();
                 string stableIdempotencyKey = Guid.NewGuid().ToString("N");
 
-                invokeResult = await services.RetryStrategy.ExecuteRpcOperationAsync(
+                invokeResult = await Services.RetryStrategy.ExecuteRpcOperationAsync(
                     (attempt, ct) =>
                     {
                         RpcRequestContext attemptContext =
@@ -416,7 +412,7 @@ public sealed partial class NetworkProvider
                             [],
                             attemptContext);
 
-                        return dependencies.RpcServiceManager.InvokeServiceRequestAsync(request, ct);
+                        return Dependencies.RpcServiceManager.InvokeServiceRequestAsync(request, ct);
                     },
                     $"UnaryRequest_{serviceType}",
                     connectId,
@@ -438,7 +434,7 @@ public sealed partial class NetworkProvider
                 }
 
                 ServiceRequest request = serviceRequestResult.Unwrap();
-                invokeResult = await dependencies.RpcServiceManager.InvokeServiceRequestAsync(request, token)
+                invokeResult = await Dependencies.RpcServiceManager.InvokeServiceRequestAsync(request, token)
                     .ConfigureAwait(false);
             }
 
@@ -481,7 +477,7 @@ public sealed partial class NetworkProvider
 
                     await _provider.CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
 
-                    _nativeSessions.Remove(connectId);
+                    NativeSessions.Remove(connectId);
                 }
 
                 decryptFailure = ApplyReinitIfNeeded(decryptFailure, serviceType, retryBehavior);
@@ -562,7 +558,7 @@ public sealed partial class NetworkProvider
                 SecureEnvelope encryptedPayload = encryptResult.Unwrap();
                 string stableIdempotencyKey = requestContext.IdempotencyKey;
 
-                return await services.RetryStrategy.ExecuteRpcOperationAsync(
+                return await Services.RetryStrategy.ExecuteRpcOperationAsync(
                     async (attempt, ct) =>
                     {
                         RpcRequestContext attemptContext =
@@ -614,10 +610,10 @@ public sealed partial class NetworkProvider
             }
 
             using CancellationTokenSource linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(token);
-            _activeStreams.TryAdd(connectId, linkedTokenSource);
+            ActiveStreams.TryAdd(connectId, linkedTokenSource);
 
             Result<RpcFlow, NetworkFailure> invokeResult =
-                await dependencies.RpcServiceManager.InvokeServiceRequestAsync(request, linkedTokenSource.Token)
+                await Dependencies.RpcServiceManager.InvokeServiceRequestAsync(request, linkedTokenSource.Token)
                     .ConfigureAwait(false);
 
             if (invokeResult.IsErr)
@@ -678,7 +674,7 @@ public sealed partial class NetworkProvider
         {
             Dispatcher.UIThread.Post(() =>
             {
-                _ = services.ConnectivityService.PublishAsync(
+                _ = Services.ConnectivityService.PublishAsync(
                     ConnectivityIntent.Disconnected(failure, connectId)).ContinueWith(
                     task =>
                     {
@@ -718,28 +714,28 @@ public sealed partial class NetworkProvider
             Result<byte[], NetworkFailure>.Ok(decryptedData);
         }
 
-        private void CleanupActiveStream(uint connectId) => _activeStreams.TryRemove(connectId, out _);
+        private void CleanupActiveStream(uint connectId) => ActiveStreams.TryRemove(connectId, out _);
 
         private void NotifyStreamSuccess(uint connectId)
         {
-            bool exitedOutage = Interlocked.CompareExchange(ref _outageState, 0, 1) == 1;
+            bool exitedOutage = Interlocked.CompareExchange(ref OutageState, 0, 1) == 1;
 
             if (!exitedOutage)
             {
                 return;
             }
 
-            lock (_outageLock)
+            lock (OutageLock)
             {
-                if (!_outageCompletionSource.Task.IsCompleted)
+                if (!OutageCompletionSource.Task.IsCompleted)
                 {
-                    _outageCompletionSource.TrySetResult(true);
+                    OutageCompletionSource.TrySetResult(true);
                 }
             }
 
             Dispatcher.UIThread.Post(() =>
             {
-                _ = services.ConnectivityService.PublishAsync(
+                _ = Services.ConnectivityService.PublishAsync(
                     ConnectivityIntent.Connected(connectId)).ContinueWith(
                     task =>
                     {
@@ -759,7 +755,7 @@ public sealed partial class NetworkProvider
             CancellationToken token)
         {
             Result<RpcFlow, NetworkFailure> invokeResult =
-                await dependencies.RpcServiceManager.InvokeServiceRequestAsync(request, token).ConfigureAwait(false);
+                await Dependencies.RpcServiceManager.InvokeServiceRequestAsync(request, token).ConfigureAwait(false);
 
             if (invokeResult.IsErr)
             {
@@ -815,7 +811,7 @@ public sealed partial class NetworkProvider
             ServiceRequest request = serviceRequestResult.Unwrap();
 
             Result<RpcFlow, NetworkFailure> invokeResult =
-                await dependencies.RpcServiceManager.InvokeServiceRequestAsync(request, token).ConfigureAwait(false);
+                await Dependencies.RpcServiceManager.InvokeServiceRequestAsync(request, token).ConfigureAwait(false);
 
             if (invokeResult.IsErr)
             {
@@ -848,7 +844,7 @@ public sealed partial class NetworkProvider
             ServiceRequest request = serviceRequestResult.Unwrap();
 
             Result<RpcFlow, NetworkFailure> invokeResult =
-                await dependencies.RpcServiceManager.InvokeServiceRequestAsync(request, token).ConfigureAwait(false);
+                await Dependencies.RpcServiceManager.InvokeServiceRequestAsync(request, token).ConfigureAwait(false);
 
             if (invokeResult.IsErr)
             {
@@ -869,7 +865,7 @@ public sealed partial class NetworkProvider
 
         private async Task WaitForOutageRecoveryAsync(CancellationToken token, bool waitForRecovery = true)
         {
-            if (Volatile.Read(ref _outageState) == 0)
+            if (Volatile.Read(ref OutageState) == 0)
             {
                 return;
             }
@@ -880,20 +876,20 @@ public sealed partial class NetworkProvider
             }
 
             Task waitTask;
-            lock (_outageLock)
+            lock (OutageLock)
             {
-                waitTask = _outageCompletionSource.Task;
+                waitTask = OutageCompletionSource.Task;
             }
 
             using CancellationTokenSource cts =
-                CancellationTokenSource.CreateLinkedTokenSource(token, _shutdownCancellationToken.Token);
+                CancellationTokenSource.CreateLinkedTokenSource(token, ShutdownCancellationToken.Token);
             cts.CancelAfter(NetworkConstants.Timeouts.OutageRecoveryTimeout);
 
             try
             {
                 await waitTask.WaitAsync(cts.Token).ConfigureAwait(false);
             }
-            catch (OperationCanceledException) when (_shutdownCancellationToken.Token.IsCancellationRequested)
+            catch (OperationCanceledException) when (ShutdownCancellationToken.Token.IsCancellationRequested)
             {
                 throw new ObjectDisposedException(nameof(NetworkProvider), "Provider is shutting down");
             }

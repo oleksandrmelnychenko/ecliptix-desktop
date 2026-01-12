@@ -143,7 +143,7 @@ public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
             }
             catch
             {
-
+                // ignored
             }
             finally
             {

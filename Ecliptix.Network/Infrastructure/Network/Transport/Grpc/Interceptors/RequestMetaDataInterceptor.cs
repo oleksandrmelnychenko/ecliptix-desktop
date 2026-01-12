@@ -7,6 +7,13 @@ namespace Ecliptix.Network.Infrastructure.Network.Transport.Grpc.Interceptors;
 
 public sealed class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataProvider) : Interceptor
 {
+    // Cache string representations since IDs are constant per session
+    private string? _appInstanceIdString;
+    private string? _deviceIdString;
+
+    private string AppInstanceIdString => _appInstanceIdString ??= rpcMetaDataProvider.AppInstanceId.ToString();
+    private string DeviceIdString => _deviceIdString ??= rpcMetaDataProvider.DeviceId.ToString();
+
     public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(
         TRequest request,
         ClientInterceptorContext<TRequest, TResponse> context,
@@ -18,8 +25,8 @@ public sealed class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataP
         PubKeyExchangeType exchangeType = GetExchangeTypeForMethod(context.Method, headers);
 
         Metadata newMetadata = GrpcMetadataHandler.GenerateMetadata(
-            rpcMetaDataProvider.AppInstanceId.ToString(),
-            rpcMetaDataProvider.DeviceId.ToString(),
+            AppInstanceIdString,
+            DeviceIdString,
             culture,
             exchangeType,
             rpcMetaDataProvider.LocalIpAddress,
@@ -50,8 +57,8 @@ public sealed class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataP
         PubKeyExchangeType exchangeType = GetExchangeTypeForMethod(context.Method, headers);
 
         Metadata newMetadata = GrpcMetadataHandler.GenerateMetadata(
-            rpcMetaDataProvider.AppInstanceId.ToString(),
-            rpcMetaDataProvider.DeviceId.ToString(),
+            AppInstanceIdString,
+            DeviceIdString,
             culture,
             exchangeType,
             rpcMetaDataProvider.LocalIpAddress,

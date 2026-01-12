@@ -510,7 +510,7 @@ public sealed class RetryStrategy : IRetryStrategy
             foreach (string key in abandonedKeys)
             {
                 if (_activeRetryOperations.TryRemove(key, out RetryOperationInfo? operation) &&
-                    Serilog.Log.IsEnabled(LogEventLevel.Debug))
+                    Log.IsEnabled(LogEventLevel.Debug))
                 {
                     Log.Debug("🧹 CLEANUP: Removed abandoned operation {OperationName} after {Minutes} minutes",
                         operation.OperationName, OPERATION_TIMEOUT_MINUTES);

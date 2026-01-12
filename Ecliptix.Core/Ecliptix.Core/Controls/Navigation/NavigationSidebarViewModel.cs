@@ -245,9 +245,20 @@ public sealed class NavigationSidebarViewModel : Ecliptix.Core.MVVM.ViewModelBas
 
                 if (settings.CurrentAccountId != null && !settings.CurrentAccountId.IsEmpty)
                 {
-                    string guidString = settings.CurrentAccountId.ToByteArray().Length == 16
-                        ? new Guid(settings.CurrentAccountId.ToByteArray()).ToString("N").Substring(0, 8)
-                        : "user";
+                    string guidString;
+                    if (settings.CurrentAccountId.Length == 16)
+                    {
+                        Span<byte> bytes = stackalloc byte[16];
+                        settings.CurrentAccountId.Span.CopyTo(bytes);
+                        Guid guid = new(bytes);
+                        Span<char> chars = stackalloc char[8];
+                        guid.TryFormat(chars, out _, "N");
+                        guidString = new string(chars);
+                    }
+                    else
+                    {
+                        guidString = "user";
+                    }
                     UserDisplayName = $"@{guidString}";
                 }
                 else

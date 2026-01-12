@@ -30,6 +30,13 @@ internal static class GatewayTransportFactory
             throw new ArgumentNullException(nameof(route));
         }
 
+        Span<byte> guidBuffer = stackalloc byte[16];
+        metaDataProvider.AppInstanceId.TryWriteBytes(guidBuffer);
+        ByteString appInstanceIdBytes = ByteString.CopyFrom(guidBuffer);
+
+        metaDataProvider.DeviceId.TryWriteBytes(guidBuffer);
+        ByteString deviceIdBytes = ByteString.CopyFrom(guidBuffer);
+
         EventMetadata metadata = new()
         {
             Identity = new EventIdentity
@@ -43,8 +50,8 @@ internal static class GatewayTransportFactory
             Client = new ClientContext
             {
                 Locale = metaDataProvider.Culture ?? string.Empty,
-                ApplicationInstanceId = ByteString.CopyFrom(metaDataProvider.AppInstanceId.ToByteArray()),
-                DeviceId = ByteString.CopyFrom(metaDataProvider.DeviceId.ToByteArray()),
+                ApplicationInstanceId = appInstanceIdBytes,
+                DeviceId = deviceIdBytes,
                 IdempotencyKey = requestContext?.IdempotencyKey ?? string.Empty,
                 Platform = metaDataProvider.Platform
             },

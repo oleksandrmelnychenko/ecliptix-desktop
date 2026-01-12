@@ -30,7 +30,5 @@ public sealed partial class NetworkProvider
     private TaskCompletionSource<bool> _outageCompletionSource = CreateOutageTcs();
     private volatile bool _disposed;
 
-    private RequestPipeline? _requests;
-
-    private RequestPipeline Requests => _requests ??= new RequestPipeline(this);
+    private RequestPipeline Requests => field ??= new RequestPipeline(this);
 }

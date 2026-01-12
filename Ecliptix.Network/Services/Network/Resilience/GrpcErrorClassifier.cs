@@ -71,7 +71,7 @@ public static class GrpcErrorClassifier
 
     public static bool IsIdentityKeyDerivationFailure(RpcException ex) =>
         ex.StatusCode == StatusCode.Unauthenticated &&
-        (ex.Status.Detail?.Contains("IDENTITY_KEY_DERIVATION_FAILED", System.StringComparison.Ordinal) is true);
+        (ex.Status.Detail?.Contains("IDENTITY_KEY_DERIVATION_FAILED", StringComparison.Ordinal) is true);
 
     public static bool IsMasterKeySharesNotFound(RpcException ex) =>
         ex.StatusCode == StatusCode.Internal &&

@@ -5,7 +5,6 @@ using Ecliptix.Core.Messaging.Core.Messaging.Connectivity;
 using Ecliptix.Network.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Network.Infrastructure.Network.Core.Constants;
 using Ecliptix.Network.Infrastructure.Security.Storage;
-using Ecliptix.Network.Services.Common;
 using Ecliptix.Network.Services.Network.Resilience;
 using Ecliptix.Network.Services.Network.Rpc;
 using Ecliptix.Protobuf.Common;
@@ -28,25 +27,20 @@ using Unit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Network.Infrastructure.Network.Core.Providers;
 
-public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IProtocolEventHandler
+public sealed partial class NetworkProvider(
+    NetworkProviderDependencies dependencies,
+    NetworkProviderServices services,
+    NetworkProviderSecurity security)
+    : INetworkProvider, IDisposable, IProtocolEventHandler
 {
-    private readonly NetworkProviderDependencies _dependencies;
-    private readonly NetworkProviderServices _services;
-    private readonly NetworkProviderSecurity _security;
+    private readonly NetworkProviderDependencies _dependencies = dependencies;
+    private readonly NetworkProviderServices _services = services;
+    private readonly NetworkProviderSecurity _security = security;
     private const string DEFAULT_CULTURE_CODE = "en-US";
-    private const int AuthenticatedEstablishClientNonceLength = 32;
-    private static readonly byte[] AuthenticatedEstablishProofContext =
-        Encoding.ASCII.GetBytes("Ecliptix.AuthenticatedEstablish.v1");
+    private const int AUTHENTICATED_ESTABLISH_CLIENT_NONCE_LENGTH = 32;
 
-    public NetworkProvider(
-        NetworkProviderDependencies dependencies,
-        NetworkProviderServices services,
-        NetworkProviderSecurity security)
-    {
-        _dependencies = dependencies;
-        _services = services;
-        _security = security;
-    }
+    private static readonly byte[] AuthenticatedEstablishProofContext =
+        "Ecliptix.AuthenticatedEstablish.v1"u8.ToArray();
 
     public ApplicationInstanceSettings ApplicationInstanceSettings
     {
@@ -65,7 +59,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
     private static byte[] DeriveMasterKeyFingerprint(byte[] masterKey, Guid accountId)
     {
         const string fingerprintInfo = "ecliptix-master-key-fingerprint";
-        byte[] infoBytes = System.Text.Encoding.UTF8.GetBytes($"{fingerprintInfo}:v1:{accountId}");
+        byte[] infoBytes = Encoding.UTF8.GetBytes($"{fingerprintInfo}:v1:{accountId}");
         using HMACSHA256 hmac = new(masterKey);
         return hmac.ComputeHash(infoBytes);
     }
@@ -198,7 +192,6 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         NetworkFailure failure,
         SecrecyChannelRequest request)
     {
-
         _nativeSessions.ClearServerKyberKey(request.ConnectId);
         Log.Debug("[HANDSHAKE-FAILURE] Cleared stale Kyber key for connectId {ConnectId}, failure: {FailureType}",
             request.ConnectId, failure.FailureType);
@@ -254,12 +247,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         uint connectId,
         PubKeyExchange peerPubKeyExchange)
     {
-
-        EcliptixSessionState state = new()
-        {
-            ConnectId = connectId,
-            PeerHandshakeMessage = peerPubKeyExchange
-        };
+        EcliptixSessionState state = new() { ConnectId = connectId, PeerHandshakeMessage = peerPubKeyExchange };
         if (_nativeSessions.Get(connectId).IsOk)
         {
             Result<NativeProtocolSession, EcliptixProtocolFailure> nativeSessionResult = _nativeSessions.Get(connectId);
@@ -280,11 +268,13 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
                             string.Empty;
                     }
 
-                    Result<byte[], EcliptixProtocolFailure> kyberKeyResult = _nativeSessions.GetServerKyberKey(connectId);
+                    Result<byte[], EcliptixProtocolFailure> kyberKeyResult =
+                        _nativeSessions.GetServerKyberKey(connectId);
                     if (kyberKeyResult.IsOk)
                     {
                         state.ServerKyberPublicKey = ByteString.CopyFrom(kyberKeyResult.Unwrap());
-                        Log.Debug("[SESSION-STATE] Persisted per-connection Kyber key for connectId {ConnectId}", connectId);
+                        Log.Debug("[SESSION-STATE] Persisted per-connection Kyber key for connectId {ConnectId}",
+                            connectId);
                     }
                 }
             }
@@ -309,83 +299,6 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         }
     }
 
-    public bool SetServerPublicKey(ByteString serverPublicKey)
-    {
-        lock (_appInstanceSetterLock)
-        {
-            ApplicationInstanceSettings current = _applicationInstanceSettings.IsSome
-                ? _applicationInstanceSettings.Value!.Clone()
-                : new ApplicationInstanceSettings();
-
-            current.ServerPublicKey = serverPublicKey;
-            _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(current);
-            return true;
-        }
-    }
-
-    public bool SetServerKyberPublicKey(ByteString serverKyberPublicKey)
-    {
-        lock (_appInstanceSetterLock)
-        {
-            Log.Debug("[NETWORK-PROVIDER] SetServerKyberPublicKey called. Current settings.IsSome: {IsSome}, KeyLength: {Length}",
-                _applicationInstanceSettings.IsSome, serverKyberPublicKey.Length);
-
-            ApplicationInstanceSettings current = _applicationInstanceSettings.IsSome
-                ? _applicationInstanceSettings.Value!.Clone()
-                : new ApplicationInstanceSettings();
-
-            current.ServerKyberPublicKey = serverKyberPublicKey;
-            _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(current);
-
-            Log.Debug("[NETWORK-PROVIDER] SetServerKyberPublicKey complete. New settings.IsSome: {IsSome}, StoredKeyLength: {Length}",
-                _applicationInstanceSettings.IsSome, _applicationInstanceSettings.Value!.ServerKyberPublicKey.Length);
-
-            return true;
-        }
-    }
-
-    public async Task<Result<Unit, NetworkFailure>> FetchServerPublicKeysAsync(
-        CancellationToken cancellationToken = default)
-    {
-        Result<ServerPublicKeysResponse, NetworkFailure> rpcResult =
-            await _dependencies.RpcServiceManager.GetServerPublicKeysAsync(
-                _services.ConnectivityService,
-                cancellationToken).ConfigureAwait(false);
-
-        if (rpcResult.IsErr)
-        {
-            return Result<Unit, NetworkFailure>.Err(rpcResult.UnwrapErr());
-        }
-
-        ServerPublicKeysResponse response = rpcResult.Unwrap();
-
-        Result<Unit, InternalServiceApiFailure> persistPublicKeyResult =
-            await _dependencies.ApplicationSecureStorageProvider.SetServerPublicKeyAsync(response.ServerPublicKey)
-                .ConfigureAwait(false);
-        if (persistPublicKeyResult.IsErr)
-        {
-            Log.Warning("[NETWORK-PROVIDER] Failed to persist server public key: {Error}",
-                persistPublicKeyResult.UnwrapErr().Message);
-        }
-
-        Result<Unit, InternalServiceApiFailure> persistKyberResult =
-            await _dependencies.ApplicationSecureStorageProvider.SetServerKyberPublicKeyAsync(response.ServerKyberPublicKey)
-                .ConfigureAwait(false);
-        if (persistKyberResult.IsErr)
-        {
-            Log.Warning("[NETWORK-PROVIDER] Failed to persist server Kyber public key: {Error}",
-                persistKyberResult.UnwrapErr().Message);
-        }
-
-        SetServerPublicKey(response.ServerPublicKey);
-        SetServerKyberPublicKey(response.ServerKyberPublicKey);
-
-        Log.Information("[NETWORK-PROVIDER] Successfully fetched server public keys. X25519: {X25519Size} bytes, Kyber: {KyberSize} bytes",
-            response.ServerPublicKey.Length, response.ServerKyberPublicKey.Length);
-
-        return Result<Unit, NetworkFailure>.Ok(Unit.Value);
-    }
-
     public void InitiateEcliptixProtocolSystem(ApplicationInstanceSettings applicationInstanceSettings, uint connectId)
     {
         EnsureNativeInitialized();
@@ -400,7 +313,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         }
 
         Result<NativeProtocolSession, EcliptixProtocolFailure> nativeCreateResult =
-            _nativeSessions.CreateOrReplace(connectId, identityResult.Unwrap(), this.OnProtocolStateChanged);
+            _nativeSessions.CreateOrReplace(connectId, identityResult.Unwrap(), OnProtocolStateChanged);
         if (nativeCreateResult.IsErr)
         {
             throw new InvalidOperationException(
@@ -442,10 +355,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         }
     }
 
-    public void ClearConnection(uint connectId)
-    {
-        _nativeSessions.Remove(connectId);
-    }
+    public void ClearConnection(uint connectId) => _nativeSessions.Remove(connectId);
 
     public void ClearExhaustedOperations() => _services.RetryStrategy.ClearExhaustedOperations();
 
@@ -631,7 +541,8 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         return response.Result switch
         {
             SessionRecoveryResponse.Types.Result.SessionRecoveryResultRestored =>
-                await HandleSessionRestoredAsync(response, sessionState, enablePendingRegistration).ConfigureAwait(false),
+                await HandleSessionRestoredAsync(response, sessionState, enablePendingRegistration)
+                    .ConfigureAwait(false),
             SessionRecoveryResponse.Types.Result.SessionRecoveryResultNotFound =>
                 await HandleSessionNotFoundAsync(sessionState.ConnectId),
             _ => Result<bool, NetworkFailure>.Ok(false)
@@ -769,7 +680,6 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
             }
             catch (ObjectDisposedException)
             {
-
             }
         }
     }
@@ -799,7 +709,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         }
 
         Result<NativeProtocolSession, EcliptixProtocolFailure> nativeCreateResult =
-            _nativeSessions.CreateOrReplace(connectId, identityResult.Unwrap(), this.OnProtocolStateChanged);
+            _nativeSessions.CreateOrReplace(connectId, identityResult.Unwrap(), OnProtocolStateChanged);
         if (nativeCreateResult.IsErr)
         {
             throw new InvalidOperationException(
@@ -996,17 +906,19 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
                     state.ConnectId,
                     nativeIdentity,
                     nativeStateBytes,
-                    this.OnProtocolStateChanged);
+                    OnProtocolStateChanged);
             if (nativeImportResult.IsErr)
             {
                 return Result<Unit, EcliptixProtocolFailure>.Err(nativeImportResult.UnwrapErr());
             }
 
-            if (!state.ServerKyberPublicKey.IsEmpty)
+            if (state.ServerKyberPublicKey.IsEmpty)
             {
-                _nativeSessions.StoreServerKyberKey(state.ConnectId, state.ServerKyberPublicKey.ToByteArray());
-                Log.Debug("[RESTORE] Restored per-connection Kyber key for connectId {ConnectId}", state.ConnectId);
+                return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
             }
+
+            _nativeSessions.StoreServerKyberKey(state.ConnectId, state.ServerKyberPublicKey.ToByteArray());
+            Log.Debug("[RESTORE] Restored per-connection Kyber key for connectId {ConnectId}", state.ConnectId);
 
             return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
         }
@@ -1028,14 +940,14 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
             case "OpaqueSignInInitRequest" or "OpaqueSignInFinalizeRequest":
                 {
                     Span<byte> semanticBuffer = stackalloc byte[CryptographicConstants.SHA_256_HASH_SIZE];
-                    int written = System.Text.Encoding.UTF8.GetBytes($"auth:signin:{connectId}", semanticBuffer);
+                    int written = Encoding.UTF8.GetBytes($"auth:signin:{connectId}", semanticBuffer);
                     SHA256.HashData(semanticBuffer[..written], hashBuffer);
                     break;
                 }
             case "OpaqueSignUpInitRequest" or "OpaqueSignUpFinalizeRequest":
                 {
                     Span<byte> semanticBuffer = stackalloc byte[CryptographicConstants.SHA_256_HASH_SIZE];
-                    int written = System.Text.Encoding.UTF8.GetBytes($"auth:signup:{connectId}", semanticBuffer);
+                    int written = Encoding.UTF8.GetBytes($"auth:signup:{connectId}", semanticBuffer);
                     SHA256.HashData(semanticBuffer[..written], hashBuffer);
                     break;
                 }
@@ -1046,8 +958,8 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
 
                     string semantic =
                         $"stream:{serviceType}:{connectId}:{DateTime.UtcNow.Ticks}:{Convert.ToHexString(payloadHash)}";
-                    Span<byte> semanticBuffer = stackalloc byte[System.Text.Encoding.UTF8.GetByteCount(semantic)];
-                    int written = System.Text.Encoding.UTF8.GetBytes(semantic, semanticBuffer);
+                    Span<byte> semanticBuffer = stackalloc byte[Encoding.UTF8.GetByteCount(semantic)];
+                    int written = Encoding.UTF8.GetBytes(semantic, semanticBuffer);
                     SHA256.HashData(semanticBuffer[..written], hashBuffer);
                     break;
                 }
@@ -1057,8 +969,8 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
                     SHA256.HashData(plainBuffer, payloadHash);
 
                     string semantic = $"data:{serviceType}:{connectId}:{Convert.ToHexString(payloadHash)}";
-                    Span<byte> semanticBuffer = stackalloc byte[System.Text.Encoding.UTF8.GetByteCount(semantic)];
-                    int written = System.Text.Encoding.UTF8.GetBytes(semantic, semanticBuffer);
+                    Span<byte> semanticBuffer = stackalloc byte[Encoding.UTF8.GetByteCount(semantic)];
+                    int written = Encoding.UTF8.GetBytes(semantic, semanticBuffer);
                     SHA256.HashData(semanticBuffer[..written], hashBuffer);
                     break;
                 }
@@ -1169,12 +1081,9 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
 
         Result<byte[], EcliptixProtocolFailure> decryptResult =
             nativeSession.ReceiveMessage(serializedEnvelope);
-        if (decryptResult.IsErr)
-        {
-            return Result<byte[], NetworkFailure>.Err(decryptResult.UnwrapErr().ToNetworkFailure());
-        }
-
-        return Result<byte[], NetworkFailure>.Ok(decryptResult.Unwrap());
+        return decryptResult.IsErr
+            ? Result<byte[], NetworkFailure>.Err(decryptResult.UnwrapErr().ToNetworkFailure())
+            : Result<byte[], NetworkFailure>.Ok(decryptResult.Unwrap());
     }
 
     private void PersistProtocolStateInBackground(uint connectId)
@@ -1191,7 +1100,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
             }
         });
 
-        _pendingPersistTasks.AddOrUpdate(connectId, persistTask, (_, __) => persistTask);
+        _pendingPersistTasks.AddOrUpdate(connectId, persistTask, (_, _) => persistTask);
     }
 
     private async Task TryPersistProtocolStateAsync(uint connectId)
@@ -1313,7 +1222,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
             }
             catch
             {
-
+                // ignored
             }
         }
     }
@@ -1382,7 +1291,6 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         }
         catch (ObjectDisposedException)
         {
-
         }
     }
 
@@ -1394,10 +1302,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         }
     }
 
-    private void DisposeConnections()
-    {
-        _nativeSessions.Dispose();
-    }
+    private void DisposeConnections() => _nativeSessions.Dispose();
 
     private void DisposeCancellationTokens()
     {
@@ -1549,7 +1454,6 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
             }
             catch (ObjectDisposedException)
             {
-
             }
             finally
             {
@@ -1895,10 +1799,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
             BitConverter.GetBytes(DateTime.UtcNow.ToBinary())).ConfigureAwait(false);
     }
 
-    public bool IsConnectionHealthy(uint connectId)
-    {
-        return _nativeSessions.Get(connectId).IsOk;
-    }
+    public bool IsConnectionHealthy(uint connectId) => _nativeSessions.Get(connectId).IsOk;
 
     public async Task<Result<bool, NetworkFailure>> TryRestoreConnectionAsync(uint connectId)
     {
@@ -1972,7 +1873,8 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         if (networkResult.IsErr &&
             networkResult.UnwrapErr().FailureType == NetworkFailureType.MASTER_KEY_SHARES_NOT_FOUND)
         {
-            Log.Warning("[RecreateProtocolWithMasterKey] Server missing master key shares, falling back to fresh handshake");
+            Log.Warning(
+                "[RecreateProtocolWithMasterKey] Server missing master key shares, falling back to fresh handshake");
 
             _nativeSessions.ClearServerKyberKey(connectId);
             Log.Debug("[HANDSHAKE-RETRY] Cleared stale Kyber key for connectId {ConnectId}", connectId);
@@ -1986,6 +1888,7 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
                 {
                     ExitOutage();
                 }
+
                 return Result<Unit, NetworkFailure>.Ok(Unit.Value);
             }
 
@@ -2013,8 +1916,6 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
         byte[]? proof = null;
         byte[]? clientNonce = null;
         byte[]? serverNonce = null;
-        EcliptixIdentityKeysWrapper? nativeIdentity = null;
-        RpcRequestContext? requestContext = null;
 
         try
         {
@@ -2046,13 +1947,13 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
                     nativeIdentityResult.UnwrapErr().ToNetworkFailure());
             }
 
-            nativeIdentity = nativeIdentityResult.Unwrap();
+            EcliptixIdentityKeysWrapper nativeIdentity = nativeIdentityResult.Unwrap();
 
             _nativeSessions.Remove(connectId);
             CancelOperationsForConnection(connectId);
             const PubKeyExchangeType exchangeType = PubKeyExchangeType.DataCenterEphemeralConnect;
             Result<NativeProtocolSession, EcliptixProtocolFailure> nativeSessionResult =
-                _nativeSessions.CreateOrReplace(connectId, nativeIdentity, this.OnProtocolStateChanged);
+                _nativeSessions.CreateOrReplace(connectId, nativeIdentity, OnProtocolStateChanged);
             if (nativeSessionResult.IsErr)
             {
                 await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
@@ -2062,7 +1963,8 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
 
             NativeProtocolSession nativeSession = nativeSessionResult.Unwrap();
 
-            Result<byte[], NetworkFailure> kyberResult = await FetchPerConnectionKyberKeyAsync(connectId).ConfigureAwait(false);
+            Result<byte[], NetworkFailure> kyberResult =
+                await FetchPerConnectionKyberKeyAsync(connectId).ConfigureAwait(false);
             if (kyberResult.IsErr)
             {
                 await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
@@ -2070,7 +1972,8 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
             }
 
             byte[] serverKyberKey = kyberResult.Unwrap();
-            Log.Debug("[AUTH-HANDSHAKE] Using fresh per-connection Kyber key for connectId {ConnectId}, length: {Length}",
+            Log.Debug(
+                "[AUTH-HANDSHAKE] Using fresh per-connection Kyber key for connectId {ConnectId}, length: {Length}",
                 connectId, serverKyberKey.Length);
 
             Result<byte[], EcliptixProtocolFailure> nativeHandshake = nativeSession
@@ -2101,16 +2004,16 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
             }
 
             serverNonce = serverNonceResult.Unwrap();
-            if (serverNonce.Length != AuthenticatedEstablishClientNonceLength)
+            if (serverNonce.Length != AUTHENTICATED_ESTABLISH_CLIENT_NONCE_LENGTH)
             {
                 await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
                 return Result<Unit, NetworkFailure>.Err(
                     NetworkFailure.InvalidRequestType(
-                        $"Server nonce has invalid length (expected {AuthenticatedEstablishClientNonceLength})"));
+                        $"Server nonce has invalid length (expected {AUTHENTICATED_ESTABLISH_CLIENT_NONCE_LENGTH})"));
             }
 
-            clientNonce = RandomNumberGenerator.GetBytes(AuthenticatedEstablishClientNonceLength);
-            requestContext = RpcRequestContext.CreateNew();
+            clientNonce = RandomNumberGenerator.GetBytes(AUTHENTICATED_ESTABLISH_CLIENT_NONCE_LENGTH);
+            RpcRequestContext requestContext = RpcRequestContext.CreateNew();
 
             string appDeviceId = _dependencies.RpcMetaDataProvider.DeviceId.ToString("N");
             string appInstanceId = _dependencies.RpcMetaDataProvider.AppInstanceId.ToString("N");
@@ -2130,11 +2033,12 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
 
             AuthenticatedSessionHandshakeRequest authenticatedRequest = new()
             {
-                Identity = new AuthenticatedSessionHandshakeRequest.Types.Identity
-                {
-                    MembershipId = membershipIdentifier,
-                    AccountId = accountIdentifier
-                },
+                Identity =
+                    new AuthenticatedSessionHandshakeRequest.Types.Identity
+                    {
+                        MembershipId = membershipIdentifier,
+                        AccountId = accountIdentifier
+                    },
                 Cryptography = new AuthenticatedSessionHandshakeRequest.Types.Cryptography
                 {
                     MasterKeyFingerprint = ByteString.CopyFrom(masterKeyFingerprint),
@@ -2235,26 +2139,32 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
             {
                 CryptographicOperations.ZeroMemory(proofInput);
             }
+
             if (proof != null)
             {
                 CryptographicOperations.ZeroMemory(proof);
             }
+
             if (clientNonce != null)
             {
                 CryptographicOperations.ZeroMemory(clientNonce);
             }
+
             if (serverNonce != null)
             {
                 CryptographicOperations.ZeroMemory(serverNonce);
             }
+
             if (rootKey != null)
             {
                 CryptographicOperations.ZeroMemory(rootKey);
             }
+
             if (masterKeyBytes != null)
             {
                 CryptographicOperations.ZeroMemory(masterKeyBytes);
             }
+
             if (masterKeyFingerprint != null)
             {
                 CryptographicOperations.ZeroMemory(masterKeyFingerprint);
@@ -2264,7 +2174,6 @@ public sealed partial class NetworkProvider : INetworkProvider, IDisposable, IPr
 
     private async Task CleanupFailedAuthenticationAsync(uint connectId)
     {
-
         _nativeSessions.ClearServerKyberKey(connectId);
         _nativeSessions.ClearServerNonce(connectId);
 

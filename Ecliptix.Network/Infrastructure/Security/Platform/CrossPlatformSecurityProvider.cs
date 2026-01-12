@@ -277,10 +277,7 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         return (byte[])_cachedHmacKey.Clone();
     }
 
-    public bool IsHardwareSecurityAvailable()
-    {
-        return IsPlatformKeychainAvailable();
-    }
+    public bool IsHardwareSecurityAvailable() => IsPlatformKeychainAvailable();
 
     private static bool IsPlatformKeychainAvailable()
     {

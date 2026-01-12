@@ -15,7 +15,6 @@ namespace Ecliptix.Network.Infrastructure.Network.Core.Providers;
 
 public sealed partial class NetworkProvider
 {
-
     private async Task<Result<byte[], NetworkFailure>> FetchPerConnectionKyberKeyAsync(
         uint connectId,
         CancellationToken cancellationToken = default)
@@ -52,7 +51,7 @@ public sealed partial class NetworkProvider
         if (!response.ServerNonce.IsEmpty)
         {
             byte[] serverNonce = response.ServerNonce.ToByteArray();
-            if (serverNonce.Length == AuthenticatedEstablishClientNonceLength)
+            if (serverNonce.Length == AUTHENTICATED_ESTABLISH_CLIENT_NONCE_LENGTH)
             {
                 _nativeSessions.StoreServerNonce(connectId, serverNonce);
                 Log.Debug("[SECURITY] Stored server nonce for connectId {ConnectId}, length: {Length}",
@@ -60,8 +59,9 @@ public sealed partial class NetworkProvider
             }
             else
             {
-                Log.Warning("[SECURITY] Ignoring server nonce with invalid length ({Length}, expected {ExpectedLength}) for connectId {ConnectId}",
-                    serverNonce.Length, AuthenticatedEstablishClientNonceLength, connectId);
+                Log.Warning(
+                    "[SECURITY] Ignoring server nonce with invalid length ({Length}, expected {ExpectedLength}) for connectId {ConnectId}",
+                    serverNonce.Length, AUTHENTICATED_ESTABLISH_CLIENT_NONCE_LENGTH, connectId);
                 _nativeSessions.ClearServerNonce(connectId);
             }
         }
@@ -87,9 +87,12 @@ public sealed partial class NetworkProvider
 
         NativeProtocolSession nativeSession = nativeSessionResult.Unwrap();
 
-        Log.Debug("[SECURITY] PrepareSecrecyChannelEnvelopeAsync - Fetching fresh per-connection Kyber key for connectId {ConnectId}", connectId);
+        Log.Debug(
+            "[SECURITY] PrepareSecrecyChannelEnvelopeAsync - Fetching fresh per-connection Kyber key for connectId {ConnectId}",
+            connectId);
 
-        Result<byte[], NetworkFailure> kyberResult = await FetchPerConnectionKyberKeyAsync(connectId).ConfigureAwait(false);
+        Result<byte[], NetworkFailure> kyberResult =
+            await FetchPerConnectionKyberKeyAsync(connectId).ConfigureAwait(false);
         if (kyberResult.IsErr)
         {
             return Result<(SecureEnvelope, CertificatePinningService), NetworkFailure>.Err(kyberResult.UnwrapErr());
@@ -218,7 +221,6 @@ public sealed partial class NetworkProvider
         pubKeyExchange.Payload = bundle.ToByteString();
 
         return Result<PubKeyExchange, NetworkFailure>.Ok(pubKeyExchange);
-
     }
 
     private async Task<Result<(SecureEnvelope Envelope, CertificatePinningService Service), NetworkFailure>>
@@ -264,7 +266,6 @@ public sealed partial class NetworkProvider
             catch (Exception ex)
             {
                 Log.Warning("[SECURITY] Failed to extract server Kyber key from response: {Error}", ex.Message);
-
             }
         }
 
@@ -277,17 +278,29 @@ public sealed partial class NetworkProvider
 
     private static byte[] DeriveRootKeyFromMasterKey(byte[] masterKey, Guid accountId)
     {
-        const string rootKeyInfo = "ecliptix-protocol-root-key";
-        byte[] saltBytes = accountId.ToByteArray();
-        byte[] infoBytes = System.Text.Encoding.UTF8.GetBytes($"{rootKeyInfo}:v1:{accountId}");
+        const int guidSize = 16;
+        const int infoPrefixLength = 28;
+        const int guidStringLength = 36;
+        const int totalInfoLength = infoPrefixLength + guidStringLength;
+
+        Span<byte> salt = stackalloc byte[guidSize];
+        accountId.TryWriteBytes(salt);
+
+        Span<char> guidChars = stackalloc char[guidStringLength];
+        accountId.TryFormat(guidChars, out _);
+
+        Span<byte> info = stackalloc byte[totalInfoLength];
+        "ecliptix-protocol-root-key:v1:"u8.CopyTo(info);
+        System.Text.Encoding.UTF8.GetBytes(guidChars, info[infoPrefixLength..]);
+
         byte[] rootKey = new byte[32];
 
         HKDF.DeriveKey(
             HashAlgorithmName.SHA512,
             ikm: masterKey,
             output: rootKey,
-            salt: saltBytes,
-            info: infoBytes);
+            salt: salt,
+            info: info);
 
         return rootKey;
     }

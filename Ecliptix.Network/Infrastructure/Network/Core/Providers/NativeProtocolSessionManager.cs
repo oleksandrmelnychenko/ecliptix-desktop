@@ -40,38 +40,6 @@ internal sealed class NativeProtocolSessionManager : IDisposable
         return Result<NativeProtocolSession, EcliptixProtocolFailure>.Ok(session);
     }
 
-    public Result<NativeProtocolSession, EcliptixProtocolFailure> CreateOrReplaceFromRoot(
-        uint connectId,
-        EcliptixIdentityKeysWrapper identity,
-        byte[] rootKey,
-        byte[] peerBundle,
-        bool isInitiator,
-        Action<uint>? onProtocolStateChanged = null)
-    {
-        if (_disposed)
-        {
-            return Result<NativeProtocolSession, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.OBJECT_DISPOSED(nameof(NativeProtocolSessionManager)));
-        }
-
-        if (_sessions.TryRemove(connectId, out NativeProtocolSession? existing))
-        {
-            existing.Dispose();
-        }
-
-        Result<NativeProtocolSession, EcliptixProtocolFailure> createResult =
-            NativeProtocolSession.CreateFromRoot(identity, rootKey, peerBundle, isInitiator);
-        if (createResult.IsErr)
-        {
-            return createResult;
-        }
-
-        NativeProtocolSession session = createResult.Unwrap();
-        session.SetEventHandler(onProtocolStateChanged);
-        _sessions[connectId] = session;
-        return Result<NativeProtocolSession, EcliptixProtocolFailure>.Ok(session);
-    }
-
     public Result<NativeProtocolSession, EcliptixProtocolFailure> Get(uint connectId)
     {
         if (_disposed)
@@ -145,15 +113,9 @@ internal sealed class NativeProtocolSessionManager : IDisposable
             EcliptixProtocolFailure.Generic("No server nonce found"));
     }
 
-    public void ClearServerKyberKey(uint connectId)
-    {
-        _serverKyberKeys.TryRemove(connectId, out _);
-    }
+    public void ClearServerKyberKey(uint connectId) => _serverKyberKeys.TryRemove(connectId, out _);
 
-    public void ClearServerNonce(uint connectId)
-    {
-        _serverNonces.TryRemove(connectId, out _);
-    }
+    public void ClearServerNonce(uint connectId) => _serverNonces.TryRemove(connectId, out _);
 
     public IEnumerable<uint> ActiveConnectionIds()
     {

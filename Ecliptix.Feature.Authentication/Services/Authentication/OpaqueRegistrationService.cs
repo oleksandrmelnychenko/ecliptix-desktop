@@ -60,7 +60,7 @@ public sealed class OpaqueRegistrationService(
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
             RpcServiceType.ValidateMobileNumber,
-            SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()), payload =>
+            request.ToByteArray(), payload =>
             {
                 MobileNumberValidateResponse response = Helpers.ParseFromBytes<MobileNumberValidateResponse>(payload);
                 responseSource.TrySetResult(response);
