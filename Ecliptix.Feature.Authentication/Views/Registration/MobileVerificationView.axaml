@@ -5,11 +5,12 @@
              xmlns:coreControls="clr-namespace:Ecliptix.Core.Controls.Core;assembly=Ecliptix.Core"
              xmlns:hintedTextControls="clr-namespace:Ecliptix.Core.Controls.Core.HintedTextControls;assembly=Ecliptix.Core"
              xmlns:signUp="clr-namespace:Ecliptix.Feature.Authentication.ViewModels.Registration"
+             xmlns:mobileVerification="clr-namespace:Ecliptix.Feature.Authentication.ViewModels.Registration.MobileVerification"
              mc:Ignorable="d"
              d:DesignWidth="{StaticResource Content.MaxWidth}"
              d:DesignHeight="400"
              x:Class="Ecliptix.Feature.Authentication.Views.Registration.MobileVerificationView"
-             x:DataType="signUp:MobileVerificationViewModel"
+             x:DataType="mobileVerification:MobileVerificationViewModel"
              MinWidth="{StaticResource Content.MaxWidth}"
              Width="{StaticResource Content.MaxWidth}">
 

@@ -245,7 +245,7 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
             }
         }
 
-        Log.Warning("[COMPLETE-PROFILE-VM] Cannot retrieve AccountId from storage.");
+        Log.Warning("[COMPLETE-PROFILE-VM] Cannot retrieve AccountId from storage");
         return Option<Guid>.None;
     }
 

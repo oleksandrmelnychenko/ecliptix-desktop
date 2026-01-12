@@ -178,7 +178,6 @@ public sealed partial class SecureKeyConfirmationViewModel : Core.MVVM.ViewModel
 
     private void SetupSubscriptions()
     {
-
         this.WhenActivated(disposables =>
         {
             Observable.FromAsync(LoadMembershipAsync)

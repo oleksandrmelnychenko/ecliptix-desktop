@@ -13,7 +13,6 @@ public sealed class PassPhaseViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 {
     private readonly CompositeDisposable _disposables = new();
 
-    private string _passPhase = string.Empty;
     private bool _isDisposed;
 
     public PassPhaseViewModel(
@@ -35,9 +34,9 @@ public sealed class PassPhaseViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     public string PassPhase
     {
-        get => _passPhase;
-        set => this.RaiseAndSetIfChanged(ref _passPhase, value);
-    }
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    } = string.Empty;
 
     public void ResetState()
     {
