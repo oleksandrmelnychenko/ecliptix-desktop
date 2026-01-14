@@ -45,7 +45,7 @@ internal sealed class MobileVerificationFlowCoordinator(
         uint connectId,
         CancellationToken cancellationToken)
     {
-        string fullNumber = PhoneNumberHelper.CombineWithPrefix(phonePrefix, rawMobileNumber);
+        string fullNumber = MobileNumberHelper.CombineWithPrefix(phonePrefix, rawMobileNumber);
 
         Result<MobileNumberValidateResponse, string> validationResult =
             await authRepository.ValidateMobileNumberAsync(fullNumber, connectId, cancellationToken);
@@ -176,7 +176,7 @@ internal sealed class MobileVerificationFlowCoordinator(
         uint connectId,
         CancellationToken cancellationToken)
     {
-        string fullNumber = PhoneNumberHelper.CombineWithPrefix(phonePrefix, rawMobileNumber);
+        string fullNumber = MobileNumberHelper.CombineWithPrefix(phonePrefix, rawMobileNumber);
 
         Result<ByteString, string> recoveryValidationResult =
             await authRepository.ValidateMobileForRecoveryAsync(fullNumber, connectId, cancellationToken);

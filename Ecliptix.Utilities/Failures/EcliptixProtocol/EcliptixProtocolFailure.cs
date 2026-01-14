@@ -21,15 +21,15 @@ public record EcliptixProtocolFailure(
 
     public static EcliptixProtocolFailure InvalidInput(string details) => new(EcliptixProtocolFailureType.INVALID_INPUT, details);
 
-    public static EcliptixProtocolFailure OBJECT_DISPOSED(string resourceName) => new(EcliptixProtocolFailureType.OBJECT_DISPOSED, $"Cannot access disposed resource '{resourceName}'.");
+    public static EcliptixProtocolFailure ObjectDisposed(string resourceName) => new(EcliptixProtocolFailureType.OBJECT_DISPOSED, $"Cannot access disposed resource '{resourceName}'.");
 
-    public static EcliptixProtocolFailure ALLOCATION_FAILED(string details, Exception? inner = null) => new(EcliptixProtocolFailureType.ALLOCATION_FAILED, details, inner);
+    public static EcliptixProtocolFailure AllocationFailed(string details, Exception? inner = null) => new(EcliptixProtocolFailureType.ALLOCATION_FAILED, details, inner);
 
     public static EcliptixProtocolFailure PinningFailure(string details, Exception? inner = null) => new(EcliptixProtocolFailureType.PINNING_FAILURE, details, inner);
 
-    public static EcliptixProtocolFailure BUFFER_TOO_SMALL(string details) => new(EcliptixProtocolFailureType.BUFFER_TOO_SMALL, details);
+    public static EcliptixProtocolFailure BufferTooSmall(string details) => new(EcliptixProtocolFailureType.BUFFER_TOO_SMALL, details);
 
-    public static EcliptixProtocolFailure DATA_TOO_LARGE(string details) => new(EcliptixProtocolFailureType.DATA_TOO_LARGE, details);
+    public static EcliptixProtocolFailure DataTooLarge(string details) => new(EcliptixProtocolFailureType.DATA_TOO_LARGE, details);
 
     public static EcliptixProtocolFailure KeyGeneration(string details, Exception? inner = null) => new(EcliptixProtocolFailureType.KEY_GENERATION_FAILED, details, inner);
 
@@ -41,16 +41,13 @@ public record EcliptixProtocolFailure(
 
     public static EcliptixProtocolFailure SessionExpired(string details, Exception? inner = null) => new(EcliptixProtocolFailureType.SESSION_EXPIRED, details, inner);
 
-    public override object ToStructuredLog()
+    public override object ToStructuredLog() => new
     {
-        return new
-        {
-            ProtocolFailureType = FailureType.ToString(),
-            Message,
-            InnerException,
-            Timestamp
-        };
-    }
+        ProtocolFailureType = FailureType.ToString(),
+        Message,
+        InnerException = InnerException?.Message,
+        Timestamp
+    };
 
     public NetworkFailure ToNetworkFailure()
     {
@@ -65,5 +62,27 @@ public record EcliptixProtocolFailure(
     }
 
     public override GrpcErrorDescriptor ToGrpcDescriptor() =>
-        new(ErrorCode.INTERNAL_ERROR, StatusCode.Internal, ErrorI18NKeys.INTERNAL);
+        FailureType switch
+        {
+            EcliptixProtocolFailureType.SESSION_EXPIRED => new GrpcErrorDescriptor(
+                ErrorCode.UNAUTHENTICATED, StatusCode.Unauthenticated, ErrorI18NKeys.UNAUTHENTICATED),
+            EcliptixProtocolFailureType.STATE_MISMATCH => new GrpcErrorDescriptor(
+                ErrorCode.PRECONDITION_FAILED, StatusCode.FailedPrecondition, ErrorI18NKeys.PRECONDITION_FAILED),
+            EcliptixProtocolFailureType.HANDSHAKE_FAILED => new GrpcErrorDescriptor(
+                ErrorCode.PRECONDITION_FAILED, StatusCode.FailedPrecondition, ErrorI18NKeys.PRECONDITION_FAILED),
+            EcliptixProtocolFailureType.PEER_PUB_KEY_FAILED => new GrpcErrorDescriptor(
+                ErrorCode.PRECONDITION_FAILED, StatusCode.FailedPrecondition, ErrorI18NKeys.PRECONDITION_FAILED),
+            EcliptixProtocolFailureType.PREPARE_LOCAL_FAILED => new GrpcErrorDescriptor(
+                ErrorCode.PRECONDITION_FAILED, StatusCode.FailedPrecondition, ErrorI18NKeys.PRECONDITION_FAILED),
+            EcliptixProtocolFailureType.INVALID_INPUT => new GrpcErrorDescriptor(
+                ErrorCode.VALIDATION_FAILED, StatusCode.InvalidArgument, ErrorI18NKeys.VALIDATION),
+            EcliptixProtocolFailureType.BUFFER_TOO_SMALL => new GrpcErrorDescriptor(
+                ErrorCode.VALIDATION_FAILED, StatusCode.InvalidArgument, ErrorI18NKeys.VALIDATION),
+            EcliptixProtocolFailureType.DATA_TOO_LARGE => new GrpcErrorDescriptor(
+                ErrorCode.VALIDATION_FAILED, StatusCode.InvalidArgument, ErrorI18NKeys.VALIDATION),
+            EcliptixProtocolFailureType.ALLOCATION_FAILED => new GrpcErrorDescriptor(
+                ErrorCode.RESOURCE_EXHAUSTED, StatusCode.ResourceExhausted, ErrorI18NKeys.RESOURCE_EXHAUSTED),
+            _ => new GrpcErrorDescriptor(
+                ErrorCode.INTERNAL_ERROR, StatusCode.Internal, ErrorI18NKeys.INTERNAL)
+        };
 }

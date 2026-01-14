@@ -17,8 +17,8 @@ public static partial class MobileNumberValidator
                 MobileNumberValidatorConstants.LocalizationKeys.CANNOT_BE_EMPTY, null),
             (s => !IsAllowedCharactersRegex().IsMatch(s),
                 MobileNumberValidatorConstants.LocalizationKeys.CONTAINS_NON_DIGITS, null),
-            (s => PhoneNumberHelper.Normalize(s).Length < MobileNumberValidatorConstants.ValidationRules.MIN_DIGITS
-                  || PhoneNumberHelper.Normalize(s).Length > MobileNumberValidatorConstants.ValidationRules.MAX_DIGITS,
+            (s => MobileNumberHelper.Normalize(s).Length < MobileNumberValidatorConstants.ValidationRules.MIN_DIGITS
+                  || MobileNumberHelper.Normalize(s).Length > MobileNumberValidatorConstants.ValidationRules.MAX_DIGITS,
                 MobileNumberValidatorConstants.LocalizationKeys.INCORRECT_LENGTH,
                 [MobileNumberValidatorConstants.ValidationRules.MIN_DIGITS,
                     MobileNumberValidatorConstants.ValidationRules.MAX_DIGITS])

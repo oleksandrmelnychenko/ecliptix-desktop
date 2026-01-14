@@ -34,10 +34,10 @@ public record AuthenticationFailure(
     public static AuthenticationFailure UnexpectedError(string details, Exception? inner = null) =>
         new(AuthenticationFailureType.UNEXPECTED_ERROR, details, inner);
 
-    public static AuthenticationFailure SECURE_MEMORY_ALLOCATION_FAILED(string details, Exception? inner = null) =>
+    public static AuthenticationFailure SecureMemoryAllocationFailed(string details, Exception? inner = null) =>
         new(AuthenticationFailureType.SECURE_MEMORY_ALLOCATION_FAILED, details, inner);
 
-    public static AuthenticationFailure SECURE_MEMORY_WRITE_FAILED(string details, Exception? inner = null) =>
+    public static AuthenticationFailure SecureMemoryWriteFailed(string details, Exception? inner = null) =>
         new(AuthenticationFailureType.SECURE_MEMORY_WRITE_FAILED, details, inner);
 
     public static AuthenticationFailure KeyDerivationFailed(string details, Exception? inner = null) =>
@@ -50,7 +50,7 @@ public record AuthenticationFailure(
         new(AuthenticationFailureType.NETWORK_REQUEST_FAILED, details, inner);
 
     public static AuthenticationFailure InvalidMembershipIdentifier(string details, Exception? inner = null) =>
-        new(AuthenticationFailureType.INVALID_MEMBERSHIP_IDENTIFIER, details, inner);
+        new(AuthenticationFailureType.INVALID_MEMBERSHIP_ID, details, inner);
 
     public static AuthenticationFailure IdentityStorageFailed(string details, Exception? inner = null) =>
         new(AuthenticationFailureType.IDENTITY_STORAGE_FAILED, details, inner);
@@ -74,7 +74,7 @@ public record AuthenticationFailure(
                 ErrorCode.VALIDATION_FAILED, StatusCode.InvalidArgument, ErrorI18NKeys.VALIDATION),
             AuthenticationFailureType.NETWORK_REQUEST_FAILED => new GrpcErrorDescriptor(
                 ErrorCode.SERVICE_UNAVAILABLE, StatusCode.Unavailable, ErrorI18NKeys.SERVICE_UNAVAILABLE, Retryable: true),
-            AuthenticationFailureType.INVALID_MEMBERSHIP_IDENTIFIER => new GrpcErrorDescriptor(
+            AuthenticationFailureType.INVALID_MEMBERSHIP_ID => new GrpcErrorDescriptor(
                 ErrorCode.NOT_FOUND, StatusCode.NotFound, ErrorI18NKeys.NOT_FOUND),
             AuthenticationFailureType.CRITICAL_AUTHENTICATION_ERROR => new GrpcErrorDescriptor(
                 ErrorCode.UNAUTHENTICATED, StatusCode.Unauthenticated, ErrorI18NKeys.UNAUTHENTICATED),

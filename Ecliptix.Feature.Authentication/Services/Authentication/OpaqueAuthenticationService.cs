@@ -724,7 +724,7 @@ public sealed class OpaqueAuthenticationService(
             if (masterKeyHandleResult.IsErr)
             {
                 return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
-                    AuthenticationFailure.SECURE_MEMORY_ALLOCATION_FAILED(masterKeyHandleResult.UnwrapErr().Message));
+                    AuthenticationFailure.SecureMemoryAllocationFailed(masterKeyHandleResult.UnwrapErr().Message));
             }
 
             SodiumSecureMemoryHandle masterKeyHandle = masterKeyHandleResult.Unwrap();
@@ -737,7 +737,7 @@ public sealed class OpaqueAuthenticationService(
 
             masterKeyHandle.Dispose();
             return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
-                AuthenticationFailure.SECURE_MEMORY_WRITE_FAILED(writeResult.UnwrapErr().Message));
+                AuthenticationFailure.SecureMemoryWriteFailed(writeResult.UnwrapErr().Message));
         }
         finally
         {

@@ -4,18 +4,10 @@ public static class SecureStorageConstants
 {
     public static class Encryption
     {
-        public const int SALT_SIZE = 32;
         public const int NONCE_SIZE = 12;
         public const int TAG_SIZE = 16;
         public const int KEY_SIZE = 32;
         public const int HMAC_SHA_512_SIZE = 64;
-    }
-
-    public static class Argon2
-    {
-        public const int ITERATIONS = 4;
-        public const int MEMORY_SIZE = 131072;
-        public const int PARALLELISM = 4;
     }
 
     public static class Header

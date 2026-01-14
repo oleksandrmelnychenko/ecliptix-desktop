@@ -25,7 +25,7 @@ public record LogoutFailure(
     public static LogoutFailure AlreadyLoggedOut(string details, Exception? inner = null) =>
         new(LogoutFailureType.ALREADY_LOGGED_OUT, details, inner);
 
-    public static LogoutFailure SESSION_NOT_FOUND(string details, Exception? inner = null) =>
+    public static LogoutFailure SessionNotFound(string details, Exception? inner = null) =>
         new(LogoutFailureType.SESSION_NOT_FOUND, details, inner);
 
     public static LogoutFailure InvalidMembershipIdentifier(string details, Exception? inner = null) =>

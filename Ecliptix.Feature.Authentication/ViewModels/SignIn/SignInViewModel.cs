@@ -284,7 +284,7 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
         SignInCommand = ReactiveCommand.CreateFromTask(
             async () =>
             {
-                string fullNumber = PhoneNumberHelper.CombineWithPrefix(PhonePrefix, MobileNumber);
+                string fullNumber = MobileNumberHelper.CombineWithPrefix(PhonePrefix, MobileNumber);
                 CancellationTokenSource cts = RecreateCancellationToken(ref _signInCancellationTokenSource);
                 uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
                 CancellationToken cancellationToken = cts.Token;

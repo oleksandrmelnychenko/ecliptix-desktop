@@ -1,20 +1,32 @@
-using System.Runtime.CompilerServices;
+using Grpc.Core;
 
 namespace Ecliptix.Utilities.Failures.RpcMetaData;
 
-public sealed class MetaDataSystemFailure
+public sealed record MetaDataSystemFailure(
+    MetaDataSystemFailureType FailureType,
+    string Message,
+    Exception? InnerException = null)
+    : FailureBase(Message, InnerException)
 {
-    private MetaDataSystemFailure(MetaDataSystemFailureType type, string? message, Exception? innerException = null)
+    public override object ToStructuredLog() => new
     {
-        Type = type;
-        Message = message;
-        InnerException = innerException;
-    }
+        MetaDataSystemFailureType = FailureType.ToString(),
+        Message,
+        InnerException = InnerException?.Message,
+        Timestamp
+    };
 
-    public MetaDataSystemFailureType Type { get; }
-    public string? Message { get; }
-    public Exception? InnerException { get; }
+    public override GrpcErrorDescriptor ToGrpcDescriptor() =>
+        FailureType switch
+        {
+            MetaDataSystemFailureType.REQUIRED_COMPONENT_NOT_FOUND => new GrpcErrorDescriptor(
+                ErrorCode.PRECONDITION_FAILED, StatusCode.FailedPrecondition, ErrorI18NKeys.PRECONDITION_FAILED),
+            MetaDataSystemFailureType.OPTIONAL => new GrpcErrorDescriptor(
+                ErrorCode.INTERNAL_ERROR, StatusCode.Internal, ErrorI18NKeys.INTERNAL),
+            _ => new GrpcErrorDescriptor(
+                ErrorCode.INTERNAL_ERROR, StatusCode.Internal, ErrorI18NKeys.INTERNAL)
+        };
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static MetaDataSystemFailure ComponentNotFound(string? details = null) => new(MetaDataSystemFailureType.REQUIRED_COMPONENT_NOT_FOUND, details);
+    public static MetaDataSystemFailure ComponentNotFound(string? details = null) =>
+        new(MetaDataSystemFailureType.REQUIRED_COMPONENT_NOT_FOUND, details ?? "Required component not found");
 }

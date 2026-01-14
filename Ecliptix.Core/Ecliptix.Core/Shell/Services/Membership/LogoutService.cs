@@ -312,7 +312,7 @@ internal sealed class LogoutService(
             LogoutResponse.Types.Result.LogoutResultAlreadyLoggedOut => Result<LogoutResponse, LogoutFailure>.Err(
                 LogoutFailure.AlreadyLoggedOut("Session is already logged out on the server")),
             LogoutResponse.Types.Result.LogoutResultSessionNotFound => Result<LogoutResponse, LogoutFailure>.Err(
-                LogoutFailure.SESSION_NOT_FOUND("Active session was not found on the server")),
+                LogoutFailure.SessionNotFound("Active session was not found on the server")),
             LogoutResponse.Types.Result.LogoutResultInvalidTimestamp => Result<LogoutResponse, LogoutFailure>.Err(
                 LogoutFailure.UnexpectedError("Server rejected logout due to timestamp mismatch")),
             LogoutResponse.Types.Result.LogoutResultInvalidHmac => Result<LogoutResponse, LogoutFailure>.Err(

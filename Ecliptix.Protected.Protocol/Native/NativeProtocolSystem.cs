@@ -7,15 +7,15 @@ public static class NativeProtocolSystem
 {
     public static Result<Unit, EcliptixProtocolFailure> Initialize()
     {
-        NativeInterop.EcliptixErrorCode result = NativeInterop.ecliptix_initialize();
-        return result == NativeInterop.EcliptixErrorCode.Success
+        NativeInterop.EppErrorCode result = NativeInterop.epp_init();
+        return result == NativeInterop.EppErrorCode.Success
             ? Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value)
             : Result<Unit, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.Generic(
                     $"Failed to initialize native protocol: {NativeInterop.ErrorCodeToString(result)}"));
     }
 
-    public static void Shutdown() => NativeInterop.ecliptix_shutdown();
+    public static void Shutdown() => NativeInterop.epp_shutdown();
 
     public static Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure> CreateIdentity()
         => EcliptixIdentityKeysWrapper.Create();

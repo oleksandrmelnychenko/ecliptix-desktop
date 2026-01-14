@@ -20,7 +20,7 @@ internal sealed class NativeProtocolSessionManager : IDisposable
         if (_disposed)
         {
             return Result<NativeProtocolSession, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.OBJECT_DISPOSED(nameof(NativeProtocolSessionManager)));
+                EcliptixProtocolFailure.ObjectDisposed(nameof(NativeProtocolSessionManager)));
         }
 
         if (_sessions.TryRemove(connectId, out NativeProtocolSession? existing))
@@ -45,7 +45,7 @@ internal sealed class NativeProtocolSessionManager : IDisposable
         if (_disposed)
         {
             return Result<NativeProtocolSession, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.OBJECT_DISPOSED(nameof(NativeProtocolSessionManager)));
+                EcliptixProtocolFailure.ObjectDisposed(nameof(NativeProtocolSessionManager)));
         }
 
         if (_sessions.TryGetValue(connectId, out NativeProtocolSession? session))
@@ -84,7 +84,7 @@ internal sealed class NativeProtocolSessionManager : IDisposable
         if (_disposed)
         {
             return Result<byte[], EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.OBJECT_DISPOSED(nameof(NativeProtocolSessionManager)));
+                EcliptixProtocolFailure.ObjectDisposed(nameof(NativeProtocolSessionManager)));
         }
 
         if (_serverKyberKeys.TryGetValue(connectId, out byte[]? key))
@@ -101,7 +101,7 @@ internal sealed class NativeProtocolSessionManager : IDisposable
         if (_disposed)
         {
             return Result<byte[], EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.OBJECT_DISPOSED(nameof(NativeProtocolSessionManager)));
+                EcliptixProtocolFailure.ObjectDisposed(nameof(NativeProtocolSessionManager)));
         }
 
         if (_serverNonces.TryGetValue(connectId, out byte[]? nonce))
@@ -139,7 +139,7 @@ internal sealed class NativeProtocolSessionManager : IDisposable
         if (_disposed)
         {
             return Result<NativeProtocolSession, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.OBJECT_DISPOSED(nameof(NativeProtocolSessionManager)));
+                EcliptixProtocolFailure.ObjectDisposed(nameof(NativeProtocolSessionManager)));
         }
 
         if (_sessions.TryRemove(connectId, out NativeProtocolSession? existing))

@@ -12,6 +12,8 @@ namespace Ecliptix.Network.Infrastructure.Security.KeySplitting;
 
 public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecurityProvider) : IHardenedKeyDerivation
 {
+    public const string SESSION_KEY_PREFIX = "ecliptix-session-key";
+
     private async Task<Result<byte[], KeySplittingFailure>> DeriveEnhancedKeyAsync(
         byte[] baseKey,
         string context,
@@ -94,7 +96,7 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
 
     private static byte[] GenerateContextSalt(string context)
     {
-        string saltInput = $"{StorageKeyConstants.SessionContext.SESSION_KEY_PREFIX}:{context}";
+        string saltInput = $"{SESSION_KEY_PREFIX}:{context}";
         byte[] saltBytes = SHA256.HashData(Encoding.UTF8.GetBytes(saltInput));
         return saltBytes;
     }
@@ -104,7 +106,7 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
         return await Task.Run(() =>
         {
             Span<byte> infoBuffer = stackalloc byte[CryptographicConstants.Buffer.MAX_INFO_SIZE];
-            int infoLength = Encoding.UTF8.GetBytes($"{StorageKeyConstants.SessionContext.SESSION_KEY_PREFIX}-{context}", infoBuffer);
+            int infoLength = Encoding.UTF8.GetBytes($"{SESSION_KEY_PREFIX}-{context}", infoBuffer);
             ReadOnlySpan<byte> info = infoBuffer[..infoLength];
 
             byte[] salt = SHA256.HashData(Encoding.UTF8.GetBytes(context));
@@ -165,11 +167,13 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
 
             Span<byte> roundBuffer = stackalloc byte[CryptographicConstants.Buffer.MAX_ROUND_SIZE];
 
+            Span<byte> roundKey = stackalloc byte[64];
+
             for (int round = 0; round < CryptographicConstants.KeyDerivation.ADDITIONAL_ROUNDS_COUNT; round++)
             {
                 using HMACSHA512 hmac = new(result);
                 int roundInputLength = Encoding.UTF8.GetBytes(string.Format(CryptographicConstants.KeyDerivation.ROUND_KEY_FORMAT, round), roundBuffer);
-                byte[] roundKey = hmac.ComputeHash(roundBuffer[..roundInputLength].ToArray());
+                hmac.TryComputeHash(roundBuffer[..roundInputLength], roundKey, out _);
 
                 for (int i = 0; i < result.Length && i < roundKey.Length; i++)
                 {
@@ -219,7 +223,7 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
                 if (allocateResult.IsErr)
                 {
                     return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Err(
-                        KeySplittingFailure.ALLOCATION_FAILED(allocateResult.UnwrapErr().Message));
+                        KeySplittingFailure.AllocationFailed(allocateResult.UnwrapErr().Message));
                 }
 
                 SodiumSecureMemoryHandle handle = allocateResult.Unwrap();

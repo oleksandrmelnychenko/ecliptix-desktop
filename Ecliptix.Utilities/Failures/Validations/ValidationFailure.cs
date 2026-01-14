@@ -14,16 +14,13 @@ public record ValidationFailure(
     Exception? InnerException = null)
     : FailureBase(Message, InnerException)
 {
-    public override object ToStructuredLog()
+    public override object ToStructuredLog() => new
     {
-        return new
-        {
-            ValidationFailureType = FailureType.ToString(),
-            Message,
-            InnerException,
-            Timestamp
-        };
-    }
+        ValidationFailureType = FailureType.ToString(),
+        Message,
+        InnerException = InnerException?.Message,
+        Timestamp
+    };
 
     public static ValidationFailure SignInFailed(string details, Exception? inner = null) =>
         new(ValidationFailureType.SIGN_IN_FAILED, details, inner);

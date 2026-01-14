@@ -520,7 +520,7 @@ public sealed class IdentityService : IIdentityService
         if (allocResult.IsErr)
         {
             return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
-                AuthenticationFailure.SECURE_MEMORY_ALLOCATION_FAILED($"Failed to allocate secure memory: {allocResult.UnwrapErr().Message}"));
+                AuthenticationFailure.SecureMemoryAllocationFailed($"Failed to allocate secure memory: {allocResult.UnwrapErr().Message}"));
         }
 
         SodiumSecureMemoryHandle handle = allocResult.Unwrap();
@@ -529,7 +529,7 @@ public sealed class IdentityService : IIdentityService
         {
             handle.Dispose();
             return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
-                AuthenticationFailure.SECURE_MEMORY_WRITE_FAILED($"Failed to write to secure memory: {writeResult.UnwrapErr().Message}"));
+                AuthenticationFailure.SecureMemoryWriteFailed($"Failed to write to secure memory: {writeResult.UnwrapErr().Message}"));
         }
 
         return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Ok(handle);

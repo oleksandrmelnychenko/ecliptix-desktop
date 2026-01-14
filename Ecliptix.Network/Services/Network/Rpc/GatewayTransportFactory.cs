@@ -1,6 +1,7 @@
 using Ecliptix.Network.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.Transport.Common;
+using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Google.Protobuf;
 
@@ -81,6 +82,23 @@ internal static class GatewayTransportFactory
         }
 
         string code = metadata.Outcome.ErrorCode ?? "UNKNOWN";
-        return NetworkFailure.DataCenterNotResponding($"Transport reported error: {code}");
+        string messageKey = metadata.Outcome.MessageKey;
+        string localizedMessage = metadata.Outcome.LocalizedMessage;
+        bool retryable = metadata.Outcome.Retryable;
+
+        string displayMessage = !string.IsNullOrEmpty(localizedMessage)
+            ? localizedMessage
+            : $"Transport reported error: {code}";
+
+        var userError = new UserFacingError(
+            ErrorCode.SERVICE_UNAVAILABLE,
+            string.IsNullOrEmpty(messageKey) ? ErrorI18NKeys.INTERNAL : messageKey,
+            displayMessage,
+            retryable);
+
+        return NetworkFailure.DataCenterNotResponding(displayMessage) with
+        {
+            UserError = userError
+        };
     }
 }

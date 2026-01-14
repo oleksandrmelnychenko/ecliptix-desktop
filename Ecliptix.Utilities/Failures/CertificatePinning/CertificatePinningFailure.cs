@@ -8,16 +8,13 @@ public record CertificatePinningFailure(
     Exception? InnerException = null)
     : FailureBase(Message, InnerException)
 {
-    public override object ToStructuredLog()
+    public override object ToStructuredLog() => new
     {
-        return new
-        {
-            SslPinningFailureType = FailureType.ToString(),
-            Message,
-            InnerException,
-            Timestamp
-        };
-    }
+        CertificatePinningFailureType = FailureType.ToString(),
+        Message,
+        InnerException = InnerException?.Message,
+        Timestamp
+    };
 
     public static CertificatePinningFailure ServiceNotInitialized() =>
         new(CertificatePinningFailureType.SERVICE_NOT_INITIALIZED, CertificatePinningFailureMessages.SERVICE_NOT_INITIALIZED);
@@ -74,5 +71,35 @@ public record CertificatePinningFailure(
         new(CertificatePinningFailureType.SERVICE_INVALID_STATE, CertificatePinningFailureMessages.SERVICE_INVALID_STATE);
 
     public override GrpcErrorDescriptor ToGrpcDescriptor() =>
-        new(ErrorCode.INTERNAL_ERROR, StatusCode.Internal, ErrorI18NKeys.INTERNAL);
+        FailureType switch
+        {
+            CertificatePinningFailureType.SERVICE_NOT_INITIALIZED => new GrpcErrorDescriptor(
+                ErrorCode.PRECONDITION_FAILED, StatusCode.FailedPrecondition, ErrorI18NKeys.PRECONDITION_FAILED),
+            CertificatePinningFailureType.SERVICE_DISPOSED => new GrpcErrorDescriptor(
+                ErrorCode.PRECONDITION_FAILED, StatusCode.FailedPrecondition, ErrorI18NKeys.PRECONDITION_FAILED),
+            CertificatePinningFailureType.SERVICE_INITIALIZING => new GrpcErrorDescriptor(
+                ErrorCode.PRECONDITION_FAILED, StatusCode.FailedPrecondition, ErrorI18NKeys.PRECONDITION_FAILED),
+            CertificatePinningFailureType.SERVICE_INVALID_STATE => new GrpcErrorDescriptor(
+                ErrorCode.PRECONDITION_FAILED, StatusCode.FailedPrecondition, ErrorI18NKeys.PRECONDITION_FAILED),
+            CertificatePinningFailureType.LIBRARY_INITIALIZATION_FAILED => new GrpcErrorDescriptor(
+                ErrorCode.DEPENDENCY_UNAVAILABLE, StatusCode.Unavailable, ErrorI18NKeys.DEPENDENCY_UNAVAILABLE),
+            CertificatePinningFailureType.CERTIFICATE_DATA_REQUIRED => new GrpcErrorDescriptor(
+                ErrorCode.VALIDATION_FAILED, StatusCode.InvalidArgument, ErrorI18NKeys.VALIDATION),
+            CertificatePinningFailureType.HOSTNAME_REQUIRED => new GrpcErrorDescriptor(
+                ErrorCode.VALIDATION_FAILED, StatusCode.InvalidArgument, ErrorI18NKeys.VALIDATION),
+            CertificatePinningFailureType.PLAINTEXT_REQUIRED => new GrpcErrorDescriptor(
+                ErrorCode.VALIDATION_FAILED, StatusCode.InvalidArgument, ErrorI18NKeys.VALIDATION),
+            CertificatePinningFailureType.CIPHERTEXT_REQUIRED => new GrpcErrorDescriptor(
+                ErrorCode.VALIDATION_FAILED, StatusCode.InvalidArgument, ErrorI18NKeys.VALIDATION),
+            CertificatePinningFailureType.MESSAGE_REQUIRED => new GrpcErrorDescriptor(
+                ErrorCode.VALIDATION_FAILED, StatusCode.InvalidArgument, ErrorI18NKeys.VALIDATION),
+            CertificatePinningFailureType.INVALID_SIGNATURE_SIZE => new GrpcErrorDescriptor(
+                ErrorCode.VALIDATION_FAILED, StatusCode.InvalidArgument, ErrorI18NKeys.VALIDATION),
+            CertificatePinningFailureType.CERTIFICATE_VALIDATION_FAILED => new GrpcErrorDescriptor(
+                ErrorCode.UNAUTHENTICATED, StatusCode.Unauthenticated, ErrorI18NKeys.UNAUTHENTICATED),
+            CertificatePinningFailureType.ED_25519_VERIFICATION_ERROR => new GrpcErrorDescriptor(
+                ErrorCode.UNAUTHENTICATED, StatusCode.Unauthenticated, ErrorI18NKeys.UNAUTHENTICATED),
+            _ => new GrpcErrorDescriptor(
+                ErrorCode.INTERNAL_ERROR, StatusCode.Internal, ErrorI18NKeys.INTERNAL)
+        };
 }

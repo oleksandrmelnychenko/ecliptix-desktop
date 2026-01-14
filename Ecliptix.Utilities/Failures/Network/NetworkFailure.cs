@@ -11,30 +11,27 @@ public record NetworkFailure(
     public UserFacingError? UserError { get; init; }
     public bool RequiresReinit { get; init; }
 
-    public override object ToStructuredLog()
+    public override object ToStructuredLog() => new
     {
-        return new
-        {
-            NetworkFailureType = FailureType.ToString(),
-            Message,
-            InnerException,
-            Timestamp,
-            RequiresReinit,
-            UserError = UserError is null
-                ? null
-                : new
-                {
-                    ERROR_CODE = UserError.ErrorCode,
-                    I_18N_KEY = UserError.I18NKey,
-                    UserError.Message,
-                    RETRYABLE = UserError.Retryable,
-                    RETRY_AFTER_MILLISECONDS = UserError.RetryAfterMilliseconds,
-                    CORRELATION_ID = UserError.CorrelationId,
-                    LOCALE = UserError.Locale,
-                    UserError.GrpcStatusCode
-                }
-        };
-    }
+        NetworkFailureType = FailureType.ToString(),
+        Message,
+        InnerException = InnerException?.Message,
+        Timestamp,
+        RequiresReinit,
+        UserError = UserError is null
+            ? null
+            : new
+            {
+                ErrorCode = UserError.ErrorCode,
+                I18NKey = UserError.I18NKey,
+                UserError.Message,
+                Retryable = UserError.Retryable,
+                RetryAfterMilliseconds = UserError.RetryAfterMilliseconds,
+                CorrelationId = UserError.CorrelationId,
+                Locale = UserError.Locale,
+                UserError.GrpcStatusCode
+            }
+    };
 
     public static NetworkFailure InvalidRequestType(string details, Exception? inner = null, UserFacingError? userError = null) =>
         new(NetworkFailureType.INVALID_REQUEST_TYPE, details, inner) { UserError = userError };

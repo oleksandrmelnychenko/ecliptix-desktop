@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using Ecliptix.Protobuf.Common;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
@@ -43,11 +44,14 @@ internal static class EnvelopeBuilder
         ByteString? headerNonce = null,
         ByteString? dhPublicKey = null)
     {
+        Span<byte> resultCodeBytes = stackalloc byte[4];
+        BinaryPrimitives.WriteInt32LittleEndian(resultCodeBytes, (int)resultCode);
+
         SecureEnvelope envelope = new()
         {
             MetaData = metadata.ToByteString(),
             EncryptedPayload = encryptedPayload,
-            ResultCode = ByteString.CopyFrom(BitConverter.GetBytes((int)resultCode)),
+            ResultCode = ByteString.CopyFrom(resultCodeBytes),
             Timestamp = timestamp ?? Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow),
             HeaderNonce = headerNonce ?? ByteString.Empty,
             DhPublicKey = dhPublicKey ?? ByteString.Empty
@@ -138,7 +142,7 @@ internal static class EnvelopeBuilder
             if (cipherLength < 0)
             {
                 return Result<EnvelopeMetadata, EcliptixProtocolFailure>.Err(
-                    EcliptixProtocolFailure.BUFFER_TOO_SMALL("Encrypted metadata too small"));
+                    EcliptixProtocolFailure.BufferTooSmall("Encrypted metadata too small"));
             }
 
             ReadOnlySpan<byte> ciphertextSpan = encryptedMetadata.AsSpan(0, cipherLength);

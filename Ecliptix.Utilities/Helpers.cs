@@ -13,11 +13,8 @@ public static class Helpers
         Span<byte> bytes = stackalloc byte[16];
         guid.TryWriteBytes(bytes);
 
-        // Swap endianness in-place for first 4 bytes
         (bytes[0], bytes[1], bytes[2], bytes[3]) = (bytes[3], bytes[2], bytes[1], bytes[0]);
-        // Swap bytes 4-5
         (bytes[4], bytes[5]) = (bytes[5], bytes[4]);
-        // Swap bytes 6-7
         (bytes[6], bytes[7]) = (bytes[7], bytes[6]);
 
         return ByteString.CopyFrom(bytes);
@@ -28,11 +25,8 @@ public static class Helpers
         Span<byte> bytes = stackalloc byte[16];
         byteString.Span.CopyTo(bytes);
 
-        // Swap endianness in-place for first 4 bytes
         (bytes[0], bytes[1], bytes[2], bytes[3]) = (bytes[3], bytes[2], bytes[1], bytes[0]);
-        // Swap bytes 4-5
         (bytes[4], bytes[5]) = (bytes[5], bytes[4]);
-        // Swap bytes 6-7
         (bytes[6], bytes[7]) = (bytes[7], bytes[6]);
 
         return new Guid(bytes);

@@ -59,8 +59,8 @@ internal static partial class SodiumInterop
                     string.Format(SodiumFailureMessages.LIBRARY_LOAD_FAILED, LIB_SODIUM), dllEx),
                 InvalidOperationException opEx when opEx.Message.Contains(SodiumExceptionMessagePatterns
                         .SODIUM_INIT_PATTERN) =>
-                    SodiumFailure.INITIALIZATION_FAILED(SodiumFailureMessages.INITIALIZATION_FAILED, opEx),
-                _ => SodiumFailure.INITIALIZATION_FAILED(SodiumFailureMessages.UNEXPECTED_INIT_ERROR, ex)
+                    SodiumFailure.InitializationFailed(SodiumFailureMessages.INITIALIZATION_FAILED, opEx),
+                _ => SodiumFailure.InitializationFailed(SodiumFailureMessages.UNEXPECTED_INIT_ERROR, ex)
             }
         );
     }
@@ -70,19 +70,19 @@ internal static partial class SodiumInterop
         if (!IsInitialized)
         {
             Result<Unit, SodiumFailure>.Err(
-                SodiumFailure.INITIALIZATION_FAILED(SodiumFailureMessages.NOT_INITIALIZED));
+                SodiumFailure.InitializationFailed(SodiumFailureMessages.NOT_INITIALIZED));
             return;
         }
 
         Result<byte[], SodiumFailure>
-            .FromValue(buffer, SodiumFailure.BUFFER_TOO_SMALL(SodiumFailureMessages.BUFFER_NULL))
+            .FromValue(buffer, SodiumFailure.BufferTooSmall(SodiumFailureMessages.BUFFER_NULL))
             .Bind(nonNullBuffer => nonNullBuffer switch
             {
                 { Length: 0 } => Result<Unit, SodiumFailure>.Ok(Unit.Value),
                 _ => Result<byte[], SodiumFailure>.Validate(
                         nonNullBuffer,
                         buf => buf.Length <= MAX_BUFFER_SIZE,
-                        SodiumFailure.BUFFER_TOO_LARGE(
+                        SodiumFailure.BufferTooLarge(
                             string.Format(SodiumFailureMessages.BUFFER_TOO_LARGE, nonNullBuffer.Length, MAX_BUFFER_SIZE)))
                     .Bind(validBuffer => validBuffer.Length <= Constants.SMALL_BUFFER_THRESHOLD
                         ? WipeSmallBuffer(validBuffer)
@@ -203,7 +203,7 @@ internal static partial class SodiumInterop
         return Result<Unit, SodiumFailure>.Try(
             () => { Array.Clear(buffer, ProtocolSystemConstants.Numeric.ZERO_VALUE, buffer.Length); },
             ex =>
-                SodiumFailure.SECURE_WIPE_FAILED(
+                SodiumFailure.SecureWipeFailed(
                     string.Format(SodiumFailureMessages.SMALL_BUFFER_CLEAR_FAILED, buffer.Length), ex));
     }
 
