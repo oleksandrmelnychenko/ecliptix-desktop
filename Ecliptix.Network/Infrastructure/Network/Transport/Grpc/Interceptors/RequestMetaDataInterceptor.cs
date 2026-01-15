@@ -7,12 +7,8 @@ namespace Ecliptix.Network.Infrastructure.Network.Transport.Grpc.Interceptors;
 
 public sealed class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataProvider) : Interceptor
 {
-    // Cache string representations since IDs are constant per session
-    private string? _appInstanceIdString;
-    private string? _deviceIdString;
-
-    private string AppInstanceIdString => _appInstanceIdString ??= rpcMetaDataProvider.AppInstanceId.ToString();
-    private string DeviceIdString => _deviceIdString ??= rpcMetaDataProvider.DeviceId.ToString();
+    private string AppInstanceIdString => rpcMetaDataProvider.AppInstanceId.ToString();
+    private string DeviceIdString => rpcMetaDataProvider.DeviceId.ToString();
 
     public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(
         TRequest request,

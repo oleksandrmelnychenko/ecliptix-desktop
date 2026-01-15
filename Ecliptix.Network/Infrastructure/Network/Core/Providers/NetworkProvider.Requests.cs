@@ -152,7 +152,7 @@ public sealed partial class NetworkProvider
                     RetryBehavior = retryBehavior
                 };
 
-                return await ExecuteRequestWithProtocolAsync(
+                    return await ExecuteRequestWithProtocolAsync(
                         serviceContext, request.WaitForRecovery, cancellationContext.OperationToken)
                     .ConfigureAwait(false);
             }

@@ -90,11 +90,11 @@ public sealed class ReceiveStreamRpcServices : IReceiveStreamRpcServices
                 _metaDataProvider,
                 request.RequestContext);
 
-            AsyncUnaryCall<EventEnvelope> unaryCall =
-                _gatewayClient.UnaryAsync(envelope, callOptions);
+            AsyncServerStreamingCall<EventEnvelope> serverStreamCall =
+                _gatewayClient.ServerStream(envelope, callOptions);
 
             IAsyncEnumerable<Result<SecureEnvelope, NetworkFailure>> stream =
-                CreateUnaryStream(unaryCall, token);
+                CreateServerStream(serverStreamCall, token);
 
             return Result<RpcFlow, NetworkFailure>.Ok(new RpcFlow.InboundStream(stream));
         }
@@ -109,31 +109,21 @@ public sealed class ReceiveStreamRpcServices : IReceiveStreamRpcServices
         }
     }
 
-    private async IAsyncEnumerable<Result<SecureEnvelope, NetworkFailure>> CreateUnaryStream(
-        AsyncUnaryCall<EventEnvelope> unaryCall,
+    private async IAsyncEnumerable<Result<SecureEnvelope, NetworkFailure>> CreateServerStream(
+        AsyncServerStreamingCall<EventEnvelope> serverStreamCall,
         [EnumeratorCancellation] CancellationToken token)
     {
-        Result<SecureEnvelope, NetworkFailure> result;
         try
         {
-            EventEnvelope response = await unaryCall.ResponseAsync.WaitAsync(token).ConfigureAwait(false);
-            result = ToSecureEnvelopeResult(response);
+            await foreach (EventEnvelope envelope in serverStreamCall.ResponseStream.ReadAllAsync(token).ConfigureAwait(false))
+            {
+                yield return ToSecureEnvelopeResult(envelope);
+            }
         }
-        catch (RpcException rpcEx) when (!token.IsCancellationRequested)
+        finally
         {
-            result = Result<SecureEnvelope, NetworkFailure>.Err(_errorProcessor.Process(rpcEx));
+            serverStreamCall.Dispose();
         }
-        catch (OperationCanceledException) when (token.IsCancellationRequested)
-        {
-            yield break;
-        }
-        catch (Exception ex)
-        {
-            result = Result<SecureEnvelope, NetworkFailure>.Err(
-                NetworkFailure.DataCenterNotResponding(ex.Message, ex));
-        }
-
-        yield return result;
     }
 
     private static Result<SecureEnvelope, NetworkFailure> ToSecureEnvelopeResult(EventEnvelope envelope)
