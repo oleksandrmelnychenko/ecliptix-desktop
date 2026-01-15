@@ -14,7 +14,7 @@
       <PackageReference Include="Avalonia.Diagnostics" Version="11.3.10" />
       <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.10" />
       <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.10" />
-      <PackageReference Include="EPP.Agent" Version="1.0.0-ci.49" />
+      <PackageReference Include="EPP.Agent" Version="1.0.0-ci.65" />
       <PackageReference Include="Google.Protobuf" Version="3.33.2" />
       <PackageReference Include="Grpc.Core.Api" Version="2.76.0" />
       <PackageReference Include="Grpc.Tools" Version="2.76.0">

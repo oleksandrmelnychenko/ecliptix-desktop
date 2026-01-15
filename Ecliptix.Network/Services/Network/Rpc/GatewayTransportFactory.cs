@@ -90,7 +90,7 @@ internal static class GatewayTransportFactory
             ? localizedMessage
             : $"Transport reported error: {code}";
 
-        var userError = new UserFacingError(
+        UserFacingError userError = new(
             ErrorCode.SERVICE_UNAVAILABLE,
             string.IsNullOrEmpty(messageKey) ? ErrorI18NKeys.INTERNAL : messageKey,
             displayMessage,
