@@ -120,17 +120,10 @@
 					Padding="0"
 					ClipToBounds="False">
 
-				<Border.Effect>
-					<DropShadowEffect Color="Black"
-									  BlurRadius="30"
-									  Opacity="0.25"
-									  OffsetX="0"
-									  OffsetY="8"/>
-				</Border.Effect>
-
 				<Border CornerRadius="16"
-						ClipToBounds="True"
-						Background="#FFFFFF">
+				        ClipToBounds="False"
+				        Background="#FFFFFF"
+				        BoxShadow="0 8 30 0 #40000000">
 
 					<ContentControl Content="{Binding OverlayContent}">
 						<ContentControl.DataTemplates>
