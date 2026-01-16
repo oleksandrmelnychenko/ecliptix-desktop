@@ -101,7 +101,7 @@ public sealed partial class FeedViewModel : Ecliptix.Core.MVVM.ViewModelBase
             IsEdit = true;
             SelectedPost = foundViewModel;
             SelectedPost.Interactions.IsEdit = IsEdit;
-            SelectedPost.Comments.LoadCommentsCommand.Execute();
+            SelectedPost.Comments.LoadCommentsCommand.Execute().Subscribe();
             return;
         }
     }

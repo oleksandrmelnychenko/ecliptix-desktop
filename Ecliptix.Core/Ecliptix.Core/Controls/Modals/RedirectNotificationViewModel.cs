@@ -47,6 +47,7 @@ public sealed class RedirectNotificationViewModel : ReactiveObject, IDisposable,
         this.WhenActivated(disposables =>
         {
             int ticks = 0;
+            bool hasCompleted = false;
 
             Observable.FromEvent(
                     handler => _localizationService.LanguageChanged += handler,
@@ -59,6 +60,7 @@ public sealed class RedirectNotificationViewModel : ReactiveObject, IDisposable,
                 .StartWith(0)
                 .ObserveOn(RxApp.MainThreadScheduler)
                 .TakeUntil(SkipDelayCommand)
+                .TakeWhile(_ => !hasCompleted)
                 .Subscribe(_ =>
                 {
                     int newRemaining = Math.Max(0, totalSeconds - ticks);
@@ -68,12 +70,13 @@ public sealed class RedirectNotificationViewModel : ReactiveObject, IDisposable,
                         SecondsRemaining = newRemaining;
                     }
 
-                    if (SecondsRemaining <= 0)
+                    ticks++;
+
+                    if (SecondsRemaining <= 0 && !hasCompleted)
                     {
+                        hasCompleted = true;
                         onComplete();
                     }
-
-                    ticks++;
                 })
                 .DisposeWith(disposables);
         });

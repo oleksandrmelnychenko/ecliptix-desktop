@@ -168,8 +168,6 @@ public sealed class AuthenticationViewModel : Core.MVVM.ViewModelBase, IAuthenti
         }
 
         _currentView = null;
-        this.RaisePropertyChanged(nameof(CurrentView));
-
         CanNavigateBack = _navigationStack.Count > 0;
     }
 

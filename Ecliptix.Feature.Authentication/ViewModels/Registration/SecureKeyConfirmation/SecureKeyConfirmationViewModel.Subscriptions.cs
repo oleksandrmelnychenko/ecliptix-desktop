@@ -25,13 +25,13 @@ public sealed partial class SecureKeyConfirmationViewModel
                         }
 
                         ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
-                        ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.WELCOME_VIEW);
+                        ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.WELCOME_VIEW).Subscribe();
                     },
                     _ =>
                     {
                         IsMembershipLoading = false;
                         ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
-                        ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.WELCOME_VIEW);
+                        ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.WELCOME_VIEW).Subscribe();
                     })
                 .DisposeWith(disposables);
 
@@ -40,7 +40,7 @@ public sealed partial class SecureKeyConfirmationViewModel
                 .Subscribe(_ =>
                 {
                     ((AuthenticationViewModel)HostScreen).ClearNavigationStack(true);
-                    ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.PIN_SET_VIEW);
+                    ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.PIN_SET_VIEW).Subscribe();
                 })
                 .DisposeWith(disposables);
         });
