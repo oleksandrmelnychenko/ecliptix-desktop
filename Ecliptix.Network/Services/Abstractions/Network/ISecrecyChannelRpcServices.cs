@@ -29,5 +29,6 @@ public interface ISecrecyChannelRpcServices
 
     Task<Result<ServerPublicKeysResponse, NetworkFailure>> GetServerPublicKeysAsync(
         IConnectivityService connectivityService,
+        PubKeyExchangeType? exchangeType = null,
         CancellationToken cancellationToken = default);
 }

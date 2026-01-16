@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Ecliptix.Network.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Network.Services.Abstractions.Network;
 using Ecliptix.Protobuf.Common;
+using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.Transport.Common;
 using Ecliptix.Protobuf.Transport.Gateway;
 using Ecliptix.Utilities;
@@ -79,16 +80,23 @@ public sealed class ReceiveStreamRpcServices : IReceiveStreamRpcServices
                         $"Unsupported RPC service type: {request.RpcServiceMethod}"));
             }
 
+            Metadata streamingHeaders = new()
+            {
+                { "exchange-type", PubKeyExchangeType.ServerStreaming.ToString() }
+            };
+
             CallOptions callOptions = _callOptionsFactory.Create(
                 RpcServiceType.InitiateVerification,
                 request.RequestContext,
-                token);
+                token,
+                streamingHeaders);
 
             EventEnvelope envelope = GatewayTransportFactory.BuildEnvelope(
                 route!,
                 request.Payload,
                 _metaDataProvider,
-                request.RequestContext);
+                request.RequestContext,
+                exchangeType: PubKeyExchangeType.ServerStreaming);
 
             AsyncServerStreamingCall<EventEnvelope> serverStreamCall =
                 _gatewayClient.ServerStream(envelope, callOptions);

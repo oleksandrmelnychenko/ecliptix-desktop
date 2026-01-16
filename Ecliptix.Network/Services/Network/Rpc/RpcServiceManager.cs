@@ -95,10 +95,12 @@ public sealed class RpcServiceManager : IRpcServiceManager
 
     public async Task<Result<ServerPublicKeysResponse, NetworkFailure>> GetServerPublicKeysAsync(
         IConnectivityService connectivityService,
+        PubKeyExchangeType? exchangeType = null,
         CancellationToken cancellationToken = default)
     {
         return await _secrecyChannelRpcServices.GetServerPublicKeysAsync(
             connectivityService,
+            exchangeType,
             cancellationToken).ConfigureAwait(false);
     }
 }

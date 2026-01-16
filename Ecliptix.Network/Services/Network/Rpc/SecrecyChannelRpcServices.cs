@@ -107,9 +107,14 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
                 request,
                 _metaDataProvider,
                 requestContext,
-                exchangeType);
+                exchangeType: exchangeType);
 
-            CallOptions callOptions = _callOptionsFactory.Create(serviceType, requestContext, cancellationToken);
+            Metadata exchangeHeaders = new()
+            {
+                { "exchange-type", exchangeType.ToString() }
+            };
+
+            CallOptions callOptions = _callOptionsFactory.Create(serviceType, requestContext, cancellationToken, exchangeHeaders);
             AsyncUnaryCall<EventEnvelope> call = _gatewayClient.UnaryAsync(envelope, callOptions);
 
             EventEnvelope response = await call.ResponseAsync.ConfigureAwait(false);
@@ -186,7 +191,7 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
                 request,
                 _metaDataProvider,
                 requestContext,
-                PubKeyExchangeType.DataCenterEphemeralConnect);
+                exchangeType: PubKeyExchangeType.DataCenterEphemeralConnect);
 
             CallOptions callOptions = _callOptionsFactory.Create(
                 RpcServiceType.RestoreSecrecyChannel,
@@ -349,6 +354,7 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
 
     public async Task<Result<ServerPublicKeysResponse, NetworkFailure>> GetServerPublicKeysAsync(
         IConnectivityService connectivityService,
+        PubKeyExchangeType? exchangeType = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -371,10 +377,20 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
                 _metaDataProvider,
                 requestContext);
 
+            PubKeyExchangeType effectiveExchangeType = exchangeType ?? PubKeyExchangeType.DataCenterEphemeralConnect;
+            Metadata exchangeHeaders = new()
+            {
+                { "exchange-type", effectiveExchangeType.ToString() }
+            };
+
+            Log.Information("[GetServerPublicKeys] Requesting server keys with exchange-type={ExchangeType}",
+                effectiveExchangeType);
+
             CallOptions callOptions = _callOptionsFactory.Create(
                 RpcServiceType.GetServerPublicKeys,
                 requestContext,
-                cancellationToken);
+                cancellationToken,
+                exchangeHeaders);
 
             AsyncUnaryCall<EventEnvelope> call = _gatewayClient.UnaryAsync(envelope, callOptions);
             EventEnvelope response = await call.ResponseAsync.ConfigureAwait(false);

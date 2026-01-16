@@ -987,10 +987,15 @@ public sealed partial class NetworkProvider(
         uint connectId,
         byte[] plainBuffer)
     {
+        Log.Information("[CLIENT-ENCRYPT] EncryptPayload called. ConnectId={ConnectId}, PlainBufferSize={Size}",
+            connectId, plainBuffer.Length);
+
         Result<NativeProtocolSession, EcliptixProtocolFailure> nativeSessionResult =
             _nativeSessions.Get(connectId);
         if (nativeSessionResult.IsErr)
         {
+            Log.Error("[CLIENT-ENCRYPT] Failed to get native session for ConnectId={ConnectId}: {Error}",
+                connectId, nativeSessionResult.UnwrapErr().Message);
             return Result<SecureEnvelope, NetworkFailure>.Err(nativeSessionResult.UnwrapErr().ToNetworkFailure());
         }
 
@@ -1001,6 +1006,11 @@ public sealed partial class NetworkProvider(
             return Result<SecureEnvelope, NetworkFailure>.Err(
                 hasConnResult.UnwrapErr().ToNetworkFailure());
         }
+
+        Result<uint, EcliptixProtocolFailure> sessionConnIdResult = nativeSession.GetConnectionId();
+        Log.Information("[CLIENT-ENCRYPT] Session found. HasConnection={HasConn}, SessionConnId={SessionConnId}",
+            hasConnResult.Unwrap(),
+            sessionConnIdResult.IsOk ? sessionConnIdResult.Unwrap().ToString() : "ERROR");
 
         if (!hasConnResult.Unwrap())
         {
@@ -1018,6 +1028,15 @@ public sealed partial class NetworkProvider(
         try
         {
             SecureEnvelope envelope = SecureEnvelope.Parser.ParseFrom(nativeCipher.Unwrap());
+            Log.Information(
+                "[CLIENT-ENCRYPT] Encrypted envelope ready. ConnectId={ConnectId}, Meta={Meta}, Payload={Payload}, HeaderNonce={HeaderNonce}, DhPublicKey={DhPublicKey}, KyberCiphertext={KyberCiphertext}, RatchetEpoch={RatchetEpoch}",
+                connectId,
+                envelope.MetaData.Length,
+                envelope.EncryptedPayload.Length,
+                envelope.HeaderNonce.Length,
+                envelope.DhPublicKey.Length,
+                envelope.KyberCiphertext.Length,
+                envelope.HasRatchetEpoch ? envelope.RatchetEpoch.ToString() : "missing");
             return Result<SecureEnvelope, NetworkFailure>.Ok(envelope);
         }
         catch (Exception ex)
@@ -1964,7 +1983,7 @@ public sealed partial class NetworkProvider(
             NativeProtocolSession nativeSession = nativeSessionResult.Unwrap();
 
             Result<byte[], NetworkFailure> kyberResult =
-                await FetchPerConnectionKyberKeyAsync(connectId).ConfigureAwait(false);
+                await FetchPerConnectionKyberKeyAsync(connectId, exchangeType).ConfigureAwait(false);
             if (kyberResult.IsErr)
             {
                 await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
@@ -1973,8 +1992,8 @@ public sealed partial class NetworkProvider(
 
             byte[] serverKyberKey = kyberResult.Unwrap();
             Log.Debug(
-                "[AUTH-HANDSHAKE] Using fresh per-connection Kyber key for connectId {ConnectId}, length: {Length}",
-                connectId, serverKyberKey.Length);
+                "[AUTH-HANDSHAKE] Using fresh per-connection Kyber key for connectId {ConnectId}, exchangeType={ExchangeType}, length: {Length}",
+                connectId, exchangeType, serverKyberKey.Length);
 
             Result<byte[], EcliptixProtocolFailure> nativeHandshake = nativeSession
                 .BeginHandshakeWithPeerKyber(connectId, (byte)exchangeType, serverKyberKey);

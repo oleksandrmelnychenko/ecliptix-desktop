@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using Ecliptix.Network.Services.Network.Rpc;
 using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.Transport.DeviceProvisioning;
@@ -17,14 +18,26 @@ public sealed partial class NetworkProvider
 {
     private async Task<Result<byte[], NetworkFailure>> FetchPerConnectionKyberKeyAsync(
         uint connectId,
+        PubKeyExchangeType exchangeType,
         CancellationToken cancellationToken = default)
     {
-        Log.Debug("[SECURITY] Fetching fresh per-connection Kyber key for connectId {ConnectId}", connectId);
+        Log.Debug("[SECURITY] Fetching fresh per-connection Kyber key for connectId {ConnectId}, exchangeType={ExchangeType}",
+            connectId, exchangeType);
+
+        CancellationToken finalToken = cancellationToken == CancellationToken.None
+            ? GetConnectionRecoveryToken()
+            : cancellationToken;
 
         Result<ServerPublicKeysResponse, NetworkFailure> rpcResult =
-            await _dependencies.RpcServiceManager.GetServerPublicKeysAsync(
-                _services.ConnectivityService,
-                cancellationToken).ConfigureAwait(false);
+            await _services.RetryStrategy.ExecuteRpcOperationAsync(
+                (_, ct) => _dependencies.RpcServiceManager.GetServerPublicKeysAsync(
+                    _services.ConnectivityService,
+                    exchangeType,
+                    ct),
+                operationName: "FetchPerConnectionKyberKey",
+                connectId,
+                serviceType: RpcServiceType.GetServerPublicKeys,
+                cancellationToken: finalToken).ConfigureAwait(false);
 
         if (rpcResult.IsErr)
         {
@@ -88,11 +101,11 @@ public sealed partial class NetworkProvider
         NativeProtocolSession nativeSession = nativeSessionResult.Unwrap();
 
         Log.Debug(
-            "[SECURITY] PrepareSecrecyChannelEnvelopeAsync - Fetching fresh per-connection Kyber key for connectId {ConnectId}",
-            connectId);
+            "[SECURITY] PrepareSecrecyChannelEnvelopeAsync - Fetching fresh per-connection Kyber key for connectId {ConnectId}, exchangeType={ExchangeType}",
+            connectId, exchangeType);
 
         Result<byte[], NetworkFailure> kyberResult =
-            await FetchPerConnectionKyberKeyAsync(connectId).ConfigureAwait(false);
+            await FetchPerConnectionKyberKeyAsync(connectId, exchangeType).ConfigureAwait(false);
         if (kyberResult.IsErr)
         {
             return Result<(SecureEnvelope, CertificatePinningService), NetworkFailure>.Err(kyberResult.UnwrapErr());
@@ -117,7 +130,12 @@ public sealed partial class NetworkProvider
                 updatedHandshakeResult.UnwrapErr());
         }
 
-        byte[] handshakeBytes = updatedHandshakeResult.Unwrap().ToByteArray();
+        PubKeyExchange preparedExchange = updatedHandshakeResult.Unwrap();
+        Log.Information(
+            "[SECURITY] PrepareSecrecyChannelEnvelopeAsync: PubKeyExchange OfType={OfType}, State={State}, RequestedExchangeType={RequestedType}",
+            preparedExchange.OfType, preparedExchange.State, exchangeType);
+
+        byte[] handshakeBytes = preparedExchange.ToByteArray();
 
         Option<CertificatePinningService> certificatePinningService =
             await _security.CertificatePinningServiceFactory.GetOrInitializeServiceAsync();

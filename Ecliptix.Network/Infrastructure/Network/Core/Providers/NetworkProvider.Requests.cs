@@ -127,7 +127,8 @@ public sealed partial class NetworkProvider
             RetryBehavior retryBehavior = Security.RetryPolicyProvider.GetRetryBehavior(request.ServiceType);
 
             string requestKey = GenerateRequestKey(request.ConnectId, request.ServiceType, request.PlainBuffer);
-            bool shouldAllowDuplicates = request.AllowDuplicateRequests || CanServiceTypeBeDuplicated(request.ServiceType);
+            bool shouldAllowDuplicates =
+                request.AllowDuplicateRequests || CanServiceTypeBeDuplicated(request.ServiceType);
 
             Result<Unit, NetworkFailure>? duplicateCheckResult =
                 TryRegisterRequest(requestKey, shouldAllowDuplicates, out CancellationTokenSource requestCts);
@@ -152,7 +153,7 @@ public sealed partial class NetworkProvider
                     RetryBehavior = retryBehavior
                 };
 
-                    return await ExecuteRequestWithProtocolAsync(
+                return await ExecuteRequestWithProtocolAsync(
                         serviceContext, request.WaitForRecovery, cancellationContext.OperationToken)
                     .ConfigureAwait(false);
             }
@@ -281,11 +282,13 @@ public sealed partial class NetworkProvider
                     .ConfigureAwait(false),
                 ServiceFlowType.SEND_STREAM => await SendSendStreamRequestAsync(
                         logicalOperationId, requestContext.ServiceType, requestContext.PlainBuffer,
-                        requestContext.FlowType, requestContext.RequestContext, requestContext.ConnectId, operationToken)
+                        requestContext.FlowType, requestContext.RequestContext, requestContext.ConnectId,
+                        operationToken)
                     .ConfigureAwait(false),
                 ServiceFlowType.BIDIRECTIONAL_STREAM => await SendBidirectionalStreamRequestAsync(
                         logicalOperationId, requestContext.ServiceType, requestContext.PlainBuffer,
-                        requestContext.FlowType, requestContext.RequestContext, requestContext.ConnectId, operationToken)
+                        requestContext.FlowType, requestContext.RequestContext, requestContext.ConnectId,
+                        operationToken)
                     .ConfigureAwait(false),
                 _ => Result<Unit, NetworkFailure>.Err(
                     NetworkFailure.InvalidRequestType($"Unsupported flow type: {requestContext.FlowType}"))
@@ -338,7 +341,6 @@ public sealed partial class NetworkProvider
                         }
                         catch (ObjectDisposedException)
                         {
-
                         }
                     })
                     : default;
@@ -466,7 +468,8 @@ public sealed partial class NetworkProvider
                 _provider.DecryptPayload(connectId, inboundPayload);
             if (decryptedData.IsErr)
             {
-                Log.Error("[CLIENT-DECRYPT-ERROR] Decryption failed. ERROR: {Error}", decryptedData.UnwrapErr().Message);
+                Log.Error("[CLIENT-DECRYPT-ERROR] Decryption failed. ERROR: {Error}",
+                    decryptedData.UnwrapErr().Message);
                 NetworkFailure decryptFailure = decryptedData.UnwrapErr();
 
                 if (FailureClassification.IsProtocolStateMismatch(decryptFailure))
@@ -647,7 +650,6 @@ public sealed partial class NetworkProvider
             }
             catch (OperationCanceledException) when (linkedTokenSource.Token.IsCancellationRequested)
             {
-
             }
             finally
             {
@@ -664,7 +666,8 @@ public sealed partial class NetworkProvider
             if (flow is not RpcFlow.InboundStream inboundStream)
             {
                 return Result<RpcFlow.InboundStream, NetworkFailure>.Err(
-                    NetworkFailure.InvalidRequestType($"Expected InboundStream flow but received {flow.GetType().Name}"));
+                    NetworkFailure.InvalidRequestType(
+                        $"Expected InboundStream flow but received {flow.GetType().Name}"));
             }
 
             return Result<RpcFlow.InboundStream, NetworkFailure>.Ok(inboundStream);
@@ -741,7 +744,8 @@ public sealed partial class NetworkProvider
                     {
                         if (task is { IsFaulted: true, Exception: not null })
                         {
-                            Log.Error(task.Exception, "[NETWORK-PROVIDER] Unhandled exception publishing connected event");
+                            Log.Error(task.Exception,
+                                "[NETWORK-PROVIDER] Unhandled exception publishing connected event");
                         }
                     },
                     TaskScheduler.Default);
@@ -766,7 +770,8 @@ public sealed partial class NetworkProvider
             if (flow is not RpcFlow.InboundStream inboundStream)
             {
                 return Result<Unit, NetworkFailure>.Err(
-                    NetworkFailure.InvalidRequestType($"Expected InboundStream flow but received {flow.GetType().Name}"));
+                    NetworkFailure.InvalidRequestType(
+                        $"Expected InboundStream flow but received {flow.GetType().Name}"));
             }
 
             await foreach (Result<SecureEnvelope, NetworkFailure> streamItem in
