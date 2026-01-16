@@ -452,20 +452,99 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
 
     private async Task StoreMembershipData(MembershipProto membership)
     {
-        await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership.MembershipId);
+        bool hasMembershipId = membership.MembershipId != null && !membership.MembershipId.IsEmpty;
+        bool hasAccountId = membership.AccountId != null && membership.AccountId.Length > 0;
 
-        if (membership.AccountId != null && membership.AccountId.Length > 0)
+        Log.Information("[VERIFY-OTP] StoreMembershipData: HasMembershipId={HasMembershipId}, HasAccountId={HasAccountId}, CreationStatus={CreationStatus}",
+            hasMembershipId, hasAccountId, membership.CreationStatus);
+
+        await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership);
+
+        if (hasAccountId)
         {
             await _applicationSecureStorageProvider
                 .SetCurrentAccountIdAsync(membership.AccountId)
                 .ConfigureAwait(false);
         }
+
+        Log.Information("[VERIFY-OTP] StoreMembershipData: Membership data stored successfully");
     }
 
     private void NavigateToNextStep(AuthenticationViewModel hostWindow)
     {
         hostWindow.ClearNavigationStack(true, MembershipViewType.MOBILE_VERIFICATION_VIEW);
         NavToSecureKeyConfirmation.Execute().Subscribe().DisposeWith(_disposables);
+    }
+
+    private async Task HandleAlreadyVerifiedAsync()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        try
+        {
+            uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
+            Result<MobileNumberAvailabilityResponse, string> availabilityResult =
+                await _authRepository.CheckMobileNumberAvailabilityAsync(
+                    _mobileNumberIdentifier,
+                    connectId,
+                    CancellationToken.None);
+
+            if (availabilityResult.IsErr)
+            {
+                Log.Warning("[VERIFY-OTP] Failed to fetch membership for already_verified: {Error}",
+                    availabilityResult.UnwrapErr());
+                RxApp.MainThreadScheduler.Schedule(() =>
+                {
+                    if (HostScreen is AuthenticationViewModel hostWindow)
+                    {
+                        hostWindow.ClearNavigationStack();
+                        hostWindow.Navigate.Execute(MembershipViewType.WELCOME_VIEW).Subscribe();
+                    }
+                });
+                return;
+            }
+
+            MobileNumberAvailabilityResponse statusResponse = availabilityResult.Unwrap();
+
+            MembershipProto membership = new()
+            {
+                MembershipId = statusResponse.ExistingMembershipId,
+                Status = statusResponse.HasActivityStatus
+                    ? statusResponse.ActivityStatus
+                    : MembershipProto.Types.ActivityStatus.Active,
+                CreationStatus = statusResponse.CreationStatus
+            };
+
+            if (statusResponse.AccountId != null && !statusResponse.AccountId.IsEmpty)
+            {
+                membership.AccountId = statusResponse.AccountId;
+            }
+
+            await StoreMembershipData(membership);
+
+            RxApp.MainThreadScheduler.Schedule(() =>
+            {
+                if (HostScreen is AuthenticationViewModel hostWindow)
+                {
+                    NavigateToNextStep(hostWindow);
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[VERIFY-OTP] Error handling already_verified case");
+            RxApp.MainThreadScheduler.Schedule(() =>
+            {
+                if (HostScreen is AuthenticationViewModel hostWindow)
+                {
+                    hostWindow.ClearNavigationStack();
+                    hostWindow.Navigate.Execute(MembershipViewType.WELCOME_VIEW).Subscribe();
+                }
+            });
+        }
     }
 
     private async Task CleanupVerificationSession(CancellationToken cancellationToken)
@@ -938,10 +1017,15 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             SecondsRemaining = 0;
             CurrentStatus = OtpCountdownStatus.OtpCountdownStatusExpired;
 
-            if (HostScreen is AuthenticationViewModel hostWindow)
-            {
-                NavigateToNextStep(hostWindow);
-            }
+            HandleAlreadyVerifiedAsync().ContinueWith(
+                task =>
+                {
+                    if (task is { IsFaulted: true, Exception: not null })
+                    {
+                        Log.Error(task.Exception, "[VERIFY-OTP] Unhandled exception in HandleAlreadyVerifiedAsync");
+                    }
+                },
+                TaskScheduler.Default);
 
             return;
         }

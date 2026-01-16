@@ -8,9 +8,7 @@ using Ecliptix.Core.Shell.Abstractions.Core;
 using Ecliptix.Core.Shell.ViewModels;
 using Ecliptix.Feature.Authentication.Domain.Abstractions;
 using Ecliptix.Feature.Authentication.Services.Abstractions.Authentication;
-using Ecliptix.Feature.Authentication.Services.Abstractions.Security;
 using Ecliptix.Feature.Authentication.Services.Authentication;
-using Ecliptix.Feature.Authentication.Services.Security;
 using Ecliptix.Feature.Authentication.ViewModels.Hosts;
 using Ecliptix.Network.Infrastructure.Data.Abstractions;
 using Ecliptix.Network.Infrastructure.Network.Core.Providers;
@@ -34,7 +32,6 @@ public class AuthenticationModule : ModuleBase<AuthenticationModuleManifest>, IM
     {
         FeatureRegistration.RegisterServices(services);
 
-        services.AddSingleton<IServerPublicKeyProvider, ServerPublicKeyProvider>();
         services.AddSingleton<IAuthenticationService, OpaqueAuthenticationService>();
         services.AddSingleton<IOpaqueRegistrationService, OpaqueRegistrationService>();
         services.AddSingleton<ISecureKeyRecoveryService, SecureKeyRecoveryService>();

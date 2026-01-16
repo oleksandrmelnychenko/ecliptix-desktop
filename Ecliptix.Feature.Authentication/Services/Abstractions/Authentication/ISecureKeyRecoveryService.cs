@@ -14,11 +14,11 @@ public interface ISecureKeyRecoveryService
         uint connectId, CancellationToken cancellationToken = default);
 
     Task<Result<Unit, string>> InitiateSecureKeyResetOtpAsync(ByteString mobileNumberIdentifier,
-        Action<uint, Guid, OtpCountdownStatus, string?>? onCountdownUpdate = null,
+        Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default);
 
     Task<Result<Unit, string>> ResendSecureKeyResetOtpAsync(Guid sessionIdentifier, ByteString mobileNumberIdentifier,
-        Action<uint, Guid, OtpCountdownStatus, string?>? onCountdownUpdate = null,
+        Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default);
 
     Task<Result<Protobuf.Membership.Membership, string>> VerifySecureKeyResetOtpAsync(Guid sessionIdentifier, string otpCode,

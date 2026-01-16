@@ -25,11 +25,11 @@ public interface IOpaqueRegistrationService
     Task<Result<Unit, string>> InitiateOtpVerificationAsync(
         ByteString mobileNumberIdentifier,
         OtpVerificationPurpose purpose = OtpVerificationPurpose.Registration,
-        Action<uint, Guid, OtpCountdownStatus, string?>? onCountdownUpdate = null,
+        Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default);
 
     Task<Result<Unit, string>> ResendOtpVerificationAsync(Guid sessionIdentifier, ByteString mobileNumberIdentifier,
-        Action<uint, Guid, OtpCountdownStatus, string?>? onCountdownUpdate = null,
+        Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default);
 
     Task<Result<MembershipProto, string>> VerifyOtpAsync(Guid sessionIdentifier, string otpCode,

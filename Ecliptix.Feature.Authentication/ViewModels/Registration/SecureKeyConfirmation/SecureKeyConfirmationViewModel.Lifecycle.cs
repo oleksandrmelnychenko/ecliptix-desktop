@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Ecliptix.Network.Services.Common;
 using Ecliptix.Protobuf.Common;
 using Ecliptix.Utilities;
+using Serilog;
 
 namespace Ecliptix.Feature.Authentication.ViewModels.Registration.SecureKeyConfirmation;
 
@@ -32,11 +33,15 @@ public sealed partial class SecureKeyConfirmationViewModel
 
     private async Task<Result<Unit, InternalServiceApiFailure>> LoadMembershipAsync()
     {
+        Log.Information("[SECURE-KEY-VM] LoadMembershipAsync: Starting to load membership data");
+
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> applicationInstance =
             await _applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync();
 
         if (applicationInstance.IsErr)
         {
+            Log.Warning("[SECURE-KEY-VM] LoadMembershipAsync: Failed to get application settings: {Error}",
+                applicationInstance.UnwrapErr().Message);
             return Result<Unit, InternalServiceApiFailure>.Err(applicationInstance.UnwrapErr());
         }
 
@@ -44,19 +49,26 @@ public sealed partial class SecureKeyConfirmationViewModel
 
         if (settings.Membership == null)
         {
+            Log.Warning("[SECURE-KEY-VM] LoadMembershipAsync: Membership is null");
             return Result<Unit, InternalServiceApiFailure>.Err(
                 InternalServiceApiFailure.SecureStoreKeyNotFound(
                     "Membership data is not available. Please complete registration from the beginning."));
         }
 
+        Log.Information("[SECURE-KEY-VM] LoadMembershipAsync: Membership found, CreationStatus={CreationStatus}, HasMembershipId={HasId}",
+            settings.Membership.CreationStatus,
+            settings.Membership.MembershipId != null && !settings.Membership.MembershipId.IsEmpty);
+
         if (settings.Membership.MembershipId == null || settings.Membership.MembershipId.IsEmpty)
         {
+            Log.Warning("[SECURE-KEY-VM] LoadMembershipAsync: MembershipId is null or empty");
             return Result<Unit, InternalServiceApiFailure>.Err(
                 InternalServiceApiFailure.SecureStoreKeyNotFound(
                     "Membership unique identifier is missing. Please complete registration from the beginning."));
         }
 
         MembershipUniqueId = settings.Membership.MembershipId;
+        Log.Information("[SECURE-KEY-VM] LoadMembershipAsync: Successfully loaded MembershipId");
         return Result<Unit, InternalServiceApiFailure>.Ok(Unit.Value);
     }
 

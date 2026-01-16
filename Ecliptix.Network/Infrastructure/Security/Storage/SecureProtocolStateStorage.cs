@@ -145,7 +145,6 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         bool containerInitialized = false;
         byte[]? encryptionKey = null;
         byte[]? expectedAssociatedData = null;
-        byte[]? legacyAssociatedData = null;
 
         try
         {
@@ -188,15 +187,11 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
             expectedAssociatedData = CreateAssociatedData(connectId, _deviceId, accountId, container.Version);
             if (!CryptographicOperations.FixedTimeEquals(container.AssociatedData, expectedAssociatedData))
             {
-                legacyAssociatedData = CreateAssociatedDataLegacy(connectId, _deviceId, container.Version);
-                if (!CryptographicOperations.FixedTimeEquals(container.AssociatedData, legacyAssociatedData))
-                {
-                    return await FailAndCleanupAsync(
-                            storagePath,
-                            keychainKey,
-                            new SecureStorageFailure(ASSOCIATED_DATA_MISMATCH_MESSAGE))
-                        .ConfigureAwait(false);
-                }
+                return await FailAndCleanupAsync(
+                        storagePath,
+                        keychainKey,
+                        new SecureStorageFailure(ASSOCIATED_DATA_MISMATCH_MESSAGE))
+                    .ConfigureAwait(false);
             }
 
             Option<byte[]> storedKeyOption = await TryGetStoredKeyAsync(keychainKey).ConfigureAwait(false);
@@ -238,7 +233,6 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
             ZeroBuffer(protectedContainer);
             ZeroBuffer(containerBytes);
             ZeroBuffer(expectedAssociatedData);
-            ZeroBuffer(legacyAssociatedData);
 
             if (containerInitialized)
             {
@@ -334,18 +328,6 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         connectIdBytes.CopyTo(associatedData.AsSpan(sizeof(int)));
         deviceId.CopyTo(associatedData.AsSpan(sizeof(int) + connectIdBytes.Length));
         accountId.CopyTo(associatedData.AsSpan(sizeof(int) + connectIdBytes.Length + deviceId.Length));
-
-        return associatedData;
-    }
-
-    private static byte[] CreateAssociatedDataLegacy(string connectId, byte[] deviceId, int version)
-    {
-        byte[] connectIdBytes = Utf8.GetBytes(connectId);
-        byte[] associatedData = new byte[checked(sizeof(int) + connectIdBytes.Length + deviceId.Length)];
-
-        BinaryPrimitives.WriteInt32LittleEndian(associatedData.AsSpan(0, sizeof(int)), version);
-        connectIdBytes.CopyTo(associatedData.AsSpan(sizeof(int)));
-        deviceId.CopyTo(associatedData.AsSpan(sizeof(int) + connectIdBytes.Length));
 
         return associatedData;
     }

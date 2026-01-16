@@ -47,7 +47,7 @@ public class PersonalPostsProfileViewModel : ReactiveObject
             AuthorName = "Sarah Chen",
             AuthorHandle = "@sarahchen",
             AuthorInitials = "SC",
-            Content = "Thinking about refactoring the authentication module next week. Does anyone have experience migrating legacy tokens to PASETO in a high-load environment? 🤔",
+            Content = "Thinking about refactoring the authentication module next week. Does anyone have experience migrating tokens to PASETO in a high-load environment? 🤔",
             HasImage = false,
             PostImage = null,
             TimeAgo = "5 hours ago",

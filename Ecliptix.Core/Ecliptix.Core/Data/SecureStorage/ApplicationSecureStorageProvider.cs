@@ -12,7 +12,6 @@ using Ecliptix.Network.Services.Core;
 using Ecliptix.Network.Services.External.IpGeolocation;
 using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.Membership;
-using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
 using Google.Protobuf;
 using Microsoft.AspNetCore.DataProtection;
@@ -84,7 +83,7 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         return await StoreSettingsAsync(settings);
     }
 
-    public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationMembershipAsync(ByteString? membershipId)
+    public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationMembershipAsync(Membership? membership)
     {
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
             await GetApplicationInstanceSettingsAsync();
@@ -94,10 +93,7 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         }
 
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
-        settings.MembershipId = membershipId ?? ByteString.Empty;
-        settings.Membership = membershipId is { Length: > 0 }
-            ? new Membership { MembershipId = membershipId }
-            : null;
+        settings.Membership = membership;
         return await StoreSettingsAsync(settings);
     }
 
@@ -114,98 +110,6 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         settings.AccountId = accountId;
         settings.CurrentAccountId = accountId;
         return await StoreSettingsAsync(settings);
-    }
-
-    public async Task<Result<Unit, InternalServiceApiFailure>> SetServerPublicKeyAsync(
-        PubKeyExchangeType exchangeType, ByteString? serverPublicKey)
-    {
-        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
-            await GetApplicationInstanceSettingsAsync();
-        if (settingsResult.IsErr)
-        {
-            return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
-        }
-
-        ApplicationInstanceSettings settings = settingsResult.Unwrap();
-        int key = (int)exchangeType;
-
-        if (serverPublicKey == null || serverPublicKey.IsEmpty)
-        {
-            settings.ServerPublicKeys.Remove(key);
-        }
-        else
-        {
-            settings.ServerPublicKeys[key] = serverPublicKey;
-        }
-
-        return await StoreSettingsAsync(settings);
-    }
-
-    public async Task<Result<Unit, InternalServiceApiFailure>> SetServerKyberPublicKeyAsync(
-        PubKeyExchangeType exchangeType, ByteString? serverKyberPublicKey)
-    {
-        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
-            await GetApplicationInstanceSettingsAsync();
-        if (settingsResult.IsErr)
-        {
-            return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
-        }
-
-        ApplicationInstanceSettings settings = settingsResult.Unwrap();
-        int key = (int)exchangeType;
-
-        if (serverKyberPublicKey == null || serverKyberPublicKey.IsEmpty)
-        {
-            settings.ServerKyberPublicKeys.Remove(key);
-        }
-        else
-        {
-            settings.ServerKyberPublicKeys[key] = serverKyberPublicKey;
-        }
-
-        return await StoreSettingsAsync(settings);
-    }
-
-    public async Task<Result<Option<ByteString>, InternalServiceApiFailure>> GetServerPublicKeyAsync(
-        PubKeyExchangeType exchangeType)
-    {
-        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
-            await GetApplicationInstanceSettingsAsync();
-        if (settingsResult.IsErr)
-        {
-            return Result<Option<ByteString>, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
-        }
-
-        ApplicationInstanceSettings settings = settingsResult.Unwrap();
-        int key = (int)exchangeType;
-
-        if (settings.ServerPublicKeys.TryGetValue(key, out ByteString? value) && !value.IsEmpty)
-        {
-            return Result<Option<ByteString>, InternalServiceApiFailure>.Ok(Option<ByteString>.Some(value));
-        }
-
-        return Result<Option<ByteString>, InternalServiceApiFailure>.Ok(Option<ByteString>.None);
-    }
-
-    public async Task<Result<Option<ByteString>, InternalServiceApiFailure>> GetServerKyberPublicKeyAsync(
-        PubKeyExchangeType exchangeType)
-    {
-        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
-            await GetApplicationInstanceSettingsAsync();
-        if (settingsResult.IsErr)
-        {
-            return Result<Option<ByteString>, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
-        }
-
-        ApplicationInstanceSettings settings = settingsResult.Unwrap();
-        int key = (int)exchangeType;
-
-        if (settings.ServerKyberPublicKeys.TryGetValue(key, out ByteString? value) && !value.IsEmpty)
-        {
-            return Result<Option<ByteString>, InternalServiceApiFailure>.Ok(Option<ByteString>.Some(value));
-        }
-
-        return Result<Option<ByteString>, InternalServiceApiFailure>.Ok(Option<ByteString>.None);
     }
 
     public async Task<Result<Unit, InternalServiceApiFailure>> SetWindowPlacementAsync(WindowPlacement windowPlacement)
@@ -480,7 +384,6 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         proto.DeviceId = proto.DeviceId ?? ByteString.Empty;
         proto.Country ??= string.Empty;
         proto.Culture ??= string.Empty;
-        proto.MembershipId = proto.MembershipId ?? ByteString.Empty;
         proto.AccountId = proto.AccountId ?? ByteString.Empty;
         proto.CurrentAccountId = proto.CurrentAccountId ?? ByteString.Empty;
 
@@ -496,33 +399,12 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
     {
         ApplicationInstanceSettings settings = ApplicationInstanceSettings.Parser.ParseFrom(payload);
 
-        settings.Membership = settings.MembershipId.Length > 0
-            ? new Membership { MembershipId = settings.MembershipId }
-            : null;
-
         if (settings.WindowPlacement != null)
         {
             settings.WindowPlacement = MapWindowPlacementFromProto(settings.WindowPlacement);
         }
 
-        MigrateDeprecatedKeysToMaps(settings);
-
         return settings;
-    }
-
-    private static void MigrateDeprecatedKeysToMaps(ApplicationInstanceSettings settings)
-    {
-#pragma warning disable CS0612
-        if (settings.ServerPublicKeys.Count == 0 && !settings.ServerPublicKey.IsEmpty)
-        {
-            settings.ServerPublicKeys[(int)PubKeyExchangeType.InitialHandshake] = settings.ServerPublicKey;
-        }
-
-        if (settings.ServerKyberPublicKeys.Count == 0 && !settings.ServerKyberPublicKey.IsEmpty)
-        {
-            settings.ServerKyberPublicKeys[(int)PubKeyExchangeType.InitialHandshake] = settings.ServerKyberPublicKey;
-        }
-#pragma warning restore CS0612
     }
 
     private static byte[] SerializeWindowPlacement(WindowPlacement placement) =>

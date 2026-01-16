@@ -10,6 +10,7 @@ internal sealed class NativeProtocolSessionManager : IDisposable
     private readonly ConcurrentDictionary<uint, NativeProtocolSession> _sessions = new();
     private readonly ConcurrentDictionary<uint, byte[]> _serverKyberKeys = new();
     private readonly ConcurrentDictionary<uint, byte[]> _serverNonces = new();
+    private readonly ConcurrentDictionary<uint, byte[]> _serverPublicKeys = new();
     private bool _disposed;
 
     public Result<NativeProtocolSession, EcliptixProtocolFailure> CreateOrReplace(
@@ -117,6 +118,35 @@ internal sealed class NativeProtocolSessionManager : IDisposable
 
     public void ClearServerNonce(uint connectId) => _serverNonces.TryRemove(connectId, out _);
 
+    public void StoreServerPublicKey(uint connectId, byte[] serverPublicKey)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _serverPublicKeys[connectId] = serverPublicKey;
+    }
+
+    public Result<byte[], EcliptixProtocolFailure> GetServerPublicKey(uint connectId)
+    {
+        if (_disposed)
+        {
+            return Result<byte[], EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.ObjectDisposed(nameof(NativeProtocolSessionManager)));
+        }
+
+        if (_serverPublicKeys.TryGetValue(connectId, out byte[]? key))
+        {
+            return Result<byte[], EcliptixProtocolFailure>.Ok(key);
+        }
+
+        return Result<byte[], EcliptixProtocolFailure>.Err(
+            EcliptixProtocolFailure.Generic("No per-connection server public key found"));
+    }
+
+    public void ClearServerPublicKey(uint connectId) => _serverPublicKeys.TryRemove(connectId, out _);
+
     public IEnumerable<uint> ActiveConnectionIds()
     {
         if (_disposed)
@@ -168,6 +198,7 @@ internal sealed class NativeProtocolSessionManager : IDisposable
         }
         _serverKyberKeys.TryRemove(connectId, out _);
         _serverNonces.TryRemove(connectId, out _);
+        _serverPublicKeys.TryRemove(connectId, out _);
     }
 
     public void Dispose()
@@ -184,6 +215,7 @@ internal sealed class NativeProtocolSessionManager : IDisposable
         _sessions.Clear();
         _serverKyberKeys.Clear();
         _serverNonces.Clear();
+        _serverPublicKeys.Clear();
         _disposed = true;
         GC.SuppressFinalize(this);
     }

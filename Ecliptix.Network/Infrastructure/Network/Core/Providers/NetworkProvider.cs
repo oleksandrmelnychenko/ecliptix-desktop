@@ -657,6 +657,32 @@ public sealed partial class NetworkProvider(
         return Result<uint, NetworkFailure>.Err(establishOptionResult.UnwrapErr());
     }
 
+    public async Task<Result<byte[], NetworkFailure>> GetServerPublicKeyAsync(uint connectId)
+    {
+        Result<byte[], EcliptixProtocolFailure> cachedResult = _nativeSessions.GetServerPublicKey(connectId);
+        if (cachedResult.IsOk)
+        {
+            return Result<byte[], NetworkFailure>.Ok(cachedResult.Unwrap());
+        }
+
+        Result<byte[], NetworkFailure> fetchResult =
+            await FetchPerConnectionKyberKeyAsync(connectId, PubKeyExchangeType.InitialHandshake).ConfigureAwait(false);
+
+        if (fetchResult.IsErr)
+        {
+            return Result<byte[], NetworkFailure>.Err(fetchResult.UnwrapErr());
+        }
+
+        Result<byte[], EcliptixProtocolFailure> keyResult = _nativeSessions.GetServerPublicKey(connectId);
+        if (keyResult.IsErr)
+        {
+            return Result<byte[], NetworkFailure>.Err(
+                NetworkFailure.DataCenterNotResponding("Server X25519 public key not available after fetch"));
+        }
+
+        return Result<byte[], NetworkFailure>.Ok(keyResult.Unwrap());
+    }
+
     private void CancelOperationsForConnection(uint connectId)
     {
         string connectIdPrefix = $"{connectId}_";
@@ -2195,6 +2221,7 @@ public sealed partial class NetworkProvider(
     {
         _nativeSessions.ClearServerKyberKey(connectId);
         _nativeSessions.ClearServerNonce(connectId);
+        _nativeSessions.ClearServerPublicKey(connectId);
 
         Result<Unit, SecureStorageFailure> deleteResult =
             await _dependencies.SecureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);

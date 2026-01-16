@@ -14,7 +14,6 @@ namespace Ecliptix.Network.Infrastructure.Security.Platform;
 public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 {
     private const int AES_KEY_SIZE = 32;
-    private const int AES_IV_SIZE = 16;
     private const int GCM_NONCE_SIZE = 12;
     private const int GCM_TAG_SIZE = 16;
     private const int HMAC_KEY_SIZE = 64;
@@ -694,11 +693,7 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             machineKey = machineKeyOpt.Value!;
             associatedData = BuildAssociatedData(identifier);
 
-            byte[] decrypted = DecryptKeyFile(encrypted, machineKey, associatedData, out bool wasLegacy);
-            if (wasLegacy)
-            {
-                TryUpgradeKeyFile(keyFile, decrypted, machineKey, associatedData);
-            }
+            byte[] decrypted = DecryptKeyFile(encrypted, machineKey, associatedData);
 
             return Result<byte[], SecureStorageFailure>.Ok(decrypted);
         }
@@ -752,45 +747,29 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
     private static bool HasKeyFileMagic(ReadOnlySpan<byte> data) =>
         data.Length > KeyFileMagic.Length && data[..KeyFileMagic.Length].SequenceEqual(KeyFileMagic);
 
-    private static byte[] DecryptKeyFile(ReadOnlySpan<byte> encrypted, byte[] machineKey, byte[] associatedData,
-        out bool wasLegacy)
+    private static byte[] DecryptKeyFile(ReadOnlySpan<byte> encrypted, byte[] machineKey, byte[] associatedData)
     {
-        if (HasKeyFileMagic(encrypted))
+        if (!HasKeyFileMagic(encrypted))
         {
-            wasLegacy = false;
-            int headerSize = KeyFileMagic.Length;
-            int minSize = headerSize + GCM_NONCE_SIZE + GCM_TAG_SIZE + 1;
-            if (encrypted.Length < minSize)
-            {
-                throw new CryptographicException("Invalid encrypted file format (AEAD too small)");
-            }
-
-            ReadOnlySpan<byte> nonce = encrypted.Slice(headerSize, GCM_NONCE_SIZE);
-            ReadOnlySpan<byte> tag = encrypted.Slice(headerSize + GCM_NONCE_SIZE, GCM_TAG_SIZE);
-            ReadOnlySpan<byte> ciphertext = encrypted.Slice(headerSize + GCM_NONCE_SIZE + GCM_TAG_SIZE);
-
-            byte[] plaintext = new byte[ciphertext.Length];
-            using AesGcm aes = new(machineKey, GCM_TAG_SIZE);
-            aes.Decrypt(nonce, ciphertext, tag, plaintext, associatedData);
-
-            return plaintext;
+            throw new CryptographicException("Invalid encrypted file format (missing magic header)");
         }
 
-        wasLegacy = true;
-        if (encrypted.Length <= AES_IV_SIZE)
+        int headerSize = KeyFileMagic.Length;
+        int minSize = headerSize + GCM_NONCE_SIZE + GCM_TAG_SIZE + 1;
+        if (encrypted.Length < minSize)
         {
-            throw new CryptographicException("Invalid encrypted file format (legacy too small)");
+            throw new CryptographicException("Invalid encrypted file format (AEAD too small)");
         }
 
-        using Aes aesLegacy = Aes.Create();
-        aesLegacy.Key = machineKey;
+        ReadOnlySpan<byte> nonce = encrypted.Slice(headerSize, GCM_NONCE_SIZE);
+        ReadOnlySpan<byte> tag = encrypted.Slice(headerSize + GCM_NONCE_SIZE, GCM_TAG_SIZE);
+        ReadOnlySpan<byte> ciphertext = encrypted.Slice(headerSize + GCM_NONCE_SIZE + GCM_TAG_SIZE);
 
-        ReadOnlySpan<byte> iv = encrypted[..AES_IV_SIZE];
-        ReadOnlySpan<byte> ciphertextLegacy = encrypted[AES_IV_SIZE..];
-        aesLegacy.IV = iv.ToArray();
+        byte[] plaintext = new byte[ciphertext.Length];
+        using AesGcm aes = new(machineKey, GCM_TAG_SIZE);
+        aes.Decrypt(nonce, ciphertext, tag, plaintext, associatedData);
 
-        using ICryptoTransform decryptor = aesLegacy.CreateDecryptor();
-        return decryptor.TransformFinalBlock(ciphertextLegacy.ToArray(), 0, ciphertextLegacy.Length);
+        return plaintext;
     }
 
     private static void WriteEncryptedKeyFile(string keyFile, byte[] keyMaterial, byte[] machineKey,
@@ -847,19 +826,6 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             {
                 CryptographicOperations.ZeroMemory(payload);
             }
-        }
-    }
-
-    private static void TryUpgradeKeyFile(string keyFile, byte[] keyMaterial, byte[] machineKey,
-        byte[] associatedData)
-    {
-        try
-        {
-            WriteEncryptedKeyFile(keyFile, keyMaterial, machineKey, associatedData);
-        }
-        catch (Exception ex)
-        {
-            Log.Debug(ex, "[KEYCHAIN-FILE-UPGRADE] Failed to upgrade legacy key file: {Path}", keyFile);
         }
     }
 
@@ -940,25 +906,19 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         }
 
         bool keychainAvailable = IsPlatformKeychainAvailable();
-        string machineId = BuildMachineIdentifier();
 
         Result<byte[], SecureStorageFailure> keychainResult = GetPlatformRetrieve(MACHINE_KEY_IDENTIFIER);
         if (keychainResult.IsOk)
         {
             byte[] keychainKey = keychainResult.Unwrap();
             _cachedMachineKey = keychainKey;
-
-            if (IsLegacyDerivedMachineKey(machineId, keychainKey))
-            {
-                TryUpgradeLegacyMachineKey(keychainKey, keychainAvailable);
-            }
             return Option<byte[]>.Some((byte[])_cachedMachineKey.Clone());
         }
 
         string machineKeyFile = Path.Combine(_keychainPath, MACHINE_KEY_FILENAME);
         if (File.Exists(machineKeyFile))
         {
-            Option<byte[]> fileResult = LoadMachineKeyFromFile(machineKeyFile, machineId, keychainAvailable);
+            Option<byte[]> fileResult = LoadMachineKeyFromFile(machineKeyFile);
             if (fileResult.IsSome)
             {
                 if (keychainAvailable)
@@ -977,7 +937,7 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         return CreateAndStoreMachineKey(machineKeyFile, keychainAvailable);
     }
 
-    private Option<byte[]> LoadMachineKeyFromFile(string machineKeyFile, string machineId, bool keychainAvailable)
+    private Option<byte[]> LoadMachineKeyFromFile(string machineKeyFile)
     {
         try
         {
@@ -990,11 +950,6 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             }
 
             _cachedMachineKey = fileKey;
-
-            if (IsLegacyDerivedMachineKey(machineId, fileKey))
-            {
-                TryUpgradeLegacyMachineKey(fileKey, keychainAvailable);
-            }
 
             return Option<byte[]>.Some((byte[])_cachedMachineKey.Clone());
         }
@@ -1017,142 +972,6 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             key.Length, AES_KEY_SIZE);
         _cachedMachineKey = null;
         return false;
-    }
-
-    private static bool IsLegacyDerivedMachineKey(string machineId, byte[] key)
-    {
-        byte[] derivedKey = DeriveKeyFromMachineIdLegacy(machineId);
-        bool isLegacy = CryptographicOperations.FixedTimeEquals(derivedKey, key);
-        CryptographicOperations.ZeroMemory(derivedKey);
-        return isLegacy;
-    }
-
-    private static byte[] DeriveKeyFromMachineIdLegacy(string machineId)
-    {
-        byte[] salt = Encoding.UTF8.GetBytes(MACHINE_KEY_SALT);
-        return Rfc2898DeriveBytes.Pbkdf2(
-            machineId,
-            salt,
-            PBKDF_2_ITERATIONS,
-            HashAlgorithmName.SHA256,
-            AES_KEY_SIZE);
-    }
-
-    private void TryUpgradeLegacyMachineKey(byte[] legacyKey, bool keychainAvailable)
-    {
-        try
-        {
-            byte[] newKey = RandomNumberGenerator.GetBytes(AES_KEY_SIZE);
-            bool storedInKeychain = false;
-            bool persisted = false;
-            string machineKeyFile = Path.Combine(_keychainPath, MACHINE_KEY_FILENAME);
-
-            if (keychainAvailable)
-            {
-                Result<Unit, SecureStorageFailure> storeResult = GetPlatformStore(MACHINE_KEY_IDENTIFIER, newKey);
-                if (storeResult.IsErr)
-                {
-                    Log.Warning("[MACHINE-KEY] Failed to store upgraded machine key in keychain: {Error}",
-                        storeResult.UnwrapErr().Message);
-                }
-                else
-                {
-                    storedInKeychain = true;
-                    persisted = true;
-                }
-            }
-
-            if (!persisted)
-            {
-                persisted = WriteMachineKeyFile(machineKeyFile, newKey);
-            }
-
-            if (!persisted)
-            {
-                CryptographicOperations.ZeroMemory(newKey);
-                return;
-            }
-
-            bool reencrypted = ReencryptKeyFiles(legacyKey, newKey);
-            if (!reencrypted)
-            {
-                if (storedInKeychain)
-                {
-                    Result<Unit, SecureStorageFailure> revertResult =
-                        GetPlatformStore(MACHINE_KEY_IDENTIFIER, legacyKey);
-                    if (revertResult.IsErr)
-                    {
-                        Log.Warning("[MACHINE-KEY] Failed to revert machine key after upgrade failure: {Error}",
-                            revertResult.UnwrapErr().Message);
-                    }
-                }
-                else
-                {
-                    WriteMachineKeyFile(machineKeyFile, legacyKey);
-                }
-
-                CryptographicOperations.ZeroMemory(newKey);
-                return;
-            }
-
-            TrySecureDeleteFile(machineKeyFile);
-
-            _cachedMachineKey = newKey;
-            CryptographicOperations.ZeroMemory(legacyKey);
-            Log.Information("[MACHINE-KEY] Upgraded legacy machine key");
-        }
-        catch (Exception ex)
-        {
-            Log.Warning(ex, "[MACHINE-KEY] Failed to upgrade legacy machine key");
-        }
-    }
-
-    private bool ReencryptKeyFiles(byte[] legacyKey, byte[] newKey)
-    {
-        try
-        {
-            string[] keyFiles = Directory.GetFiles(_keychainPath, "*.key");
-            if (keyFiles.Length == 0)
-            {
-                return true;
-            }
-
-            foreach (string keyFile in keyFiles)
-            {
-                if (string.Equals(Path.GetFileName(keyFile), MACHINE_KEY_FILENAME, StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                byte[] fileBytes = File.ReadAllBytes(keyFile);
-                string hashedIdentifier = Path.GetFileNameWithoutExtension(keyFile);
-                byte[] associatedData = BuildAssociatedDataFromHash(hashedIdentifier);
-
-                try
-                {
-                    byte[] plaintext = DecryptKeyFile(fileBytes, legacyKey, associatedData, out _);
-                    try
-                    {
-                        WriteEncryptedKeyFile(keyFile, plaintext, newKey, associatedData);
-                    }
-                    finally
-                    {
-                        CryptographicOperations.ZeroMemory(plaintext);
-                    }
-                }
-                finally
-                {
-                    CryptographicOperations.ZeroMemory(associatedData);
-                }
-            }
-
-            return true;
-        }
-        catch (Exception ex)
-        {
-            Log.Warning(ex, "[MACHINE-KEY] Failed to re-encrypt key files during upgrade");
-            return false;
-        }
     }
 
     private static bool WriteMachineKeyFile(string machineKeyFile, byte[] key)

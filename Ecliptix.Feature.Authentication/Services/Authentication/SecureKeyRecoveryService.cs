@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Shell.Abstractions.Core;
 using Ecliptix.Feature.Authentication.Services.Abstractions.Authentication;
-using Ecliptix.Feature.Authentication.Services.Abstractions.Security;
 using Ecliptix.Feature.Authentication.Services.Authentication.Constants;
 using Ecliptix.Network.Infrastructure.Data.Abstractions;
 using Ecliptix.Network.Infrastructure.Network.Core.Providers;
@@ -25,7 +24,6 @@ public sealed class SecureKeyRecoveryService(
     NetworkProvider networkProvider,
     IOpaqueRegistrationService registrationService,
     ILocalizationService localizationService,
-    IServerPublicKeyProvider serverPublicKeyProvider,
     IApplicationSecureStorageProvider applicationSecureStorageProvider)
     : ISecureKeyRecoveryService, IDisposable
 {
@@ -67,7 +65,7 @@ public sealed class SecureKeyRecoveryService(
 
     public Task<Result<Unit, string>> InitiateSecureKeyResetOtpAsync(
         ByteString mobileNumberIdentifier,
-        Action<uint, Guid, OtpCountdownStatus, string?>? onCountdownUpdate = null,
+        Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default) =>
         registrationService.InitiateOtpVerificationAsync(
             mobileNumberIdentifier,
@@ -78,7 +76,7 @@ public sealed class SecureKeyRecoveryService(
     public Task<Result<Unit, string>> ResendSecureKeyResetOtpAsync(
         Guid sessionIdentifier,
         ByteString mobileNumberIdentifier,
-        Action<uint, Guid, OtpCountdownStatus, string?>? onCountdownUpdate = null,
+        Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default) =>
         registrationService.ResendOtpVerificationAsync(
             sessionIdentifier,
@@ -115,7 +113,14 @@ public sealed class SecureKeyRecoveryService(
 
         try
         {
-            OpaqueClient opaqueClient = GetOrCreateOpaqueClient();
+            Result<OpaqueClient, string> opaqueClientResult =
+                await GetOrCreateOpaqueClientAsync(connectId).ConfigureAwait(false);
+            if (opaqueClientResult.IsErr)
+            {
+                return Result<Unit, string>.Err(opaqueClientResult.UnwrapErr());
+            }
+
+            OpaqueClient opaqueClient = opaqueClientResult.Unwrap();
 
             Result<RegistrationResult, string> requestResult =
                 CreateSecureKeyRecoveryRequest(opaqueClient, newSecureKey);
@@ -313,16 +318,24 @@ public sealed class SecureKeyRecoveryService(
         _disposed = true;
     }
 
-    private OpaqueClient GetOrCreateOpaqueClient()
+    private async Task<Result<OpaqueClient, string>> GetOrCreateOpaqueClientAsync(uint connectId)
     {
-        byte[] serverPublicKey = serverPublicKeyProvider.GetServerPublicKey();
+        Result<byte[], NetworkFailure> serverKeyResult =
+            await networkProvider.GetServerPublicKeyAsync(connectId).ConfigureAwait(false);
+        if (serverKeyResult.IsErr)
+        {
+            return Result<OpaqueClient, string>.Err(
+                $"Failed to get server public key: {serverKeyResult.UnwrapErr().Message}");
+        }
+
+        byte[] serverPublicKey = serverKeyResult.Unwrap();
 
         lock (_opaqueClientLock)
         {
             if (_opaqueClient.IsSome && _cachedServerPublicKey != null &&
                 CryptographicOperations.FixedTimeEquals(serverPublicKey, _cachedServerPublicKey))
             {
-                return _opaqueClient.Value!;
+                return Result<OpaqueClient, string>.Ok(_opaqueClient.Value!);
             }
 
             _opaqueClient.Do(client => client.Dispose());
@@ -330,7 +343,7 @@ public sealed class SecureKeyRecoveryService(
             _opaqueClient = Option<OpaqueClient>.Some(newClient);
             _cachedServerPublicKey = (byte[])serverPublicKey.Clone();
 
-            return newClient;
+            return Result<OpaqueClient, string>.Ok(newClient);
         }
     }
 

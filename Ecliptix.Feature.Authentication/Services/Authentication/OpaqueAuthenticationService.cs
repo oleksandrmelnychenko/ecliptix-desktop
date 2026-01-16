@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Shell.Abstractions.Core;
 using Ecliptix.Feature.Authentication.Services.Abstractions.Authentication;
-using Ecliptix.Feature.Authentication.Services.Abstractions.Security;
 using Ecliptix.Feature.Authentication.Services.Authentication.Constants;
 using Ecliptix.Network.Infrastructure.Data.Abstractions;
 using Ecliptix.Network.Infrastructure.Network.Core.Providers;
@@ -32,8 +31,7 @@ public sealed class OpaqueAuthenticationService(
     NetworkProvider networkProvider,
     ILocalizationService localizationService,
     IIdentityService identityService,
-    IApplicationSecureStorageProvider applicationSecureStorageProvider,
-    IServerPublicKeyProvider serverPublicKeyProvider)
+    IApplicationSecureStorageProvider applicationSecureStorageProvider)
     : IAuthenticationService, IDisposable
 {
     private const int MAX_ALLOWED_ZERO_BYTES = 12;
@@ -299,7 +297,16 @@ public sealed class OpaqueAuthenticationService(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        using OpaqueClient opaqueClient = new(serverPublicKeyProvider.GetServerPublicKey());
+        Result<byte[], NetworkFailure> serverKeyResult =
+            await networkProvider.GetServerPublicKeyAsync(connectId).ConfigureAwait(false);
+        if (serverKeyResult.IsErr)
+        {
+            return Result<SignInFlowResult, AuthenticationFailure>.Err(
+                AuthenticationFailure.NetworkRequestFailed(
+                    $"Failed to get server public key: {serverKeyResult.UnwrapErr().Message}"));
+        }
+
+        using OpaqueClient opaqueClient = new(serverKeyResult.Unwrap());
 
         OpaqueSignInContext signInContext = new();
 
@@ -811,7 +818,6 @@ public sealed class OpaqueAuthenticationService(
         ByteString accountIdentifier)
     {
         MembershipProto membership = signInResult.Membership.Value!;
-        ByteString membershipIdentifier = membership.MembershipId;
         Guid accountId = Helpers.FromByteStringToGuid(accountIdentifier);
 
         Result<Unit, AuthenticationFailure> storeResult = await identityService
@@ -823,7 +829,7 @@ public sealed class OpaqueAuthenticationService(
         }
 
         await applicationSecureStorageProvider
-            .SetApplicationMembershipAsync(membershipIdentifier)
+            .SetApplicationMembershipAsync(membership)
             .ConfigureAwait(false);
 
         await applicationSecureStorageProvider

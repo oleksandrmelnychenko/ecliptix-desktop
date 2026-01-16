@@ -7,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Shell.Abstractions.Core;
 using Ecliptix.Feature.Authentication.Services.Abstractions.Authentication;
-using Ecliptix.Feature.Authentication.Services.Abstractions.Security;
 using Ecliptix.Feature.Authentication.Services.Authentication.Constants;
 using Ecliptix.Feature.Authentication.Services.Authentication.Internal;
 using Ecliptix.Network.Infrastructure.Data.Abstractions;
@@ -33,7 +32,6 @@ namespace Ecliptix.Feature.Authentication.Services.Authentication;
 public sealed class OpaqueRegistrationService(
     NetworkProvider networkProvider,
     ILocalizationService localizationService,
-    IServerPublicKeyProvider serverPublicKeyProvider,
     IApplicationSecureStorageProvider applicationSecureStorageProvider)
     : IOpaqueRegistrationService, IDisposable
 {
@@ -155,7 +153,7 @@ public sealed class OpaqueRegistrationService(
     public async Task<Result<Unit, string>> InitiateOtpVerificationAsync(
         ByteString mobileNumberIdentifier,
         OtpVerificationPurpose purpose = OtpVerificationPurpose.Registration,
-        Action<uint, Guid, OtpCountdownStatus, string?>? onCountdownUpdate = null,
+        Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default)
     {
         if (mobileNumberIdentifier.IsEmpty)
@@ -203,7 +201,7 @@ public sealed class OpaqueRegistrationService(
     public async Task<Result<Unit, string>> ResendOtpVerificationAsync(
         Guid sessionIdentifier,
         ByteString mobileNumberIdentifier,
-        Action<uint, Guid, OtpCountdownStatus, string?>? onCountdownUpdate = null,
+        Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default)
     {
         if (sessionIdentifier == AuthenticationConstants.EmptyGuid)
@@ -282,8 +280,17 @@ public sealed class OpaqueRegistrationService(
             {
                 OtpCodeVerifyResponse response = Helpers.ParseFromBytes<OtpCodeVerifyResponse>(payload);
 
+                Log.Information("[OPAQUE-REG] VerifyOtpAsync: Response received. Result={Result}, HasMembership={HasMembership}",
+                    response.Result, response.Membership != null);
+
                 if (response is { Result: OtpVerificationResult.Succeeded, Membership: not null })
                 {
+                    bool hasMembershipId = response.Membership.MembershipId != null && !response.Membership.MembershipId.IsEmpty;
+                    bool hasAccountId = response.Membership.AccountId != null && response.Membership.AccountId.Length > 0;
+
+                    Log.Information("[OPAQUE-REG] VerifyOtpAsync: Membership data - HasMembershipId={HasMembershipId}, HasAccountId={HasAccountId}, CreationStatus={CreationStatus}",
+                        hasMembershipId, hasAccountId, response.Membership.CreationStatus);
+
                     responseSource.TrySetResult(Result<MembershipProto, string>.Ok(response.Membership));
                 }
                 else
@@ -407,14 +414,16 @@ public sealed class OpaqueRegistrationService(
 
     private static void HandleVerificationStreamFailure(
         NetworkFailure failure,
-        Action<uint, Guid, OtpCountdownStatus, string?>? onCountdownUpdate)
+        Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>? onCountdownUpdate)
     {
         if (IsVerificationSessionMissing(failure))
         {
             RxApp.MainThreadScheduler.Schedule(() =>
                 onCountdownUpdate?.Invoke(0, Guid.Empty,
                     OtpCountdownStatus.OtpCountdownStatusNotFound,
-                    AuthenticationConstants.ErrorMessages.SESSION_EXPIRED_START_OVER));
+                    AuthenticationConstants.ErrorMessages.SESSION_EXPIRED_START_OVER,
+                    null,
+                    false));
         }
 
         if (failure.FailureType is not (NetworkFailureType.DATA_CENTER_NOT_RESPONDING
@@ -427,7 +436,9 @@ public sealed class OpaqueRegistrationService(
         RxApp.MainThreadScheduler.Schedule(() =>
             onCountdownUpdate?.Invoke(0, Guid.Empty,
                 OtpCountdownStatus.OtpCountdownStatusServerUnavailable,
-                errorMessage));
+                errorMessage,
+                null,
+                false));
     }
 
     private static bool IsVerificationSessionMissing(NetworkFailure failure)
@@ -663,7 +674,16 @@ public sealed class OpaqueRegistrationService(
 
             bool allowReinit = iteration == 0;
 
-            using OpaqueClient opaqueClient = new(serverPublicKeyProvider.GetServerPublicKey());
+            Result<byte[], NetworkFailure> serverKeyResult =
+                await networkProvider.GetServerPublicKeyAsync(connectId).ConfigureAwait(false);
+            if (serverKeyResult.IsErr)
+            {
+                return CreateAttemptFailure(
+                    $"Failed to get server public key: {serverKeyResult.UnwrapErr().Message}",
+                    true);
+            }
+
+            using OpaqueClient opaqueClient = new(serverKeyResult.Unwrap());
 
             RegistrationAttemptResult result = await TryExecuteRegistrationCycleAsync(
                 opaqueClient,
@@ -921,7 +941,7 @@ public sealed class OpaqueRegistrationService(
         Guid verificationIdentifier,
         uint streamConnectId,
         OtpVerificationPurpose purpose,
-        Action<uint, Guid, OtpCountdownStatus, string?>? onCountdownUpdate)
+        Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>? onCountdownUpdate)
     {
         _streamManager.ProcessVerificationUpdate(
             verificationIdentifier,
@@ -934,13 +954,15 @@ public sealed class OpaqueRegistrationService(
                 verificationCountdownUpdate.SecondsRemaining,
                 verificationIdentifier,
                 verificationCountdownUpdate.Status,
-                verificationCountdownUpdate.Message));
+                verificationCountdownUpdate.Message,
+                verificationCountdownUpdate.HasMessageKey ? verificationCountdownUpdate.MessageKey : null,
+                verificationCountdownUpdate.AlreadyVerified));
     }
 
     private Task<Result<Unit, NetworkFailure>> HandleVerificationStreamResponse(
         byte[] payload,
         uint streamConnectId,
-        Action<uint, Guid, OtpCountdownStatus, string?>? onCountdownUpdate,
+        Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>? onCountdownUpdate,
         OtpVerificationPurpose purpose = OtpVerificationPurpose.Registration)
     {
         OtpCountdownUpdate verificationCountdownUpdate =
@@ -952,7 +974,9 @@ public sealed class OpaqueRegistrationService(
             RxApp.MainThreadScheduler.Schedule(() =>
                 onCountdownUpdate?.Invoke(0, Guid.Empty,
                     OtpCountdownStatus.OtpCountdownStatusFailed,
-                    verificationCountdownUpdate.Message));
+                    verificationCountdownUpdate.Message,
+                    verificationCountdownUpdate.HasMessageKey ? verificationCountdownUpdate.MessageKey : null,
+                    verificationCountdownUpdate.AlreadyVerified));
             return CachedNetworkSuccessTask;
         }
 

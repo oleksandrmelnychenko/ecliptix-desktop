@@ -50,7 +50,7 @@ public sealed class AuthRepository(
         _registrationService.InitiateOtpVerificationAsync(
             mobileNumberIdentifier,
             purpose,
-            AdaptCountdownCallback(onCountdownUpdate),
+            onCountdownUpdate,
             cancellationToken);
 
     public Task<Result<Unit, string>> ResendRegistrationOtpAsync(
@@ -61,7 +61,7 @@ public sealed class AuthRepository(
         _registrationService.ResendOtpVerificationAsync(
             sessionIdentifier,
             mobileNumberIdentifier,
-            AdaptCountdownCallback(onCountdownUpdate),
+            onCountdownUpdate,
             cancellationToken);
 
     public Task<Result<MembershipProto, string>> VerifyRegistrationOtpAsync(
@@ -95,7 +95,7 @@ public sealed class AuthRepository(
         CancellationToken cancellationToken = default) =>
         _recoveryService.InitiateSecureKeyResetOtpAsync(
             mobileNumberIdentifier,
-            AdaptCountdownCallback(onCountdownUpdate),
+            onCountdownUpdate,
             cancellationToken);
 
     public Task<Result<Unit, string>> ResendSecureKeyResetOtpAsync(
@@ -106,7 +106,7 @@ public sealed class AuthRepository(
         _recoveryService.ResendSecureKeyResetOtpAsync(
             sessionIdentifier,
             mobileNumberIdentifier,
-            AdaptCountdownCallback(onCountdownUpdate),
+            onCountdownUpdate,
             cancellationToken);
 
     public Task<Result<MembershipProto, string>> VerifySecureKeyResetOtpAsync(
@@ -127,16 +127,4 @@ public sealed class AuthRepository(
         uint connectId,
         CancellationToken cancellationToken = default) =>
         _recoveryService.CompleteSecureKeyResetAsync(membershipIdentifier, secureKey, connectId, cancellationToken);
-
-    private static Action<uint, Guid, OtpCountdownStatus, string?>? AdaptCountdownCallback(
-        Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>? callback)
-    {
-        if (callback == null)
-        {
-            return null;
-        }
-
-        return (seconds, identifier, status, message) =>
-            callback(seconds, identifier, status, message, null, false);
-    }
 }

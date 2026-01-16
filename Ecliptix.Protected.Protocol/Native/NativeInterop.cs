@@ -250,6 +250,29 @@ internal static class NativeInterop
         out EppError outError);
 
     [DllImport(LIBRARY_NAME, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern EppErrorCode epp_shamir_split(
+        [In] byte[] secret,
+        nuint secretLength,
+        byte threshold,
+        byte shareCount,
+        [In] byte[]? authKey,
+        nuint authKeyLength,
+        IntPtr outShares,
+        out nuint outShareLength,
+        out EppError outError);
+
+    [DllImport(LIBRARY_NAME, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern EppErrorCode epp_shamir_reconstruct(
+        [In] byte[] shares,
+        nuint sharesLength,
+        nuint shareLength,
+        nuint shareCount,
+        [In] byte[]? authKey,
+        nuint authKeyLength,
+        IntPtr outSecret,
+        out EppError outError);
+
+    [DllImport(LIBRARY_NAME, CallingConvention = CallingConvention.Cdecl)]
     internal static extern void epp_session_destroy(IntPtr handle);
 
     [DllImport(LIBRARY_NAME, CallingConvention = CallingConvention.Cdecl)]

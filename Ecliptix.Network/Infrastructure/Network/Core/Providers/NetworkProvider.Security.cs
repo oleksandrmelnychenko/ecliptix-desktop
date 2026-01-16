@@ -61,6 +61,14 @@ public sealed partial class NetworkProvider
 
         _nativeSessions.StoreServerKyberKey(connectId, kyberKey);
 
+        if (!response.ServerPublicKey.IsEmpty)
+        {
+            byte[] serverPublicKey = response.ServerPublicKey.ToByteArray();
+            _nativeSessions.StoreServerPublicKey(connectId, serverPublicKey);
+            Log.Debug("[SECURITY] Stored server X25519 public key for connectId {ConnectId}, length: {Length}",
+                connectId, serverPublicKey.Length);
+        }
+
         if (!response.ServerNonce.IsEmpty)
         {
             byte[] serverNonce = response.ServerNonce.ToByteArray();
