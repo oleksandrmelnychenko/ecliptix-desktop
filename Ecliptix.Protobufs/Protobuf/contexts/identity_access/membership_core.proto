@@ -24,8 +24,7 @@ message Membership {
 
   ActivityStatus status = 3;
   optional CreationStatus creation_status = 4;
-
-  repeated ecliptix.proto.account.Account accounts = 6;
+  repeated ecliptix.proto.account.Account accounts = 5;
 }
 
 enum MobileNumberAvailabilityStatus {
