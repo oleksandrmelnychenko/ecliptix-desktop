@@ -2,6 +2,7 @@ using Ecliptix.Network.Services.Common;
 using Ecliptix.Network.Services.Core;
 using Ecliptix.Network.Services.External.IpGeolocation;
 using Ecliptix.Protobuf.Common;
+using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
 using Google.Protobuf;
 
@@ -14,8 +15,19 @@ public interface IApplicationSecureStorageProvider : IAsyncDisposable
     Task<Result<Unit, InternalServiceApiFailure>> SetApplicationIpCountryAsync(IpCountry ipCountry);
     Task<Result<Unit, InternalServiceApiFailure>> SetApplicationMembershipAsync(ByteString? membershipId);
     Task<Result<Unit, InternalServiceApiFailure>> SetCurrentAccountIdAsync(ByteString? accountId);
-    Task<Result<Unit, InternalServiceApiFailure>> SetServerPublicKeyAsync(ByteString? serverPublicKey);
-    Task<Result<Unit, InternalServiceApiFailure>> SetServerKyberPublicKeyAsync(ByteString? serverKyberPublicKey);
+
+    Task<Result<Unit, InternalServiceApiFailure>> SetServerPublicKeyAsync(
+        PubKeyExchangeType exchangeType, ByteString? serverPublicKey);
+
+    Task<Result<Unit, InternalServiceApiFailure>> SetServerKyberPublicKeyAsync(
+        PubKeyExchangeType exchangeType, ByteString? serverKyberPublicKey);
+
+    Task<Result<Option<ByteString>, InternalServiceApiFailure>> GetServerPublicKeyAsync(
+        PubKeyExchangeType exchangeType);
+
+    Task<Result<Option<ByteString>, InternalServiceApiFailure>> GetServerKyberPublicKeyAsync(
+        PubKeyExchangeType exchangeType);
+
     Task<Result<ApplicationInstanceSettings, InternalServiceApiFailure>> GetApplicationInstanceSettingsAsync();
 
     Task<Result<InstanceSettingsResult, InternalServiceApiFailure>> InitApplicationInstanceSettingsAsync(

@@ -106,6 +106,12 @@ internal sealed class MobileVerificationFlowCoordinator(
         string fullNumber,
         CancellationToken cancellationToken)
     {
+        if (statusResponse is { CanRegister: false, CanContinue: false })
+        {
+            return Result<MobileVerificationFlowOutcome, string>.Err(
+                ResolveLocalization(statusResponse.LocalizationKey, "MobileVerification.ERROR.MobileAlreadyRegistered"));
+        }
+
         return statusResponse.Status switch
         {
             MobileNumberAvailabilityStatus.MobileNumberAvailabilityAvailable or MobileNumberAvailabilityStatus.MobileNumberAvailabilityRegistrationExpired =>
