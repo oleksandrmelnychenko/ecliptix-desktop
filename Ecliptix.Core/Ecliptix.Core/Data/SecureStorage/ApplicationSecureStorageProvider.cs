@@ -116,40 +116,6 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         return await StoreSettingsAsync(settings);
     }
 
-    [Obsolete("Use SetServerPublicKeyAsync(PubKeyExchangeType, ByteString?) instead")]
-    public async Task<Result<Unit, InternalServiceApiFailure>> SetServerPublicKeyAsync(ByteString? serverPublicKey)
-    {
-        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
-            await GetApplicationInstanceSettingsAsync();
-        if (settingsResult.IsErr)
-        {
-            return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
-        }
-
-        ApplicationInstanceSettings settings = settingsResult.Unwrap();
-#pragma warning disable CS0612
-        settings.ServerPublicKey = serverPublicKey ?? ByteString.Empty;
-#pragma warning restore CS0612
-        return await StoreSettingsAsync(settings);
-    }
-
-    [Obsolete("Use SetServerKyberPublicKeyAsync(PubKeyExchangeType, ByteString?) instead")]
-    public async Task<Result<Unit, InternalServiceApiFailure>> SetServerKyberPublicKeyAsync(ByteString? serverKyberPublicKey)
-    {
-        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
-            await GetApplicationInstanceSettingsAsync();
-        if (settingsResult.IsErr)
-        {
-            return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
-        }
-
-        ApplicationInstanceSettings settings = settingsResult.Unwrap();
-#pragma warning disable CS0612
-        settings.ServerKyberPublicKey = serverKyberPublicKey ?? ByteString.Empty;
-#pragma warning restore CS0612
-        return await StoreSettingsAsync(settings);
-    }
-
     public async Task<Result<Unit, InternalServiceApiFailure>> SetServerPublicKeyAsync(
         PubKeyExchangeType exchangeType, ByteString? serverPublicKey)
     {
