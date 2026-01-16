@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Security.Cryptography;
 using Ecliptix.Protected.Protocol.Native;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
@@ -28,6 +29,8 @@ internal sealed class NativeProtocolSessionManager : IDisposable
         {
             existing.Dispose();
         }
+        ClearCachedKeys(connectId);
+        ClearCachedKeys(connectId);
 
         Result<NativeProtocolSession, EcliptixProtocolFailure> createResult =
             NativeProtocolSystem.CreateSessionAdapter(identity, onProtocolStateChanged);
@@ -114,9 +117,21 @@ internal sealed class NativeProtocolSessionManager : IDisposable
             EcliptixProtocolFailure.Generic("No server nonce found"));
     }
 
-    public void ClearServerKyberKey(uint connectId) => _serverKyberKeys.TryRemove(connectId, out _);
+    public void ClearServerKyberKey(uint connectId)
+    {
+        if (_serverKyberKeys.TryRemove(connectId, out byte[]? key))
+        {
+            CryptographicOperations.ZeroMemory(key);
+        }
+    }
 
-    public void ClearServerNonce(uint connectId) => _serverNonces.TryRemove(connectId, out _);
+    public void ClearServerNonce(uint connectId)
+    {
+        if (_serverNonces.TryRemove(connectId, out byte[]? nonce))
+        {
+            CryptographicOperations.ZeroMemory(nonce);
+        }
+    }
 
     public void StoreServerPublicKey(uint connectId, byte[] serverPublicKey)
     {
@@ -145,7 +160,13 @@ internal sealed class NativeProtocolSessionManager : IDisposable
             EcliptixProtocolFailure.Generic("No per-connection server public key found"));
     }
 
-    public void ClearServerPublicKey(uint connectId) => _serverPublicKeys.TryRemove(connectId, out _);
+    public void ClearServerPublicKey(uint connectId)
+    {
+        if (_serverPublicKeys.TryRemove(connectId, out byte[]? key))
+        {
+            CryptographicOperations.ZeroMemory(key);
+        }
+    }
 
     public IEnumerable<uint> ActiveConnectionIds()
     {
@@ -196,9 +217,7 @@ internal sealed class NativeProtocolSessionManager : IDisposable
         {
             session.Dispose();
         }
-        _serverKyberKeys.TryRemove(connectId, out _);
-        _serverNonces.TryRemove(connectId, out _);
-        _serverPublicKeys.TryRemove(connectId, out _);
+        ClearCachedKeys(connectId);
     }
 
     public void Dispose()
@@ -213,9 +232,7 @@ internal sealed class NativeProtocolSessionManager : IDisposable
             session.Dispose();
         }
         _sessions.Clear();
-        _serverKyberKeys.Clear();
-        _serverNonces.Clear();
-        _serverPublicKeys.Clear();
+        ClearAllCachedKeys();
         _disposed = true;
         GC.SuppressFinalize(this);
     }
@@ -223,5 +240,30 @@ internal sealed class NativeProtocolSessionManager : IDisposable
     ~NativeProtocolSessionManager()
     {
         Dispose();
+    }
+
+    private void ClearCachedKeys(uint connectId)
+    {
+        ClearServerKyberKey(connectId);
+        ClearServerNonce(connectId);
+        ClearServerPublicKey(connectId);
+    }
+
+    private void ClearAllCachedKeys()
+    {
+        foreach ((uint connectId, _) in _serverKyberKeys)
+        {
+            ClearServerKyberKey(connectId);
+        }
+
+        foreach ((uint connectId, _) in _serverNonces)
+        {
+            ClearServerNonce(connectId);
+        }
+
+        foreach ((uint connectId, _) in _serverPublicKeys)
+        {
+            ClearServerPublicKey(connectId);
+        }
     }
 }

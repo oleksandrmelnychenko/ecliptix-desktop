@@ -79,7 +79,7 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         }
 
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
-        settings.Country = ipCountry.Country ?? settings.Country;
+        settings.Country = ipCountry.Country;
         return await StoreSettingsAsync(settings);
     }
 
@@ -107,7 +107,6 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         }
 
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
-        settings.AccountId = accountId;
         settings.CurrentAccountId = accountId;
         return await StoreSettingsAsync(settings);
     }
@@ -211,7 +210,6 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
             DeviceId = Helpers.GuidToByteString(Guid.NewGuid()),
             Country = "Unknown",
             Culture = defaultCulture ?? "en-US",
-            AccountId = ByteString.Empty,
             CurrentAccountId = ByteString.Empty,
             IsNewInstance = true
         };
@@ -384,7 +382,6 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         proto.DeviceId = proto.DeviceId ?? ByteString.Empty;
         proto.Country ??= string.Empty;
         proto.Culture ??= string.Empty;
-        proto.AccountId = proto.AccountId ?? ByteString.Empty;
         proto.CurrentAccountId = proto.CurrentAccountId ?? ByteString.Empty;
 
         if (proto.WindowPlacement is { } placement)

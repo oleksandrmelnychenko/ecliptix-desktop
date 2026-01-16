@@ -3,7 +3,6 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.RegularExpressions;
 using Ecliptix.Network.Infrastructure.Security.Abstractions;
 using Ecliptix.Network.Infrastructure.Security.Storage;
 using Ecliptix.Utilities;
@@ -17,26 +16,20 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
     private const int GCM_NONCE_SIZE = 12;
     private const int GCM_TAG_SIZE = 16;
     private const int HMAC_KEY_SIZE = 64;
-    private const int PBKDF_2_ITERATIONS = 100000;
     private const int SECURE_OVERWRITE_SIZE = 1024;
     private const int CRED_TYPE_GENERIC = 1;
     private const int CRED_PERSIST_LOCAL_MACHINE = 2;
     private const int CRED_MAX_CREDENTIAL_BLOB_SIZE = 512;
-    private const string MACHINE_KEY_SALT = "EcliptixMachineKey";
     private const string HMAC_KEY_IDENTIFIER = "ecliptix_hmac_key";
     private const string HARDWARE_ENCRYPTION_KEY_INFO = "ecliptix-hardware-encryption-v1";
     private const string MACHINE_KEY_IDENTIFIER = "ecliptix_machine_key";
-    private const string MACHINE_SALT_IDENTIFIER = "ecliptix_machine_salt";
-    private const int RANDOM_SALT_SIZE = 32;
     private const string MACHINE_KEY_FILENAME = ".machine.key";
     private const string KEYCHAIN_FOLDER = ".keychain";
     private const string KEYCHAIN_SERVICE_NAME = "com.ecliptix.desktop";
     private const string KEYCHAIN_TARGET_PREFIX = "ecliptix";
     private const string TPM_REGISTRY_PATH = @"SYSTEM\CurrentControlSet\Services\TPM\";
-    private const string LINUX_MACHINE_ID_PATH = "/etc/machine-id";
     private const string LINUX_TPM_PATH = "/dev/tpm0";
     private const string LINUX_TPMRM_PATH = "/dev/tpmrm0";
-    private const string MACOS_UUID_PATTERN = @"IOPlatformUUID""\s*=\s*""([^""]+)""";
 
     private static readonly byte[] KeyFileMagic = Encoding.ASCII.GetBytes("ECLXKEY2");
 
@@ -741,9 +734,6 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         return Encoding.UTF8.GetBytes(hashedIdentifier);
     }
 
-    private static byte[] BuildAssociatedDataFromHash(string hashedIdentifier) =>
-        Encoding.UTF8.GetBytes(hashedIdentifier);
-
     private static bool HasKeyFileMagic(ReadOnlySpan<byte> data) =>
         data.Length > KeyFileMagic.Length && data[..KeyFileMagic.Length].SequenceEqual(KeyFileMagic);
 
@@ -916,25 +906,30 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         }
 
         string machineKeyFile = Path.Combine(_keychainPath, MACHINE_KEY_FILENAME);
-        if (File.Exists(machineKeyFile))
+        if (!File.Exists(machineKeyFile))
         {
-            Option<byte[]> fileResult = LoadMachineKeyFromFile(machineKeyFile);
-            if (fileResult.IsSome)
-            {
-                if (keychainAvailable)
-                {
-                    Result<Unit, SecureStorageFailure> storeResult = GetPlatformStore(MACHINE_KEY_IDENTIFIER, _cachedMachineKey!);
-                    if (storeResult.IsOk)
-                    {
-                        TrySecureDeleteFile(machineKeyFile);
-                        Log.Information("[MACHINE-KEY] Successfully migrated machine key to platform keychain");
-                    }
-                }
-                return Option<byte[]>.Some((byte[])_cachedMachineKey!.Clone());
-            }
+            return CreateAndStoreMachineKey(machineKeyFile, keychainAvailable);
         }
 
-        return CreateAndStoreMachineKey(machineKeyFile, keychainAvailable);
+        Option<byte[]> fileResult = LoadMachineKeyFromFile(machineKeyFile);
+        if (!fileResult.IsSome)
+        {
+            return CreateAndStoreMachineKey(machineKeyFile, keychainAvailable);
+        }
+
+        if (!keychainAvailable)
+        {
+            return Option<byte[]>.Some((byte[])_cachedMachineKey!.Clone());
+        }
+
+        Result<Unit, SecureStorageFailure> storeResult = GetPlatformStore(MACHINE_KEY_IDENTIFIER, _cachedMachineKey!);
+        if (storeResult.IsOk)
+        {
+            TrySecureDeleteFile(machineKeyFile);
+            Log.Information("[MACHINE-KEY] Successfully migrated machine key to platform keychain");
+        }
+        return Option<byte[]>.Some((byte[])_cachedMachineKey!.Clone());
+
     }
 
     private Option<byte[]> LoadMachineKeyFromFile(string machineKeyFile)
@@ -974,7 +969,7 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         return false;
     }
 
-    private static bool WriteMachineKeyFile(string machineKeyFile, byte[] key)
+    private static void WriteMachineKeyFile(string machineKeyFile, byte[] key)
     {
         try
         {
@@ -983,12 +978,10 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             {
                 File.SetUnixFileMode(machineKeyFile, UnixFileMode.UserRead | UnixFileMode.UserWrite);
             }
-            return true;
         }
         catch (Exception ex)
         {
             Log.Warning(ex, "[MACHINE-KEY] Failed to persist machine key file: {Path}", machineKeyFile);
-            return false;
         }
     }
 
@@ -1041,121 +1034,6 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         {
 
         }
-    }
-
-    private static string BuildMachineIdentifier()
-    {
-        StringBuilder machineId = new(Environment.MachineName);
-        machineId.Append(Environment.ProcessorCount);
-
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-        {
-            TryAppendLinuxMachineId(machineId);
-        }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        {
-            TryAppendMacOsuuid(machineId);
-        }
-
-        return machineId.ToString();
-    }
-
-    private static void TryAppendLinuxMachineId(StringBuilder machineId)
-    {
-        try
-        {
-            string id = File.ReadAllText(LINUX_MACHINE_ID_PATH).Trim();
-            machineId.Append(id);
-        }
-        catch
-        {
-            machineId.Append("NoMachineId");
-        }
-    }
-
-    private static void TryAppendMacOsuuid(StringBuilder machineId)
-    {
-        try
-        {
-            using System.Diagnostics.Process process = new();
-            process.StartInfo = new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = "ioreg",
-                Arguments = "-rd1 -c IOPlatformExpertDevice",
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            process.Start();
-            string output = process.StandardOutput.ReadToEnd();
-
-            if (!process.WaitForExit(5000))
-            {
-                process.Kill();
-                machineId.Append("NoUUID-Timeout");
-                return;
-            }
-
-            Match match = Regex.Match(output, MACOS_UUID_PATTERN, RegexOptions.None, TimeSpan.FromSeconds(1));
-            machineId.Append(match.Success ? match.Groups[1].Value : "NoUUID");
-        }
-        catch
-        {
-            machineId.Append("NoIOReg");
-        }
-    }
-
-    private byte[] DeriveKeyFromMachineId(string machineId)
-    {
-        byte[] randomSalt = GetOrCreateRandomMachineSalt();
-        byte[] combinedSalt = new byte[randomSalt.Length + 32];
-        try
-        {
-            Array.Copy(randomSalt, 0, combinedSalt, 0, randomSalt.Length);
-            byte[] contextHash = SHA256.HashData(Encoding.UTF8.GetBytes(MACHINE_KEY_SALT));
-            Array.Copy(contextHash, 0, combinedSalt, randomSalt.Length, contextHash.Length);
-
-            return Rfc2898DeriveBytes.Pbkdf2(
-                machineId,
-                combinedSalt,
-                PBKDF_2_ITERATIONS,
-                HashAlgorithmName.SHA256,
-                AES_KEY_SIZE);
-        }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(combinedSalt);
-        }
-    }
-
-    private byte[] GetOrCreateRandomMachineSalt()
-    {
-        Result<byte[], SecureStorageFailure> retrieveResult = GetPlatformRetrieve(MACHINE_SALT_IDENTIFIER);
-        if (retrieveResult.IsOk)
-        {
-            byte[] existingSalt = retrieveResult.Unwrap();
-            if (existingSalt.Length == RANDOM_SALT_SIZE)
-            {
-                return existingSalt;
-            }
-            CryptographicOperations.ZeroMemory(existingSalt);
-        }
-
-        byte[] newSalt = RandomNumberGenerator.GetBytes(RANDOM_SALT_SIZE);
-
-        Result<Unit, SecureStorageFailure> storeResult = GetPlatformStore(MACHINE_SALT_IDENTIFIER, newSalt);
-        if (storeResult.IsErr)
-        {
-            Log.Warning("[MACHINE-SALT] Failed to store random machine salt in keychain: {Error}",
-                storeResult.UnwrapErr().Message);
-        }
-        else
-        {
-            Log.Information("[MACHINE-SALT] Generated and stored new random machine salt");
-        }
-
-        return newSalt;
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
@@ -1396,13 +1274,13 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
                 return false;
             }
 
-            _secretHandle = TryLoadLibrary(new[] { LIB_SECRET_LIBRARY, "libsecret-1.so", "libsecret.so.1" });
+            _secretHandle = TryLoadLibrary([LIB_SECRET_LIBRARY, "libsecret-1.so", "libsecret.so.1"]);
             if (_secretHandle == IntPtr.Zero)
             {
                 return false;
             }
 
-            _glibHandle = TryLoadLibrary(new[] { LIB_GLIB_LIBRARY, "libglib-2.0.so", "libglib.so.0" });
+            _glibHandle = TryLoadLibrary([LIB_GLIB_LIBRARY, "libglib-2.0.so", "libglib.so.0"]);
             if (_glibHandle == IntPtr.Zero)
             {
                 return false;

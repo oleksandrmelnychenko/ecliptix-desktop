@@ -10,14 +10,10 @@ message ApplicationInstanceSettings {
   bytes device_id = 2;
   string country = 3;
   string culture = 4;
-  bytes account_id = 6;
-  bytes current_account_id = 7;
-  bool is_new_instance = 9;
-  WindowPlacement window_placement = 10;
-  ecliptix.proto.membership.Membership membership = 11;
-
-  reserved 5, 8, 12, 13, 14;
-  reserved "membership_id", "server_public_key", "server_kyber_public_key", "server_public_keys", "server_kyber_public_keys";
+  bytes current_account_id = 5;
+  bool is_new_instance = 6;
+  WindowPlacement window_placement = 7;
+  ecliptix.proto.membership.Membership membership = 8;
 }
 
 message WindowPlacement {

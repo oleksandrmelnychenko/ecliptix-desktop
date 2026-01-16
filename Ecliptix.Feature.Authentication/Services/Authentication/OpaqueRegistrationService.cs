@@ -11,6 +11,8 @@ using Ecliptix.Feature.Authentication.Services.Authentication.Constants;
 using Ecliptix.Feature.Authentication.Services.Authentication.Internal;
 using Ecliptix.Network.Infrastructure.Data.Abstractions;
 using Ecliptix.Network.Infrastructure.Network.Core.Providers;
+using Ecliptix.Network.Services.Common;
+using Ecliptix.Protobuf.Common;
 using Ecliptix.Network.Services.Network.Rpc;
 using Ecliptix.OPAQUE.Client;
 using Ecliptix.Protobuf.Protocol;
@@ -286,10 +288,9 @@ public sealed class OpaqueRegistrationService(
                 if (response is { Result: OtpVerificationResult.Succeeded, Membership: not null })
                 {
                     bool hasMembershipId = response.Membership.MembershipId != null && !response.Membership.MembershipId.IsEmpty;
-                    bool hasAccountId = response.Membership.AccountId != null && response.Membership.AccountId.Length > 0;
 
-                    Log.Information("[OPAQUE-REG] VerifyOtpAsync: Membership data - HasMembershipId={HasMembershipId}, HasAccountId={HasAccountId}, CreationStatus={CreationStatus}",
-                        hasMembershipId, hasAccountId, response.Membership.CreationStatus);
+                    Log.Information("[OPAQUE-REG] VerifyOtpAsync: Membership data - HasMembershipId={HasMembershipId}, CreationStatus={CreationStatus}",
+                        hasMembershipId, response.Membership.CreationStatus);
 
                     responseSource.TrySetResult(Result<MembershipProto, string>.Ok(response.Membership));
                 }
@@ -643,11 +644,27 @@ public sealed class OpaqueRegistrationService(
                     false);
             }
 
-            if (completeResponse.ActiveAccount?.MembershipId != null)
+            if (completeResponse.ActiveAccount?.AccountId != null)
             {
                 await applicationSecureStorageProvider
-                    .SetCurrentAccountIdAsync(completeResponse.ActiveAccount.MembershipId)
+                    .SetCurrentAccountIdAsync(completeResponse.ActiveAccount.AccountId)
                     .ConfigureAwait(false);
+            }
+
+            if (completeResponse.AvailableAccounts is { Count: > 0 })
+            {
+                Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
+                    await applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync()
+                        .ConfigureAwait(false);
+
+                if (settingsResult.IsOk && settingsResult.Unwrap().Membership != null)
+                {
+                    MembershipProto membership = settingsResult.Unwrap().Membership!;
+                    membership.Accounts.Clear();
+                    membership.Accounts.AddRange(completeResponse.AvailableAccounts);
+                    await applicationSecureStorageProvider.SetApplicationMembershipAsync(membership)
+                        .ConfigureAwait(false);
+                }
             }
 
             return CreateAttemptSuccess();

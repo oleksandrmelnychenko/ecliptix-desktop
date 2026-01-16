@@ -13,6 +13,4 @@ message EcliptixSessionState {
   bool native_is_initiator = 5;
   string membership_id = 6;
   bytes account_id = 7;
-
-  bytes server_kyber_public_key = 8;
 }

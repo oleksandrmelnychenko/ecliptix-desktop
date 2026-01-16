@@ -144,8 +144,13 @@ public sealed class AuthenticationViewModel : Core.MVVM.ViewModelBase, IAuthenti
 
     public void ClearNavigationStack(bool preserveInitialWelcome = false, MembershipViewType? preserveViewType = null)
     {
+        Log.Information("[AUTH-VM] ClearNavigationStack: preserveInitialWelcome={PreserveWelcome}, preserveViewType={PreserveViewType}, currentView={CurrentView}",
+            preserveInitialWelcome, preserveViewType, _currentView?.GetType().Name ?? "null");
+
         if (_currentView is IResettable currentResettable)
         {
+            Log.Information("[AUTH-VM] ClearNavigationStack: Calling ResetState() on currentView {ViewType}",
+                _currentView.GetType().Name);
             currentResettable.ResetState();
         }
 
@@ -334,6 +339,9 @@ public sealed class AuthenticationViewModel : Core.MVVM.ViewModelBase, IAuthenti
 
     private IRoutableViewModel GetOrCreateViewModelForView(MembershipViewType viewType, bool resetState = true)
     {
+        Log.Information("[AUTH-VM] GetOrCreateViewModelForView: viewType={ViewType}, resetState={ResetState}",
+            viewType, resetState);
+
         AuthenticationFlowContext flowContext = CurrentFlowContext;
 
         bool useFlowSpecificCaching = FlowSpecificViews.Contains(viewType);
@@ -345,13 +353,16 @@ public sealed class AuthenticationViewModel : Core.MVVM.ViewModelBase, IAuthenti
         if (_viewModelCache.TryGetValue(cacheKey, out WeakReference<IRoutableViewModel>? weakRef) &&
             weakRef.TryGetTarget(out IRoutableViewModel? cachedViewModel))
         {
+            Log.Information("[AUTH-VM] GetOrCreateViewModelForView: Found cached ViewModel for {ViewType}", viewType);
             if (resetState && cachedViewModel is IResettable resettable)
             {
+                Log.Information("[AUTH-VM] GetOrCreateViewModelForView: Calling ResetState() on cached {ViewType}", viewType);
                 resettable.ResetState();
             }
 
             return cachedViewModel;
         }
+        Log.Information("[AUTH-VM] GetOrCreateViewModelForView: Creating new ViewModel for {ViewType}", viewType);
 
         if (!ViewModelFactories.TryGetValue(viewType, out Func<ViewModelFactoryContext, IRoutableViewModel>? factory))
         {
@@ -439,14 +450,20 @@ public sealed class AuthenticationViewModel : Core.MVVM.ViewModelBase, IAuthenti
 
     private IRoutableViewModel ExecuteNavigate(MembershipViewType viewType)
     {
+        Log.Information("[AUTH-VM] ExecuteNavigate: viewType={ViewType}, currentView={CurrentView}",
+            viewType, _currentView?.GetType().Name ?? "null");
+
         IRoutableViewModel viewModel = GetOrCreateViewModelForView(viewType);
 
         if (_currentView != null)
         {
+            Log.Information("[AUTH-VM] ExecuteNavigate: Pushing currentView {ViewType} to navigation stack",
+                _currentView.GetType().Name);
             _navigationStack.Push(_currentView);
         }
 
         CurrentView = viewModel;
+        Log.Information("[AUTH-VM] ExecuteNavigate: Set CurrentView to {ViewType}", viewModel.GetType().Name);
 
         return viewModel;
     }

@@ -310,7 +310,7 @@ public sealed class ApplicationInitializer(
             await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId)
                 .ConfigureAwait(false);
 
-            ByteString? accountIdentifier = applicationInstanceSettings.CurrentAccountId ?? applicationInstanceSettings.AccountId;
+            ByteString? accountIdentifier = applicationInstanceSettings.CurrentAccountId;
             Option<byte[]> accountIdBytes = accountIdentifier is { IsEmpty: false }
                 ? Option<byte[]>.Some(accountIdentifier.ToByteArray())
                 : Option<byte[]>.None;
@@ -445,7 +445,7 @@ public sealed class ApplicationInitializer(
         uint connectId,
         ApplicationInstanceSettings applicationInstanceSettings)
     {
-        ByteString? accountId = applicationInstanceSettings.CurrentAccountId ?? applicationInstanceSettings.AccountId;
+        ByteString? accountId = applicationInstanceSettings.CurrentAccountId;
         if (accountId == null || accountId.IsEmpty)
         {
             return Result<bool, NetworkFailure>.Ok(false);

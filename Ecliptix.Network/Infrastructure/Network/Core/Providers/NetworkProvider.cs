@@ -268,14 +268,6 @@ public sealed partial class NetworkProvider(
                             string.Empty;
                     }
 
-                    Result<byte[], EcliptixProtocolFailure> kyberKeyResult =
-                        _nativeSessions.GetServerKyberKey(connectId);
-                    if (kyberKeyResult.IsOk)
-                    {
-                        state.ServerKyberPublicKey = ByteString.CopyFrom(kyberKeyResult.Unwrap());
-                        Log.Debug("[SESSION-STATE] Persisted per-connection Kyber key for connectId {ConnectId}",
-                            connectId);
-                    }
                 }
             }
         }
@@ -937,14 +929,6 @@ public sealed partial class NetworkProvider(
             {
                 return Result<Unit, EcliptixProtocolFailure>.Err(nativeImportResult.UnwrapErr());
             }
-
-            if (state.ServerKyberPublicKey.IsEmpty)
-            {
-                return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
-            }
-
-            _nativeSessions.StoreServerKyberKey(state.ConnectId, state.ServerKyberPublicKey.ToByteArray());
-            Log.Debug("[RESTORE] Restored per-connection Kyber key for connectId {ConnectId}", state.ConnectId);
 
             return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
         }
@@ -1809,7 +1793,7 @@ public sealed partial class NetworkProvider(
         }
 
         ApplicationInstanceSettings settings = _applicationInstanceSettings.Value!;
-        ByteString? accountId = settings.CurrentAccountId ?? settings.AccountId;
+        ByteString? accountId = settings.CurrentAccountId;
         if (accountId == null || accountId.IsEmpty)
         {
             return null;
@@ -2160,13 +2144,6 @@ public sealed partial class NetworkProvider(
                     ? _applicationInstanceSettings.Value!.Membership?.MembershipId.ToBase64() ?? string.Empty
                     : string.Empty
             };
-
-            Result<byte[], EcliptixProtocolFailure> kyberKeyResult = _nativeSessions.GetServerKyberKey(connectId);
-            if (kyberKeyResult.IsOk)
-            {
-                sessionState.ServerKyberPublicKey = ByteString.CopyFrom(kyberKeyResult.Unwrap());
-                Log.Debug("[AUTH-STATE] Persisted per-connection Kyber key for connectId {ConnectId}", connectId);
-            }
 
             await PersistSessionStateAsync(sessionState, connectId, accountIdentifier.ToByteArray())
                 .ConfigureAwait(false);

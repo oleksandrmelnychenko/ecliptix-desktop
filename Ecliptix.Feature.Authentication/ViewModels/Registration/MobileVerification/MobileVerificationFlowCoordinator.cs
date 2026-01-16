@@ -162,11 +162,6 @@ internal sealed class MobileVerificationFlowCoordinator(
             CreationStatus = statusResponse.CreationStatus
         };
 
-        if (statusResponse.AccountId != null && !statusResponse.AccountId.IsEmpty)
-        {
-            membership.AccountId = statusResponse.AccountId;
-        }
-
         await applicationSecureStorageProvider.SetApplicationMembershipAsync(membership);
 
         if (statusResponse.AccountId != null && !statusResponse.AccountId.IsEmpty)

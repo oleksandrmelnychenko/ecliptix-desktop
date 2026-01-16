@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Ecliptix.Core.Shell.Abstractions.Core;
 using Ecliptix.Feature.Authentication.Services.Abstractions.Authentication;
 using Ecliptix.Feature.Authentication.Services.Authentication.Constants;
-using Ecliptix.Network.Infrastructure.Data.Abstractions;
 using Ecliptix.Network.Infrastructure.Network.Core.Providers;
 using Ecliptix.Network.Services.Network.Rpc;
 using Ecliptix.OPAQUE.Client;
@@ -23,8 +22,7 @@ namespace Ecliptix.Feature.Authentication.Services.Authentication;
 public sealed class SecureKeyRecoveryService(
     NetworkProvider networkProvider,
     IOpaqueRegistrationService registrationService,
-    ILocalizationService localizationService,
-    IApplicationSecureStorageProvider applicationSecureStorageProvider)
+    ILocalizationService localizationService)
     : ISecureKeyRecoveryService, IDisposable
 {
     private readonly Lock _opaqueClientLock = new();
@@ -224,7 +222,7 @@ public sealed class SecureKeyRecoveryService(
         }
     }
 
-    private async Task<Result<Unit, string>> ProcessSecureKeyRecoveryInitResponse(
+    private Task<Result<Unit, string>> ProcessSecureKeyRecoveryInitResponse(
         OpaqueRecoveryInitResponse initResponse)
     {
         if (initResponse.Result != OpaqueOperationResult.Succeeded)
@@ -235,18 +233,10 @@ public sealed class SecureKeyRecoveryService(
                     localizationService[AuthenticationConstants.INVALID_CREDENTIALS_KEY],
                 _ => localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY]
             };
-            return Result<Unit, string>.Err(errorMessage);
+            return Task.FromResult(Result<Unit, string>.Err(errorMessage));
         }
 
-        if (initResponse.Membership?.AccountId != null &&
-            initResponse.Membership.AccountId.Length > 0)
-        {
-            await applicationSecureStorageProvider
-                .SetCurrentAccountIdAsync(initResponse.Membership.AccountId)
-                .ConfigureAwait(false);
-        }
-
-        return Result<Unit, string>.Ok(Unit.Value);
+        return Task.FromResult(Result<Unit, string>.Ok(Unit.Value));
     }
 
     private async Task<Result<Unit, string>> FinalizeSecureKeyRecoveryAsync(

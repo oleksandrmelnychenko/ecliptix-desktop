@@ -35,14 +35,15 @@ public sealed partial class SecureKeyConfirmationViewModel
                     })
                 .DisposeWith(disposables);
 
-            SubmitCommand
-                .Where(_ => !IsBusy && CanSubmit)
-                .Subscribe(_ =>
-                {
-                    ((AuthenticationViewModel)HostScreen).ClearNavigationStack(true);
-                    ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.PIN_SET_VIEW).Subscribe();
-                })
-                .DisposeWith(disposables);
+            // TODO: Re-enable PIN_SET_VIEW navigation when PIN feature is implemented
+            // SubmitCommand
+            //     .Where(_ => !IsBusy && CanSubmit)
+            //     .Subscribe(_ =>
+            //     {
+            //         ((AuthenticationViewModel)HostScreen).ClearNavigationStack(true);
+            //         ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.PIN_SET_VIEW).Subscribe();
+            //     })
+            //     .DisposeWith(disposables);
         });
     }
 }

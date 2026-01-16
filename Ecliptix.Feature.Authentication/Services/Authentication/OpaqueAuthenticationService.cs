@@ -513,14 +513,8 @@ public sealed class OpaqueAuthenticationService(
         ByteString membershipIdentifier = membership.MembershipId;
 
         ByteString? accountIdentifier = signInResult.ActiveAccount.Match(
-            account => account.MembershipId ?? null,
+            account => account.AccountId ?? null,
             () => null);
-
-        if (accountIdentifier == null && membership.AccountId != null &&
-            membership.AccountId.Length > 0)
-        {
-            accountIdentifier = membership.AccountId;
-        }
 
         if (accountIdentifier == null || accountIdentifier.IsEmpty)
         {
@@ -654,9 +648,14 @@ public sealed class OpaqueAuthenticationService(
                 NetworkFailure.InvalidRequestType(message));
         }
 
+        List<Account> availableAccounts = capturedResponse.AvailableAccounts != null
+            ? new List<Account>(capturedResponse.AvailableAccounts)
+            : new List<Account>();
+
         SignInResult result = new(
             Option<MembershipProto>.From(capturedResponse.Membership),
-            Option<Account>.From(capturedResponse.ActiveAccount));
+            Option<Account>.From(capturedResponse.ActiveAccount),
+            availableAccounts);
         return Result<SignInResult, NetworkFailure>.Ok(result);
     }
 
@@ -826,6 +825,12 @@ public sealed class OpaqueAuthenticationService(
         if (storeResult.IsErr)
         {
             return Result<Unit, AuthenticationFailure>.Err(storeResult.UnwrapErr());
+        }
+
+        if (signInResult.AvailableAccounts.Count > 0)
+        {
+            membership.Accounts.Clear();
+            membership.Accounts.AddRange(signInResult.AvailableAccounts);
         }
 
         await applicationSecureStorageProvider

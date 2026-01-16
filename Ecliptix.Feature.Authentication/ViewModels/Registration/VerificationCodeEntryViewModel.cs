@@ -438,9 +438,15 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
 
     private async Task HandleSuccessfulVerification(MembershipProto membership, CancellationToken operationToken)
     {
+        Log.Information("[VERIFY-OTP] HandleSuccessfulVerification: Starting, marking session as handled");
+
+        Interlocked.Exchange(ref _alreadyVerifiedHandled, 1);
+        InvalidateCountdownCallbacks();
+
         if (HostScreen is AuthenticationViewModel hostWindow)
         {
             await StoreMembershipData(membership);
+            Log.Information("[VERIFY-OTP] HandleSuccessfulVerification: Navigating to next step");
             NavigateToNextStep(hostWindow);
         }
 
@@ -453,33 +459,31 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
     private async Task StoreMembershipData(MembershipProto membership)
     {
         bool hasMembershipId = membership.MembershipId != null && !membership.MembershipId.IsEmpty;
-        bool hasAccountId = membership.AccountId != null && membership.AccountId.Length > 0;
 
-        Log.Information("[VERIFY-OTP] StoreMembershipData: HasMembershipId={HasMembershipId}, HasAccountId={HasAccountId}, CreationStatus={CreationStatus}",
-            hasMembershipId, hasAccountId, membership.CreationStatus);
+        Log.Information("[VERIFY-OTP] StoreMembershipData: HasMembershipId={HasMembershipId}, CreationStatus={CreationStatus}",
+            hasMembershipId, membership.CreationStatus);
 
         await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership);
-
-        if (hasAccountId)
-        {
-            await _applicationSecureStorageProvider
-                .SetCurrentAccountIdAsync(membership.AccountId)
-                .ConfigureAwait(false);
-        }
 
         Log.Information("[VERIFY-OTP] StoreMembershipData: Membership data stored successfully");
     }
 
     private void NavigateToNextStep(AuthenticationViewModel hostWindow)
     {
+        Log.Information("[VERIFY-OTP] NavigateToNextStep: Called, stack trace follows");
+        Log.Information("[VERIFY-OTP] NavigateToNextStep: {StackTrace}", Environment.StackTrace);
+
         hostWindow.ClearNavigationStack(true, MembershipViewType.MOBILE_VERIFICATION_VIEW);
         NavToSecureKeyConfirmation.Execute().Subscribe().DisposeWith(_disposables);
     }
 
     private async Task HandleAlreadyVerifiedAsync()
     {
+        Log.Information("[VERIFY-OTP] HandleAlreadyVerifiedAsync: Called");
+
         if (_isDisposed)
         {
+            Log.Information("[VERIFY-OTP] HandleAlreadyVerifiedAsync: Skipped - disposed");
             return;
         }
 
@@ -518,12 +522,13 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
                 CreationStatus = statusResponse.CreationStatus
             };
 
+            await StoreMembershipData(membership);
+
             if (statusResponse.AccountId != null && !statusResponse.AccountId.IsEmpty)
             {
-                membership.AccountId = statusResponse.AccountId;
+                await _applicationSecureStorageProvider.SetCurrentAccountIdAsync(statusResponse.AccountId)
+                    .ConfigureAwait(false);
             }
-
-            await StoreMembershipData(membership);
 
             RxApp.MainThreadScheduler.Schedule(() =>
             {
@@ -1005,11 +1010,15 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
 
         if (alreadyVerified)
         {
+            Log.Information("[VERIFY-OTP] HandleCountdownUpdate: alreadyVerified=true received");
+
             if (Interlocked.Exchange(ref _alreadyVerifiedHandled, 1) == 1)
             {
+                Log.Information("[VERIFY-OTP] HandleCountdownUpdate: alreadyVerified already handled, skipping");
                 return;
             }
 
+            Log.Information("[VERIFY-OTP] HandleCountdownUpdate: Handling alreadyVerified for first time");
             InvalidateCountdownCallbacks();
             ErrorMessage = string.Empty;
             HasError = false;
