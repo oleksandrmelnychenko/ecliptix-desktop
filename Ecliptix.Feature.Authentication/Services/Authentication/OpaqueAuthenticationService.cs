@@ -10,7 +10,7 @@ using Ecliptix.Network.Infrastructure.Data.Abstractions;
 using Ecliptix.Network.Infrastructure.Network.Core.Providers;
 using Ecliptix.Network.Services.Abstractions.Authentication;
 using Ecliptix.Network.Services.Network.Rpc;
-using Ecliptix.OPAQUE.Client;
+using Ecliptix.OPAQUE.Agent;
 using Ecliptix.Protected.Protocol.Sodium;
 using Ecliptix.Protected.Protocol.Utilities;
 using Ecliptix.Protobuf.Account;

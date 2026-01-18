@@ -14,7 +14,7 @@ using Ecliptix.Network.Infrastructure.Network.Core.Providers;
 using Ecliptix.Network.Services.Common;
 using Ecliptix.Protobuf.Common;
 using Ecliptix.Network.Services.Network.Rpc;
-using Ecliptix.OPAQUE.Client;
+using Ecliptix.OPAQUE.Agent;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.Membership;
 using MembershipProto = Ecliptix.Protobuf.Membership.Membership;

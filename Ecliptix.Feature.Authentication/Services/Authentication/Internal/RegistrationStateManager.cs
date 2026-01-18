@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Concurrent;
-using Ecliptix.OPAQUE.Client;
+using Ecliptix.OPAQUE.Agent;
 using Google.Protobuf;
 
 namespace Ecliptix.Feature.Authentication.Services.Authentication.Internal;

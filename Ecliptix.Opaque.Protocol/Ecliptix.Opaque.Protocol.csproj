@@ -17,7 +17,7 @@
     <PackageReference Include="Avalonia.Diagnostics" Version="11.3.10" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.10" />
     <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.10" />
-    <PackageReference Include="Ecliptix.OPAQUE.Client" Version="1.0.0-ci.20" />
+    <PackageReference Include="Ecliptix.OPAQUE.Agent" Version="1.0.0-ci.20" />
   </ItemGroup>
 
 </Project>

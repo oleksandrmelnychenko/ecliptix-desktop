@@ -7,7 +7,7 @@ using Ecliptix.Feature.Authentication.Services.Abstractions.Authentication;
 using Ecliptix.Feature.Authentication.Services.Authentication.Constants;
 using Ecliptix.Network.Infrastructure.Network.Core.Providers;
 using Ecliptix.Network.Services.Network.Rpc;
-using Ecliptix.OPAQUE.Client;
+using Ecliptix.OPAQUE.Agent;
 using Ecliptix.Protected.Protocol.Utilities;
 using Ecliptix.Protobuf.Membership;
 using MembershipProto = Ecliptix.Protobuf.Membership.Membership;
