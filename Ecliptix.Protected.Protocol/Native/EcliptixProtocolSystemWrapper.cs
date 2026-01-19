@@ -473,37 +473,6 @@ public sealed class EcliptixProtocolSystemWrapper : IDisposable
         return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
     }
 
-    public static Result<byte[], EcliptixProtocolFailure> DeriveRootFromOpaqueSessionKey(
-        byte[] opaqueSessionKey,
-        byte[] userContext)
-    {
-        if (userContext.Length == 0)
-        {
-            return Result<byte[], EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.InvalidInput("OPAQUE user context is missing"));
-        }
-
-        byte[] rootKey = new byte[32];
-        NativeInterop.EppErrorCode result = NativeInterop.epp_derive_root_key(
-            opaqueSessionKey,
-            (nuint)opaqueSessionKey.Length,
-            userContext,
-            (nuint)userContext.Length,
-            rootKey,
-            (nuint)rootKey.Length,
-            out NativeInterop.EppError error);
-
-        if (result != NativeInterop.EppErrorCode.Success)
-        {
-            string errorMessage = error.GetMessage();
-            NativeInterop.epp_error_free(ref error);
-            return Result<byte[], EcliptixProtocolFailure>.Err(
-                ConvertError(result, errorMessage));
-        }
-
-        return Result<byte[], EcliptixProtocolFailure>.Ok(rootKey);
-    }
-
     private static Result<byte[], EcliptixProtocolFailure> CopyAndFree(IntPtr bufferPtr)
     {
         try

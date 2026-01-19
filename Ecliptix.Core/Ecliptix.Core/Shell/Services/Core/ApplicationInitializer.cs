@@ -22,7 +22,7 @@ using Ecliptix.Protected.Protocol.Sodium;
 using Ecliptix.Protected.Protocol.Utilities;
 using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.Protocol;
-using Ecliptix.Protobuf.ProtocolState;
+using Ecliptix.Protobuf.SecureProtocol;
 using Ecliptix.Protobuf.Transport.DeviceProvisioning;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Authentication;

@@ -39,12 +39,12 @@ public sealed class OpaqueAuthenticationService(
 
     private static readonly Dictionary<OpaqueResult, string> OpaqueErrorMessages = new()
     {
-        { OpaqueResult.INVALID_INPUT, AuthenticationConstants.INVALID_CREDENTIALS_KEY },
-        { OpaqueResult.CRYPTO_ERROR, AuthenticationConstants.COMMON_UNEXPECTED_ERROR_KEY },
-        { OpaqueResult.MEMORY_ERROR, AuthenticationConstants.COMMON_UNEXPECTED_ERROR_KEY },
-        { OpaqueResult.VALIDATION_ERROR, AuthenticationConstants.INVALID_CREDENTIALS_KEY },
-        { OpaqueResult.AUTHENTICATION_ERROR, AuthenticationConstants.INVALID_CREDENTIALS_KEY },
-        { OpaqueResult.INVALID_PUBLIC_KEY, AuthenticationConstants.COMMON_UNEXPECTED_ERROR_KEY },
+        { OpaqueResult.InvalidInput, AuthenticationConstants.INVALID_CREDENTIALS_KEY },
+        { OpaqueResult.CryptoError, AuthenticationConstants.COMMON_UNEXPECTED_ERROR_KEY },
+        { OpaqueResult.MemoryError, AuthenticationConstants.COMMON_UNEXPECTED_ERROR_KEY },
+        { OpaqueResult.ValidationError, AuthenticationConstants.INVALID_CREDENTIALS_KEY },
+        { OpaqueResult.AuthenticationError, AuthenticationConstants.INVALID_CREDENTIALS_KEY },
+        { OpaqueResult.InvalidPublicKey, AuthenticationConstants.COMMON_UNEXPECTED_ERROR_KEY },
     };
 
     private readonly Lock _opaqueClientLock = new();
@@ -55,7 +55,10 @@ public sealed class OpaqueAuthenticationService(
         ByteString MembershipIdentifier,
         ByteString AccountIdentifier) : IDisposable
     {
-        public void Dispose() => MasterKeyHandle.Dispose();
+        public void Dispose()
+        {
+            MasterKeyHandle.Dispose();
+        }
     }
 
     public async Task<Result<Unit, AuthenticationFailure>> SignInAsync(string mobileNumber,
@@ -306,35 +309,49 @@ public sealed class OpaqueAuthenticationService(
                     $"Failed to get server public key: {serverKeyResult.UnwrapErr().Message}"));
         }
 
-        using OpaqueClient opaqueClient = new(serverKeyResult.Unwrap());
-
-        OpaqueSignInContext signInContext = new();
-
         try
         {
-            Result<byte[], AuthenticationFailure> secureKeyResult = ValidateAndCopySecureKey(secureKey);
-            if (secureKeyResult.IsErr)
+            using OpaqueClient opaqueClient = new(serverKeyResult.Unwrap());
+
+            OpaqueSignInContext signInContext = new();
+
+            try
             {
-                return Result<SignInFlowResult, AuthenticationFailure>.Err(secureKeyResult.UnwrapErr());
+                Result<byte[], AuthenticationFailure> secureKeyResult = ValidateAndCopySecureKey(secureKey);
+                if (secureKeyResult.IsErr)
+                {
+                    return Result<SignInFlowResult, AuthenticationFailure>.Err(secureKeyResult.UnwrapErr());
+                }
+
+                byte[] secureKeyCopy = secureKeyResult.Unwrap();
+                LogSecureKeyForDebug("sign-in", mobileNumber, requestContext.Attempt, secureKeyCopy);
+                signInContext.SecureKeyCopy = secureKeyCopy;
+
+                Result<SignInFlowResult, AuthenticationFailure> result = await ExecuteOpaqueSignInStepsAsync(
+                    opaqueClient,
+                    mobileNumber,
+                    signInContext,
+                    connectId,
+                    requestContext,
+                    cancellationToken).ConfigureAwait(false);
+
+                return result;
             }
-
-            byte[] secureKeyCopy = secureKeyResult.Unwrap();
-            LogSecureKeyForDebug("sign-in", mobileNumber, requestContext.Attempt, secureKeyCopy);
-            signInContext.SecureKeyCopy = secureKeyCopy;
-
-            Result<SignInFlowResult, AuthenticationFailure> result = await ExecuteOpaqueSignInStepsAsync(
-                opaqueClient,
-                mobileNumber,
-                signInContext,
-                connectId,
-                requestContext,
-                cancellationToken).ConfigureAwait(false);
-
-            return result;
+            finally
+            {
+                CleanupSignInContext(signInContext);
+            }
         }
-        finally
+        catch (OpaqueException ex)
         {
-            CleanupSignInContext(signInContext);
+            string errorMessage = GetOpaqueErrorMessage(ex.ResultCode);
+            return Result<SignInFlowResult, AuthenticationFailure>.Err(
+                AuthenticationFailure.InvalidCredentials(errorMessage));
+        }
+        catch (Exception ex)
+        {
+            return Result<SignInFlowResult, AuthenticationFailure>.Err(
+                AuthenticationFailure.UnexpectedError(ex.Message));
         }
     }
 
@@ -456,18 +473,18 @@ public sealed class OpaqueAuthenticationService(
 
         byte[] ke3Data = ke3Result.Unwrap();
 
-        Result<SodiumSecureMemoryHandle, AuthenticationFailure> masterKeyResult =
+        Result<OpaqueKeyMaterial, AuthenticationFailure> keyMaterialResult =
             ExtractMasterKeyFromOpaque(opaqueClient, ke1Result);
 
-        if (masterKeyResult.IsErr)
+        if (keyMaterialResult.IsErr)
         {
-            return Result<OpaqueExchangeData, AuthenticationFailure>.Err(masterKeyResult.UnwrapErr());
+            return Result<OpaqueExchangeData, AuthenticationFailure>.Err(keyMaterialResult.UnwrapErr());
         }
 
-        SodiumSecureMemoryHandle masterKeyHandle = masterKeyResult.Unwrap();
+        OpaqueKeyMaterial keyMaterial = keyMaterialResult.Unwrap();
 
         return Result<OpaqueExchangeData, AuthenticationFailure>.Ok(
-            new OpaqueExchangeData(ke3Data, masterKeyHandle));
+            new OpaqueExchangeData(ke3Data, keyMaterial.MasterKeyHandle));
     }
 
     private async Task<Result<SignInFlowResult, AuthenticationFailure>> PerformSignInFinalizePhaseAsync(
@@ -571,7 +588,12 @@ public sealed class OpaqueAuthenticationService(
         };
     }
 
-    private readonly record struct OpaqueExchangeData(byte[] Ke3Data, SodiumSecureMemoryHandle MasterKeyHandle);
+    private readonly record struct OpaqueKeyMaterial(
+        SodiumSecureMemoryHandle MasterKeyHandle);
+
+    private readonly record struct OpaqueExchangeData(
+        byte[] Ke3Data,
+        SodiumSecureMemoryHandle MasterKeyHandle);
 
     private string GetOpaqueErrorMessage(OpaqueResult error)
     {
@@ -705,23 +727,46 @@ public sealed class OpaqueAuthenticationService(
         byte[] ke2Data,
         KeyExchangeResult ke1Result)
     {
-        (OpaqueResult result, byte[]? ke3) = opaqueClient.GenerateKe3(ke2Data, ke1Result);
-
-        if (result == OpaqueResult.SUCCESS && ke3 != null)
+        try
         {
+            byte[] ke3 = opaqueClient.GenerateKe3(ke2Data, ke1Result);
             return Result<byte[], AuthenticationFailure>.Ok(ke3);
         }
-
-        string errorMessage = GetOpaqueErrorMessage(result);
-        return Result<byte[], AuthenticationFailure>.Err(
-            AuthenticationFailure.InvalidCredentials(errorMessage));
+        catch (OpaqueException ex)
+        {
+            string errorMessage = GetOpaqueErrorMessage(ex.ResultCode);
+            return Result<byte[], AuthenticationFailure>.Err(
+                AuthenticationFailure.InvalidCredentials(errorMessage));
+        }
+        catch (Exception ex)
+        {
+            return Result<byte[], AuthenticationFailure>.Err(
+                AuthenticationFailure.UnexpectedError(ex.Message));
+        }
     }
 
-    private static Result<SodiumSecureMemoryHandle, AuthenticationFailure> ExtractMasterKeyFromOpaque(
+    private Result<OpaqueKeyMaterial, AuthenticationFailure> ExtractMasterKeyFromOpaque(
         OpaqueClient opaqueClient,
         KeyExchangeResult ke1Result)
     {
-        (byte[] sessionKeyBytes, byte[] masterKeyBytes) = opaqueClient.DeriveBaseMasterKey(ke1Result);
+        byte[] sessionKeyBytes;
+        byte[] masterKeyBytes;
+
+        try
+        {
+            (sessionKeyBytes, masterKeyBytes) = opaqueClient.DeriveBaseMasterKey(ke1Result);
+        }
+        catch (OpaqueException ex)
+        {
+            string errorMessage = GetOpaqueErrorMessage(ex.ResultCode);
+            return Result<OpaqueKeyMaterial, AuthenticationFailure>.Err(
+                AuthenticationFailure.InvalidCredentials(errorMessage));
+        }
+        catch (Exception ex)
+        {
+            return Result<OpaqueKeyMaterial, AuthenticationFailure>.Err(
+                AuthenticationFailure.UnexpectedError(ex.Message));
+        }
 
         try
         {
@@ -729,21 +774,22 @@ public sealed class OpaqueAuthenticationService(
                 SodiumSecureMemoryHandle.Allocate(masterKeyBytes.Length);
             if (masterKeyHandleResult.IsErr)
             {
-                return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
+                return Result<OpaqueKeyMaterial, AuthenticationFailure>.Err(
                     AuthenticationFailure.SecureMemoryAllocationFailed(masterKeyHandleResult.UnwrapErr().Message));
             }
 
             SodiumSecureMemoryHandle masterKeyHandle = masterKeyHandleResult.Unwrap();
-            Result<Unit, SodiumFailure> writeResult = masterKeyHandle.Write(masterKeyBytes);
+            Result<Unit, SodiumFailure> masterWriteResult = masterKeyHandle.Write(masterKeyBytes);
 
-            if (!writeResult.IsErr)
+            if (!masterWriteResult.IsErr)
             {
-                return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Ok(masterKeyHandle);
+                return Result<OpaqueKeyMaterial, AuthenticationFailure>.Ok(
+                    new OpaqueKeyMaterial(masterKeyHandle));
             }
 
             masterKeyHandle.Dispose();
-            return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
-                AuthenticationFailure.SecureMemoryWriteFailed(writeResult.UnwrapErr().Message));
+            return Result<OpaqueKeyMaterial, AuthenticationFailure>.Err(
+                AuthenticationFailure.SecureMemoryWriteFailed(masterWriteResult.UnwrapErr().Message));
         }
         finally
         {

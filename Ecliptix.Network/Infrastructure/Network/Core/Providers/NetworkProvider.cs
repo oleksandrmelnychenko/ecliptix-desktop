@@ -9,7 +9,7 @@ using Ecliptix.Network.Services.Network.Resilience;
 using Ecliptix.Network.Services.Network.Rpc;
 using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.Protocol;
-using Ecliptix.Protobuf.ProtocolState;
+using Ecliptix.Protobuf.SecureProtocol;
 using Ecliptix.Protobuf.Transport.DeviceProvisioning;
 using Ecliptix.Protected.Protocol.Interfaces;
 using Ecliptix.Protected.Protocol.Native;
@@ -64,34 +64,12 @@ public sealed partial class NetworkProvider(
         return hmac.ComputeHash(infoBytes);
     }
 
-    private Result<PubKeyExchange, NetworkFailure> ProcessAuthenticatedHandshakeResponse(
+    private Result<Unit, NetworkFailure> ProcessAuthenticatedHandshakeResponse(
         SecureEnvelope responseEnvelope,
         CertificatePinningService certificatePinningService,
-        uint connectId,
-        byte[] rootKey)
+        uint connectId)
     {
-        Result<NativeProtocolSession, EcliptixProtocolFailure> nativeSessionResult =
-            _nativeSessions.Get(connectId);
-        if (nativeSessionResult.IsErr)
-        {
-            return Result<PubKeyExchange, NetworkFailure>.Err(nativeSessionResult.UnwrapErr().ToNetworkFailure());
-        }
-
-        Result<byte[], NetworkFailure> decryptResult =
-            _security.RsaChunkEncryptor.DecryptInChunks(certificatePinningService,
-                responseEnvelope.EncryptedPayload.ToByteArray());
-        if (decryptResult.IsErr)
-        {
-            return Result<PubKeyExchange, NetworkFailure>.Err(decryptResult.UnwrapErr());
-        }
-
-        PubKeyExchange peerPubKeyExchange = PubKeyExchange.Parser.ParseFrom(decryptResult.Unwrap());
-
-        Result<Unit, EcliptixProtocolFailure> completeResult =
-            nativeSessionResult.Unwrap().CompleteHandshake(peerPubKeyExchange.ToByteArray(), rootKey);
-        return completeResult.IsErr
-            ? Result<PubKeyExchange, NetworkFailure>.Err(completeResult.UnwrapErr().ToNetworkFailure())
-            : Result<PubKeyExchange, NetworkFailure>.Ok(peerPubKeyExchange);
+        return ProcessNativeHandshakeResponse(responseEnvelope, certificatePinningService, connectId);
     }
 
     private async Task<Result<Option<EcliptixSessionState>, NetworkFailure>> EstablishSecrecyChannelInternalAsync(
@@ -99,7 +77,8 @@ public sealed partial class NetworkProvider(
     {
         PublishConnectingEventIfNeeded(request.ExchangeType, request.ConnectId);
 
-        Result<(SecureEnvelope Envelope, CertificatePinningService Service), NetworkFailure> prepareResult =
+        Result<(SecureEnvelope Envelope, CertificatePinningService Service, byte[] HandshakeInit), NetworkFailure>
+            prepareResult =
             await PrepareNativeHandshakeEnvelopeAsync(request).ConfigureAwait(false);
 
         if (prepareResult.IsErr)
@@ -107,7 +86,8 @@ public sealed partial class NetworkProvider(
             return Result<Option<EcliptixSessionState>, NetworkFailure>.Err(prepareResult.UnwrapErr());
         }
 
-        (SecureEnvelope envelope, CertificatePinningService certificatePinningService) = prepareResult.Unwrap();
+        (SecureEnvelope envelope, CertificatePinningService certificatePinningService, byte[] handshakeInit) =
+            prepareResult.Unwrap();
 
         Result<SecureEnvelope, NetworkFailure> establishResult =
             await ExecuteEstablishChannelRpcAsync(request, envelope);
@@ -117,8 +97,8 @@ public sealed partial class NetworkProvider(
             return HandleEstablishChannelFailure(establishResult.UnwrapErr(), request);
         }
 
-        Result<PubKeyExchange, NetworkFailure> processResult =
-            ProcessNativeHandshakeResponse(establishResult.Unwrap(), certificatePinningService, request);
+        Result<Unit, NetworkFailure> processResult =
+            ProcessNativeHandshakeResponse(establishResult.Unwrap(), certificatePinningService, request.ConnectId);
 
         if (processResult.IsErr)
         {
@@ -127,7 +107,7 @@ public sealed partial class NetworkProvider(
 
         return await CreateAndPersistSessionStateAsync(
             request,
-            processResult.Unwrap());
+            handshakeInit);
     }
 
     private void PublishConnectingEventIfNeeded(PubKeyExchangeType exchangeType, uint connectId)
@@ -192,8 +172,8 @@ public sealed partial class NetworkProvider(
         NetworkFailure failure,
         SecrecyChannelRequest request)
     {
-        _nativeSessions.ClearServerKyberKey(request.ConnectId);
-        Log.Debug("[HANDSHAKE-FAILURE] Cleared stale Kyber key for connectId {ConnectId}, failure: {FailureType}",
+        _nativeSessions.ClearServerPreKeyBundle(request.ConnectId);
+        Log.Debug("[HANDSHAKE-FAILURE] Cleared stale prekey bundle for connectId {ConnectId}, failure: {FailureType}",
             request.ConnectId, failure.FailureType);
 
         if (request.EnablePendingRegistration && ShouldQueueSecrecyChannelRetry(failure))
@@ -207,7 +187,7 @@ public sealed partial class NetworkProvider(
 
     private Task<Result<Option<EcliptixSessionState>, NetworkFailure>> CreateAndPersistSessionStateAsync(
         SecrecyChannelRequest request,
-        PubKeyExchange peerPubKeyExchange)
+        byte[] handshakeInit)
     {
         if (!ShouldPersistSessionState(request))
         {
@@ -216,7 +196,13 @@ public sealed partial class NetworkProvider(
         }
 
         Result<EcliptixSessionState, NetworkFailure> stateResult =
-            CreateSessionState(request.ConnectId, peerPubKeyExchange);
+            CreateSessionState(
+                request.ConnectId,
+                handshakeInit,
+                request.ExchangeType,
+                ByteString.Empty,
+                ByteString.Empty,
+                null);
 
         if (stateResult.IsErr)
         {
@@ -245,29 +231,42 @@ public sealed partial class NetworkProvider(
 
     private Result<EcliptixSessionState, NetworkFailure> CreateSessionState(
         uint connectId,
-        PubKeyExchange peerPubKeyExchange)
+        byte[] handshakeInit,
+        PubKeyExchangeType exchangeType,
+        ByteString membershipId,
+        ByteString accountId,
+        byte[]? identitySeed)
     {
-        EcliptixSessionState state = new() { ConnectId = connectId, PeerHandshakeMessage = peerPubKeyExchange };
-        if (_nativeSessions.Get(connectId).IsOk)
+        EcliptixSessionState state = new()
         {
-            Result<NativeProtocolSession, EcliptixProtocolFailure> nativeSessionResult = _nativeSessions.Get(connectId);
-            if (nativeSessionResult.IsOk)
-            {
-                NativeProtocolSession nativeSession = nativeSessionResult.Unwrap();
-                Result<byte[], EcliptixProtocolFailure> exportResult = nativeSession.ExportState();
-                if (exportResult.IsOk)
-                {
-                    state.NativeState = ByteString.CopyFrom(exportResult.Unwrap());
-                    state.NativePeerBundle = peerPubKeyExchange.Payload;
-                    state.NativeIsInitiator = peerPubKeyExchange.State ==
-                                              PubKeyExchangeState.Init;
-                    if (_applicationInstanceSettings.IsSome)
-                    {
-                        state.MembershipId =
-                            _applicationInstanceSettings.Value!.Membership?.MembershipId.ToBase64() ??
-                            string.Empty;
-                    }
+            ConnectId = connectId,
+            PeerHandshakeInit = ByteString.CopyFrom(handshakeInit),
+            ExchangeType = exchangeType,
+            MembershipId = membershipId,
+            AccountId = accountId,
+            IdentitySeed = identitySeed is { Length: > 0 } ? ByteString.CopyFrom(identitySeed) : ByteString.Empty
+        };
 
+        Result<NativeProtocolSession, EcliptixProtocolFailure> nativeSessionResult = _nativeSessions.Get(connectId);
+        if (nativeSessionResult.IsOk)
+        {
+            NativeProtocolSession nativeSession = nativeSessionResult.Unwrap();
+            Result<byte[], EcliptixProtocolFailure> exportResult = nativeSession.ExportState();
+            if (exportResult.IsOk)
+            {
+                byte[] stateBytes = exportResult.Unwrap();
+                state.NativeState = ByteString.CopyFrom(stateBytes);
+
+                try
+                {
+                    ProtocolState protocolState = ProtocolState.Parser.ParseFrom(stateBytes);
+                    state.SendingChainIndex = (uint)(protocolState.SendChain?.MessageIndex ?? 0);
+                    state.ReceivingChainIndex = (uint)(protocolState.RecvChain?.MessageIndex ?? 0);
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning("[PROTOCOL-STATE] Failed to parse native state for connectId {ConnectId}: {Error}",
+                        connectId, ex.Message);
                 }
             }
         }
@@ -304,12 +303,12 @@ public sealed partial class NetworkProvider(
                 $"Failed to create native identity: {identityResult.UnwrapErr().Message}");
         }
 
-        Result<NativeProtocolSession, EcliptixProtocolFailure> nativeCreateResult =
-            _nativeSessions.CreateOrReplace(connectId, identityResult.Unwrap(), OnProtocolStateChanged);
+        Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure> nativeCreateResult =
+            _nativeSessions.CreateOrReplaceIdentity(connectId, identityResult.Unwrap());
         if (nativeCreateResult.IsErr)
         {
             throw new InvalidOperationException(
-                $"Failed to create native session: {nativeCreateResult.UnwrapErr().Message}");
+                $"Failed to create native identity: {nativeCreateResult.UnwrapErr().Message}");
         }
 
         Guid appInstanceId = Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId);
@@ -658,7 +657,7 @@ public sealed partial class NetworkProvider(
         }
 
         Result<byte[], NetworkFailure> fetchResult =
-            await FetchPerConnectionKyberKeyAsync(connectId, PubKeyExchangeType.InitialHandshake).ConfigureAwait(false);
+            await FetchServerPreKeyBundleAsync(connectId, PubKeyExchangeType.InitialHandshake).ConfigureAwait(false);
 
         if (fetchResult.IsErr)
         {
@@ -726,12 +725,12 @@ public sealed partial class NetworkProvider(
                 $"Failed to create native identity: {identityResult.UnwrapErr().Message}");
         }
 
-        Result<NativeProtocolSession, EcliptixProtocolFailure> nativeCreateResult =
-            _nativeSessions.CreateOrReplace(connectId, identityResult.Unwrap(), OnProtocolStateChanged);
+        Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure> nativeCreateResult =
+            _nativeSessions.CreateOrReplaceIdentity(connectId, identityResult.Unwrap());
         if (nativeCreateResult.IsErr)
         {
             throw new InvalidOperationException(
-                $"Failed to create native session: {nativeCreateResult.UnwrapErr().Message}");
+                $"Failed to create native identity: {nativeCreateResult.UnwrapErr().Message}");
         }
     }
 
@@ -761,30 +760,8 @@ public sealed partial class NetworkProvider(
             return restoreResult;
         }
 
-        Result<NativeProtocolSession, EcliptixProtocolFailure> sessionResult =
-            _nativeSessions.Get(currentState.ConnectId);
-        if (sessionResult.IsErr)
-        {
-            return Result<Unit, EcliptixProtocolFailure>.Err(sessionResult.UnwrapErr());
-        }
-
-        Result<(uint SendingIndex, uint ReceivingIndex), EcliptixProtocolFailure> chainResult =
-            sessionResult.Unwrap().GetChainIndices();
-        if (chainResult.IsErr)
-        {
-            EcliptixProtocolFailure chainError = chainResult.UnwrapErr();
-            if (chainError.Message.Contains("chain index", StringComparison.OrdinalIgnoreCase))
-            {
-                Log.Debug("[NETWORK-PROVIDER] Chain index validation unavailable: {Error}", chainError.Message);
-                return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
-            }
-
-            return Result<Unit, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.StateMismatch(
-                    $"Session validation failed: unable to read chain indices ({chainError.Message})."));
-        }
-
-        (uint localSending, uint localReceiving) = chainResult.Unwrap();
+        uint localSending = currentState.SendingChainIndex;
+        uint localReceiving = currentState.ReceivingChainIndex;
 
         uint serverReceiving = (uint)peerSecrecyChannelState.ReceivingChainIndex;
         uint serverSending = (uint)peerSecrecyChannelState.SendingChainIndex;
@@ -810,17 +787,17 @@ public sealed partial class NetworkProvider(
         return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
     }
 
-    private static bool TryResolveMembershipGuid(string membershipId, out Guid membershipGuid)
+    private static bool TryResolveMembershipGuid(ByteString membershipId, out Guid membershipGuid)
     {
-        if (Guid.TryParse(membershipId, out membershipGuid))
+        if (membershipId.IsEmpty)
         {
-            return true;
+            membershipGuid = Guid.Empty;
+            return false;
         }
 
         try
         {
-            byte[] decoded = Convert.FromBase64String(membershipId);
-            membershipGuid = Helpers.FromByteStringToGuid(ByteString.CopyFrom(decoded));
+            membershipGuid = Helpers.FromByteStringToGuid(membershipId);
             return true;
         }
         catch
@@ -919,12 +896,17 @@ public sealed partial class NetworkProvider(
             }
 
             EcliptixIdentityKeysWrapper nativeIdentity = nativeIdentityResult.Unwrap();
+            Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure> identityStoreResult =
+                _nativeSessions.CreateOrReplaceIdentity(state.ConnectId, nativeIdentity);
+            if (identityStoreResult.IsErr)
+            {
+                return Result<Unit, EcliptixProtocolFailure>.Err(identityStoreResult.UnwrapErr());
+            }
+
             Result<NativeProtocolSession, EcliptixProtocolFailure> nativeImportResult =
                 _nativeSessions.CreateOrReplaceFromState(
                     state.ConnectId,
-                    nativeIdentity,
-                    nativeStateBytes,
-                    OnProtocolStateChanged);
+                    nativeStateBytes);
             if (nativeImportResult.IsErr)
             {
                 return Result<Unit, EcliptixProtocolFailure>.Err(nativeImportResult.UnwrapErr());
@@ -995,7 +977,10 @@ public sealed partial class NetworkProvider(
 
     private Result<SecureEnvelope, NetworkFailure> EncryptPayload(
         uint connectId,
-        byte[] plainBuffer)
+        uint envelopeId,
+        EnvelopeType envelopeType,
+        byte[] plainBuffer,
+        string? correlationId)
     {
         Log.Information("[CLIENT-ENCRYPT] EncryptPayload called. ConnectId={ConnectId}, PlainBufferSize={Size}",
             connectId, plainBuffer.Length);
@@ -1010,25 +995,9 @@ public sealed partial class NetworkProvider(
         }
 
         NativeProtocolSession nativeSession = nativeSessionResult.Unwrap();
-        Result<bool, EcliptixProtocolFailure> hasConnResult = nativeSession.HasConnection();
-        if (hasConnResult.IsErr)
-        {
-            return Result<SecureEnvelope, NetworkFailure>.Err(
-                hasConnResult.UnwrapErr().ToNetworkFailure());
-        }
 
-        Result<uint, EcliptixProtocolFailure> sessionConnIdResult = nativeSession.GetConnectionId();
-        Log.Information("[CLIENT-ENCRYPT] Session found. HasConnection={HasConn}, SessionConnId={SessionConnId}",
-            hasConnResult.Unwrap(),
-            sessionConnIdResult.IsOk ? sessionConnIdResult.Unwrap().ToString() : "ERROR");
-
-        if (!hasConnResult.Unwrap())
-        {
-            return Result<SecureEnvelope, NetworkFailure>.Err(
-                NetworkFailure.DataCenterNotResponding("Native protocol session not established"));
-        }
-
-        Result<byte[], EcliptixProtocolFailure> nativeCipher = nativeSession.SendMessage(plainBuffer);
+        Result<byte[], EcliptixProtocolFailure> nativeCipher =
+            nativeSession.Encrypt(plainBuffer, envelopeType, envelopeId, correlationId);
         if (nativeCipher.IsErr)
         {
             return Result<SecureEnvelope, NetworkFailure>.Err(
@@ -1041,12 +1010,12 @@ public sealed partial class NetworkProvider(
             Log.Information(
                 "[CLIENT-ENCRYPT] Encrypted envelope ready. ConnectId={ConnectId}, Meta={Meta}, Payload={Payload}, HeaderNonce={HeaderNonce}, DhPublicKey={DhPublicKey}, KyberCiphertext={KyberCiphertext}, RatchetEpoch={RatchetEpoch}",
                 connectId,
-                envelope.MetaData.Length,
+                envelope.EncryptedMetadata.Length,
                 envelope.EncryptedPayload.Length,
                 envelope.HeaderNonce.Length,
                 envelope.DhPublicKey.Length,
                 envelope.KyberCiphertext.Length,
-                envelope.HasRatchetEpoch ? envelope.RatchetEpoch.ToString() : "missing");
+                envelope.RatchetEpoch.ToString());
             return Result<SecureEnvelope, NetworkFailure>.Ok(envelope);
         }
         catch (Exception ex)
@@ -1064,7 +1033,12 @@ public sealed partial class NetworkProvider(
         ServiceFlowType flowType,
         RpcRequestContext requestContext)
     {
-        Result<SecureEnvelope, NetworkFailure> encryptResult = EncryptPayload(connectId, plainBuffer);
+        Result<SecureEnvelope, NetworkFailure> encryptResult = EncryptPayload(
+            connectId,
+            logicalOperationId,
+            EnvelopeType.Request,
+            plainBuffer,
+            requestContext.CorrelationId);
 
         if (encryptResult.IsErr)
         {
@@ -1088,31 +1062,20 @@ public sealed partial class NetworkProvider(
         }
 
         NativeProtocolSession nativeSession = nativeSessionResult.Unwrap();
-        Result<bool, EcliptixProtocolFailure> hasConnResult = nativeSession.HasConnection();
-        if (hasConnResult.IsErr)
-        {
-            return Result<byte[], NetworkFailure>.Err(hasConnResult.UnwrapErr().ToNetworkFailure());
-        }
-
-        if (!hasConnResult.Unwrap())
-        {
-            return Result<byte[], NetworkFailure>.Err(
-                NetworkFailure.DataCenterNotResponding("Native protocol session not established"));
-        }
 
         byte[] serializedEnvelope = envelope.ToByteArray();
         Result<Unit, EcliptixProtocolFailure> validateResult =
-            nativeSession.ValidateEnvelopeHybridRequirements(serializedEnvelope);
+            NativeProtocolSession.ValidateEnvelope(serializedEnvelope);
         if (validateResult.IsErr)
         {
             return Result<byte[], NetworkFailure>.Err(validateResult.UnwrapErr().ToNetworkFailure());
         }
 
-        Result<byte[], EcliptixProtocolFailure> decryptResult =
-            nativeSession.ReceiveMessage(serializedEnvelope);
+        Result<ProtocolDecryptResult, EcliptixProtocolFailure> decryptResult =
+            nativeSession.Decrypt(serializedEnvelope);
         return decryptResult.IsErr
             ? Result<byte[], NetworkFailure>.Err(decryptResult.UnwrapErr().ToNetworkFailure())
-            : Result<byte[], NetworkFailure>.Ok(decryptResult.Unwrap());
+            : Result<byte[], NetworkFailure>.Ok(decryptResult.Unwrap().Plaintext);
     }
 
     private void PersistProtocolStateInBackground(uint connectId)
@@ -1171,10 +1134,9 @@ public sealed partial class NetworkProvider(
         state.ConnectId = connectId;
         state.NativeState = ByteString.CopyFrom(exportResult.Unwrap());
 
-        if (_applicationInstanceSettings.IsSome && string.IsNullOrWhiteSpace(state.MembershipId))
+        if (_applicationInstanceSettings.IsSome && state.MembershipId.IsEmpty)
         {
-            state.MembershipId = _applicationInstanceSettings.Value!.Membership?.MembershipId.ToBase64() ??
-                                 string.Empty;
+            state.MembershipId = _applicationInstanceSettings.Value!.Membership?.MembershipId ?? ByteString.Empty;
         }
 
         if (_applicationInstanceSettings.IsSome &&
@@ -1905,8 +1867,8 @@ public sealed partial class NetworkProvider(
             Log.Warning(
                 "[RecreateProtocolWithMasterKey] Server missing master key shares, falling back to fresh handshake");
 
-            _nativeSessions.ClearServerKyberKey(connectId);
-            Log.Debug("[HANDSHAKE-RETRY] Cleared stale Kyber key for connectId {ConnectId}", connectId);
+            _nativeSessions.ClearServerPreKeyBundle(connectId);
+            Log.Debug("[HANDSHAKE-RETRY] Cleared stale prekey bundle for connectId {ConnectId}", connectId);
 
             Result<EcliptixSessionState, NetworkFailure> freshResult =
                 await EstablishSecrecyChannelAsync(connectId).ConfigureAwait(false);
@@ -1981,49 +1943,45 @@ public sealed partial class NetworkProvider(
             _nativeSessions.Remove(connectId);
             CancelOperationsForConnection(connectId);
             const PubKeyExchangeType exchangeType = PubKeyExchangeType.DataCenterEphemeralConnect;
-            Result<NativeProtocolSession, EcliptixProtocolFailure> nativeSessionResult =
-                _nativeSessions.CreateOrReplace(connectId, nativeIdentity, OnProtocolStateChanged);
-            if (nativeSessionResult.IsErr)
+            Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure> nativeIdentityStoreResult =
+                _nativeSessions.CreateOrReplaceIdentity(connectId, nativeIdentity);
+            if (nativeIdentityStoreResult.IsErr)
             {
                 await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
                 return Result<Unit, NetworkFailure>.Err(
-                    nativeSessionResult.UnwrapErr().ToNetworkFailure());
+                    nativeIdentityStoreResult.UnwrapErr().ToNetworkFailure());
             }
 
-            NativeProtocolSession nativeSession = nativeSessionResult.Unwrap();
-
-            Result<byte[], NetworkFailure> kyberResult =
-                await FetchPerConnectionKyberKeyAsync(connectId, exchangeType).ConfigureAwait(false);
-            if (kyberResult.IsErr)
+            Result<byte[], NetworkFailure> bundleResult =
+                await FetchServerPreKeyBundleAsync(connectId, exchangeType).ConfigureAwait(false);
+            if (bundleResult.IsErr)
             {
                 await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
-                return Result<Unit, NetworkFailure>.Err(kyberResult.UnwrapErr());
+                return Result<Unit, NetworkFailure>.Err(bundleResult.UnwrapErr());
             }
 
-            byte[] serverKyberKey = kyberResult.Unwrap();
             Log.Debug(
-                "[AUTH-HANDSHAKE] Using fresh per-connection Kyber key for connectId {ConnectId}, exchangeType={ExchangeType}, length: {Length}",
-                connectId, exchangeType, serverKyberKey.Length);
+                "[AUTH-HANDSHAKE] Using fresh server prekey bundle for connectId {ConnectId}, exchangeType={ExchangeType}, length: {Length}",
+                connectId, exchangeType, bundleResult.Unwrap().Length);
 
-            Result<byte[], EcliptixProtocolFailure> nativeHandshake = nativeSession
-                .BeginHandshakeWithPeerKyber(connectId, (byte)exchangeType, serverKyberKey);
-
-            if (nativeHandshake.IsErr)
+            Result<uint, NetworkFailure> chainLimitResult = ResolveChainLimit(exchangeType);
+            if (chainLimitResult.IsErr)
             {
                 await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
-                return Result<Unit, NetworkFailure>.Err(
-                    nativeHandshake.UnwrapErr().ToNetworkFailure());
+                return Result<Unit, NetworkFailure>.Err(chainLimitResult.UnwrapErr());
             }
 
-            Result<PubKeyExchange, NetworkFailure> updatedHandshakeResult =
-                EnsureLocalKyberPublicKeyInHandshake(nativeHandshake.Unwrap(), nativeSession);
-            if (updatedHandshakeResult.IsErr)
+            Result<NativeHandshakeInitiatorStart, EcliptixProtocolFailure> handshakeStart =
+                NativeHandshakeInitiator.Start(nativeIdentity, bundleResult.Unwrap(), chainLimitResult.Unwrap());
+            if (handshakeStart.IsErr)
             {
                 await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
-                return Result<Unit, NetworkFailure>.Err(updatedHandshakeResult.UnwrapErr());
+                return Result<Unit, NetworkFailure>.Err(handshakeStart.UnwrapErr().ToNetworkFailure());
             }
 
-            PubKeyExchange clientExchange = updatedHandshakeResult.Unwrap();
+            NativeHandshakeInitiatorStart handshakeInfo = handshakeStart.Unwrap();
+            _nativeSessions.StoreHandshakeInitiator(connectId, handshakeInfo.Initiator);
+            byte[] handshakeInit = handshakeInfo.HandshakeInit;
 
             Result<byte[], EcliptixProtocolFailure> serverNonceResult = _nativeSessions.GetServerNonce(connectId);
             if (serverNonceResult.IsErr)
@@ -2052,7 +2010,7 @@ public sealed partial class NetworkProvider(
                 membershipIdentifier.ToByteArray(),
                 accountIdentifier.ToByteArray(),
                 masterKeyFingerprint,
-                clientExchange.ToByteArray(),
+                handshakeInit,
                 clientNonce,
                 serverNonce,
                 requestContext.IdempotencyKey,
@@ -2071,7 +2029,7 @@ public sealed partial class NetworkProvider(
                 Cryptography = new AuthenticatedSessionHandshakeRequest.Types.Cryptography
                 {
                     MasterKeyFingerprint = ByteString.CopyFrom(masterKeyFingerprint),
-                    PubKeyExchange = clientExchange.ToByteString(),
+                    HandshakeInit = ByteString.CopyFrom(handshakeInit),
                     ClientNonce = ByteString.CopyFrom(clientNonce),
                     Proof = ByteString.CopyFrom(proof),
                     ServerNonce = ByteString.CopyFrom(serverNonce)
@@ -2103,12 +2061,11 @@ public sealed partial class NetworkProvider(
                     NetworkFailure.RsaEncryption("Failed to initialize certificate pinning service"));
             }
 
-            Result<PubKeyExchange, NetworkFailure> processResult =
+            Result<Unit, NetworkFailure> processResult =
                 ProcessAuthenticatedHandshakeResponse(
                     serverResponseResult.Unwrap(),
                     certificatePinningService.Value!,
-                    connectId,
-                    rootKey);
+                    connectId);
 
             if (processResult.IsErr)
             {
@@ -2116,36 +2073,20 @@ public sealed partial class NetworkProvider(
                 return Result<Unit, NetworkFailure>.Err(processResult.UnwrapErr());
             }
 
-            Result<NativeProtocolSession, EcliptixProtocolFailure> nativeSessionForPersist =
-                _nativeSessions.Get(connectId);
-            if (nativeSessionForPersist.IsErr)
+            Result<EcliptixSessionState, NetworkFailure> stateResult = CreateSessionState(
+                connectId,
+                handshakeInit,
+                exchangeType,
+                membershipIdentifier,
+                accountIdentifier,
+                null);
+            if (stateResult.IsErr)
             {
                 await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
-                return Result<Unit, NetworkFailure>.Err(nativeSessionForPersist.UnwrapErr().ToNetworkFailure());
+                return Result<Unit, NetworkFailure>.Err(stateResult.UnwrapErr());
             }
 
-            NativeProtocolSession nativeSessionForPersistHandle = nativeSessionForPersist.Unwrap();
-            Result<byte[], EcliptixProtocolFailure> nativeExport = nativeSessionForPersistHandle.ExportState();
-            if (nativeExport.IsErr)
-            {
-                await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
-                return Result<Unit, NetworkFailure>.Err(nativeExport.UnwrapErr().ToNetworkFailure());
-            }
-
-            EcliptixSessionState sessionState = new()
-            {
-                ConnectId = connectId,
-                PeerHandshakeMessage = processResult.Unwrap(),
-                NativeState = ByteString.CopyFrom(nativeExport.Unwrap()),
-                NativePeerBundle = processResult.Unwrap().Payload,
-                NativeIsInitiator = true,
-                AccountId = accountIdentifier,
-                MembershipId = _applicationInstanceSettings.IsSome
-                    ? _applicationInstanceSettings.Value!.Membership?.MembershipId.ToBase64() ?? string.Empty
-                    : string.Empty
-            };
-
-            await PersistSessionStateAsync(sessionState, connectId, accountIdentifier.ToByteArray())
+            await PersistSessionStateAsync(stateResult.Unwrap(), connectId, accountIdentifier.ToByteArray())
                 .ConfigureAwait(false);
 
             return Result<Unit, NetworkFailure>.Ok(Unit.Value);
@@ -2196,7 +2137,8 @@ public sealed partial class NetworkProvider(
 
     private async Task CleanupFailedAuthenticationAsync(uint connectId)
     {
-        _nativeSessions.ClearServerKyberKey(connectId);
+        _nativeSessions.ClearHandshakeInitiator(connectId);
+        _nativeSessions.ClearServerPreKeyBundle(connectId);
         _nativeSessions.ClearServerNonce(connectId);
         _nativeSessions.ClearServerPublicKey(connectId);
 
@@ -2215,7 +2157,7 @@ public sealed partial class NetworkProvider(
         byte[] membershipId,
         byte[] accountId,
         byte[] masterKeyFingerprint,
-        byte[] clientPubKeyExchange,
+        byte[] handshakeInit,
         byte[] clientNonce,
         byte[] serverNonce,
         string idempotencyKey,
@@ -2231,7 +2173,7 @@ public sealed partial class NetworkProvider(
             membershipId,
             accountId,
             masterKeyFingerprint,
-            clientPubKeyExchange,
+            handshakeInit,
             clientNonce,
             serverNonce,
             idempotencyBytes,

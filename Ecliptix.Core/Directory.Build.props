@@ -1,6 +1,7 @@
 <Project>
     <PropertyGroup>
         <Nullable>enable</Nullable>
+        <NuGetAudit>false</NuGetAudit>
         <AvaloniaVersion>11.3.2</AvaloniaVersion>
 
         <MajorVersion>0</MajorVersion>
@@ -16,6 +17,7 @@
         <Product>Ecliptix Desktop</Product>
         <Company>Ecliptix</Company>
         <Copyright>Copyright © Ecliptix $(Year)</Copyright>
+        <UsedAvaloniaProducts>Ecliptix Desktop</UsedAvaloniaProducts>
         <Description>Cross-platform desktop application for secure communication and data management</Description>
 
         <Year>$([System.DateTime]::Now.Year)</Year>

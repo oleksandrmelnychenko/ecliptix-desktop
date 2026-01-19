@@ -1,7 +1,6 @@
 using System.Runtime.CompilerServices;
 using Ecliptix.Network.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Network.Services.Abstractions.Network;
-using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.Transport.Common;
 using Ecliptix.Protobuf.Transport.Gateway;

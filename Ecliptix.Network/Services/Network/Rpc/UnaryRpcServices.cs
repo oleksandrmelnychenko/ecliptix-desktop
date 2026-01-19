@@ -3,7 +3,7 @@ using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Network.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Network.Services.Abstractions.Network;
 using Ecliptix.Network.Services.Network.Resilience;
-using Ecliptix.Protobuf.Common;
+using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.Transport.Common;
 using Ecliptix.Protobuf.Transport.Gateway;
 using Ecliptix.Utilities;

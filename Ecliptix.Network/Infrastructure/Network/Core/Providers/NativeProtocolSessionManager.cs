@@ -9,19 +9,21 @@ namespace Ecliptix.Network.Infrastructure.Network.Core.Providers;
 internal sealed class NativeProtocolSessionManager : IDisposable
 {
     private readonly ConcurrentDictionary<uint, NativeProtocolSession> _sessions = new();
-    private readonly ConcurrentDictionary<uint, byte[]> _serverKyberKeys = new();
+    private readonly ConcurrentDictionary<uint, EcliptixIdentityKeysWrapper> _identities = new();
+    private readonly ConcurrentDictionary<uint, NativeHandshakeInitiator> _pendingInitiators = new();
+    private readonly ConcurrentDictionary<uint, byte[]> _serverPreKeyBundles = new();
     private readonly ConcurrentDictionary<uint, byte[]> _serverNonces = new();
     private readonly ConcurrentDictionary<uint, byte[]> _serverPublicKeys = new();
     private bool _disposed;
 
-    public Result<NativeProtocolSession, EcliptixProtocolFailure> CreateOrReplace(
+    public Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure> CreateOrReplaceIdentity(
         uint connectId,
         EcliptixIdentityKeysWrapper identity,
-        Action<uint>? onProtocolStateChanged = null)
+        Action<uint>? _ = null)
     {
         if (_disposed)
         {
-            return Result<NativeProtocolSession, EcliptixProtocolFailure>.Err(
+            return Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.ObjectDisposed(nameof(NativeProtocolSessionManager)));
         }
 
@@ -29,19 +31,18 @@ internal sealed class NativeProtocolSessionManager : IDisposable
         {
             existing.Dispose();
         }
-        ClearCachedKeys(connectId);
-        ClearCachedKeys(connectId);
-
-        Result<NativeProtocolSession, EcliptixProtocolFailure> createResult =
-            NativeProtocolSystem.CreateSessionAdapter(identity, onProtocolStateChanged);
-        if (createResult.IsErr)
+        if (_pendingInitiators.TryRemove(connectId, out NativeHandshakeInitiator? pending))
         {
-            return createResult;
+            pending.Dispose();
         }
+        if (_identities.TryRemove(connectId, out EcliptixIdentityKeysWrapper? existingIdentity))
+        {
+            existingIdentity.Dispose();
+        }
+        ClearCachedKeys(connectId);
 
-        NativeProtocolSession session = createResult.Unwrap();
-        _sessions[connectId] = session;
-        return Result<NativeProtocolSession, EcliptixProtocolFailure>.Ok(session);
+        _identities[connectId] = identity;
+        return Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure>.Ok(identity);
     }
 
     public Result<NativeProtocolSession, EcliptixProtocolFailure> Get(uint connectId)
@@ -61,16 +62,33 @@ internal sealed class NativeProtocolSessionManager : IDisposable
             EcliptixProtocolFailure.Generic("Connection unavailable - session not found"));
     }
 
+    public Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure> GetIdentity(uint connectId)
+    {
+        if (_disposed)
+        {
+            return Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.ObjectDisposed(nameof(NativeProtocolSessionManager)));
+        }
+
+        if (_identities.TryGetValue(connectId, out EcliptixIdentityKeysWrapper? identity))
+        {
+            return Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure>.Ok(identity);
+        }
+
+        return Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure>.Err(
+            EcliptixProtocolFailure.Generic("Identity not found for connection"));
+    }
+
     public bool Has(uint connectId) => !_disposed && _sessions.ContainsKey(connectId);
 
-    public void StoreServerKyberKey(uint connectId, byte[] kyberPublicKey)
+    public void StoreServerPreKeyBundle(uint connectId, byte[] bundle)
     {
         if (_disposed)
         {
             return;
         }
 
-        _serverKyberKeys[connectId] = kyberPublicKey;
+        _serverPreKeyBundles[connectId] = bundle;
     }
 
     public void StoreServerNonce(uint connectId, byte[] serverNonce)
@@ -83,7 +101,7 @@ internal sealed class NativeProtocolSessionManager : IDisposable
         _serverNonces[connectId] = serverNonce;
     }
 
-    public Result<byte[], EcliptixProtocolFailure> GetServerKyberKey(uint connectId)
+    public Result<byte[], EcliptixProtocolFailure> GetServerPreKeyBundle(uint connectId)
     {
         if (_disposed)
         {
@@ -91,13 +109,13 @@ internal sealed class NativeProtocolSessionManager : IDisposable
                 EcliptixProtocolFailure.ObjectDisposed(nameof(NativeProtocolSessionManager)));
         }
 
-        if (_serverKyberKeys.TryGetValue(connectId, out byte[]? key))
+        if (_serverPreKeyBundles.TryGetValue(connectId, out byte[]? key))
         {
             return Result<byte[], EcliptixProtocolFailure>.Ok(key);
         }
 
         return Result<byte[], EcliptixProtocolFailure>.Err(
-            EcliptixProtocolFailure.Generic("No per-connection Kyber key found"));
+            EcliptixProtocolFailure.Generic("No per-connection prekey bundle found"));
     }
 
     public Result<byte[], EcliptixProtocolFailure> GetServerNonce(uint connectId)
@@ -117,9 +135,9 @@ internal sealed class NativeProtocolSessionManager : IDisposable
             EcliptixProtocolFailure.Generic("No server nonce found"));
     }
 
-    public void ClearServerKyberKey(uint connectId)
+    public void ClearServerPreKeyBundle(uint connectId)
     {
-        if (_serverKyberKeys.TryRemove(connectId, out byte[]? key))
+        if (_serverPreKeyBundles.TryRemove(connectId, out byte[]? key))
         {
             CryptographicOperations.ZeroMemory(key);
         }
@@ -181,11 +199,65 @@ internal sealed class NativeProtocolSessionManager : IDisposable
         }
     }
 
+    public void StoreHandshakeInitiator(uint connectId, NativeHandshakeInitiator initiator)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (_pendingInitiators.TryRemove(connectId, out NativeHandshakeInitiator? existing))
+        {
+            existing.Dispose();
+        }
+
+        _pendingInitiators[connectId] = initiator;
+    }
+
+    public Result<NativeHandshakeInitiator, EcliptixProtocolFailure> GetHandshakeInitiator(uint connectId)
+    {
+        if (_disposed)
+        {
+            return Result<NativeHandshakeInitiator, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.ObjectDisposed(nameof(NativeProtocolSessionManager)));
+        }
+
+        if (_pendingInitiators.TryGetValue(connectId, out NativeHandshakeInitiator? initiator))
+        {
+            return Result<NativeHandshakeInitiator, EcliptixProtocolFailure>.Ok(initiator);
+        }
+
+        return Result<NativeHandshakeInitiator, EcliptixProtocolFailure>.Err(
+            EcliptixProtocolFailure.Generic("Handshake initiator not found for connection"));
+    }
+
+    public void ClearHandshakeInitiator(uint connectId)
+    {
+        if (_pendingInitiators.TryRemove(connectId, out NativeHandshakeInitiator? initiator))
+        {
+            initiator.Dispose();
+        }
+    }
+
+    public void StoreSession(uint connectId, NativeProtocolSession session)
+    {
+        if (_disposed)
+        {
+            session.Dispose();
+            return;
+        }
+
+        if (_sessions.TryRemove(connectId, out NativeProtocolSession? existing))
+        {
+            existing.Dispose();
+        }
+
+        _sessions[connectId] = session;
+    }
+
     public Result<NativeProtocolSession, EcliptixProtocolFailure> CreateOrReplaceFromState(
         uint connectId,
-        EcliptixIdentityKeysWrapper identity,
-        byte[] stateBytes,
-        Action<uint>? onProtocolStateChanged = null)
+        byte[] stateBytes)
     {
         if (_disposed)
         {
@@ -199,14 +271,13 @@ internal sealed class NativeProtocolSessionManager : IDisposable
         }
 
         Result<NativeProtocolSession, EcliptixProtocolFailure> importResult =
-            NativeProtocolSession.Import(identity, stateBytes);
+            NativeProtocolSession.Import(stateBytes);
         if (importResult.IsErr)
         {
             return importResult;
         }
 
         NativeProtocolSession session = importResult.Unwrap();
-        session.SetEventHandler(onProtocolStateChanged);
         _sessions[connectId] = session;
         return Result<NativeProtocolSession, EcliptixProtocolFailure>.Ok(session);
     }
@@ -216,6 +287,14 @@ internal sealed class NativeProtocolSessionManager : IDisposable
         if (_sessions.TryRemove(connectId, out NativeProtocolSession? session))
         {
             session.Dispose();
+        }
+        if (_pendingInitiators.TryRemove(connectId, out NativeHandshakeInitiator? initiator))
+        {
+            initiator.Dispose();
+        }
+        if (_identities.TryRemove(connectId, out EcliptixIdentityKeysWrapper? identity))
+        {
+            identity.Dispose();
         }
         ClearCachedKeys(connectId);
     }
@@ -232,6 +311,16 @@ internal sealed class NativeProtocolSessionManager : IDisposable
             session.Dispose();
         }
         _sessions.Clear();
+        foreach ((_, NativeHandshakeInitiator initiator) in _pendingInitiators)
+        {
+            initiator.Dispose();
+        }
+        _pendingInitiators.Clear();
+        foreach ((_, EcliptixIdentityKeysWrapper identity) in _identities)
+        {
+            identity.Dispose();
+        }
+        _identities.Clear();
         ClearAllCachedKeys();
         _disposed = true;
         GC.SuppressFinalize(this);
@@ -244,16 +333,16 @@ internal sealed class NativeProtocolSessionManager : IDisposable
 
     private void ClearCachedKeys(uint connectId)
     {
-        ClearServerKyberKey(connectId);
+        ClearServerPreKeyBundle(connectId);
         ClearServerNonce(connectId);
         ClearServerPublicKey(connectId);
     }
 
     private void ClearAllCachedKeys()
     {
-        foreach ((uint connectId, _) in _serverKyberKeys)
+        foreach ((uint connectId, _) in _serverPreKeyBundles)
         {
-            ClearServerKyberKey(connectId);
+            ClearServerPreKeyBundle(connectId);
         }
 
         foreach ((uint connectId, _) in _serverNonces)

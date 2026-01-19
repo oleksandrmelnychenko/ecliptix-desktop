@@ -152,6 +152,11 @@ public sealed class SecureKeyRecoveryService(
             return await FinalizeSecureKeyRecoveryAsync(opaqueClient, initResponse, registrationResult,
                 membershipIdentifier, connectId, cancellationToken).ConfigureAwait(false);
         }
+        catch (OpaqueException)
+        {
+            return Result<Unit, string>.Err(
+                localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY]);
+        }
         catch (Exception ex)
         {
             return Result<Unit, string>.Err(ex.Message);
@@ -214,6 +219,11 @@ public sealed class SecureKeyRecoveryService(
             });
 
             return Result<RegistrationResult, string>.Ok(registrationResult);
+        }
+        catch (OpaqueException)
+        {
+            return Result<RegistrationResult, string>.Err(
+                localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY]);
         }
         catch (Exception ex)
         {
@@ -286,6 +296,16 @@ public sealed class SecureKeyRecoveryService(
             await responseSource.Task.ConfigureAwait(false);
             return Result<Unit, string>.Ok(Unit.Value);
         }
+        catch (OpaqueException)
+        {
+            return Result<Unit, string>.Err(
+                localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY]);
+        }
+        catch (ArgumentException)
+        {
+            return Result<Unit, string>.Err(
+                localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY]);
+        }
         finally
         {
             CleanupSensitiveRecoveryData(null, serverRecoveryResponse, recoveryRecord, null);
@@ -329,11 +349,28 @@ public sealed class SecureKeyRecoveryService(
             }
 
             _opaqueClient.Do(client => client.Dispose());
-            OpaqueClient newClient = new(serverPublicKey);
-            _opaqueClient = Option<OpaqueClient>.Some(newClient);
-            _cachedServerPublicKey = (byte[])serverPublicKey.Clone();
+            try
+            {
+                OpaqueClient newClient = new(serverPublicKey);
+                _opaqueClient = Option<OpaqueClient>.Some(newClient);
+                _cachedServerPublicKey = (byte[])serverPublicKey.Clone();
 
-            return Result<OpaqueClient, string>.Ok(newClient);
+                return Result<OpaqueClient, string>.Ok(newClient);
+            }
+            catch (OpaqueException)
+            {
+                _opaqueClient = Option<OpaqueClient>.None;
+                _cachedServerPublicKey = null;
+                return Result<OpaqueClient, string>.Err(
+                    localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY]);
+            }
+            catch (ArgumentException)
+            {
+                _opaqueClient = Option<OpaqueClient>.None;
+                _cachedServerPublicKey = null;
+                return Result<OpaqueClient, string>.Err(
+                    localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY]);
+            }
         }
     }
 

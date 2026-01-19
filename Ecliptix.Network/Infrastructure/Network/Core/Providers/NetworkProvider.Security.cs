@@ -1,27 +1,26 @@
 using System.Security.Cryptography;
 using Ecliptix.Network.Services.Network.Rpc;
-using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.Transport.DeviceProvisioning;
 using Ecliptix.Protected.Protocol.Native;
-using Ecliptix.Protected.Protocol.Utilities;
 using Ecliptix.Security.Certificate.Pinning.Services;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Utilities.Failures.Network;
 using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
 using Serilog;
 
 namespace Ecliptix.Network.Infrastructure.Network.Core.Providers;
 
 public sealed partial class NetworkProvider
 {
-    private async Task<Result<byte[], NetworkFailure>> FetchPerConnectionKyberKeyAsync(
+    private async Task<Result<byte[], NetworkFailure>> FetchServerPreKeyBundleAsync(
         uint connectId,
         PubKeyExchangeType exchangeType,
         CancellationToken cancellationToken = default)
     {
-        Log.Debug("[SECURITY] Fetching fresh per-connection Kyber key for connectId {ConnectId}, exchangeType={ExchangeType}",
+        Log.Debug("[SECURITY] Fetching server prekey bundle for connectId {ConnectId}, exchangeType={ExchangeType}",
             connectId, exchangeType);
 
         CancellationToken finalToken = cancellationToken == CancellationToken.None
@@ -34,32 +33,33 @@ public sealed partial class NetworkProvider
                     _services.ConnectivityService,
                     exchangeType,
                     ct),
-                operationName: "FetchPerConnectionKyberKey",
+                operationName: "FetchServerPreKeyBundle",
                 connectId,
                 serviceType: RpcServiceType.GetServerPublicKeys,
                 cancellationToken: finalToken).ConfigureAwait(false);
 
         if (rpcResult.IsErr)
         {
-            Log.Error("[SECURITY] Failed to fetch per-connection Kyber key: {Error}", rpcResult.UnwrapErr().Message);
+            Log.Error("[SECURITY] Failed to fetch server prekey bundle: {Error}", rpcResult.UnwrapErr().Message);
             return Result<byte[], NetworkFailure>.Err(rpcResult.UnwrapErr());
         }
 
         ServerPublicKeysResponse response = rpcResult.Unwrap();
 
-        if (response.ServerKyberPublicKey.IsEmpty)
+        if (response.ServerPrekeyBundle.IsEmpty)
         {
             return Result<byte[], NetworkFailure>.Err(
                 new NetworkFailure(
                     NetworkFailureType.KYBER_KEY_REQUIRED,
-                    "Server returned empty Kyber public key"));
+                    "Server returned empty prekey bundle"));
         }
 
-        byte[] kyberKey = response.ServerKyberPublicKey.ToByteArray();
-        Log.Debug("[SECURITY] Fetched fresh per-connection Kyber key for connectId {ConnectId}, length: {Length}",
-            connectId, kyberKey.Length);
+        byte[] preKeyBundle = response.ServerPrekeyBundle.ToByteArray();
+        string bundleHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(preKeyBundle))[..16];
+        Log.Information("[SECURITY] Fetched server prekey bundle for connectId {ConnectId}, length: {Length}, hash: {Hash}",
+            connectId, preKeyBundle.Length, bundleHash);
 
-        _nativeSessions.StoreServerKyberKey(connectId, kyberKey);
+        _nativeSessions.StoreServerPreKeyBundle(connectId, preKeyBundle);
 
         if (!response.ServerPublicKey.IsEmpty)
         {
@@ -93,178 +93,122 @@ public sealed partial class NetworkProvider
             _nativeSessions.ClearServerNonce(connectId);
         }
 
-        return Result<byte[], NetworkFailure>.Ok(kyberKey);
+        return Result<byte[], NetworkFailure>.Ok(preKeyBundle);
     }
 
-    private async Task<Result<(SecureEnvelope Envelope, CertificatePinningService Service), NetworkFailure>>
+    private async Task<Result<(SecureEnvelope Envelope, CertificatePinningService Service, byte[] HandshakeInit), NetworkFailure>>
         PrepareSecrecyChannelEnvelopeAsync(uint connectId, PubKeyExchangeType exchangeType)
     {
-        Result<NativeProtocolSession, EcliptixProtocolFailure> nativeSessionResult = _nativeSessions.Get(connectId);
-        if (nativeSessionResult.IsErr)
+        Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure> identityResult =
+            _nativeSessions.GetIdentity(connectId);
+        if (identityResult.IsErr)
         {
-            return Result<(SecureEnvelope, CertificatePinningService), NetworkFailure>.Err(
-                nativeSessionResult.UnwrapErr().ToNetworkFailure());
+            return Result<(SecureEnvelope, CertificatePinningService, byte[]), NetworkFailure>.Err(
+                identityResult.UnwrapErr().ToNetworkFailure());
         }
-
-        NativeProtocolSession nativeSession = nativeSessionResult.Unwrap();
 
         Log.Debug(
-            "[SECURITY] PrepareSecrecyChannelEnvelopeAsync - Fetching fresh per-connection Kyber key for connectId {ConnectId}, exchangeType={ExchangeType}",
+            "[SECURITY] PrepareSecrecyChannelEnvelopeAsync - Fetching server prekey bundle for connectId {ConnectId}, exchangeType={ExchangeType}",
             connectId, exchangeType);
 
-        Result<byte[], NetworkFailure> kyberResult =
-            await FetchPerConnectionKyberKeyAsync(connectId, exchangeType).ConfigureAwait(false);
-        if (kyberResult.IsErr)
+        Result<byte[], NetworkFailure> bundleResult =
+            await FetchServerPreKeyBundleAsync(connectId, exchangeType).ConfigureAwait(false);
+        if (bundleResult.IsErr)
         {
-            return Result<(SecureEnvelope, CertificatePinningService), NetworkFailure>.Err(kyberResult.UnwrapErr());
+            return Result<(SecureEnvelope, CertificatePinningService, byte[]), NetworkFailure>.Err(
+                bundleResult.UnwrapErr());
         }
 
-        byte[] serverKyberKey = kyberResult.Unwrap();
-        Log.Debug("[SECURITY] Using fresh per-connection Kyber key, length: {Length}", serverKyberKey.Length);
-        Result<byte[], EcliptixProtocolFailure> handshakeResult =
-            nativeSession.BeginHandshakeWithPeerKyber(connectId, (byte)exchangeType, serverKyberKey);
-
-        if (handshakeResult.IsErr)
+        Result<uint, NetworkFailure> chainLimitResult = ResolveChainLimit(exchangeType);
+        if (chainLimitResult.IsErr)
         {
-            return Result<(SecureEnvelope, CertificatePinningService), NetworkFailure>.Err(
-                handshakeResult.UnwrapErr().ToNetworkFailure());
+            return Result<(SecureEnvelope, CertificatePinningService, byte[]), NetworkFailure>.Err(
+                chainLimitResult.UnwrapErr());
         }
 
-        Result<PubKeyExchange, NetworkFailure> updatedHandshakeResult =
-            EnsureLocalKyberPublicKeyInHandshake(handshakeResult.Unwrap(), nativeSession);
-        if (updatedHandshakeResult.IsErr)
+        byte[] bundleForHandshake = bundleResult.Unwrap();
+        string handshakeBundleHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bundleForHandshake))[..16];
+        Log.Information("[SECURITY] Starting handshake initiator for connectId {ConnectId}, exchangeType={ExchangeType}, bundleLength={Length}, bundleHash={Hash}, chainLimit={ChainLimit}",
+            connectId, exchangeType, bundleForHandshake.Length, handshakeBundleHash, chainLimitResult.Unwrap());
+
+        Result<NativeHandshakeInitiatorStart, EcliptixProtocolFailure> handshakeStart =
+            NativeHandshakeInitiator.Start(identityResult.Unwrap(), bundleForHandshake, chainLimitResult.Unwrap());
+        if (handshakeStart.IsErr)
         {
-            return Result<(SecureEnvelope, CertificatePinningService), NetworkFailure>.Err(
-                updatedHandshakeResult.UnwrapErr());
+            return Result<(SecureEnvelope, CertificatePinningService, byte[]), NetworkFailure>.Err(
+                handshakeStart.UnwrapErr().ToNetworkFailure());
         }
 
-        PubKeyExchange preparedExchange = updatedHandshakeResult.Unwrap();
-        Log.Information(
-            "[SECURITY] PrepareSecrecyChannelEnvelopeAsync: PubKeyExchange OfType={OfType}, State={State}, RequestedExchangeType={RequestedType}",
-            preparedExchange.OfType, preparedExchange.State, exchangeType);
-
-        byte[] handshakeBytes = preparedExchange.ToByteArray();
+        NativeHandshakeInitiatorStart startInfo = handshakeStart.Unwrap();
+        string initHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(startInfo.HandshakeInit))[..16];
+        Log.Information("[SECURITY] Created handshake init for connectId {ConnectId}, initLength={Length}, initHash={Hash}",
+            connectId, startInfo.HandshakeInit.Length, initHash);
+        _nativeSessions.StoreHandshakeInitiator(connectId, startInfo.Initiator);
 
         Option<CertificatePinningService> certificatePinningService =
             await _security.CertificatePinningServiceFactory.GetOrInitializeServiceAsync();
 
         if (!certificatePinningService.IsSome)
         {
-            return Result<(SecureEnvelope, CertificatePinningService), NetworkFailure>.Err(
+            return Result<(SecureEnvelope, CertificatePinningService, byte[]), NetworkFailure>.Err(
                 NetworkFailure.RsaEncryption("Failed to initialize certificate pinning service"));
         }
 
         Result<byte[], NetworkFailure> encryptResult =
-            _security.RsaChunkEncryptor.EncryptInChunks(certificatePinningService.Value!, handshakeBytes);
+            _security.RsaChunkEncryptor.EncryptInChunks(certificatePinningService.Value!, startInfo.HandshakeInit);
         if (encryptResult.IsErr)
         {
-            return Result<(SecureEnvelope, CertificatePinningService), NetworkFailure>.Err(encryptResult.UnwrapErr());
+            return Result<(SecureEnvelope, CertificatePinningService, byte[]), NetworkFailure>.Err(
+                encryptResult.UnwrapErr());
         }
 
         byte[] combinedEncryptedPayload = encryptResult.Unwrap();
 
-        EnvelopeMetadata metadata = EnvelopeBuilder.CreateEnvelopeMetadata(
-            requestId: connectId,
-            nonce: ByteString.Empty,
-            ratchetIndex: 0,
-            envelopeType: EnvelopeType.Request
-        );
+        SecureEnvelope envelope = new()
+        {
+            Version = 1,
+            EncryptedPayload = ByteString.CopyFrom(combinedEncryptedPayload),
+            EncryptedMetadata = ByteString.Empty,
+            HeaderNonce = ByteString.Empty,
+            RatchetEpoch = 0,
+            SentAt = Timestamp.FromDateTime(DateTime.UtcNow)
+        };
 
-        SecureEnvelope envelope = EnvelopeBuilder.CreateSecureEnvelope(
-            metadata,
-            ByteString.CopyFrom(combinedEncryptedPayload)
-        );
-
-        return Result<(SecureEnvelope, CertificatePinningService), NetworkFailure>.Ok((envelope,
-            certificatePinningService.Value!));
+        return Result<(SecureEnvelope, CertificatePinningService, byte[]), NetworkFailure>.Ok((
+            envelope,
+            certificatePinningService.Value!,
+            startInfo.HandshakeInit));
     }
-
-    private Result<PubKeyExchange, NetworkFailure> EnsureLocalKyberPublicKeyInHandshake(
-        byte[] handshakeBytes,
-        NativeProtocolSession nativeSession)
-    {
-        PubKeyExchange pubKeyExchange;
-        try
-        {
-            pubKeyExchange = PubKeyExchange.Parser.ParseFrom(handshakeBytes);
-        }
-        catch (InvalidProtocolBufferException ex)
-        {
-            EcliptixProtocolFailure failure = EcliptixProtocolFailure.Decode(
-                "Failed to parse PubKeyExchange handshake message.",
-                ex);
-            return Result<PubKeyExchange, NetworkFailure>.Err(failure.ToNetworkFailure());
-        }
-
-        if (pubKeyExchange.Payload.IsEmpty)
-        {
-            return Result<PubKeyExchange, NetworkFailure>.Ok(pubKeyExchange);
-        }
-
-        PublicKeyBundle bundle;
-        try
-        {
-            bundle = PublicKeyBundle.Parser.ParseFrom(pubKeyExchange.Payload);
-        }
-        catch (InvalidProtocolBufferException ex)
-        {
-            EcliptixProtocolFailure failure = EcliptixProtocolFailure.Decode(
-                "Failed to parse PublicKeyBundle from handshake payload.",
-                ex);
-            return Result<PubKeyExchange, NetworkFailure>.Err(failure.ToNetworkFailure());
-        }
-
-        if (!bundle.KyberPublicKey.IsEmpty)
-        {
-            Result<byte[], EcliptixProtocolFailure> localKyberResult =
-                nativeSession.GetIdentityKeys().GetPublicKyber();
-            if (localKyberResult.IsErr)
-            {
-                return Result<PubKeyExchange, NetworkFailure>.Ok(pubKeyExchange);
-            }
-
-            byte[] localKyberKey = localKyberResult.Unwrap();
-            if (bundle.KyberPublicKey.Length == localKyberKey.Length &&
-                bundle.KyberPublicKey.Span.SequenceEqual(localKyberKey))
-            {
-                return Result<PubKeyExchange, NetworkFailure>.Ok(pubKeyExchange);
-            }
-
-            bundle.KyberPublicKey = ByteString.CopyFrom(localKyberKey);
-            pubKeyExchange.Payload = bundle.ToByteString();
-
-            return Result<PubKeyExchange, NetworkFailure>.Ok(pubKeyExchange);
-        }
-
-        Result<byte[], EcliptixProtocolFailure> missingKyberResult =
-            nativeSession.GetIdentityKeys().GetPublicKyber();
-        if (missingKyberResult.IsErr)
-        {
-            return Result<PubKeyExchange, NetworkFailure>.Err(missingKyberResult.UnwrapErr().ToNetworkFailure());
-        }
-
-        bundle.KyberPublicKey = ByteString.CopyFrom(missingKyberResult.Unwrap());
-        pubKeyExchange.Payload = bundle.ToByteString();
-
-        return Result<PubKeyExchange, NetworkFailure>.Ok(pubKeyExchange);
-    }
-
-    private async Task<Result<(SecureEnvelope Envelope, CertificatePinningService Service), NetworkFailure>>
+    private async Task<Result<(SecureEnvelope Envelope, CertificatePinningService Service, byte[] HandshakeInit), NetworkFailure>>
         PrepareNativeHandshakeEnvelopeAsync(SecrecyChannelRequest request) =>
         await PrepareSecrecyChannelEnvelopeAsync(
             request.ConnectId,
             request.ExchangeType).ConfigureAwait(false);
 
-    private Result<PubKeyExchange, NetworkFailure> ProcessNativeHandshakeResponse(
+    private Result<Unit, NetworkFailure> ProcessNativeHandshakeResponse(
         SecureEnvelope responseEnvelope,
         CertificatePinningService certificatePinningService,
-        SecrecyChannelRequest request)
+        uint connectId)
     {
-        Result<NativeProtocolSession, EcliptixProtocolFailure> nativeSessionResult =
-            _nativeSessions.Get(request.ConnectId);
-        if (nativeSessionResult.IsErr)
+        if (responseEnvelope.EncryptedMetadata.IsEmpty)
         {
-            return Result<PubKeyExchange, NetworkFailure>.Err(nativeSessionResult.UnwrapErr().ToNetworkFailure());
+            return Result<Unit, NetworkFailure>.Err(
+                NetworkFailure.RsaEncryption("Handshake response signature is missing"));
+        }
+
+        CertificatePinningBoolResult verifyResult = certificatePinningService.VerifyServerSignature(
+            responseEnvelope.EncryptedPayload.Memory,
+            responseEnvelope.EncryptedMetadata.Memory);
+        if (!verifyResult.IsSuccess)
+        {
+            return Result<Unit, NetworkFailure>.Err(
+                NetworkFailure.RsaEncryption(verifyResult.Error?.Message ?? "Signature verification failed"));
+        }
+
+        if (!verifyResult.Value)
+        {
+            return Result<Unit, NetworkFailure>.Err(
+                NetworkFailure.RsaEncryption("Handshake response signature verification failed"));
         }
 
         Result<byte[], NetworkFailure> decryptResult =
@@ -272,34 +216,39 @@ public sealed partial class NetworkProvider
                 responseEnvelope.EncryptedPayload.ToByteArray());
         if (decryptResult.IsErr)
         {
-            return Result<PubKeyExchange, NetworkFailure>.Err(decryptResult.UnwrapErr());
+            return Result<Unit, NetworkFailure>.Err(decryptResult.UnwrapErr());
         }
 
-        PubKeyExchange peerPubKeyExchange = PubKeyExchange.Parser.ParseFrom(decryptResult.Unwrap());
-
-        if (!peerPubKeyExchange.Payload.IsEmpty)
+        Result<NativeHandshakeInitiator, EcliptixProtocolFailure> initiatorResult =
+            _nativeSessions.GetHandshakeInitiator(connectId);
+        if (initiatorResult.IsErr)
         {
-            try
-            {
-                PublicKeyBundle serverBundle = PublicKeyBundle.Parser.ParseFrom(peerPubKeyExchange.Payload);
-                if (!serverBundle.KyberPublicKey.IsEmpty)
-                {
-                    _nativeSessions.StoreServerKyberKey(request.ConnectId, serverBundle.KyberPublicKey.ToByteArray());
-                    Log.Debug("[SECURITY] Stored per-connection Kyber key for connectId {ConnectId}, length: {Length}",
-                        request.ConnectId, serverBundle.KyberPublicKey.Length);
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Warning("[SECURITY] Failed to extract server Kyber key from response: {Error}", ex.Message);
-            }
+            return Result<Unit, NetworkFailure>.Err(initiatorResult.UnwrapErr().ToNetworkFailure());
         }
 
-        Result<Unit, EcliptixProtocolFailure> completeResult =
-            nativeSessionResult.Unwrap().CompleteHandshakeAuto(peerPubKeyExchange.ToByteArray());
-        return completeResult.IsErr
-            ? Result<PubKeyExchange, NetworkFailure>.Err(completeResult.UnwrapErr().ToNetworkFailure())
-            : Result<PubKeyExchange, NetworkFailure>.Ok(peerPubKeyExchange);
+        Result<NativeProtocolSession, EcliptixProtocolFailure> finishResult =
+            initiatorResult.Unwrap().Finish(decryptResult.Unwrap());
+        if (finishResult.IsErr)
+        {
+            return Result<Unit, NetworkFailure>.Err(finishResult.UnwrapErr().ToNetworkFailure());
+        }
+
+        _nativeSessions.ClearHandshakeInitiator(connectId);
+        _nativeSessions.StoreSession(connectId, finishResult.Unwrap());
+        return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+    }
+
+    private static Result<uint, NetworkFailure> ResolveChainLimit(PubKeyExchangeType exchangeType)
+    {
+        return exchangeType switch
+        {
+            PubKeyExchangeType.InitialHandshake => Result<uint, NetworkFailure>.Ok(20),
+            PubKeyExchangeType.DataCenterEphemeralConnect => Result<uint, NetworkFailure>.Ok(20),
+            PubKeyExchangeType.ServerStreaming => Result<uint, NetworkFailure>.Ok(100),
+            PubKeyExchangeType.DeviceToDevice => Result<uint, NetworkFailure>.Ok(10),
+            _ => Result<uint, NetworkFailure>.Err(
+                NetworkFailure.InvalidRequestType($"Unsupported exchange type {exchangeType}"))
+        };
     }
 
     private static byte[] DeriveRootKeyFromMasterKey(byte[] masterKey, Guid accountId)

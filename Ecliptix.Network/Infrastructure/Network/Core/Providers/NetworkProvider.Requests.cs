@@ -4,7 +4,7 @@ using Ecliptix.Core.Messaging.Core.Messaging.Connectivity;
 using Ecliptix.Network.Infrastructure.Network.Core.Constants;
 using Ecliptix.Network.Services.Network.Resilience;
 using Ecliptix.Network.Services.Network.Rpc;
-using Ecliptix.Protobuf.Common;
+using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Serilog;
@@ -388,8 +388,18 @@ public sealed partial class NetworkProvider
 
             if (shouldUseRetry)
             {
+                string stableIdempotencyKey = Guid.NewGuid().ToString("N");
+                string stableCorrelationId = Guid.NewGuid().ToString("N");
+                RpcRequestContext encryptionContext =
+                    RpcRequestContext.CreateWithIds(stableCorrelationId, stableIdempotencyKey, 1);
+
                 Result<SecureEnvelope, NetworkFailure> encryptResult =
-                    _provider.EncryptPayload(connectId, plainBuffer);
+                    _provider.EncryptPayload(
+                        connectId,
+                        logicalOperationId,
+                        EnvelopeType.Request,
+                        plainBuffer,
+                        encryptionContext.CorrelationId);
 
                 if (encryptResult.IsErr)
                 {
@@ -397,13 +407,12 @@ public sealed partial class NetworkProvider
                 }
 
                 SecureEnvelope encryptedPayload = encryptResult.Unwrap();
-                string stableIdempotencyKey = Guid.NewGuid().ToString("N");
 
                 invokeResult = await Services.RetryStrategy.ExecuteRpcOperationAsync(
                     (attempt, ct) =>
                     {
                         RpcRequestContext attemptContext =
-                            RpcRequestContext.CreateNewWithStableKey(stableIdempotencyKey, attempt);
+                            RpcRequestContext.CreateWithIds(stableCorrelationId, stableIdempotencyKey, attempt);
                         lastRequestContext = attemptContext;
 
                         ServiceRequest request = ServiceRequest.New(
@@ -550,8 +559,18 @@ public sealed partial class NetworkProvider
         {
             if (retryBehavior.ShouldRetry)
             {
+                string stableCorrelationId = requestContext.CorrelationId;
+                string stableIdempotencyKey = requestContext.IdempotencyKey;
+                RpcRequestContext encryptionContext =
+                    RpcRequestContext.CreateWithIds(stableCorrelationId, stableIdempotencyKey, 1);
+
                 Result<SecureEnvelope, NetworkFailure> encryptResult =
-                    _provider.EncryptPayload(connectId, plainBuffer);
+                    _provider.EncryptPayload(
+                        connectId,
+                        logicalOperationId,
+                        EnvelopeType.Request,
+                        plainBuffer,
+                        encryptionContext.CorrelationId);
 
                 if (encryptResult.IsErr)
                 {
@@ -559,13 +578,12 @@ public sealed partial class NetworkProvider
                 }
 
                 SecureEnvelope encryptedPayload = encryptResult.Unwrap();
-                string stableIdempotencyKey = requestContext.IdempotencyKey;
 
                 return await Services.RetryStrategy.ExecuteRpcOperationAsync(
                     async (attempt, ct) =>
                     {
                         RpcRequestContext attemptContext =
-                            RpcRequestContext.CreateNewWithStableKey(stableIdempotencyKey, attempt);
+                            RpcRequestContext.CreateWithIds(stableCorrelationId, stableIdempotencyKey, attempt);
 
                         ServiceRequest request = ServiceRequest.New(
                             logicalOperationId,

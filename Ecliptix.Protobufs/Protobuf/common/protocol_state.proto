@@ -1,16 +1,18 @@
 syntax = "proto3";
 
-package ecliptix.proto.protocol_state;
-option csharp_namespace = "Ecliptix.Protobuf.ProtocolState";
+package ecliptix.proto.protocol;
+option csharp_namespace = "Ecliptix.Protobuf.SecureProtocol";
 
 import "common/pub_key_exchange.proto";
 
 message EcliptixSessionState {
   uint32 connect_id = 1;
-  ecliptix.proto.protocol.PubKeyExchange peer_handshake_message = 2;
+  bytes peer_handshake_init = 2;
   bytes native_state = 3;
-  bytes native_peer_bundle = 4;
-  bool native_is_initiator = 5;
-  string membership_id = 6;
-  bytes account_id = 7;
+  bytes membership_id = 4;
+  bytes account_id = 5;
+  bytes identity_seed = 6;
+  uint32 sending_chain_index = 7;
+  uint32 receiving_chain_index = 8;
+  ecliptix.proto.protocol.PubKeyExchangeType exchange_type = 9;
 }

@@ -26,5 +26,10 @@ public sealed class RpcRequestContext(string correlationId, string idempotencyKe
             attempt);
     }
 
+    public static RpcRequestContext CreateWithIds(string correlationId, string idempotencyKey, int attempt = 1)
+    {
+        return new RpcRequestContext(correlationId, idempotencyKey, attempt);
+    }
+
     public void MarkReinitAttempted() => ReinitAttempted = true;
 }

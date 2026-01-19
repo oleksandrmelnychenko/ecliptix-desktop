@@ -9,6 +9,7 @@
     <WarningsNotAsErrors>CS1591</WarningsNotAsErrors>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <NuGetAudit>false</NuGetAudit>
 
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>latest</AnalysisLevel>
@@ -32,6 +33,7 @@
     <Company>Ecliptix</Company>
     <Product>Ecliptix Desktop</Product>
     <Copyright>Copyright © Ecliptix 2024</Copyright>
+    <UsedAvaloniaProducts>Ecliptix Desktop</UsedAvaloniaProducts>
   </PropertyGroup>
 
   <PropertyGroup>

@@ -25,19 +25,5 @@ public static class NativeProtocolSystem
         string accountId)
         => EcliptixIdentityKeysWrapper.CreateFromSeed(seed, accountId);
 
-    public static Result<NativeProtocolSession, EcliptixProtocolFailure> CreateSessionAdapter(
-        EcliptixIdentityKeysWrapper identity,
-        Action<uint>? onProtocolStateChanged = null)
-    {
-        Result<NativeProtocolSession, EcliptixProtocolFailure> sessionResult = NativeProtocolSession.Create(identity);
-        if (sessionResult.IsErr)
-        {
-            return sessionResult;
-        }
-        NativeProtocolSession session = sessionResult.Unwrap();
-        session.SetEventHandler(onProtocolStateChanged);
-        return Result<NativeProtocolSession, EcliptixProtocolFailure>.Ok(session);
-    }
-
     public static string GetVersion() => NativeInterop.GetVersion();
 }

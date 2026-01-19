@@ -1,6 +1,6 @@
 using System.Threading.Channels;
 using Ecliptix.Network.Infrastructure.Network.Abstractions.Transport;
-using Ecliptix.Protobuf.Common;
+using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 

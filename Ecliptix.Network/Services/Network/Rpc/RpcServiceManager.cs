@@ -1,6 +1,5 @@
 using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Network.Services.Abstractions.Network;
-using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.Transport.DeviceProvisioning;
 using Ecliptix.Utilities;

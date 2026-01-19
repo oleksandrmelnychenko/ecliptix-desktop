@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
@@ -39,21 +38,16 @@ public static class ShamirSecretSharing
                 EcliptixProtocolFailure.InvalidInput("Auth key must be 32 bytes"));
         }
 
-        IntPtr bufferPtr = NativeInterop.epp_buffer_alloc(0);
-        if (bufferPtr == IntPtr.Zero)
-        {
-            return Result<byte[][], EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.Generic("Failed to allocate native buffer for shares"));
-        }
+        byte[] authKeyBytes = authKey ?? [];
 
         NativeInterop.EppErrorCode result = NativeInterop.epp_shamir_split(
             secret,
             (nuint)secret.Length,
             threshold,
             shareCount,
-            authKey,
-            (nuint)(authKey?.Length ?? 0),
-            bufferPtr,
+            authKeyBytes,
+            (nuint)authKeyBytes.Length,
+            out NativeInterop.EppBuffer buffer,
             out nuint outShareLength,
             out NativeInterop.EppError error);
 
@@ -61,11 +55,10 @@ public static class ShamirSecretSharing
         {
             string errorMessage = error.GetMessage();
             NativeInterop.epp_error_free(ref error);
-            NativeInterop.epp_buffer_free(bufferPtr);
-            return Result<byte[][], EcliptixProtocolFailure>.Err(ConvertError(result, errorMessage));
+            return Result<byte[][], EcliptixProtocolFailure>.Err(InteropHelpers.ConvertError(result, errorMessage));
         }
 
-        Result<byte[], EcliptixProtocolFailure> copyResult = CopyAndFree(bufferPtr);
+        Result<byte[], EcliptixProtocolFailure> copyResult = InteropHelpers.CopyBuffer(ref buffer, "Shares");
         if (copyResult.IsErr)
         {
             return Result<byte[][], EcliptixProtocolFailure>.Err(copyResult.UnwrapErr());
@@ -139,32 +132,26 @@ public static class ShamirSecretSharing
                 Buffer.BlockCopy(shares[i], 0, concatenated, i * shareLength, shareLength);
             }
 
-            IntPtr bufferPtr = NativeInterop.epp_buffer_alloc(0);
-            if (bufferPtr == IntPtr.Zero)
-            {
-                return Result<byte[], EcliptixProtocolFailure>.Err(
-                    EcliptixProtocolFailure.Generic("Failed to allocate native buffer for secret"));
-            }
+            byte[] authKeyBytes = authKey ?? [];
 
             NativeInterop.EppErrorCode result = NativeInterop.epp_shamir_reconstruct(
                 concatenated,
                 (nuint)concatenated.Length,
                 (nuint)shareLength,
                 (nuint)shares.Count,
-                authKey,
-                (nuint)(authKey?.Length ?? 0),
-                bufferPtr,
+                authKeyBytes,
+                (nuint)authKeyBytes.Length,
+                out NativeInterop.EppBuffer buffer,
                 out NativeInterop.EppError error);
 
             if (result != NativeInterop.EppErrorCode.Success)
             {
                 string errorMessage = error.GetMessage();
                 NativeInterop.epp_error_free(ref error);
-                NativeInterop.epp_buffer_free(bufferPtr);
-                return Result<byte[], EcliptixProtocolFailure>.Err(ConvertError(result, errorMessage));
+                return Result<byte[], EcliptixProtocolFailure>.Err(InteropHelpers.ConvertError(result, errorMessage));
             }
 
-            return CopyAndFree(bufferPtr);
+            return InteropHelpers.CopyBuffer(ref buffer, "Secret");
         }
         finally
         {
@@ -172,46 +159,4 @@ public static class ShamirSecretSharing
         }
     }
 
-    private static Result<byte[], EcliptixProtocolFailure> CopyAndFree(IntPtr bufferPtr)
-    {
-        try
-        {
-            NativeInterop.EppBuffer buffer = Marshal.PtrToStructure<NativeInterop.EppBuffer>(bufferPtr);
-            int length = checked((int)buffer.Length);
-            byte[] data = length == 0 ? [] : new byte[length];
-            if (length > 0)
-            {
-                Marshal.Copy(buffer.Data, data, 0, length);
-            }
-
-            return Result<byte[], EcliptixProtocolFailure>.Ok(data);
-        }
-        finally
-        {
-            if (bufferPtr != IntPtr.Zero)
-            {
-                NativeInterop.epp_buffer_free(bufferPtr);
-            }
-        }
-    }
-
-    private static EcliptixProtocolFailure ConvertError(NativeInterop.EppErrorCode code, string message)
-    {
-        return code switch
-        {
-            NativeInterop.EppErrorCode.ErrorInvalidInput => EcliptixProtocolFailure.InvalidInput(message),
-            NativeInterop.EppErrorCode.ErrorKeyGeneration => EcliptixProtocolFailure.KeyGeneration(message),
-            NativeInterop.EppErrorCode.ErrorDeriveKey => EcliptixProtocolFailure.DeriveKey(message),
-            NativeInterop.EppErrorCode.ErrorHandshake => EcliptixProtocolFailure.Handshake(message),
-            NativeInterop.EppErrorCode.ErrorEncryption => EcliptixProtocolFailure.Generic(message),
-            NativeInterop.EppErrorCode.ErrorDecryption => EcliptixProtocolFailure.Generic(message),
-            NativeInterop.EppErrorCode.ErrorDecode => EcliptixProtocolFailure.Decode(message),
-            NativeInterop.EppErrorCode.ErrorEncode => EcliptixProtocolFailure.Decode(message),
-            NativeInterop.EppErrorCode.ErrorPqMissing => EcliptixProtocolFailure.Decode(message),
-            NativeInterop.EppErrorCode.ErrorBufferTooSmall => EcliptixProtocolFailure.BufferTooSmall(message),
-            NativeInterop.EppErrorCode.ErrorObjectDisposed => EcliptixProtocolFailure.ObjectDisposed(message),
-            NativeInterop.EppErrorCode.ErrorPrepareLocal => EcliptixProtocolFailure.PrepareLocal(message),
-            _ => EcliptixProtocolFailure.Generic(message)
-        };
-    }
 }

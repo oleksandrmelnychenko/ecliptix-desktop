@@ -700,22 +700,37 @@ public sealed class OpaqueRegistrationService(
                     true);
             }
 
-            using OpaqueClient opaqueClient = new(serverKeyResult.Unwrap());
-
-            RegistrationAttemptResult result = await TryExecuteRegistrationCycleAsync(
-                opaqueClient,
-                membershipId,
-                secureKey,
-                connectId,
-                requestContext,
-                cancellationToken).ConfigureAwait(false);
-
-            if (result.Outcome.IsOk || !allowReinit || !result.IsTransient)
+            try
             {
-                return result;
-            }
+                using OpaqueClient opaqueClient = new(serverKeyResult.Unwrap());
 
-            requestContext.MarkReinitAttempted();
+                RegistrationAttemptResult result = await TryExecuteRegistrationCycleAsync(
+                    opaqueClient,
+                    membershipId,
+                    secureKey,
+                    connectId,
+                    requestContext,
+                    cancellationToken).ConfigureAwait(false);
+
+                if (result.Outcome.IsOk || !allowReinit || !result.IsTransient)
+                {
+                    return result;
+                }
+
+                requestContext.MarkReinitAttempted();
+            }
+            catch (OpaqueException)
+            {
+                return CreateAttemptFailure(
+                    localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY],
+                    false);
+            }
+            catch (ArgumentException)
+            {
+                return CreateAttemptFailure(
+                    localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY],
+                    false);
+            }
         }
 
         return CreateAttemptFailure(
@@ -771,6 +786,13 @@ public sealed class OpaqueRegistrationService(
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
+        }
+        catch (OpaqueException)
+        {
+            HandleRegistrationException(membershipId, ref registrationResult);
+            return CreateAttemptFailure(
+                localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY],
+                false);
         }
         catch (Exception ex)
         {

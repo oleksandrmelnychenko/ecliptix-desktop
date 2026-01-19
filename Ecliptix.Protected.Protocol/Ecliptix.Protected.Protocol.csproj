@@ -14,7 +14,7 @@
       <PackageReference Include="Avalonia.Diagnostics" Version="11.3.10" />
       <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.10" />
       <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.10" />
-      <PackageReference Include="EPP.Agent" Version="1.0.0-ci.67" />
+      <PackageReference Include="EPP.Agent" Version="1.0.0-ci.76" />
       <PackageReference Include="Google.Protobuf" Version="3.33.2" />
       <PackageReference Include="Grpc.Core.Api" Version="2.76.0" />
       <PackageReference Include="Grpc.Tools" Version="2.76.0">
@@ -36,9 +36,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Compile Include="Native\**\*.cs" />
+      <Compile Include="Native\**\*.cs" Exclude="Native/EcliptixProtocolSystemWrapper.cs" />
       <Compile Include="Sodium\**\*.cs" />
-      <Compile Include="Utilities\**\*.cs" />
+      <Compile Include="Utilities\**\*.cs" Exclude="Utilities/EnvelopeBuilder.cs" />
       <Compile Include="Configuration\**\*.cs" />
       <Compile Include="Interfaces\**\*.cs" />
       <Compile Include="Enums\**\*.cs" />

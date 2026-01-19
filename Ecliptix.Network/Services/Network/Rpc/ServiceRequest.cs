@@ -1,4 +1,4 @@
-using Ecliptix.Protobuf.Common;
+using Ecliptix.Protobuf.Protocol;
 
 namespace Ecliptix.Network.Services.Network.Rpc;
 
