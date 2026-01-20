@@ -927,23 +927,25 @@ public sealed partial class NetworkProvider(
     {
         Span<byte> hashBuffer = stackalloc byte[CryptographicConstants.SHA_256_HASH_SIZE];
 
-        switch (serviceType.ToString())
+        switch (serviceType)
         {
-            case "OpaqueSignInInitRequest" or "OpaqueSignInFinalizeRequest":
+            case RpcServiceType.SignInInitRequest:
+            case RpcServiceType.SignInCompleteRequest:
                 {
                     Span<byte> semanticBuffer = stackalloc byte[CryptographicConstants.SHA_256_HASH_SIZE];
                     int written = Encoding.UTF8.GetBytes($"auth:signin:{connectId}", semanticBuffer);
                     SHA256.HashData(semanticBuffer[..written], hashBuffer);
                     break;
                 }
-            case "OpaqueSignUpInitRequest" or "OpaqueSignUpFinalizeRequest":
+            case RpcServiceType.RegistrationInit:
+            case RpcServiceType.RegistrationComplete:
                 {
                     Span<byte> semanticBuffer = stackalloc byte[CryptographicConstants.SHA_256_HASH_SIZE];
                     int written = Encoding.UTF8.GetBytes($"auth:signup:{connectId}", semanticBuffer);
                     SHA256.HashData(semanticBuffer[..written], hashBuffer);
                     break;
                 }
-            case "InitiateVerification":
+            case RpcServiceType.InitiateVerification:
                 {
                     Span<byte> payloadHash = stackalloc byte[CryptographicConstants.SHA_256_HASH_SIZE];
                     SHA256.HashData(plainBuffer, payloadHash);

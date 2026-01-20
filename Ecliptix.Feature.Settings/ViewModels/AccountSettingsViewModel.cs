@@ -124,7 +124,7 @@ public class AccountSettingsViewModel : Ecliptix.Core.MVVM.ViewModelBase, IActiv
 
             Guid currentAccountId = accountIdOpt.Value;
 
-            ByteString accountId = ByteString.CopyFrom(currentAccountId.ToByteArray());
+            ByteString accountId = currentAccountId.ToByteString();
             ProfileLookupRequest request = new()
             {
                 CurrentAccountId = accountId,
@@ -160,8 +160,8 @@ public class AccountSettingsViewModel : Ecliptix.Core.MVVM.ViewModelBase, IActiv
 
             if (response.Profile != null)
             {
-                Guid accId = new(response.Profile.AccountId.ToByteArray());
-                Guid profId = new(response.Profile.ProfileId.ToByteArray());
+                Guid accId = response.Profile.AccountId.ToGuid();
+                Guid profId = response.Profile.ProfileId.ToGuid();
 
                 DisplayName = response.Profile.DisplayName;
                 ProfileName = response.Profile.ProfileName;
@@ -190,7 +190,7 @@ public class AccountSettingsViewModel : Ecliptix.Core.MVVM.ViewModelBase, IActiv
             ApplicationInstanceSettings settings = settingsResult.Unwrap();
             if (settings.CurrentAccountId is { IsEmpty: false })
             {
-                Guid accountId = new(settings.CurrentAccountId.ToByteArray());
+                Guid accountId = settings.CurrentAccountId.ToGuid();
                 return Option<Guid>.Some(accountId);
             }
         }

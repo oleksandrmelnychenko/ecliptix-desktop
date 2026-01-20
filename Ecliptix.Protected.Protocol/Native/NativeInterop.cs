@@ -212,7 +212,7 @@ internal static class NativeInterop
         nuint secretLength,
         byte threshold,
         byte shareCount,
-        [In] byte[] authKey,
+        [In] byte[]? authKey,
         nuint authKeyLength,
         out EppBuffer outShares,
         out nuint outShareLength,
@@ -224,7 +224,7 @@ internal static class NativeInterop
         nuint sharesLength,
         nuint shareLength,
         nuint shareCount,
-        [In] byte[] authKey,
+        [In] byte[]? authKey,
         nuint authKeyLength,
         out EppBuffer outSecret,
         out EppError outError);

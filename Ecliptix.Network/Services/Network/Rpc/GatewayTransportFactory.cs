@@ -65,7 +65,7 @@ internal static class GatewayTransportFactory
         return new EventEnvelope
         {
             Metadata = metadata,
-            Payload = ByteString.CopyFrom(payload.ToByteArray())
+            Payload = payload.ToByteString()
         };
     }
 

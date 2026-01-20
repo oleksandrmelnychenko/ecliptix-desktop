@@ -302,7 +302,9 @@ public class LogoutProofHandler(
         using MemoryStream ms = new();
         using BinaryWriter writer = new(ms);
 
-        writer.Write(Guid.Parse(membershipId).ToByteArray());
+        Span<byte> guidBytes = stackalloc byte[16];
+        Guid.Parse(membershipId).TryWriteBytes(guidBytes);
+        writer.Write(guidBytes);
         writer.Write(connectId);
         writer.Write(serverTimestamp);
         writer.Write(parsed.FingerprintLength);

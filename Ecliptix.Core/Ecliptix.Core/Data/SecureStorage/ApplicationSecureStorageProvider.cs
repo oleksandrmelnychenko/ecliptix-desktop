@@ -310,9 +310,13 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
 
     private string GetHashedFilePath(string key)
     {
-        byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(key));
-        string safeFilename = Convert.ToHexString(hashBytes);
-        return Path.Combine(_storagePath, $"{safeFilename}.enc");
+        int byteCount = Encoding.UTF8.GetByteCount(key);
+        Span<byte> keyBytes = byteCount <= 256 ? stackalloc byte[byteCount] : new byte[byteCount];
+        Encoding.UTF8.GetBytes(key, keyBytes);
+
+        Span<byte> hashBytes = stackalloc byte[32];
+        SHA256.HashData(keyBytes, hashBytes);
+        return Path.Combine(_storagePath, $"{Convert.ToHexString(hashBytes)}.enc");
     }
 
     private void InitializeStorageDirectory()
