@@ -15,8 +15,6 @@ public static class NativeProtocolSystem
                     $"Failed to initialize native protocol: {NativeInterop.ErrorCodeToString(result)}"));
     }
 
-    public static void Shutdown() => NativeInterop.epp_shutdown();
-
     public static Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure> CreateIdentity()
         => EcliptixIdentityKeysWrapper.Create();
 
