@@ -192,6 +192,8 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         {
             _isMainContentActive = false;
 
+            await Dispatcher.UIThread.InvokeAsync(() => CurrentContent = null);
+
             await InvalidateWindowPlacementAsync(linkedCts.Token).ConfigureAwait(false);
 
             Dispatcher.UIThread.Post(() =>
@@ -268,6 +270,8 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         try
         {
             _isMainContentActive = true;
+
+            await Dispatcher.UIThread.InvokeAsync(() => CurrentContent = null);
 
             if (_configuration.EnableAnimations)
             {

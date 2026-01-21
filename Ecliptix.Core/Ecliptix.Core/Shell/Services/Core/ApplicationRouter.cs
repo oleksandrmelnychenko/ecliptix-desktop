@@ -53,8 +53,12 @@ public sealed class ApplicationRouter(
             ApplicationErrorMessages.ApplicationRouter.FAILED_TO_CREATE_MEMBERSHIP_VIEW_MODEL);
 
         await mainWindowViewModel.SetAuthenticationContentAsync(membershipViewModel).ConfigureAwait(false);
-        await moduleManager.UnloadModuleAsync(MainModuleName).ConfigureAwait(false);
-        await EnsureAnonymousProtocolAsync().ConfigureAwait(false);
+
+        _ = Task.Run(async () =>
+        {
+            await moduleManager.UnloadModuleAsync(MainModuleName).ConfigureAwait(false);
+            await EnsureAnonymousProtocolAsync().ConfigureAwait(false);
+        });
     }
 
     public async Task NavigateToMainAsync()
@@ -68,7 +72,8 @@ public sealed class ApplicationRouter(
             ApplicationErrorMessages.ApplicationRouter.FAILED_TO_CREATE_MAIN_VIEW_MODEL);
 
         await mainWindowViewModel.SetMainContentAsync(mainViewModel).ConfigureAwait(false);
-        await moduleManager.UnloadModuleAsync(AuthModuleName).ConfigureAwait(false);
+
+        _ = moduleManager.UnloadModuleAsync(AuthModuleName);
     }
 
     public async Task TransitionFromSplashAsync(Window splashWindow, bool isAuthenticated)

@@ -123,9 +123,9 @@ public sealed class MasterViewModel : ViewModelBase, IMainHost
 
         IMessageBus? messageBus = Locator.Current?.GetService<IMessageBus>();
 
-        Dispatcher.UIThread.Post(() =>
+        Task.Run(() =>
         {
-            ConversationView dummy = new();
+            Dispatcher.UIThread.Post(() => { _ = new ConversationView(); }, DispatcherPriority.Background);
         });
 
         CloseOverlayCommand = ReactiveCommand.Create(() =>

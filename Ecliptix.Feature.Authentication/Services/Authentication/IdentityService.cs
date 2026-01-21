@@ -176,6 +176,14 @@ public sealed class IdentityService : IIdentityService
                 membershipClearResult.UnwrapErr().Message);
         }
 
+        Result<Unit, InternalServiceApiFailure> accountIdClearResult =
+            await _applicationSecureStorageProvider.SetCurrentAccountIdAsync(null).ConfigureAwait(false);
+        if (accountIdClearResult.IsErr)
+        {
+            Log.Warning("[STATE-CLEANUP-FULL] Failed to clear current account ID: {Error}",
+                accountIdClearResult.UnwrapErr().Message);
+        }
+
         return Result<Unit, Exception>.Ok(Unit.Value);
     }
 
