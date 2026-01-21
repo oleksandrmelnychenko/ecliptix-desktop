@@ -127,7 +127,7 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         }
 
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
-        settings.CurrentAccountId = accountId;
+        settings.CurrentAccountId = accountId ?? ByteString.Empty;
         return await StoreSettingsAsync(settings);
     }
 

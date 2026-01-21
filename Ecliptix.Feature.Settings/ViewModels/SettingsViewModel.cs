@@ -172,7 +172,7 @@ public sealed partial class SettingsViewModel : Ecliptix.Core.MVVM.ViewModelBase
             .Select(result => result.UnwrapErr())
             .Subscribe(error =>
             {
-                Log.Error("[SETTINGS-VM] Logout failed: {Message}", error.Message);
+                Log.Error(error.InnerException, "[SETTINGS-VM] Logout failed: {Message}", error.Message);
             })
             .DisposeWith(_disposables);
 
