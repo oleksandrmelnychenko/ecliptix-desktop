@@ -10,7 +10,6 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
-using Serilog;
 
 namespace Ecliptix.Core.Shared.Transitions;
 
@@ -163,12 +162,8 @@ public partial class AnimatingContentControl : UserControl, ILogical
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
-        Log.Information("[ANIMATING-CC] OnPropertyChanged: {PropertyName}", change.Property.Name);
-
         if (change.Property == ContentProperty)
         {
-            Log.Information("[ANIMATING-CC] ContentProperty changed: OldValue={OldType}, NewValue={NewType}",
-                change.OldValue?.GetType().Name ?? "null", change.NewValue?.GetType().Name ?? "null");
             UpdateContent(true);
             return;
         }
@@ -178,13 +173,8 @@ public partial class AnimatingContentControl : UserControl, ILogical
 
     private void UpdateContent(bool withTransition)
     {
-        Log.Information("[ANIMATING-CC] UpdateContent called, withTransition={WithTransition}, Content={ContentType}",
-            withTransition, Content?.GetType().Name ?? "null");
-
         if (VisualRoot is null || _presenter2 is null || Presenter is null)
         {
-            Log.Warning("[ANIMATING-CC] UpdateContent early return: VisualRoot={HasVisualRoot}, _presenter2={HasPresenter2}, Presenter={HasPresenter}",
-                VisualRoot != null, _presenter2 != null, Presenter != null);
             return;
         }
 
@@ -192,12 +182,8 @@ public partial class AnimatingContentControl : UserControl, ILogical
         object? fromContent = _lastPresenter?.Content;
         object? toContent = Content;
 
-        Log.Information("[ANIMATING-CC] UpdateContent: fromContent={FromType}, toContent={ToType}",
-            fromContent?.GetType().Name ?? "null", toContent?.GetType().Name ?? "null");
-
         if (ReferenceEquals(fromContent, toContent))
         {
-            Log.Information("[ANIMATING-CC] UpdateContent: same content, skipping");
             return;
         }
 
@@ -221,14 +207,12 @@ public partial class AnimatingContentControl : UserControl, ILogical
 
         if (PageTransition is not null && withTransition)
         {
-            Log.Information("[ANIMATING-CC] Starting animation transition");
             _shouldAnimate = true;
             IsAnimating = true;
             InvalidateArrange();
         }
         else
         {
-            Log.Information("[ANIMATING-CC] No animation, setting content directly");
             HideOldPresenter();
             if (fromContent is ILogical oldLogicalChild && fromContent != toContent)
             {
@@ -238,7 +222,6 @@ public partial class AnimatingContentControl : UserControl, ILogical
             OnTransitionCompleted(new TransitionCompletedEventArgs(fromContent, toContent, false));
             IsAnimating = false;
         }
-        Log.Information("[ANIMATING-CC] UpdateContent completed successfully");
     }
 
     private void HideOldPresenter()

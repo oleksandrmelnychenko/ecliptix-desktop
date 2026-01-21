@@ -19,7 +19,6 @@ using Ecliptix.Network.Infrastructure.Data.Abstractions;
 using Ecliptix.Network.Infrastructure.Network.Core.Providers;
 using Ecliptix.Utilities;
 using ReactiveUI;
-using ReactiveUI.Fody.Helpers;
 using Serilog;
 using Splat;
 using Ecliptix.Core.Shell.Abstractions.Core;
@@ -121,8 +120,6 @@ public sealed class MasterViewModel : ViewModelBase, IMainHost
         ConnectivityNotification = mainWindowViewModel.ConnectivityNotification;
         SuggestionsContent = mainWindowViewModel.SuggestionsViewModel;
         NavigationSidebar = new NavigationSidebarViewModel(networkProvider, localizationService, logoutService, profileMenuService, storageProvider);
-        Log.Information("[MASTER-VM] NavigationSidebar created, initial SelectedMenuItem={Id}",
-            NavigationSidebar.SelectedMenuItem?.Id ?? "null");
 
         IMessageBus? messageBus = Locator.Current?.GetService<IMessageBus>();
 
@@ -157,16 +154,12 @@ public sealed class MasterViewModel : ViewModelBase, IMainHost
             })
             .DisposeWith(_disposables);
 
-        Log.Information("[MASTER-VM] Setting up SelectedMenuItem subscription...");
         this.WhenAnyValue(x => x.NavigationSidebar.SelectedMenuItem)
             .WhereNotNull()
-            .Do(menuItem => Log.Information("[MASTER-VM] WhenAnyValue triggered for SelectedMenuItem: {MenuItemId}", menuItem.Id))
             .SelectMany(async menuItem =>
             {
                 try
                 {
-                    Log.Information("[MASTER-VM] SelectedMenuItem changed to: {MenuItemId}", menuItem.Id);
-
                     ModuleIdentifier? moduleId = menuItem.Id switch
                     {
                         "feed" => ModuleIdentifier.FEED,
@@ -176,14 +169,10 @@ public sealed class MasterViewModel : ViewModelBase, IMainHost
                         _ => null
                     };
 
-                    Log.Information("[MASTER-VM] Resolved ModuleIdentifier: {ModuleId}", moduleId?.ToString() ?? "null");
-
                     if (moduleId.HasValue)
                     {
                         CalculateTransitionDirection(moduleId.Value);
-                        Log.Information("[MASTER-VM] Loading module view for: {ModuleName}", moduleId.Value.ToName());
                         await LoadModuleViewAsync(moduleId.Value);
-                        Log.Information("[MASTER-VM] Module view loaded, CurrentView is now: {ViewType}", CurrentView?.GetType().Name ?? "null");
                     }
                 }
                 catch (Exception ex)
@@ -194,7 +183,6 @@ public sealed class MasterViewModel : ViewModelBase, IMainHost
             })
             .Subscribe()
             .DisposeWith(_disposables);
-        Log.Information("[MASTER-VM] SelectedMenuItem subscription set up");
     }
 
     private async Task HandleCloseOverlayEvent()
@@ -218,28 +206,18 @@ public sealed class MasterViewModel : ViewModelBase, IMainHost
 
     private async Task LoadModuleViewAsync(ModuleIdentifier moduleId)
     {
-        Log.Information("[MASTER-VM] LoadModuleViewAsync called for moduleId={ModuleId}", moduleId);
         IsLoadingView = true;
 
         try
         {
-            Log.Information("[MASTER-VM] Calling CreateViewForModuleAsync...");
             Option<UserControl> viewOption = await _moduleViewFactory.CreateViewForModuleAsync(moduleId);
-
-            Log.Information("[MASTER-VM] CreateViewForModuleAsync returned, IsSome={IsSome}", viewOption.IsSome);
 
             if (viewOption.IsSome)
             {
-                Log.Information("[MASTER-VM] Setting CurrentView to {ViewType}", viewOption.Value?.GetType().Name ?? "null");
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     CurrentView = viewOption.Value;
-                    Log.Information("[MASTER-VM] CurrentView set on UI thread successfully");
                 });
-            }
-            else
-            {
-                Log.Warning("[MASTER-VM] No view returned from CreateViewForModuleAsync for {ModuleId}", moduleId);
             }
         }
         catch (Exception ex)

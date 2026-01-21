@@ -75,12 +75,7 @@ public sealed class NavigationSidebarViewModel : Ecliptix.Core.MVVM.ViewModelBas
         IObservable<bool> canNavigate = this.WhenAnyValue(
                 x => x.IsParentAnimating,
                 x => x.IsBusy,
-                (isAnimating, isBusy) =>
-                {
-                    bool result = !isAnimating && !isBusy;
-                    Log.Information($"[NAV-STATE-CHANGE] IsAnimating={isAnimating}, IsBusy={isBusy} => CanNavigate={result}");
-                    return result;
-                }
+                (isAnimating, isBusy) => !isAnimating && !isBusy
             )
             .DistinctUntilChanged();
 
@@ -149,22 +144,14 @@ public sealed class NavigationSidebarViewModel : Ecliptix.Core.MVVM.ViewModelBas
         NavigateCommand = ReactiveCommand.CreateFromTask<NavigationMenuItem>(
             async menuItem =>
             {
-                Log.Information("[NAV-SIDEBAR] NavigateCommand executed for menuItem.Id={MenuItemId}", menuItem?.Id ?? "null");
-
                 if (SelectedMenuItem == menuItem)
                 {
-                    Log.Information("[NAV-SIDEBAR] Same item selected, skipping navigation");
                     return;
                 }
-
-                Log.Information("[NAV-SIDEBAR] Changing SelectedMenuItem from {OldId} to {NewId}",
-                    SelectedMenuItem?.Id ?? "null", menuItem?.Id ?? "null");
 
                 SelectedMenuItem?.IsSelected = false;
                 SelectedMenuItem = menuItem;
                 SelectedMenuItem?.IsSelected = true;
-
-                Log.Information("[NAV-SIDEBAR] SelectedMenuItem changed successfully to {NewId}", SelectedMenuItem?.Id ?? "null");
             },
             canNavigate
         );
