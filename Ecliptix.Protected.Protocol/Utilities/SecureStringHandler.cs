@@ -6,17 +6,9 @@ using Ecliptix.Utilities.Failures.Sodium;
 
 namespace Ecliptix.Protected.Protocol.Utilities;
 
-public sealed class SecureStringHandler : IDisposable
+public sealed class SecureStringHandler(SodiumSecureMemoryHandle handle, int length) : IDisposable
 {
-    private readonly SodiumSecureMemoryHandle _handle;
-    private readonly int _length;
     private bool _disposed;
-
-    public SecureStringHandler(SodiumSecureMemoryHandle handle, int length)
-    {
-        _handle = handle;
-        _length = length;
-    }
 
     public static Result<SecureStringHandler, SodiumFailure> FromString(string? input)
     {
@@ -58,22 +50,23 @@ public sealed class SecureStringHandler : IDisposable
         }
     }
 
-    public Result<T, SodiumFailure> UseBytes<T>(Func<ReadOnlySpan<byte>, T> operation)
+    public void UseBytes<T>(Func<ReadOnlySpan<byte>, T> operation)
     {
         if (_disposed)
         {
-            return Result<T, SodiumFailure>.Err(
+            Result<T, SodiumFailure>.Err(
                 SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.SECURE_STRING_HANDLER_DISPOSED));
+            return;
         }
 
         T? result = default;
         Exception? operationError = null;
 
-        Result<Unit, SodiumFailure> readResult = _handle.WithReadAccess(span =>
+        Result<Unit, SodiumFailure> readResult = handle.WithReadAccess(span =>
         {
             try
             {
-                result = operation(span[.._length]);
+                result = operation(span[..length]);
             }
             catch (Exception ex)
             {
@@ -90,13 +83,14 @@ public sealed class SecureStringHandler : IDisposable
 
         if (readResult.IsErr)
         {
-            return Result<T, SodiumFailure>.Err(readResult.UnwrapErr());
+            Result<T, SodiumFailure>.Err(readResult.UnwrapErr());
+            return;
         }
 
-        return Result<T, SodiumFailure>.Ok(result!);
+        Result<T, SodiumFailure>.Ok(result!);
     }
 
-    public int ByteLength => _length;
+    public int ByteLength => length;
 
     public void Dispose()
     {
@@ -106,6 +100,6 @@ public sealed class SecureStringHandler : IDisposable
         }
 
         _disposed = true;
-        _handle?.Dispose();
+        handle?.Dispose();
     }
 }

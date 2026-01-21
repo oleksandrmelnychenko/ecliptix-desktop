@@ -9,7 +9,6 @@ using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Controls.Core.HintedTextControls;
-using Ecliptix.Feature.Authentication.ViewModels.Registration;
 using Ecliptix.Feature.Authentication.ViewModels.Registration.MobileVerification;
 using ReactiveUI;
 
@@ -27,10 +26,7 @@ public partial class MobileVerificationView : ReactiveUserControl<MobileVerifica
         InitializeComponent();
     }
 
-    private void InitializeComponent()
-    {
-        AvaloniaXamlLoader.Load(this);
-    }
+    private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
@@ -88,11 +84,13 @@ public partial class MobileVerificationView : ReactiveUserControl<MobileVerifica
             return;
         }
 
-        if (this.FindControl<HintedTextBox>(MOBILE_TEXT_BOX_CONTROL_NAME) is { } mobileTextBox)
+        if (this.FindControl<HintedTextBox>(MOBILE_TEXT_BOX_CONTROL_NAME) is not { } mobileTextBox)
         {
-            mobileTextBox.KeyDown += OnMobileTextBoxKeyDown;
-            _handlersAttached = true;
+            return;
         }
+
+        mobileTextBox.KeyDown += OnMobileTextBoxKeyDown;
+        _handlersAttached = true;
     }
 
     private void TeardownEventHandlers()
@@ -112,7 +110,7 @@ public partial class MobileVerificationView : ReactiveUserControl<MobileVerifica
 
     private void OnMobileTextBoxKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Enter && e.Key != Key.Return)
+        if (e.Key is not Key.Enter and not Key.Return)
         {
             return;
         }

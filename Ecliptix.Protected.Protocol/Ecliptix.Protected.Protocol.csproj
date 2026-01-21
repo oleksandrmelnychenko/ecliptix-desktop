@@ -36,9 +36,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Compile Include="Native\**\*.cs" Exclude="Native/EcliptixProtocolSystemWrapper.cs" />
+      <Compile Include="Native\**\*.cs" />
       <Compile Include="Sodium\**\*.cs" />
-      <Compile Include="Utilities\**\*.cs" Exclude="Utilities/EnvelopeBuilder.cs" />
+      <Compile Include="Utilities\**\*.cs" />
       <Compile Include="Configuration\**\*.cs" />
       <Compile Include="Interfaces\**\*.cs" />
       <Compile Include="Enums\**\*.cs" />
@@ -48,6 +48,10 @@
 
     <ItemGroup>
       <None Include="Scripts\**\*" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Configuration\" />
     </ItemGroup>
 
 </Project>

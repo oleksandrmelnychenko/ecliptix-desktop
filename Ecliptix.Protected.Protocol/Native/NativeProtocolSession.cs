@@ -17,12 +17,6 @@ public sealed class NativeProtocolSession : IDisposable
 
     public static Result<NativeProtocolSession, EcliptixProtocolFailure> Import(byte[] stateBytes)
     {
-        if (stateBytes == null)
-        {
-            return Result<NativeProtocolSession, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.InvalidInput("State bytes are null"));
-        }
-
         NativeInterop.EppErrorCode result = NativeInterop.epp_session_deserialize(
             stateBytes,
             (nuint)stateBytes.Length,
@@ -47,12 +41,6 @@ public sealed class NativeProtocolSession : IDisposable
         string? correlationId = null)
     {
         ThrowIfDisposed();
-
-        if (plaintext == null)
-        {
-            return Result<byte[], EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.InvalidInput("Plaintext is null"));
-        }
 
         byte[]? correlationBytes = null;
         if (!string.IsNullOrWhiteSpace(correlationId))
@@ -85,12 +73,6 @@ public sealed class NativeProtocolSession : IDisposable
     public Result<ProtocolDecryptResult, EcliptixProtocolFailure> Decrypt(byte[] encryptedEnvelope)
     {
         ThrowIfDisposed();
-
-        if (encryptedEnvelope == null)
-        {
-            return Result<ProtocolDecryptResult, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.InvalidInput("Encrypted envelope is null"));
-        }
 
         NativeInterop.EppErrorCode result = NativeInterop.epp_session_decrypt(
             _handle,
@@ -149,12 +131,6 @@ public sealed class NativeProtocolSession : IDisposable
 
     public static Result<Unit, EcliptixProtocolFailure> ValidateEnvelope(byte[] encryptedEnvelope)
     {
-        if (encryptedEnvelope == null)
-        {
-            return Result<Unit, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.InvalidInput("Encrypted envelope is null"));
-        }
-
         NativeInterop.EppErrorCode result = NativeInterop.epp_envelope_validate(
             encryptedEnvelope,
             (nuint)encryptedEnvelope.Length,

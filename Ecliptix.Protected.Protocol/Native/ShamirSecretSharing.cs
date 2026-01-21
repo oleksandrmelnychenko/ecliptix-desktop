@@ -144,14 +144,15 @@ public static class ShamirSecretSharing
                 out NativeInterop.EppBuffer buffer,
                 out NativeInterop.EppError error);
 
-            if (result != NativeInterop.EppErrorCode.Success)
+            if (result == NativeInterop.EppErrorCode.Success)
             {
-                string errorMessage = error.GetMessage();
-                NativeInterop.epp_error_free(ref error);
-                return Result<byte[], EcliptixProtocolFailure>.Err(InteropHelpers.ConvertError(result, errorMessage));
+                return InteropHelpers.CopyBuffer(ref buffer, "Secret");
             }
 
-            return InteropHelpers.CopyBuffer(ref buffer, "Secret");
+            string errorMessage = error.GetMessage();
+            NativeInterop.epp_error_free(ref error);
+            return Result<byte[], EcliptixProtocolFailure>.Err(InteropHelpers.ConvertError(result, errorMessage));
+
         }
         finally
         {

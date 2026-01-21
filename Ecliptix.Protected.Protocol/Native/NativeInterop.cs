@@ -146,27 +146,6 @@ internal static class NativeInterop
     internal static extern void epp_handshake_initiator_destroy(IntPtr handle);
 
     [DllImport(LIBRARY_NAME, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern EppErrorCode epp_handshake_responder_start(
-        IntPtr identityKeys,
-        [In] byte[] localPrekeyBundle,
-        nuint localPrekeyBundleLength,
-        [In] byte[] handshakeInit,
-        nuint handshakeInitLength,
-        ref EppSessionConfig config,
-        out IntPtr outHandle,
-        out EppBuffer outHandshakeAck,
-        out EppError outError);
-
-    [DllImport(LIBRARY_NAME, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern EppErrorCode epp_handshake_responder_finish(
-        IntPtr handle,
-        out IntPtr outSession,
-        out EppError outError);
-
-    [DllImport(LIBRARY_NAME, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern void epp_handshake_responder_destroy(IntPtr handle);
-
-    [DllImport(LIBRARY_NAME, CallingConvention = CallingConvention.Cdecl)]
     internal static extern EppErrorCode epp_session_encrypt(
         IntPtr handle,
         [In] byte[] plaintext,
