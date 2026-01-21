@@ -3,9 +3,14 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Ecliptix.Feature.Feed.ViewModels"
+             xmlns:converters="clr-namespace:Ecliptix.Feature.Feed.Converters"
              mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="600"
              x:Class="Ecliptix.Feature.Feed.Controls.Media.ImageCarouselControl"
              x:DataType="vm:ImageCarouselPostViewModel">
+
+    <UserControl.Resources>
+        <converters:GreaterThanOneConverter x:Key="GreaterThanOneConverter"/>
+    </UserControl.Resources>
 
     <Grid RowDefinitions="*,Auto">
 

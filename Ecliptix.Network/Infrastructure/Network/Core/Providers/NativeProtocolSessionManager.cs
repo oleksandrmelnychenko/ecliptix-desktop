@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using Ecliptix.Protected.Protocol.Native;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
+using Serilog;
 
 namespace Ecliptix.Network.Infrastructure.Network.Core.Providers;
 
@@ -21,27 +22,34 @@ internal sealed class NativeProtocolSessionManager : IDisposable
         EcliptixIdentityKeysWrapper identity,
         Action<uint>? _ = null)
     {
+        Log.Debug("[SESSION-MGR] CreateOrReplaceIdentity called for connectId={ConnectId}", connectId);
+
         if (_disposed)
         {
+            Log.Warning("[SESSION-MGR] CreateOrReplaceIdentity failed - manager disposed, connectId={ConnectId}", connectId);
             return Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.ObjectDisposed(nameof(NativeProtocolSessionManager)));
         }
 
         if (_sessions.TryRemove(connectId, out NativeProtocolSession? existing))
         {
+            Log.Debug("[SESSION-MGR] Removed existing session for connectId={ConnectId}", connectId);
             existing.Dispose();
         }
         if (_pendingInitiators.TryRemove(connectId, out NativeHandshakeInitiator? pending))
         {
+            Log.Debug("[SESSION-MGR] Removed pending handshake initiator for connectId={ConnectId}", connectId);
             pending.Dispose();
         }
         if (_identities.TryRemove(connectId, out EcliptixIdentityKeysWrapper? existingIdentity))
         {
+            Log.Debug("[SESSION-MGR] Removed existing identity for connectId={ConnectId}", connectId);
             existingIdentity.Dispose();
         }
         ClearCachedKeys(connectId);
 
         _identities[connectId] = identity;
+        Log.Information("[SESSION-MGR] Identity stored for connectId={ConnectId}", connectId);
         return Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure>.Ok(identity);
     }
 
@@ -85,20 +93,26 @@ internal sealed class NativeProtocolSessionManager : IDisposable
     {
         if (_disposed)
         {
+            Log.Warning("[SESSION-MGR] StoreServerPreKeyBundle failed - manager disposed, connectId={ConnectId}", connectId);
             return;
         }
 
         _serverPreKeyBundles[connectId] = bundle;
+        Log.Debug("[SESSION-MGR] Server prekey bundle stored for connectId={ConnectId}, bundleSize={Size}",
+            connectId, bundle.Length);
     }
 
     public void StoreServerNonce(uint connectId, byte[] serverNonce)
     {
         if (_disposed)
         {
+            Log.Warning("[SESSION-MGR] StoreServerNonce failed - manager disposed, connectId={ConnectId}", connectId);
             return;
         }
 
         _serverNonces[connectId] = serverNonce;
+        Log.Debug("[SESSION-MGR] Server nonce stored for connectId={ConnectId}, nonceSize={Size}",
+            connectId, serverNonce.Length);
     }
 
     public Result<byte[], EcliptixProtocolFailure> GetServerPreKeyBundle(uint connectId)
@@ -201,17 +215,22 @@ internal sealed class NativeProtocolSessionManager : IDisposable
 
     public void StoreHandshakeInitiator(uint connectId, NativeHandshakeInitiator initiator)
     {
+        Log.Debug("[SESSION-MGR] StoreHandshakeInitiator called for connectId={ConnectId}", connectId);
+
         if (_disposed)
         {
+            Log.Warning("[SESSION-MGR] StoreHandshakeInitiator failed - manager disposed, connectId={ConnectId}", connectId);
             return;
         }
 
         if (_pendingInitiators.TryRemove(connectId, out NativeHandshakeInitiator? existing))
         {
+            Log.Debug("[SESSION-MGR] Replaced existing handshake initiator for connectId={ConnectId}", connectId);
             existing.Dispose();
         }
 
         _pendingInitiators[connectId] = initiator;
+        Log.Information("[SESSION-MGR] Handshake initiator stored for connectId={ConnectId}", connectId);
     }
 
     public Result<NativeHandshakeInitiator, EcliptixProtocolFailure> GetHandshakeInitiator(uint connectId)
@@ -241,44 +260,59 @@ internal sealed class NativeProtocolSessionManager : IDisposable
 
     public void StoreSession(uint connectId, NativeProtocolSession session)
     {
+        Log.Debug("[SESSION-MGR] StoreSession called for connectId={ConnectId}", connectId);
+
         if (_disposed)
         {
+            Log.Warning("[SESSION-MGR] StoreSession failed - manager disposed, connectId={ConnectId}", connectId);
             session.Dispose();
             return;
         }
 
         if (_sessions.TryRemove(connectId, out NativeProtocolSession? existing))
         {
+            Log.Debug("[SESSION-MGR] Replaced existing session for connectId={ConnectId}", connectId);
             existing.Dispose();
         }
 
         _sessions[connectId] = session;
+        Log.Information("[SESSION-MGR] Protocol session stored for connectId={ConnectId}, sessionActive=true", connectId);
     }
 
     public Result<NativeProtocolSession, EcliptixProtocolFailure> CreateOrReplaceFromState(
         uint connectId,
         byte[] stateBytes)
     {
+        Log.Debug("[SESSION-MGR] CreateOrReplaceFromState called for connectId={ConnectId}, stateSize={StateSize}",
+            connectId, stateBytes.Length);
+
         if (_disposed)
         {
+            Log.Warning("[SESSION-MGR] CreateOrReplaceFromState failed - manager disposed, connectId={ConnectId}", connectId);
             return Result<NativeProtocolSession, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.ObjectDisposed(nameof(NativeProtocolSessionManager)));
         }
 
         if (_sessions.TryRemove(connectId, out NativeProtocolSession? existing))
         {
+            Log.Debug("[SESSION-MGR] Removed existing session before import for connectId={ConnectId}", connectId);
             existing.Dispose();
         }
 
+        Log.Debug("[SESSION-MGR] Importing session state for connectId={ConnectId}", connectId);
         Result<NativeProtocolSession, EcliptixProtocolFailure> importResult =
             NativeProtocolSession.Import(stateBytes);
         if (importResult.IsErr)
         {
+            Log.Error("[SESSION-MGR] Failed to import session state for connectId={ConnectId}: {Error}",
+                connectId, importResult.UnwrapErr().Message);
             return importResult;
         }
 
         NativeProtocolSession session = importResult.Unwrap();
         _sessions[connectId] = session;
+        Log.Information("[SESSION-MGR] Session restored from state for connectId={ConnectId}, stateSize={StateSize}",
+            connectId, stateBytes.Length);
         return Result<NativeProtocolSession, EcliptixProtocolFailure>.Ok(session);
     }
 

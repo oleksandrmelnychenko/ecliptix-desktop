@@ -7,25 +7,19 @@ using System.Threading.Tasks;
 using Ecliptix.Feature.Feed.Domain.Models;
 using Ecliptix.Feature.Feed.Services.Abstractions;
 using Ecliptix.Utilities;
-using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace Ecliptix.Feature.Feed.Services.Implementation;
 
 public sealed class PostInteractionService : IPostInteractionService
 {
-    private readonly ILogger<PostInteractionService> _logger;
     private readonly Dictionary<string, PostInteraction> _interactionCache = new();
-
-    public PostInteractionService(ILogger<PostInteractionService> logger)
-    {
-        _logger = logger;
-    }
 
     public async Task<Result<PostInteraction, string>> ToggleLikeAsync(string postId, CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogInformation("Toggling like for post {PostId}", postId);
+            Log.Information("Toggling like for post {PostId}", postId);
 
             await Task.Delay(200, cancellationToken);
 
@@ -55,7 +49,7 @@ public sealed class PostInteractionService : IPostInteractionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to toggle like for post {PostId}", postId);
+            Log.Error(ex, "Failed to toggle like for post {PostId}", postId);
             return Result<PostInteraction, string>.Err($"Failed to toggle like: {ex.Message}");
         }
     }
@@ -64,7 +58,7 @@ public sealed class PostInteractionService : IPostInteractionService
     {
         try
         {
-            _logger.LogInformation("Toggling save for post {PostId}", postId);
+            Log.Information("Toggling save for post {PostId}", postId);
 
             await Task.Delay(200, cancellationToken);
 
@@ -94,7 +88,7 @@ public sealed class PostInteractionService : IPostInteractionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to toggle save for post {PostId}", postId);
+            Log.Error(ex, "Failed to toggle save for post {PostId}", postId);
             return Result<PostInteraction, string>.Err($"Failed to toggle save: {ex.Message}");
         }
     }

@@ -486,8 +486,15 @@ public sealed class ApplicationInitializer(
             return Result<bool, NetworkFailure>.Ok(false);
         }
 
+        if (applicationInstanceSettings.Membership?.MembershipId == null)
+        {
+            networkProvider.ClearConnection(connectId);
+            await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
+            return Result<bool, NetworkFailure>.Ok(false);
+        }
+
         string membershipIdString = SecureByteStringInterop.WithByteStringAsSpan(
-            applicationInstanceSettings.Membership!.MembershipId!,
+            applicationInstanceSettings.Membership.MembershipId,
             span => new Guid(span.ToArray()).ToString());
 
         bool hasRevocationProof = await LogoutService.HasRevocationProofAsync(

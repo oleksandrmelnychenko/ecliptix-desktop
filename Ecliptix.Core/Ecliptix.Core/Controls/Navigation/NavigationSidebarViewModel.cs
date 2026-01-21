@@ -33,6 +33,7 @@ public sealed class NavigationSidebarViewModel : Ecliptix.Core.MVVM.ViewModelBas
     private readonly IApplicationSecureStorageProvider _storageProvider;
     private readonly CompositeDisposable _disposables = new();
     private CancellationTokenSource? _logoutCancellationTokenSource;
+    private ObservableAsPropertyHelper<bool>? _isBusy;
     private bool _isDisposed;
     private readonly IMessageBus? _messageBus;
 
@@ -40,7 +41,7 @@ public sealed class NavigationSidebarViewModel : Ecliptix.Core.MVVM.ViewModelBas
 
     [Reactive] public bool IsExpanded { get; set; } = true;
     [Reactive] public string UserDisplayName { get; set; } = "@user";
-    [ObservableAsProperty] public bool IsBusy { get; }
+    public bool IsBusy => _isBusy?.Value ?? false;
     [Reactive] public bool IsParentAnimating { get; set; }
 
     public string AddAccountText => LocalizationService.GetString(LocalizationKeys.ProfileMenu.ADD_ACCOUNT);
@@ -148,14 +149,22 @@ public sealed class NavigationSidebarViewModel : Ecliptix.Core.MVVM.ViewModelBas
         NavigateCommand = ReactiveCommand.CreateFromTask<NavigationMenuItem>(
             async menuItem =>
             {
+                Log.Information("[NAV-SIDEBAR] NavigateCommand executed for menuItem.Id={MenuItemId}", menuItem?.Id ?? "null");
+
                 if (SelectedMenuItem == menuItem)
                 {
+                    Log.Information("[NAV-SIDEBAR] Same item selected, skipping navigation");
                     return;
                 }
+
+                Log.Information("[NAV-SIDEBAR] Changing SelectedMenuItem from {OldId} to {NewId}",
+                    SelectedMenuItem?.Id ?? "null", menuItem?.Id ?? "null");
 
                 SelectedMenuItem?.IsSelected = false;
                 SelectedMenuItem = menuItem;
                 SelectedMenuItem?.IsSelected = true;
+
+                Log.Information("[NAV-SIDEBAR] SelectedMenuItem changed successfully to {NewId}", SelectedMenuItem?.Id ?? "null");
             },
             canNavigate
         );
@@ -216,7 +225,8 @@ public sealed class NavigationSidebarViewModel : Ecliptix.Core.MVVM.ViewModelBas
             },
             canLogout);
 
-        LogoutCommand.IsExecuting.ToPropertyEx(this, x => x.IsBusy).DisposeWith(_disposables);
+        _isBusy = LogoutCommand.IsExecuting.ToProperty(this, x => x.IsBusy);
+        _disposables.Add(_isBusy);
 
         LogoutCommand
             .Where(result => result.IsErr)

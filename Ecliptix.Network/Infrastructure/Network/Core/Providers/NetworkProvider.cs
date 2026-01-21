@@ -2004,8 +2004,8 @@ public sealed partial class NetworkProvider(
             clientNonce = RandomNumberGenerator.GetBytes(AUTHENTICATED_ESTABLISH_CLIENT_NONCE_LENGTH);
             RpcRequestContext requestContext = RpcRequestContext.CreateNew();
 
-            string appDeviceId = _dependencies.RpcMetaDataProvider.DeviceId.ToString("N");
-            string appInstanceId = _dependencies.RpcMetaDataProvider.AppInstanceId.ToString("N");
+            string appDeviceId = Convert.ToBase64String(_dependencies.RpcMetaDataProvider.DeviceId.ToByteArray());
+            string appInstanceId = Convert.ToBase64String(_dependencies.RpcMetaDataProvider.AppInstanceId.ToByteArray());
 
             rootKey = DeriveRootKeyFromMasterKey(masterKeyBytes, accountGuid);
             proofInput = BuildAuthenticatedEstablishProofInput(

@@ -113,6 +113,8 @@ public static class LocalizationData
             "There's an issue with your account data. Please contact support for assistance.",
         [LocalizationKeys.MobileVerificationStatus.AVAILABLE_ON_THIS_DEVICE] =
             "This mobile number is available for registration on this device.",
+        [LocalizationKeys.MobileVerificationStatus.INCOMPLETE_REGISTRATION_DIFFERENT_DEVICE] =
+            "Registration for this number was started on another device. Please continue on the original device or wait for the session to expire.",
         [LocalizationKeys.Verification.Error.INVALID_OTP_CODE] = "Invalid verification code",
         [LocalizationKeys.Registration.Error.FAILED] = "Registration failed",
         [LocalizationKeys.Verification.Error.NO_SESSION] = "Verification session not found",
@@ -373,6 +375,8 @@ public static class LocalizationData
             "Виникла проблема з даними вашого акаунта. Будь ласка, зверніться до підтримки.",
         [LocalizationKeys.MobileVerificationStatus.AVAILABLE_ON_THIS_DEVICE] =
             "Цей номер доступний для реєстрації на цьому пристрої.",
+        [LocalizationKeys.MobileVerificationStatus.INCOMPLETE_REGISTRATION_DIFFERENT_DEVICE] =
+            "Реєстрацію для цього номера було розпочато на іншому пристрої. Будь ласка, продовжте на початковому пристрої або зачекайте, поки сесія завершиться.",
         [LocalizationKeys.Verification.Error.INVALID_OTP_CODE] = "Неправильний код підтвердження",
         [LocalizationKeys.Registration.Error.FAILED] = "Не вдалося зареєструватися",
         [LocalizationKeys.Verification.Error.NO_SESSION] = "Сесія підтвердження не знайдена",

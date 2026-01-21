@@ -36,6 +36,7 @@ public sealed partial class SettingsViewModel : Ecliptix.Core.MVVM.ViewModelBase
     private readonly ILogoutService _logoutService;
     private readonly CompositeDisposable _disposables = new();
     private CancellationTokenSource? _logoutCancellationTokenSource;
+    private ObservableAsPropertyHelper<bool>? _isBusy;
     private bool _isDisposed;
 
     [Reactive] public object CurrentSettingsPage { get; set; }
@@ -45,7 +46,7 @@ public sealed partial class SettingsViewModel : Ecliptix.Core.MVVM.ViewModelBase
 
     public ReactiveCommand<SystemU, Result<EUnit, LogoutFailure>> LogoutCommand { get; }
 
-    [ObservableAsProperty] public bool IsBusy { get; }
+    public bool IsBusy => _isBusy?.Value ?? false;
     public new ViewModelActivator Activator { get; } = new();
 
     public SettingsViewModel(
@@ -163,7 +164,8 @@ public sealed partial class SettingsViewModel : Ecliptix.Core.MVVM.ViewModelBase
             },
             canLogout);
 
-        LogoutCommand.IsExecuting.ToPropertyEx(this, x => x.IsBusy).DisposeWith(_disposables);
+        _isBusy = LogoutCommand.IsExecuting.ToProperty(this, x => x.IsBusy);
+        _disposables.Add(_isBusy);
 
         LogoutCommand
             .Where(result => result.IsErr)

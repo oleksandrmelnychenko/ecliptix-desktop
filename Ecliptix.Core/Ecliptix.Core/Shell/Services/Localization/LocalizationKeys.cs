@@ -146,6 +146,7 @@ public static class LocalizationKeys
         public const string TAKEN_INACTIVE_ACCOUNT = "mobile_taken_inactive_account";
         public const string DATA_CORRUPTION_CONTACT_SUPPORT = "mobile_data_corruption_contact_support";
         public const string AVAILABLE_ON_THIS_DEVICE = "mobile_available_on_this_device";
+        public const string INCOMPLETE_REGISTRATION_DIFFERENT_DEVICE = "mobile_incomplete_registration_different_device";
     }
 
     public static class Verification

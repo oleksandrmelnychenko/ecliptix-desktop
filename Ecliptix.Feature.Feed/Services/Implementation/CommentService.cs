@@ -8,25 +8,19 @@ using System.Threading.Tasks;
 using Ecliptix.Feature.Feed.Domain.Models;
 using Ecliptix.Feature.Feed.Services.Abstractions;
 using Ecliptix.Utilities;
-using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace Ecliptix.Feature.Feed.Services.Implementation;
 
 public sealed class CommentService : ICommentService
 {
-    private readonly ILogger<CommentService> _logger;
     private readonly Dictionary<string, List<Comment>> _commentsCache = new();
-
-    public CommentService(ILogger<CommentService> logger)
-    {
-        _logger = logger;
-    }
 
     public async Task<Result<CommentsPage, string>> LoadCommentsAsync(string postId, int page, int pageSize, CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogInformation("Loading comments for post {PostId}, page {Page}", postId, page);
+            Log.Information("Loading comments for post {PostId}, page {Page}", postId, page);
 
             await Task.Delay(400, cancellationToken);
 
@@ -52,7 +46,7 @@ public sealed class CommentService : ICommentService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to load comments for post {PostId}", postId);
+            Log.Error(ex, "Failed to load comments for post {PostId}", postId);
             return Result<CommentsPage, string>.Err($"Failed to load comments: {ex.Message}");
         }
     }
@@ -61,7 +55,7 @@ public sealed class CommentService : ICommentService
     {
         try
         {
-            _logger.LogInformation("Posting comment on post {PostId}", postId);
+            Log.Information("Posting comment on post {PostId}", postId);
 
             await Task.Delay(300, cancellationToken);
 
@@ -96,7 +90,7 @@ public sealed class CommentService : ICommentService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to post comment on post {PostId}", postId);
+            Log.Error(ex, "Failed to post comment on post {PostId}", postId);
             return Result<Comment, string>.Err($"Failed to post comment: {ex.Message}");
         }
     }
@@ -105,7 +99,7 @@ public sealed class CommentService : ICommentService
     {
         try
         {
-            _logger.LogInformation("Toggling like for comment {CommentId}", commentId);
+            Log.Information("Toggling like for comment {CommentId}", commentId);
 
             await Task.Delay(200, cancellationToken);
 
@@ -133,7 +127,7 @@ public sealed class CommentService : ICommentService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to toggle like for comment {CommentId}", commentId);
+            Log.Error(ex, "Failed to toggle like for comment {CommentId}", commentId);
             return Result<Comment, string>.Err($"Failed to toggle comment like: {ex.Message}");
         }
     }
@@ -142,7 +136,7 @@ public sealed class CommentService : ICommentService
     {
         try
         {
-            _logger.LogInformation("Deleting comment {CommentId}", commentId);
+            Log.Information("Deleting comment {CommentId}", commentId);
 
             await Task.Delay(300, cancellationToken);
 
@@ -160,7 +154,7 @@ public sealed class CommentService : ICommentService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to delete comment {CommentId}", commentId);
+            Log.Error(ex, "Failed to delete comment {CommentId}", commentId);
             return Result<bool, string>.Err($"Failed to delete comment: {ex.Message}");
         }
     }

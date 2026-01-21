@@ -8,24 +8,18 @@ using System.Threading.Tasks;
 using Ecliptix.Feature.Feed.Domain.Models;
 using Ecliptix.Feature.Feed.Services.Abstractions;
 using Ecliptix.Utilities;
-using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace Ecliptix.Feature.Feed.Services.Implementation;
 
 public sealed class FeedService : IFeedService
 {
-    private readonly ILogger<FeedService> _logger;
-
-    public FeedService(ILogger<FeedService> logger)
-    {
-        _logger = logger;
-    }
 
     public async Task<Result<FeedPage, string>> LoadFeedAsync(int page, int pageSize, CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogInformation("Loading feed page {Page} with page size {PageSize}", page, pageSize);
+            Log.Information("Loading feed page {Page} with page size {PageSize}", page, pageSize);
 
             await Task.Delay(500, cancellationToken);
 
@@ -44,14 +38,14 @@ public sealed class FeedService : IFeedService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to load feed page {Page}", page);
+            Log.Error(ex, "Failed to load feed page {Page}", page);
             return Result<FeedPage, string>.Err($"Failed to load feed: {ex.Message}");
         }
     }
 
     public async Task<Result<FeedPage, string>> RefreshFeedAsync(int pageSize, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Refreshing feed with page size {PageSize}", pageSize);
+        Log.Information("Refreshing feed with page size {PageSize}", pageSize);
         return await LoadFeedAsync(1, pageSize, cancellationToken);
     }
 
@@ -59,7 +53,7 @@ public sealed class FeedService : IFeedService
     {
         try
         {
-            _logger.LogInformation("Loading post {PostId}", postId);
+            Log.Information("Loading post {PostId}", postId);
 
             await Task.Delay(300, cancellationToken);
 
@@ -70,7 +64,7 @@ public sealed class FeedService : IFeedService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to load post {PostId}", postId);
+            Log.Error(ex, "Failed to load post {PostId}", postId);
             return Result<FeedPost, string>.Err($"Failed to load post: {ex.Message}");
         }
     }

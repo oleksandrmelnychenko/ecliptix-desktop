@@ -500,13 +500,14 @@ public static class Program
                 provider);
 
             Feature.Authentication.FeatureRegistration.RegisterViews(factory);
+            Feature.Main.FeatureRegistration.RegisterViews(factory);
             Feature.Feed.FeatureRegistration.RegisterViews(factory);
             Feature.Chats.FeatureRegistration.RegisterViews(factory);
             Feature.Settings.FeatureRegistration.RegisterViews(factory);
             Feature.Profile.FeatureRegistration.RegisterViews(factory);
             Feature.NewContent.FeatureRegistration.RegisterViews(factory);
 
-            Log.Information("Registered {Count} module views during ModuleViewFactory creation", 6);
+            Log.Information("Registered {Count} module views during ModuleViewFactory creation", 7);
 
             return factory;
         });

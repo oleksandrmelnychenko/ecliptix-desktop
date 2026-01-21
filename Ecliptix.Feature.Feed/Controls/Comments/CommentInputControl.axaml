@@ -4,9 +4,14 @@
 			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 			 xmlns:vm="clr-namespace:Ecliptix.Feature.Feed.ViewModels"
 			 xmlns:feedModels="clr-namespace:Ecliptix.Feature.Feed.Domain.Models"
+			 xmlns:converters="clr-namespace:Ecliptix.Feature.Feed.Converters"
 			 mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="60"
 			 x:Class="Ecliptix.Feature.Feed.Controls.Comments.CommentInputControl"
 			 x:DataType="vm:CommentSectionViewModel">
+
+	<UserControl.Resources>
+		<converters:NotNullOrEmptyConverter x:Key="NotNullOrEmptyConverter"/>
+	</UserControl.Resources>
 
 	<UserControl.Styles>
 		<Style Selector="Border#InputBorder">

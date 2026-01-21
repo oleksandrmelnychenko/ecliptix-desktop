@@ -3,12 +3,16 @@
 			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 			 xmlns:vm="clr-namespace:Ecliptix.Feature.Feed.ViewModels"
+			 xmlns:converters="clr-namespace:Ecliptix.Feature.Feed.Converters"
 			 mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="60"
 			 x:Class="Ecliptix.Feature.Feed.Controls.PostInteractions.PostActionsControl"
 			 x:DataType="vm:PostInteractionsViewModel">
 
 	<UserControl.Resources>
 		<ResourceDictionary>
+			<converters:LikeColorConverter x:Key="LikeColorConverter"/>
+			<converters:SaveColorConverter x:Key="SaveColorConverter"/>
+			<converters:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter"/>
 			<ResourceDictionary.MergedDictionaries>
 				<ResourceInclude Source="/Resources/IconGeometries.axaml"/>
 			</ResourceDictionary.MergedDictionaries>

@@ -3,9 +3,16 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:models="clr-namespace:Ecliptix.Feature.Feed.Domain.Models"
+             xmlns:converters="clr-namespace:Ecliptix.Feature.Feed.Converters"
              mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="40"
              x:Class="Ecliptix.Feature.Feed.Controls.PostInteractions.PostStatsControl"
              x:DataType="models:PostInteraction">
+
+    <UserControl.Resources>
+        <converters:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter"/>
+        <converters:NumberAbbreviationConverter x:Key="NumberAbbreviationConverter"/>
+        <converters:PluralConverter x:Key="PluralConverter"/>
+    </UserControl.Resources>
 
     <Border Padding="16,10"
             BorderBrush="#F3F4F6"

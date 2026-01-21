@@ -85,16 +85,36 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
 
     public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationMembershipAsync(Membership? membership)
     {
+        Log.Information("[SECURE-STORAGE] SetApplicationMembershipAsync: Starting, hasMembership={HasMembership}",
+            membership != null);
+
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
             await GetApplicationInstanceSettingsAsync();
+
         if (settingsResult.IsErr)
         {
+            Log.Warning("[SECURE-STORAGE] SetApplicationMembershipAsync: Failed to get existing settings: {Error}",
+                settingsResult.UnwrapErr().Message);
             return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
         }
 
+        Log.Debug("[SECURE-STORAGE] SetApplicationMembershipAsync: Got existing settings, updating membership");
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
         settings.Membership = membership;
-        return await StoreSettingsAsync(settings);
+
+        Result<Unit, InternalServiceApiFailure> storeResult = await StoreSettingsAsync(settings);
+
+        if (storeResult.IsOk)
+        {
+            Log.Information("[SECURE-STORAGE] SetApplicationMembershipAsync: Membership stored successfully");
+        }
+        else
+        {
+            Log.Error("[SECURE-STORAGE] SetApplicationMembershipAsync: Failed to store: {Error}",
+                storeResult.UnwrapErr().Message);
+        }
+
+        return storeResult;
     }
 
     public async Task<Result<Unit, InternalServiceApiFailure>> SetCurrentAccountIdAsync(ByteString? accountId)
@@ -129,15 +149,20 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
     public async Task<Result<ApplicationInstanceSettings, InternalServiceApiFailure>>
         GetApplicationInstanceSettingsAsync()
     {
+        Log.Debug("[SECURE-STORAGE] GetApplicationInstanceSettingsAsync: Starting");
+
         Result<Option<byte[]>, InternalServiceApiFailure> getResult = await TryGetByKeyAsync(SETTINGS_KEY);
         if (getResult.IsErr)
         {
+            Log.Warning("[SECURE-STORAGE] GetApplicationInstanceSettingsAsync: TryGetByKeyAsync failed: {Error}",
+                getResult.UnwrapErr().Message);
             return Result<ApplicationInstanceSettings, InternalServiceApiFailure>.Err(getResult.UnwrapErr());
         }
 
         Option<byte[]> maybeData = getResult.Unwrap();
         if (!maybeData.IsSome)
         {
+            Log.Debug("[SECURE-STORAGE] GetApplicationInstanceSettingsAsync: No settings found (first run?)");
             return Result<ApplicationInstanceSettings, InternalServiceApiFailure>.Err(
                 InternalServiceApiFailure.SecureStoreKeyNotFound(ApplicationErrorMessages.SecureStorageProvider
                     .APPLICATION_SETTINGS_NOT_FOUND));
@@ -147,12 +172,15 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         {
             if (maybeData.Value == null || maybeData.Value.Length == 0)
             {
+                Log.Warning("[SECURE-STORAGE] GetApplicationInstanceSettingsAsync: Data is null or empty");
                 return Result<ApplicationInstanceSettings, InternalServiceApiFailure>.Err(
                     InternalServiceApiFailure.SecureStoreAccessDenied(
                         ApplicationErrorMessages.SecureStorageProvider.CORRUPT_SETTINGS_DATA));
             }
 
             ApplicationInstanceSettings settings = DeserializeSettings(maybeData.Value);
+            Log.Information("[SECURE-STORAGE] GetApplicationInstanceSettingsAsync: Settings loaded successfully, hasMembership={HasMembership}",
+                settings.Membership != null);
             return Result<ApplicationInstanceSettings, InternalServiceApiFailure>.Ok(settings);
         }
         catch (Exception ex)
@@ -228,22 +256,37 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
 
     public async Task<Result<Unit, InternalServiceApiFailure>> StoreAsync(string key, byte[] data)
     {
+        string filePath = GetHashedFilePath(key);
+        Log.Debug("[SECURE-STORAGE] StoreAsync: Starting write for key={Key}, dataLength={Length}, filePath={Path}",
+            key, data.Length, filePath);
+
         try
         {
-            string filePath = GetHashedFilePath(key);
             byte[] protectedData = _protector.Protect(data);
+            Log.Debug("[SECURE-STORAGE] StoreAsync: Data protected, protectedLength={Length}", protectedData.Length);
+
             await File.WriteAllBytesAsync(filePath, protectedData);
+            Log.Debug("[SECURE-STORAGE] StoreAsync: File written successfully");
+
             SetSecureFilePermissions(filePath);
+
+            // Verify the write
+            FileInfo fileInfo = new(filePath);
+            Log.Information("[SECURE-STORAGE] StoreAsync: Write complete for key={Key}, fileSize={Size}, lastWrite={LastWrite}",
+                key, fileInfo.Length, fileInfo.LastWriteTime);
+
             return Result<Unit, InternalServiceApiFailure>.Ok(Unit.Value);
         }
         catch (CryptographicException ex)
         {
+            Log.Error(ex, "[SECURE-STORAGE] StoreAsync: Encryption failed for key={Key}", key);
             return Result<Unit, InternalServiceApiFailure>.Err(
                 InternalServiceApiFailure.SecureStoreAccessDenied(
                     ApplicationErrorMessages.SecureStorageProvider.FAILED_TO_ENCRYPT_DATA, ex));
         }
         catch (IOException ex)
         {
+            Log.Error(ex, "[SECURE-STORAGE] StoreAsync: IO error writing key={Key}, path={Path}", key, filePath);
             return Result<Unit, InternalServiceApiFailure>.Err(
                 InternalServiceApiFailure.SecureStoreAccessDenied(
                     ApplicationErrorMessages.SecureStorageProvider.FAILED_TO_WRITE_TO_STORAGE, ex));
@@ -253,30 +296,45 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
     public async Task<Result<Option<byte[]>, InternalServiceApiFailure>> TryGetByKeyAsync(string key)
     {
         string filePath = GetHashedFilePath(key);
+        Log.Debug("[SECURE-STORAGE] TryGetByKeyAsync: Starting read for key={Key}, filePath={Path}", key, filePath);
+
         if (!File.Exists(filePath))
         {
+            Log.Debug("[SECURE-STORAGE] TryGetByKeyAsync: File does not exist for key={Key}", key);
             return Result<Option<byte[]>, InternalServiceApiFailure>.Ok(Option<byte[]>.None);
         }
 
         try
         {
+            FileInfo fileInfo = new(filePath);
+            Log.Debug("[SECURE-STORAGE] TryGetByKeyAsync: File exists, size={Size}, lastWrite={LastWrite}",
+                fileInfo.Length, fileInfo.LastWriteTime);
+
             byte[] protectedData = await File.ReadAllBytesAsync(filePath);
+            Log.Debug("[SECURE-STORAGE] TryGetByKeyAsync: Read {Length} bytes from file", protectedData.Length);
+
             if (protectedData.Length == 0)
             {
+                Log.Warning("[SECURE-STORAGE] TryGetByKeyAsync: File is empty for key={Key}", key);
                 return Result<Option<byte[]>, InternalServiceApiFailure>.Ok(Option<byte[]>.None);
             }
 
             byte[] data = _protector.Unprotect(protectedData);
+            Log.Information("[SECURE-STORAGE] TryGetByKeyAsync: Successfully decrypted key={Key}, decryptedLength={Length}",
+                key, data.Length);
             return Result<Option<byte[]>, InternalServiceApiFailure>.Ok(Option<byte[]>.Some(data));
         }
         catch (CryptographicException ex)
         {
+            Log.Error(ex, "[SECURE-STORAGE] TryGetByKeyAsync: Decryption failed for key={Key}, path={Path}. This may indicate key rotation or corrupted data.",
+                key, filePath);
             return Result<Option<byte[]>, InternalServiceApiFailure>.Err(
                 InternalServiceApiFailure.SecureStoreAccessDenied(
                     ApplicationErrorMessages.SecureStorageProvider.FAILED_TO_DECRYPT_DATA, ex));
         }
         catch (IOException ex)
         {
+            Log.Error(ex, "[SECURE-STORAGE] TryGetByKeyAsync: IO error reading key={Key}, path={Path}", key, filePath);
             return Result<Option<byte[]>, InternalServiceApiFailure>.Err(
                 InternalServiceApiFailure.SecureStoreAccessDenied(
                     ApplicationErrorMessages.SecureStorageProvider.FAILED_TO_ACCESS_STORAGE, ex));

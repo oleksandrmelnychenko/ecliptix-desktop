@@ -566,7 +566,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        WindowPlacement placement = (await LoadInitialPlacementAsync().ConfigureAwait(false))!;
+        WindowPlacement placement = await LoadInitialPlacementAsync().ConfigureAwait(false) ?? new WindowPlacement();
 
         if (state == WindowState.Normal)
         {

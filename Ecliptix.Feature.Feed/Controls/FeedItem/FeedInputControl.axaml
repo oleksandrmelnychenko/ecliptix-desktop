@@ -4,9 +4,15 @@
 			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 			 xmlns:vm="clr-namespace:Ecliptix.Feature.Feed.ViewModels"
 			 xmlns:local="clr-namespace:Ecliptix.Feature.Feed.Controls.FeedItem"
+			 xmlns:converters="clr-namespace:Ecliptix.Feature.Feed.Converters"
 			 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
 			 x:DataType="vm:FeedViewModel"
 			 x:Class="Ecliptix.Feature.Feed.Controls.FeedItem.FeedInputControl">
+
+	<UserControl.Resources>
+		<converters:NotNullOrEmptyConverter x:Key="NotNullOrEmptyConverter"/>
+		<converters:BooleanNotConverter x:Key="BooleanNotConverter"/>
+	</UserControl.Resources>
 
 	<UserControl.Styles>
 		<Style Selector="Border#InputBorder">

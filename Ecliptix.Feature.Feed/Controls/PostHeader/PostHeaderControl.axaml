@@ -4,12 +4,14 @@
 			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 			 xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
 			 xmlns:vm="clr-namespace:Ecliptix.Feature.Feed.ViewModels"
+			 xmlns:converters="clr-namespace:Ecliptix.Feature.Feed.Converters"
 			 mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="60"
 			 x:Class="Ecliptix.Feature.Feed.Controls.PostHeader.PostHeaderControl"
 			 x:DataType="vm:FeedItemViewModel">
 
 	<UserControl.Resources>
 		<ResourceDictionary>
+			<converters:InitialsConverter x:Key="InitialsConverter"/>
 			<ResourceDictionary.MergedDictionaries>
 				<ResourceInclude Source="/Resources/IconGeometries.axaml"/>
 			</ResourceDictionary.MergedDictionaries>

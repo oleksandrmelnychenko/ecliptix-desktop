@@ -11,4 +11,10 @@ public static class FeatureRegistration
     {
         services.AddTransient<ViewModels.MasterViewModel>();
     }
+
+    public static void RegisterViews(IModuleViewFactory factory)
+    {
+        factory.RegisterView<ViewModels.MasterViewModel, Views.MasterView>();
+        factory.RegisterModuleViewModel(ModuleIdentifier.MAIN, typeof(ViewModels.MasterViewModel));
+    }
 }

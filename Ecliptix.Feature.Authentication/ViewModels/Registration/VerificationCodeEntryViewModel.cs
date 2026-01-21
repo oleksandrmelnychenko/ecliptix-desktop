@@ -48,6 +48,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
     private volatile bool _isDisposed;
     private long _countdownVersion;
     private int _alreadyVerifiedHandled;
+    private int _isOtpVerificationInProgress;
     private long _autoRedirectVersion;
 
     private uint? _initialTotalSeconds;
@@ -401,21 +402,33 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
         CancellationToken operationToken = _cancellationTokenSource?.Token ?? CancellationToken.None;
 
-        Task<Result<MembershipProto, string>> verifyTask = CreateVerifyTask(connectId, operationToken);
-        Result<MembershipProto, string> result = await verifyTask;
+        // Mark that OTP verification is in progress to prevent race conditions with streaming callbacks
+        Interlocked.Exchange(ref _isOtpVerificationInProgress, 1);
+        Log.Debug("[VERIFY-OTP] SendVerificationCode: Setting _isOtpVerificationInProgress=1");
 
-        if (_isDisposed)
+        try
         {
-            return;
-        }
+            Task<Result<MembershipProto, string>> verifyTask = CreateVerifyTask(connectId, operationToken);
+            Result<MembershipProto, string> result = await verifyTask;
 
-        if (result.IsOk)
-        {
-            await HandleSuccessfulVerification(result.Unwrap(), operationToken);
+            if (_isDisposed)
+            {
+                return;
+            }
+
+            if (result.IsOk)
+            {
+                await HandleSuccessfulVerification(result.Unwrap(), operationToken);
+            }
+            else
+            {
+                HandleVerificationError(result.UnwrapErr());
+            }
         }
-        else
+        finally
         {
-            HandleVerificationError(result.UnwrapErr());
+            Interlocked.Exchange(ref _isOtpVerificationInProgress, 0);
+            Log.Debug("[VERIFY-OTP] SendVerificationCode: Cleared _isOtpVerificationInProgress=0");
         }
     }
 
@@ -657,6 +670,13 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
                 return;
             }
 
+            // Skip if verification already succeeded (race condition protection)
+            if (Volatile.Read(ref _alreadyVerifiedHandled) == 1)
+            {
+                Log.Debug("[VERIFY-OTP] HandleResendError: Skipping - verification already handled");
+                return;
+            }
+
             if (IsServerUnavailableError(error))
             {
                 PublishError(error);
@@ -750,11 +770,22 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
 
     private uint HandleMaxAttemptsStatus()
     {
-        if (!TryStartAutoRedirectOnce())
+        Log.Information("[VERIFY-OTP] HandleMaxAttemptsStatus: TRIGGERED - checking guards");
+
+        // Skip if verification already succeeded (race condition protection)
+        if (Volatile.Read(ref _alreadyVerifiedHandled) == 1)
         {
+            Log.Information("[VERIFY-OTP] HandleMaxAttemptsStatus: Skipping - verification already handled");
             return 0;
         }
 
+        if (!TryStartAutoRedirectOnce())
+        {
+            Log.Debug("[VERIFY-OTP] HandleMaxAttemptsStatus: Skipping - auto-redirect already started");
+            return 0;
+        }
+
+        Log.Warning("[VERIFY-OTP] HandleMaxAttemptsStatus: Starting auto-redirect to WELCOME_VIEW");
         InvalidateCountdownCallbacks();
         CancelCurrentOperation();
         StopCooldownTimer();
@@ -774,11 +805,22 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
 
     private uint HandleNotFoundStatus()
     {
-        if (!TryStartAutoRedirectOnce())
+        Log.Information("[VERIFY-OTP] HandleNotFoundStatus: TRIGGERED - checking guards");
+
+        // Skip if verification already succeeded (race condition protection)
+        if (Volatile.Read(ref _alreadyVerifiedHandled) == 1)
         {
+            Log.Information("[VERIFY-OTP] HandleNotFoundStatus: Skipping - verification already handled");
             return 0;
         }
 
+        if (!TryStartAutoRedirectOnce())
+        {
+            Log.Debug("[VERIFY-OTP] HandleNotFoundStatus: Skipping - auto-redirect already started");
+            return 0;
+        }
+
+        Log.Warning("[VERIFY-OTP] HandleNotFoundStatus: Starting auto-redirect to WELCOME_VIEW");
         InvalidateCountdownCallbacks();
         CancelCurrentOperation();
         StopCooldownTimer();
@@ -798,11 +840,22 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
 
     private uint HandleSessionExpiredStatus()
     {
-        if (!TryStartAutoRedirectOnce())
+        Log.Information("[VERIFY-OTP] HandleSessionExpiredStatus: TRIGGERED - checking guards");
+
+        // Skip if verification already succeeded (race condition protection)
+        if (Volatile.Read(ref _alreadyVerifiedHandled) == 1)
         {
+            Log.Information("[VERIFY-OTP] HandleSessionExpiredStatus: Skipping - verification already handled");
             return 0;
         }
 
+        if (!TryStartAutoRedirectOnce())
+        {
+            Log.Debug("[VERIFY-OTP] HandleSessionExpiredStatus: Skipping - auto-redirect already started");
+            return 0;
+        }
+
+        Log.Warning("[VERIFY-OTP] HandleSessionExpiredStatus: Starting auto-redirect to WELCOME_VIEW");
         InvalidateCountdownCallbacks();
         CancelCurrentOperation();
         StopCooldownTimer();
@@ -823,6 +876,22 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
 
     private uint HandleFailedStatus(string? error)
     {
+        Log.Information("[VERIFY-OTP] HandleFailedStatus: TRIGGERED - error={Error}, checking guards", error);
+
+        // Skip if verification already succeeded (race condition protection)
+        if (Volatile.Read(ref _alreadyVerifiedHandled) == 1)
+        {
+            Log.Information("[VERIFY-OTP] HandleFailedStatus: Skipping - verification already handled");
+            return 0;
+        }
+
+        // Skip if OTP verification is currently in progress - wait for the actual verification result
+        if (Volatile.Read(ref _isOtpVerificationInProgress) == 1)
+        {
+            Log.Information("[VERIFY-OTP] HandleFailedStatus: Skipping - OTP verification in progress, waiting for result");
+            return 0;
+        }
+
         HasError = true;
         HasValidSession = false;
 
@@ -833,9 +902,11 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
 
         if (!TryStartAutoRedirectOnce())
         {
+            Log.Debug("[VERIFY-OTP] HandleFailedStatus: Skipping auto-redirect - already started");
             return 0;
         }
 
+        Log.Warning("[VERIFY-OTP] HandleFailedStatus: Starting auto-redirect to WELCOME_VIEW");
         InvalidateCountdownCallbacks();
         CancelCurrentOperation();
         StopCooldownTimer();
@@ -859,14 +930,25 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
 
     private uint HandleUnavailable(string? message)
     {
+        Log.Information("[VERIFY-OTP] HandleUnavailable: TRIGGERED - message={Message}, checking guards", message);
+
+        // Skip if verification already succeeded (race condition protection)
+        if (Volatile.Read(ref _alreadyVerifiedHandled) == 1)
+        {
+            Log.Information("[VERIFY-OTP] HandleUnavailable: Skipping - verification already handled");
+            return 0;
+        }
+
         HasError = true;
         HasValidSession = false;
 
         if (!TryStartAutoRedirectOnce())
         {
+            Log.Debug("[VERIFY-OTP] HandleUnavailable: Skipping auto-redirect - already started");
             return 0;
         }
 
+        Log.Warning("[VERIFY-OTP] HandleUnavailable: Starting auto-redirect to WELCOME_VIEW");
         InvalidateCountdownCallbacks();
         CancelCurrentOperation();
         StopCooldownTimer();
@@ -998,13 +1080,18 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
         string? messageKey,
         bool alreadyVerified)
     {
+        Log.Debug("[VERIFY-OTP] HandleCountdownUpdate: ENTRY - seconds={Seconds}, status={Status}, alreadyVerified={AlreadyVerified}, messageKey={MessageKey}, _alreadyVerifiedHandled={Handled}",
+            seconds, status, alreadyVerified, messageKey, Volatile.Read(ref _alreadyVerifiedHandled));
+
         if (_isDisposed)
         {
+            Log.Debug("[VERIFY-OTP] HandleCountdownUpdate: Skipping - disposed");
             return;
         }
 
         if (!ValidateAndUpdateSessionIdentifier(identifier))
         {
+            Log.Debug("[VERIFY-OTP] HandleCountdownUpdate: Skipping - session identifier validation failed");
             return;
         }
 
@@ -1112,7 +1199,10 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
         uint seconds,
         string? message)
     {
-        return status switch
+        Log.Debug("[VERIFY-OTP] ProcessCountdownStatus: status={Status}, seconds={Seconds}, alreadyVerifiedHandled={AlreadyHandled}",
+            status, seconds, Volatile.Read(ref _alreadyVerifiedHandled));
+
+        uint result = status switch
         {
             OtpCountdownStatus.OtpCountdownStatusActive => seconds,
             OtpCountdownStatus.OtpCountdownStatusExpired => HandleExpiredStatus(message),
@@ -1125,6 +1215,9 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             OtpCountdownStatus.OtpCountdownStatusServerUnavailable => HandleUnavailable(message),
             _ => Math.Min(seconds, SecondsRemaining)
         };
+
+        Log.Debug("[VERIFY-OTP] ProcessCountdownStatus: Returning result={Result}", result);
+        return result;
     }
 
     private bool ValidateAndUpdateSessionIdentifier(Guid identifier)
