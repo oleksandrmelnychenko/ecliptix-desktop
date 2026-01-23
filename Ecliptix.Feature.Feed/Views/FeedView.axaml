@@ -90,7 +90,7 @@
 			</Border>
 		</ScrollViewer>
 
-		<feedItem:FeedInputControl Margin="230,0,230,20" />
+		<feedItem:FeedInputControl Margin="0,0,0,20" />
 
 		<feedItem:EditPostControl IsVisible="{Binding ((vm:FeedViewModel)DataContext).IsEdit, ElementName=ThisControl}" DataContext="{Binding SelectedPost}" />
 

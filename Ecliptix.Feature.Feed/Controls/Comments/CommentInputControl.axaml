@@ -2,12 +2,13 @@
 			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-			 xmlns:vm="clr-namespace:Ecliptix.Feature.Feed.ViewModels"
-			 xmlns:feedModels="clr-namespace:Ecliptix.Feature.Feed.Domain.Models"
+			 xmlns:viewModels="clr-namespace:Ecliptix.Feature.Feed.ViewModels"
 			 xmlns:converters="clr-namespace:Ecliptix.Feature.Feed.Converters"
+			 xmlns:feedModels="clr-namespace:Ecliptix.Feature.Feed.Domain.Models"
 			 mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="60"
+			 MaxWidth="600"
 			 x:Class="Ecliptix.Feature.Feed.Controls.Comments.CommentInputControl"
-			 x:DataType="vm:CommentSectionViewModel">
+			 x:DataType="viewModels:CommentSectionViewModel">
 
 	<UserControl.Resources>
 		<converters:NotNullOrEmptyConverter x:Key="NotNullOrEmptyConverter"/>

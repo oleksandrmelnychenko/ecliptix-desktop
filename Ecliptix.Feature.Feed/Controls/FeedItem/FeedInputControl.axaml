@@ -6,7 +6,10 @@
 			 xmlns:local="clr-namespace:Ecliptix.Feature.Feed.Controls.FeedItem"
 			 xmlns:converters="clr-namespace:Ecliptix.Feature.Feed.Converters"
 			 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-			 x:DataType="vm:FeedViewModel"
+			 xmlns:feedItem="clr-namespace:Ecliptix.Feature.Feed.Controls.FeedItem"
+			 xmlns:viewModels="clr-namespace:Ecliptix.Feature.Feed.ViewModels"
+			 MaxWidth="600"
+			 x:DataType="viewModels:FeedViewModel"
 			 x:Class="Ecliptix.Feature.Feed.Controls.FeedItem.FeedInputControl">
 
 	<UserControl.Resources>
@@ -29,7 +32,7 @@
 		  VerticalAlignment="Bottom">
 
 		<Border Grid.Row="0"
-				IsVisible="{Binding $parent[local:FeedInputControl].IsExpand}"
+				IsVisible="{Binding $parent[feedItem:FeedInputControl].IsExpand}"
 				Background="#FFF"
 				CornerRadius="28"
 				BorderBrush="#6A5ACD"
@@ -73,15 +76,15 @@
 
 				<Button Grid.Column="3"
 						Grid.Row="1"
-						Command="{Binding $parent[local:FeedInputControl].ToggleExpandCommand}"
+						Command="{Binding $parent[feedItem:FeedInputControl].ToggleExpandCommand}"
 						Width="38"
 						Height="38"
-						CornerRadius="20"						
+						CornerRadius="20"
 						Margin="0">
 					<Path Data="M6 9 L12 15 L18 9"
 						  Margin="0,0,6,3"
 						  StrokeThickness="1"
-						  StrokeLineCap="Round"						 
+						  StrokeLineCap="Round"
 						  Width="18"
 						  Height="18"
 						  HorizontalAlignment="Center"
@@ -119,7 +122,7 @@
 
 		<Border x:Name="InputBorder"
 				Grid.Row="1"
-				IsVisible="{Binding $parent[local:FeedInputControl].IsExpand, Converter={StaticResource BooleanNotConverter}}"
+				IsVisible="{Binding $parent[feedItem:FeedInputControl].IsExpand, Converter={StaticResource BooleanNotConverter}}"
 				Background="#FFF"
 				CornerRadius="28"
 				BorderThickness="1"
@@ -138,13 +141,13 @@
 						 FontSize="16" />
 
 				<Button Grid.Column="1"
-						Command="{Binding $parent[local:FeedInputControl].ToggleExpandCommand}"
+						Command="{Binding $parent[feedItem:FeedInputControl].ToggleExpandCommand}"
 						Width="38"
 						Height="38"
-						CornerRadius="20"						
+						CornerRadius="20"
 						Margin="0">
 					<Path Data="M6 15 L12 9 L18 15"
-						  Margin="0,0,5,6"					  
+						  Margin="0,0,5,6"
 						  StrokeThickness="1"
 						  StrokeLineCap="Round"
 						  Width="18"
@@ -188,7 +191,7 @@
 		</Border>
 
 		<TextBlock Grid.Row="1"
-				   IsVisible="{Binding $parent[local:FeedInputControl].IsExpand}"
+				   IsVisible="{Binding $parent[feedItem:FeedInputControl].IsExpand}"
 				   FontSize="12"
 				   FontWeight="400"
 				   Foreground="#99A1AF"

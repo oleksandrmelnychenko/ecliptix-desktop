@@ -7,6 +7,7 @@ using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.Shell.Abstractions.Core;
+using Ecliptix.Core.Shell.Services.Localization;
 using Ecliptix.Network.Infrastructure.Data.Abstractions;
 using Ecliptix.Network.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Network.Services.Common;
@@ -27,7 +28,7 @@ public class LanguagePickerItemViewModel(LanguageItem model, bool isSelected) : 
 
 public class LanguagePickerViewModel : ReactiveObject, IActivatableViewModel, IDisposable
 {
-    private readonly ISideSheetService _sideSheetService;
+    private readonly IGlobalModalService _globalModalService;
     private readonly ILocalizationService _localizationService;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IRpcMetaDataProvider _rpcMetaDataProvider;
@@ -35,21 +36,21 @@ public class LanguagePickerViewModel : ReactiveObject, IActivatableViewModel, ID
 
     public ViewModelActivator Activator { get; } = new();
 
-    public ILocalizationService LocalizationService => _localizationService;
+    [Reactive] public string Title { get; private set; } = string.Empty;
+    [Reactive] public string Subtitle { get; private set; } = string.Empty;
 
     public ObservableCollection<LanguagePickerItemViewModel> Languages { get; }
 
     public ReactiveCommand<Unit, Unit> CloseCommand { get; }
-
     public ReactiveCommand<LanguagePickerItemViewModel, Unit> SelectLanguageCommand { get; }
 
     public LanguagePickerViewModel(
-        ISideSheetService sideSheetService,
+        IGlobalModalService globalModalService,
         ILocalizationService localizationService,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IRpcMetaDataProvider rpcMetaDataProvider)
     {
-        _sideSheetService = sideSheetService;
+        _globalModalService = globalModalService;
         _localizationService = localizationService;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _rpcMetaDataProvider = rpcMetaDataProvider;
@@ -63,20 +64,40 @@ public class LanguagePickerViewModel : ReactiveObject, IActivatableViewModel, ID
 
         CloseCommand = ReactiveCommand.CreateFromTask(async () =>
         {
-            await _sideSheetService.HideAsync();
+            await _globalModalService.CloseAllAsync();
         });
 
         SelectLanguageCommand = ReactiveCommand.CreateFromTask<LanguagePickerItemViewModel>(async (selectedItem) =>
         {
             await SelectLanguageAsync(selectedItem);
         });
+
+        RefreshLocalization();
     }
+
+    public void RefreshLocalization()
+    {
+        Title = _localizationService[LocalizationKeys.LanguagePicker.TITLE];
+        Subtitle = _localizationService[LocalizationKeys.LanguagePicker.SUBTITLE];
+
+        string currentCulture = _localizationService.CurrentCultureName;
+        foreach (LanguagePickerItemViewModel lang in Languages)
+        {
+            lang.IsSelected = lang.Model.Code == currentCulture;
+        }
+    }
+
 
     private async Task SelectLanguageAsync(LanguagePickerItemViewModel selectedItem)
     {
+        if (selectedItem == null || selectedItem.Model == null)
+        {
+            return;
+        }
+
         if (_localizationService.CurrentCultureName == selectedItem.Model.Code)
         {
-            await _sideSheetService.HideAsync();
+            await _globalModalService.CloseAllAsync();
             return;
         }
 
@@ -85,7 +106,7 @@ public class LanguagePickerViewModel : ReactiveObject, IActivatableViewModel, ID
             HandleCultureChange(selectedItem.Model.Code);
         });
 
-        await _sideSheetService.HideAsync();
+        await _globalModalService.CloseAllAsync();
     }
 
     private void HandleCultureChange(string cultureCode)

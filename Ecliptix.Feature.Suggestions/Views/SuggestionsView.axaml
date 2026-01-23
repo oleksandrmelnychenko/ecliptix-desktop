@@ -2,13 +2,14 @@
 			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-			 xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
-			 xmlns:vm="clr-namespace:Ecliptix.Feature.Suggestions.ViewModels"
 			 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-			 x:DataType="vm:SuggestionsViewModel"
+			 xmlns:suggestionItems="clr-namespace:Ecliptix.Core.Features.Suggestions.Controls"
+			 xmlns:viewModels="clr-namespace:Ecliptix.Feature.Suggestions.ViewModels"
+			 xmlns:models="clr-namespace:Ecliptix.Feature.Feed.Domain.Models;assembly=Ecliptix.Feature.Feed"
+			 x:DataType="viewModels:SuggestionsViewModel"
 			 x:Class="Ecliptix.Feature.Suggestions.Views.SuggestionsView">
 
-	<Grid Width="320" Background="LightGray">
+	<Grid Width="320" Background="#FFF">
 
 		<Grid Margin="24"
 			  RowDefinitions="Auto,Auto,Auto,Auto,Auto"
@@ -22,7 +23,6 @@
 
 				<Grid Width="40" Height="40">
 					<Path Stroke="#111827"
-
 						  VerticalAlignment="Center"
 						  HorizontalAlignment="Center"
 						  StrokeThickness="2"
@@ -46,62 +46,8 @@
 						  Margin="0,0,0,0"
 						  ItemsSource="{Binding TrendingItems}">
 				<ItemsControl.ItemTemplate>
-					<DataTemplate>
-						<Border Margin="0,0,0,8"
-								Height="114.5"
-								Width="248"
-								CornerRadius="14"
-								Background="#f5f5f5">
-
-							<Grid Margin="12"
-								  ColumnDefinitions="Auto,Auto"
-								  ColumnSpacing="12"
-								  Background="Cyan">
-
-								<Border Grid.Column="0"
-										VerticalAlignment="Top"
-										HorizontalAlignment="Center"
-										Width="48"
-										Height="48"
-										CornerRadius="30"
-										Background="#C37BFF">
-
-									<Border VerticalAlignment="Center"
-											HorizontalAlignment="Center"
-											Width="44"
-											Height="44"
-											CornerRadius="30"
-											Background="#fff">
-
-										<Border	VerticalAlignment="Center"
-												HorizontalAlignment="Center"
-												Width="40"
-												Height="40"
-												CornerRadius="30"
-												ClipToBounds="True"
-												Background="#8a7ae0">
-											<Panel>
-												<Image asyncImageLoader:ImageLoader.Source="{Binding Author.AvatarUrl}"
-													   Stretch="Fill"
-													   IsVisible="{Binding Author.AvatarUrl, Converter={x:Static ObjectConverters.IsNotNull}}" />
-												<TextBlock Text="{Binding Author.DisplayName, Converter={StaticResource InitialsConverter}}"
-														   FontSize="16"
-														   Foreground="#fff"
-														   FontWeight="SemiBold"
-														   HorizontalAlignment="Center"
-														   VerticalAlignment="Center"
-														   IsVisible="{Binding Author.AvatarUrl, Converter={x:Static ObjectConverters.IsNull}}" />
-											</Panel>
-										</Border>
-									</Border>
-								</Border>
-
-								<TextBlock Grid.Column="1"
-										   Text="{Binding Title}"
-										   VerticalAlignment="Center"
-										   Margin="0,0,0,0"/>
-							</Grid>
-						</Border>
+					<DataTemplate DataType="models:Suggestion">
+						<suggestionItems:SuggestionControl />
 					</DataTemplate>
 				</ItemsControl.ItemTemplate>
 			</ItemsControl>
@@ -151,6 +97,16 @@
 						   Foreground="#101828"
 						   FontSize="15" />
 			</StackPanel>
+
+			<ItemsControl Grid.Row="3"
+						  Margin="0,0,0,0"
+						  ItemsSource="{Binding Items}">
+				<ItemsControl.ItemTemplate>
+					<DataTemplate DataType="models:Suggestion">
+						<suggestionItems:SuggestionControl />
+					</DataTemplate>
+				</ItemsControl.ItemTemplate>
+			</ItemsControl>
 
 			<Button Grid.Row="4"
 					Content="Show more suggestions"

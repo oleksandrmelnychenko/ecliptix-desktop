@@ -56,7 +56,7 @@
     </Style>
 
     <Style Selector="Button:disabled">
-        <Setter Property="Opacity" Value="0.5" />
+        <Setter Property="Opacity" Value="0.8" />
         <Setter Property="RenderTransform" Value="scale(1.00)" />
     </Style>
 
@@ -69,11 +69,11 @@
                     <Border Name="PART_Glow"
                             Background="{DynamicResource ButtonGlowGradient}"
                             CornerRadius="{TemplateBinding CornerRadius}"
-                            Margin="-2"
+                            Margin="-3"
                             Opacity="0"
                             IsHitTestVisible="False">
                         <Border.Effect>
-                            <BlurEffect Radius="4"/>
+                            <BlurEffect Radius="20"/>
                         </Border.Effect>
                         <Border.Transitions>
                             <Transitions>
@@ -232,7 +232,7 @@
         <Setter Property="Opacity" Value="0.8"/>
     </Style>
     <Style Selector="Button.glow:disabled /template/ Border#PART_Glow">
-        <Setter Property="Opacity" Value="0.3"/>
+        <Setter Property="Opacity" Value="0.6"/>
     </Style>
 
     <Style Selector="Button.is-busy">

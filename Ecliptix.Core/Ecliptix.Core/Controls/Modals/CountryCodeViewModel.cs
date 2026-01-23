@@ -1,10 +1,12 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive;
 using System.Threading.Tasks;
 using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Core.Settings.Constants;
+using Ecliptix.Core.Shell.Abstractions.Core;
+using Ecliptix.Core.Shell.Services.Localization;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Splat;
@@ -26,17 +28,24 @@ public record CountryCodeSelectedEvent(
     CountryPhoneModel SelectedCountry,
     string RequestorContext);
 
-public class CountryPickerItemViewModel(CountryPhoneModel model, bool isSelected) : ReactiveObject
+public class CountryPickerItemViewModel : ReactiveObject
 {
-    public CountryPhoneModel Model { get; } = model;
+    public CountryPhoneModel Model { get; }
 
     [Reactive]
-    public bool IsSelected { get; set; } = isSelected;
+    public bool IsSelected { get; set; }
+
+    public CountryPickerItemViewModel(CountryPhoneModel model, bool isSelected)
+    {
+        Model = model;
+        IsSelected = isSelected;
+    }
 }
 
 public class CountryCodeViewModel : ReactiveObject, IActivatableViewModel, IDisposable
 {
-    private readonly ISideSheetService? _sideSheetService;
+    private readonly IGlobalModalService? _globalModalService;
+    private readonly ILocalizationService _localizationService;
     private readonly IMessageBus? _messageBus;
     private bool _isDisposed;
     private readonly string _requestorContext;
@@ -46,17 +55,29 @@ public class CountryCodeViewModel : ReactiveObject, IActivatableViewModel, IDisp
     public ReactiveCommand<Unit, Unit> CloseCommand { get; }
     public ReactiveCommand<CountryPickerItemViewModel, Unit> SelectCountryCommand { get; }
 
-    public CountryCodeViewModel(IMessageBus? messageBus, string currentIsoCode = "US", string requestorContext = "None")
+    public string Title => _localizationService[LocalizationKeys.CountryPicker.TITLE];
+    public string Subtitle => _localizationService[LocalizationKeys.CountryPicker.SUBTITLE];
+
+    public CountryCodeViewModel(IMessageBus? messageBus, ILocalizationService localizationService, IGlobalModalService globalModalService, string currentIsoCode = "US", string requestorContext = "None")
     {
-        _sideSheetService = Locator.Current.GetService<ISideSheetService>();
+        _localizationService = localizationService;
+        _globalModalService = globalModalService;
         _messageBus = messageBus;
         _requestorContext = requestorContext;
 
-        CountryPhoneModel[] supportedCountries =
-        [
-            new("United States", "US", "+1", AppCultureSettingsConstants.UNITED_STATES_FLAG_PATH),
-            new("Ukraine", "UA", "+380", AppCultureSettingsConstants.UKRAINE_FLAG_PATH)
-        ];
+        CountryPhoneModel[] supportedCountries = new[]
+        {
+            new CountryPhoneModel(
+                _localizationService[LocalizationKeys.Countires.US],
+                AppCultureSettingsConstants.UNITED_STATES_COUNTRY_CODE,
+                AppCultureSettingsConstants.UNITED_STATES_PHONE_PREFIX,
+                AppCultureSettingsConstants.UNITED_STATES_FLAG_PATH),
+            new CountryPhoneModel(
+                _localizationService[LocalizationKeys.Countires.UA],
+                AppCultureSettingsConstants.UKRAINE_COUNTRY_CODE,
+                AppCultureSettingsConstants.UKRAINE_PHONE_PREFIX,
+                AppCultureSettingsConstants.UKRAINE_FLAG_PATH),
+        };
 
         Countries = new ObservableCollection<CountryPickerItemViewModel>(
             supportedCountries.Select(c => new CountryPickerItemViewModel(c, c.IsoCode == currentIsoCode))
@@ -64,9 +85,9 @@ public class CountryCodeViewModel : ReactiveObject, IActivatableViewModel, IDisp
 
         CloseCommand = ReactiveCommand.CreateFromTask(async () =>
         {
-            if (_sideSheetService != null)
+            if (_globalModalService != null)
             {
-                await _sideSheetService.HideAsync();
+                await _globalModalService.CloseAllAsync();
             }
         });
 
@@ -88,9 +109,9 @@ public class CountryCodeViewModel : ReactiveObject, IActivatableViewModel, IDisp
             await _messageBus.PublishAsync(new CountryCodeSelectedEvent(selectedItem.Model, _requestorContext));
         }
 
-        if (_sideSheetService != null)
+        if (_globalModalService != null)
         {
-            await _sideSheetService.HideAsync();
+            await _globalModalService.CloseAllAsync();
         }
     }
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reactive.Disposables;
+using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -23,6 +24,7 @@ using Serilog;
 using Splat;
 using Ecliptix.Core.Shell.Abstractions.Core;
 using Ecliptix.Core.Shell.Abstractions.Membership;
+using ReactiveUI.Fody.Helpers;
 using IMessageBus = Ecliptix.Core.Messaging.Core.Messaging.IMessageBus;
 using SystemU = System.Reactive.Unit;
 
@@ -44,62 +46,17 @@ public sealed class MasterViewModel : ViewModelBase, IMainHost
         { ModuleIdentifier.PROFILE, 99 }
     };
 
-    private UserControl? _currentView;
-    private bool _isLoadingView;
-    private bool _isTransitionReversed;
-    private bool _isOverlayVisible;
-    private bool _isOverlayOpen;
-    private object? _overlayContent;
-    private object? _suggestionsContent;
-    private bool _isTransitioning;
+    [Reactive] public UserControl? CurrentView { get; set; }
+    [Reactive] public bool IsLoadingView { get; set; }
+    [Reactive] public bool IsTransitionReversed { get; set; }
+    [Reactive] public bool IsOverlayVisible { get; set; }
 
-    public UserControl? CurrentView
-    {
-        get => _currentView;
-        set => this.RaiseAndSetIfChanged(ref _currentView, value);
-    }
+    [Reactive] public bool IsOverlayOpen { get; set; }
 
-    public bool IsLoadingView
-    {
-        get => _isLoadingView;
-        set => this.RaiseAndSetIfChanged(ref _isLoadingView, value);
-    }
-
-    public bool IsTransitionReversed
-    {
-        get => _isTransitionReversed;
-        set => this.RaiseAndSetIfChanged(ref _isTransitionReversed, value);
-    }
-
-    public bool IsOverlayVisible
-    {
-        get => _isOverlayVisible;
-        set => this.RaiseAndSetIfChanged(ref _isOverlayVisible, value);
-    }
-
-    public bool IsOverlayOpen
-    {
-        get => _isOverlayOpen;
-        set => this.RaiseAndSetIfChanged(ref _isOverlayOpen, value);
-    }
-
-    public object? OverlayContent
-    {
-        get => _overlayContent;
-        set => this.RaiseAndSetIfChanged(ref _overlayContent, value);
-    }
-
-    public object? SuggestionsContent
-    {
-        get => _suggestionsContent;
-        set => this.RaiseAndSetIfChanged(ref _suggestionsContent, value);
-    }
-
-    public bool IsTransitioning
-    {
-        get => _isTransitioning;
-        set => this.RaiseAndSetIfChanged(ref _isTransitioning, value);
-    }
+    [Reactive] public object? OverlayContent { get; set; }
+    [Reactive] public object? SuggestionsContent { get; set; }
+    [Reactive] public bool IsTransitioning { get; set; }
+    [Reactive] public bool ShowSuggestions { get; set; }
 
     public ConnectivityNotificationViewModel ConnectivityNotification { get; }
     public NavigationSidebarViewModel NavigationSidebar { get; }
@@ -123,9 +80,9 @@ public sealed class MasterViewModel : ViewModelBase, IMainHost
 
         IMessageBus? messageBus = Locator.Current?.GetService<IMessageBus>();
 
-        Task.Run(() =>
+        Dispatcher.UIThread.Post(() =>
         {
-            Dispatcher.UIThread.Post(() => { _ = new ConversationView(); }, DispatcherPriority.Background);
+            ConversationView dummy = new();
         });
 
         CloseOverlayCommand = ReactiveCommand.Create(() =>
@@ -217,6 +174,15 @@ public sealed class MasterViewModel : ViewModelBase, IMainHost
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     CurrentView = viewOption.Value;
+
+                    if (moduleId == ModuleIdentifier.FEED)
+                    {
+                        ShowSuggestions = true;
+                    }
+                    else
+                    {
+                        ShowSuggestions = false;
+                    }
                 });
             }
         }

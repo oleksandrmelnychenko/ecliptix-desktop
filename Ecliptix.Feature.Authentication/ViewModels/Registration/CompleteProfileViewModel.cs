@@ -1,5 +1,6 @@
 using System;
 using System.Reactive.Disposables;
+using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
@@ -7,6 +8,7 @@ using System.Threading.Tasks;
 using Ecliptix.Core.MVVM;
 using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Core.Modularity;
+using Ecliptix.Core.Services.Membership;
 using Ecliptix.Core.Shell.Abstractions.Core;
 using Ecliptix.Core.Shell.Services.Localization;
 using Ecliptix.Feature.Authentication.ViewModels.Hosts;
@@ -108,25 +110,25 @@ public sealed class CompleteProfileViewModel : ViewModelBase, IRoutableViewModel
     {
         this.WhenAnyValue(x => x.ProfileName)
             .Skip(1)
-            .Throttle(TimeSpan.FromMilliseconds(300))
+            .Throttle(TimeSpan.FromMilliseconds(50))
             .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(name =>
+            .Select(name => NameValidator.ValidateProfileName(name, LocalizationService))
+            .Subscribe(error =>
             {
-                bool isValid = !string.IsNullOrWhiteSpace(name) && name.Length >= 3;
-                ProfileNameError = isValid ? string.Empty : LocalizationService[LocalizationKeys.ValidationErrors.Profile.INVALID_NAME];
-                HasProfileNameError = !isValid;
+                ProfileNameError = error;
+                HasProfileNameError = !string.IsNullOrEmpty(error);
             })
             .DisposeWith(_disposables);
 
         this.WhenAnyValue(x => x.DisplayName)
             .Skip(1)
-            .Throttle(TimeSpan.FromMilliseconds(300))
+            .Throttle(TimeSpan.FromMilliseconds(50))
             .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(name =>
+            .Select(name => NameValidator.ValidateDisplayName(name, LocalizationService))
+            .Subscribe(error =>
             {
-                bool isValid = !string.IsNullOrWhiteSpace(name);
-                DisplayNameError = isValid ? string.Empty : LocalizationService[LocalizationKeys.ValidationErrors.Profile.INVALID_DISPLAY_NAME];
-                HasDisplayNameError = !isValid;
+                DisplayNameError = error;
+                HasDisplayNameError = !string.IsNullOrEmpty(error);
             })
             .DisposeWith(_disposables);
 

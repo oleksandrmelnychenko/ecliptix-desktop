@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:reactiveUi="http://reactiveui.net"
              xmlns:titleBar="clr-namespace:Ecliptix.Core.Controls.TitleBar"
-             xmlns:windows1="clr-namespace:Ecliptix.Core.Controls.TitleBar.Platform.Windows"
+             xmlns:windows="clr-namespace:Ecliptix.Core.Controls.TitleBar.Platform.Windows"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ecliptix.Core.Controls.TitleBar.Platform.Windows.WindowsTitleBarLayout"
              VerticalAlignment="Stretch"
@@ -18,7 +18,7 @@
         </DataTemplate>
     </UserControl.Resources>
 
-    <Panel Background="Transparent">
+    <Panel>
 
         <Grid ColumnDefinitions="Auto, *, Auto">
 
@@ -33,7 +33,9 @@
                 </ItemsControl.ItemsPanel>
             </ItemsControl>
 
-            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Stretch">
+            <StackPanel Grid.Column="2"
+                        Orientation="Horizontal"
+                        VerticalAlignment="Stretch">
 
                 <ItemsControl ItemsSource="{Binding RightContent}"
                               ItemTemplate="{StaticResource ContentItemTemplate}">
@@ -44,8 +46,8 @@
                     </ItemsControl.ItemsPanel>
                 </ItemsControl>
 
-                <windows1:WindowsTitleBarButtons x:Name="PART_WindowButtons"
-                                                DataContext="{Binding}" />
+                <windows:WindowsTitleBarButtons x:Name="PART_WindowButtons"
+                                                 DataContext="{Binding}" />
             </StackPanel>
         </Grid>
 
@@ -54,4 +56,3 @@
                                       VerticalAlignment="Center"/>
     </Panel>
 </UserControl>
-
