@@ -3,10 +3,18 @@
 			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 			 xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
+			 xmlns:models="clr-namespace:Ecliptix.Core.Shared.Models"
+			 xmlns:converters="clr-namespace:Ecliptix.Feature.Feed.Converters"
 			 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-			 xmlns:models="clr-namespace:Ecliptix.Core.Features.Feed.Models"
 			 x:DataType="models:Suggestion"
 			 x:Class="Ecliptix.Core.Features.Suggestions.Controls.SuggestionControl">
+
+
+	<UserControl.Resources>
+		<ResourceDictionary>
+			<converters:InitialsConverter x:Key="InitialsConverter"/>
+		</ResourceDictionary>
+	</UserControl.Resources>
 
 	<Border Classes="card"
 			Margin="0,0,0,8"

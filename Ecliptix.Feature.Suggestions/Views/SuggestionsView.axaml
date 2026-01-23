@@ -3,9 +3,9 @@
 			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 			 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-			 xmlns:suggestionItems="clr-namespace:Ecliptix.Core.Features.Suggestions.Controls"
 			 xmlns:viewModels="clr-namespace:Ecliptix.Feature.Suggestions.ViewModels"
-			 xmlns:models="clr-namespace:Ecliptix.Feature.Feed.Domain.Models;assembly=Ecliptix.Feature.Feed"
+			 xmlns:controls="clr-namespace:Ecliptix.Core.Features.Suggestions.Controls;assembly=Ecliptix.Core"
+			 xmlns:models="clr-namespace:Ecliptix.Core.Shared.Models;assembly=Ecliptix.Core"
 			 x:DataType="viewModels:SuggestionsViewModel"
 			 x:Class="Ecliptix.Feature.Suggestions.Views.SuggestionsView">
 
@@ -47,7 +47,7 @@
 						  ItemsSource="{Binding TrendingItems}">
 				<ItemsControl.ItemTemplate>
 					<DataTemplate DataType="models:Suggestion">
-						<suggestionItems:SuggestionControl />
+						<controls:SuggestionControl />
 					</DataTemplate>
 				</ItemsControl.ItemTemplate>
 			</ItemsControl>
@@ -103,7 +103,7 @@
 						  ItemsSource="{Binding Items}">
 				<ItemsControl.ItemTemplate>
 					<DataTemplate DataType="models:Suggestion">
-						<suggestionItems:SuggestionControl />
+						<controls:SuggestionControl />
 					</DataTemplate>
 				</ItemsControl.ItemTemplate>
 			</ItemsControl>

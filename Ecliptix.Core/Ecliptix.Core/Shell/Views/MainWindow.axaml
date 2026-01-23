@@ -6,8 +6,10 @@
         xmlns:vm="clr-namespace:Ecliptix.Core.Shell.ViewModels"
         xmlns:modals="clr-namespace:Ecliptix.Core.Controls.Modals"
         xmlns:controls1="clr-namespace:Ecliptix.Core.Controls"
+        xmlns:titleBar="clr-namespace:Ecliptix.Core.Controls.TitleBar"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
         x:DataType="vm:MainWindowViewModel"
+        x:Class="Ecliptix.Core.Shell.Views.MainWindow"
         Title="{Binding WindowTitle}"
         Width="{Binding WindowWidth}"
         Height="{Binding WindowHeight}"
@@ -17,12 +19,10 @@
         WindowState="{Binding WindowState, Mode=TwoWay}"
         x:CompileBindings="True"
         UseLayoutRounding="True"
-
         SystemDecorations="Full"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaChromeHints="NoChrome"
         ExtendClientAreaTitleBarHeightHint="35"
-
         WindowStartupLocation="CenterScreen"
         BorderThickness="0"
         TransparencyLevelHint="Transparent"
@@ -46,7 +46,7 @@
                                         VerticalAlignment="Stretch" />
         </Panel>
 
-        <TitleBar
+        <titleBar:TitleBar
             VerticalAlignment="Top"
             Height="35"
             ZIndex="50"

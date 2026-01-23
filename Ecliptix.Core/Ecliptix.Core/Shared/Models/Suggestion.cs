@@ -1,6 +1,7 @@
 using System;
+using Ecliptix.Feature.Feed.Domain.Models;
 
-namespace Ecliptix.Feature.Feed.Domain.Models;
+namespace Ecliptix.Core.Shared.Models;
 
 public sealed record Suggestion
 {

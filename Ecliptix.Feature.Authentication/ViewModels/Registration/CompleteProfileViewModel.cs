@@ -1,6 +1,5 @@
 using System;
 using System.Reactive.Disposables;
-using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
@@ -8,9 +7,9 @@ using System.Threading.Tasks;
 using Ecliptix.Core.MVVM;
 using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Core.Modularity;
-using Ecliptix.Core.Services.Membership;
 using Ecliptix.Core.Shell.Abstractions.Core;
 using Ecliptix.Core.Shell.Services.Localization;
+using Ecliptix.Feature.Authentication.Services.Membership;
 using Ecliptix.Feature.Authentication.ViewModels.Hosts;
 using Ecliptix.Network.Infrastructure.Data.Abstractions;
 using Ecliptix.Network.Infrastructure.Network.Core.Providers;

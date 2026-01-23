@@ -75,12 +75,12 @@
 				Margin="0 5 0 0"
 				>
 			<transitions:AnimatingContentControl
-			x:Name="MainContentControl"
-			Content="{Binding CurrentView, Mode=OneWay}"
-			IsTransitionReversed="{Binding IsTransitionReversed, Mode=OneWay}"
-			VerticalAlignment="Stretch"
-			HorizontalAlignment="Stretch"
-			IsAnimating="{Binding IsTransitioning, Mode=OneWayToSource}">
+				x:Name="MainContentControl"
+				Content="{Binding CurrentView, Mode=OneWay}"
+				IsTransitionReversed="{Binding IsTransitionReversed, Mode=OneWay}"
+				VerticalAlignment="Stretch"
+				HorizontalAlignment="Stretch"
+				IsAnimating="{Binding IsTransitioning, Mode=OneWayToSource}">
 
 				<transitions:AnimatingContentControl.PageTransition>
 					<page:SharedAxisPageTransition Duration="0:0:0.400"

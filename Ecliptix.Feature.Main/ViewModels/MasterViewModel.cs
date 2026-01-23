@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Reactive.Disposables;
-using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -171,19 +170,16 @@ public sealed class MasterViewModel : ViewModelBase, IMainHost
 
             if (viewOption.IsSome)
             {
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    CurrentView = viewOption.Value;
+                CurrentView = viewOption.Value;
 
-                    if (moduleId == ModuleIdentifier.FEED)
-                    {
-                        ShowSuggestions = true;
-                    }
-                    else
-                    {
-                        ShowSuggestions = false;
-                    }
-                });
+                if (moduleId == ModuleIdentifier.FEED)
+                {
+                    ShowSuggestions = true;
+                }
+                else
+                {
+                    ShowSuggestions = false;
+                }
             }
         }
         catch (Exception ex)

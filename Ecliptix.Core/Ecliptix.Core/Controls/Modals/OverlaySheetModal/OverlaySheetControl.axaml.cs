@@ -466,8 +466,8 @@ public sealed partial class OverlaySheetControl : ReactiveUserControl<OverlayShe
 
     private void CreateAnimations()
     {
-        CubicEaseOut showEasing = new(); 
-        CubicEaseIn hideEasing = new(); 
+        CubicEaseOut showEasing = new();
+        CubicEaseIn hideEasing = new();
 
         _showAnimation = new Animation
         {

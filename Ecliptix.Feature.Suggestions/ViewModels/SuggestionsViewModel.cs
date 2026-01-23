@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using Ecliptix.Core.MVVM;
 using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Core.Modularity.Suggestions;
+using Ecliptix.Core.Shared.Models;
 using Ecliptix.Core.Shell.Abstractions.Core;
 using Ecliptix.Feature.Feed.Domain.Models;
 using Ecliptix.Network.Infrastructure.Network.Core.Providers;
