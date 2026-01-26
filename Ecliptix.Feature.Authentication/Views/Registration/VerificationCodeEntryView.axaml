@@ -5,7 +5,7 @@
              xmlns:coreControls="clr-namespace:Ecliptix.Core.Controls.Core;assembly=Ecliptix.Core"
              xmlns:hintedTextControls="clr-namespace:Ecliptix.Core.Controls.Core.HintedTextControls;assembly=Ecliptix.Core"
              xmlns:signUp="clr-namespace:Ecliptix.Feature.Authentication.ViewModels.Registration"
-             xmlns:converters="clr-namespace:Ecliptix.Core.Shared.Converters;assembly=Ecliptix.Core"
+             xmlns:converters="clr-namespace:Ecliptix.Feature.Authentication.Converters"
              mc:Ignorable="d"
              d:DesignWidth="{StaticResource Content.MaxWidth}"
              d:DesignHeight="400"

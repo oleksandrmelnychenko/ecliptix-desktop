@@ -3,7 +3,7 @@ using System.Globalization;
 using Avalonia.Data.Converters;
 using Avalonia.Media.Transformation;
 
-namespace Ecliptix.Core.Shared.Converters;
+namespace Ecliptix.Feature.Authentication.Converters;
 
 public class ProgressToTransformConverter : IValueConverter
 {
