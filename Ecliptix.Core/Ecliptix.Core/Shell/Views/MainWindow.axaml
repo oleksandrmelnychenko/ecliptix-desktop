@@ -57,7 +57,8 @@
             VerticalAlignment="Top"
             Margin="0,50,0,0"
             ZIndex="100"
-            DataContext="{Binding ConnectivityNotification}" />
+            DataContext="{Binding ConnectivityNotification}"
+            MaxWidth="456"/>
 
         <modals:ModalHostControl ZIndex="200" />
     </Grid>
