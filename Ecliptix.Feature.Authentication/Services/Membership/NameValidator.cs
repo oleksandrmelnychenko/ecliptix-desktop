@@ -8,9 +8,9 @@ namespace Ecliptix.Feature.Authentication.Services.Membership;
 
 public static partial class NameValidator
 {
-    private const int MinProfileNameLength = 3;
-    private const int MaxProfileNameLength = 30;
-    private const int MaxDisplayNameLength = 50;
+    private const int MIN_PROFILE_NAME_LENGTH = 3;
+    private const int MAX_PROFILE_NAME_LENGTH = 30;
+    private const int MAX_DISPLAY_NAME_LENGTH = 50;
 
     //TODO decide the place where it should be moved
     private static readonly HashSet<string> ReservedWords = new(StringComparer.OrdinalIgnoreCase)
@@ -27,9 +27,9 @@ public static partial class NameValidator
             (string.IsNullOrWhiteSpace,
              LocalizationKeys.ValidationErrors.Profile.REQUIRED, null),
 
-            (s => s.Length < MinProfileNameLength || s.Length > MaxProfileNameLength,
+            (s => s.Length < MIN_PROFILE_NAME_LENGTH || s.Length > MAX_PROFILE_NAME_LENGTH,
              LocalizationKeys.ValidationErrors.Profile.INVALID_LENGTH,
-             [MinProfileNameLength, MaxProfileNameLength]),
+             [MIN_PROFILE_NAME_LENGTH, MAX_PROFILE_NAME_LENGTH]),
 
             (s => !IsAllowedProfileRegex().IsMatch(s),
              LocalizationKeys.ValidationErrors.Profile.INVALID_CHARACTERS, null),
@@ -57,9 +57,9 @@ public static partial class NameValidator
             (string.IsNullOrWhiteSpace,
              LocalizationKeys.ValidationErrors.Profile.REQUIRED_DISPLAY_NAME, null),
 
-            (s => s.Length > MaxDisplayNameLength,
+            (s => s.Length > MAX_DISPLAY_NAME_LENGTH,
              LocalizationKeys.ValidationErrors.Profile.DISPLAY_NAME_TOO_LONG,
-             [MaxDisplayNameLength]),
+             [MAX_DISPLAY_NAME_LENGTH]),
 
             (s => !IsAllowedDisplayRegex().IsMatch(s),
              LocalizationKeys.ValidationErrors.Profile.INVALID_DISPLAY_CHARS, null),

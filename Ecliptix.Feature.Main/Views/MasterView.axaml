@@ -8,6 +8,7 @@
 			 xmlns:views="clr-namespace:Ecliptix.Feature.NewContent.Views;assembly=Ecliptix.Feature.NewContent"
 			 xmlns:viewModels="clr-namespace:Ecliptix.Feature.NewContent.ViewModels;assembly=Ecliptix.Feature.NewContent"
 			 xmlns:suggestionsVm="clr-namespace:Ecliptix.Feature.Suggestions.ViewModels;assembly=Ecliptix.Feature.Suggestions"
+			 xmlns:i="clr-namespace:Avalonia.Xaml.Interactivity;assembly=Avalonia.Xaml.Interactivity"
 			 xmlns:ia="clr-namespace:Avalonia.Xaml.Interactions.Core;assembly=Avalonia.Xaml.Interactions"
 			 xmlns:vm="clr-namespace:Ecliptix.Feature.Main.ViewModels"
 			 xmlns:views1="clr-namespace:Ecliptix.Feature.Suggestions.Views;assembly=Ecliptix.Feature.Suggestions"
@@ -106,11 +107,11 @@
 					HorizontalAlignment="Stretch"
 					VerticalAlignment="Stretch">
 
-				<Interaction.Behaviors>
+				<i:Interaction.Behaviors>
 					<ia:EventTriggerBehavior EventName="PointerPressed">
 						<ia:InvokeCommandAction Command="{Binding CloseOverlayCommand}" />
 					</ia:EventTriggerBehavior>
-				</Interaction.Behaviors>
+				</i:Interaction.Behaviors>
 			</Border>
 
 			<Border Classes="modal-container"
