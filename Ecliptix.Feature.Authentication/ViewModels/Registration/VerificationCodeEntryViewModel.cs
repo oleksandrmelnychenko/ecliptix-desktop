@@ -148,14 +148,6 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
                 .Select(FormatRemainingTime)
                 .Subscribe(rt => RemainingTime = rt)
                 .DisposeWith(disposables).DisposeWith(_disposables);
-
-            this.WhenAnyValue(x => x.RemainingTime)
-                .Select(time =>
-                {
-                    return $"Code expires in: {time}";
-                })
-                .ToPropertyEx(this, x => x.TimerHintText)
-                .DisposeWith(disposables).DisposeWith(_disposables);
         });
     }
 
@@ -189,8 +181,6 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
     };
 
     [Reactive] public string CodeSentDescription { get; private set; } = string.Empty;
-
-    [ObservableAsProperty] public string TimerHintText { get; } = string.Empty;
 
     public string? UrlPathSegment { get; } = "/verification-code-entry";
 

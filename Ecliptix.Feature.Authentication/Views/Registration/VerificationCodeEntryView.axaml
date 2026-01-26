@@ -63,8 +63,7 @@
             MaxLength="6"
             IsPhoneNumberMode="False"
             Text="{Binding VerificationCode, Mode=TwoWay}"
-            Hint="{Binding TimerHintText, Mode=OneWay}"
-
+            Hint="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Hint]}"
             TextForeground="{DynamicResource OnSurface}"
             HintForeground="{DynamicResource Primary}"
             FocusBorderBrush="{DynamicResource Primary}"
