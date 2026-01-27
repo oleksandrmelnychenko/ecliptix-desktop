@@ -11,16 +11,27 @@ using Avalonia.LogicalTree;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Ecliptix.Core.Controls.Configuration;
 using Ecliptix.Core.Controls.Constants;
 using Serilog;
 
 namespace Ecliptix.Core.Controls.Core;
+
+public enum SegmentBorderStyle
+{
+    Box,
+    Underline
+}
 
 public partial class SegmentedTextBox : UserControl
 {
     public static readonly StyledProperty<int> SegmentCountProperty =
         AvaloniaProperty.Register<SegmentedTextBox, int>(nameof(SegmentCount),
             SegmentedTextBoxConstants.DEFAULT_SEGMENT_COUNT, validate: value => value > 0);
+
+    public static readonly StyledProperty<SegmentBorderStyle> BorderStyleProperty =
+        AvaloniaProperty.Register<SegmentedTextBox, SegmentBorderStyle>(nameof(BorderStyle),
+            SegmentBorderStyle.Box);
 
     public static readonly StyledProperty<bool> AllowOnlyNumbersProperty =
         AvaloniaProperty.Register<SegmentedTextBox, bool>(nameof(AllowOnlyNumbers));
@@ -34,6 +45,14 @@ public partial class SegmentedTextBox : UserControl
 
     public static readonly StyledProperty<IBrush> ActiveSegmentBorderColorProperty =
         AvaloniaProperty.Register<SegmentedTextBox, IBrush>(nameof(ActiveSegmentBorderColor), Brushes.Blue);
+
+    public static readonly StyledProperty<IBrush> BorderBrushProperty =
+        AvaloniaProperty.Register<SegmentedTextBox, IBrush>(nameof(BorderBrush), Brushes.Transparent);
+
+    public static readonly StyledProperty<SegmentConfiguration> SegmentConfigProperty =
+        AvaloniaProperty.Register<SegmentedTextBox, SegmentConfiguration>(nameof(SegmentConfig),
+            defaultBindingMode: Avalonia.Data.BindingMode.OneWay,
+            coerce: CoerceSegmentConfig);
 
     public static readonly StyledProperty<string> ValueProperty =
         AvaloniaProperty.Register<SegmentedTextBox, string>(nameof(Value), "",
@@ -67,17 +86,44 @@ public partial class SegmentedTextBox : UserControl
         {
             DigitStrings[i] = i.ToString();
         }
+
+        SegmentConfigProperty.Changed.AddClassHandler<SegmentedTextBox>((control, e) =>
+        {
+            if (e.OldValue is SegmentConfiguration oldConfig)
+            {
+                oldConfig.PropertyChanged -= control.OnSegmentConfigPropertyChanged;
+            }
+
+            if (e.NewValue is SegmentConfiguration newConfig)
+            {
+                newConfig.PropertyChanged += control.OnSegmentConfigPropertyChanged;
+                control.SyncFromSegmentConfig();
+            }
+        });
+    }
+
+    private static SegmentConfiguration CoerceSegmentConfig(AvaloniaObject obj, SegmentConfiguration value)
+    {
+        return value ?? new SegmentConfiguration();
     }
 
     public SegmentedTextBox()
     {
         InitializeComponent();
+
+        SegmentConfig = new SegmentConfiguration();
     }
 
     public int BaseTabIndex
     {
         get => GetValue(BaseTabIndexProperty);
         set => SetValue(BaseTabIndexProperty, value);
+    }
+
+    public SegmentBorderStyle BorderStyle
+    {
+        get => GetValue(BorderStyleProperty);
+        set => SetValue(BorderStyleProperty, value);
     }
 
     public double SegmentSpacing
@@ -108,6 +154,18 @@ public partial class SegmentedTextBox : UserControl
     {
         get => GetValue(ActiveSegmentBorderColorProperty);
         set => SetValue(ActiveSegmentBorderColorProperty, value);
+    }
+
+    public IBrush BorderBrush
+    {
+        get => GetValue(BorderBrushProperty);
+        set => SetValue(BorderBrushProperty, value);
+    }
+
+    public SegmentConfiguration SegmentConfig
+    {
+        get => GetValue(SegmentConfigProperty);
+        set => SetValue(SegmentConfigProperty, value);
     }
 
     public int SegmentCount
@@ -154,7 +212,33 @@ public partial class SegmentedTextBox : UserControl
     protected override void OnDetachedFromLogicalTree(LogicalTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromLogicalTree(e);
+
+        if (SegmentConfig != null)
+        {
+            SegmentConfig.PropertyChanged -= OnSegmentConfigPropertyChanged;
+        }
+
         CleanupSegments();
+    }
+
+    private void OnSegmentConfigPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        SyncFromSegmentConfig();
+    }
+
+    private void SyncFromSegmentConfig()
+    {
+        if (SegmentConfig is not { } config)
+        {
+            return;
+        }
+
+        SegmentWidth = config.Width;
+        SegmentSpacing = config.Spacing;
+        SegmentBackground = config.Background;
+        BorderBrush = config.BorderBrush;
+        ActiveSegmentBorderColor = config.ActiveBorderBrush;
+        BorderStyle = config.BorderStyle;
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -164,6 +248,11 @@ public partial class SegmentedTextBox : UserControl
         if (change.Property == SegmentCountProperty)
         {
             BuildSegments();
+        }
+
+        if (change.Property == BorderStyleProperty)
+        {
+            UpdateBorderStyleClasses();
         }
 
         if (change.Property == ValueProperty && !_isInternalUpdate)
@@ -280,6 +369,12 @@ public partial class SegmentedTextBox : UserControl
                 Width = SegmentWidth,
             };
 
+            // Apply border style class
+            if (BorderStyle == SegmentBorderStyle.Underline)
+            {
+                tb.Classes.Add(SegmentedTextBoxConstants.UNDERLINE_STYLE_CLASS);
+            }
+
             tb.AddHandler(KeyDownEvent, Segment_KeyDown, RoutingStrategies.Tunnel);
             tb.TextChanged += Segment_TextChanged;
             tb.LostFocus += Segment_LostFocus;
@@ -289,6 +384,23 @@ public partial class SegmentedTextBox : UserControl
         }
 
         UpdateTabIndexes();
+    }
+
+    private void UpdateBorderStyleClasses()
+    {
+        string styleClass = BorderStyle == SegmentBorderStyle.Underline
+            ? SegmentedTextBoxConstants.UNDERLINE_STYLE_CLASS
+            : null;
+
+        foreach (TextBox segment in _segments)
+        {
+            segment.Classes.Remove(SegmentedTextBoxConstants.UNDERLINE_STYLE_CLASS);
+
+            if (styleClass != null)
+            {
+                segment.Classes.Add(styleClass);
+            }
+        }
     }
 
     private void CleanupSegments()

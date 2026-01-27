@@ -8,7 +8,6 @@ using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core.Controls.Core;
-using Ecliptix.Core.Controls.Core.HintedTextControls;
 using Ecliptix.Feature.Authentication.ViewModels.Registration;
 using ReactiveUI;
 
@@ -17,7 +16,7 @@ namespace Ecliptix.Feature.Authentication.Views.Registration;
 public sealed partial class VerificationCodeEntryView : ReactiveUserControl<VerificationCodeEntryViewModel>
 {
     private const string ERROR_NOTIFICATION_CONTROL_NAME = "ErrorNotification";
-    private const string OTP_TEXT_BOX_CONTROL_NAME = "OtpTextBox";
+    private const string SEGMENTED_TEXTBOX_CONTROL_NAME = "OtpSegmentedControl";
     private bool _handlersAttached;
     private CompositeDisposable? _subscriptions;
 
@@ -52,7 +51,7 @@ public sealed partial class VerificationCodeEntryView : ReactiveUserControl<Veri
             return;
         }
 
-        if (this.FindControl<HintedTextBox>(OTP_TEXT_BOX_CONTROL_NAME) is { } otpTextBox)
+        if (this.FindControl<SegmentedTextBox>(SEGMENTED_TEXTBOX_CONTROL_NAME) is { } otpTextBox)
         {
             otpTextBox.KeyDown += OnOtpTextBoxKeyDown;
             _handlersAttached = true;
@@ -101,7 +100,7 @@ public sealed partial class VerificationCodeEntryView : ReactiveUserControl<Veri
             return;
         }
 
-        if (this.FindControl<HintedTextBox>(OTP_TEXT_BOX_CONTROL_NAME) is { } otpTextBox)
+        if (this.FindControl<SegmentedTextBox>(SEGMENTED_TEXTBOX_CONTROL_NAME) is { } otpTextBox)
         {
             otpTextBox.KeyDown -= OnOtpTextBoxKeyDown;
         }

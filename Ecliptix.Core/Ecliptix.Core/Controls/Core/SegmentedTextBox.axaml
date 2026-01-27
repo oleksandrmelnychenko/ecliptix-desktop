@@ -16,10 +16,10 @@
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="TextAlignment" Value="Center"/>
-            <Setter Property="Background" Value="{Binding SegmentBackground, RelativeSource={RelativeSource AncestorType=core:SegmentedTextBox}}"/>
+            <Setter Property="Background" Value="{Binding SegmentConfig.Background, RelativeSource={RelativeSource AncestorType=core:SegmentedTextBox}}"/>
             <Setter Property="BorderThickness" Value="{StaticResource Segment.BorderThickness}"/>
-            <Setter Property="CornerRadius" Value="{StaticResource Segment.CornerRadius}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}"/>
+            <Setter Property="BorderBrush" Value="{Binding SegmentConfig.BorderBrush, RelativeSource={RelativeSource AncestorType=core:SegmentedTextBox}}"/>
+            <Setter Property="CornerRadius" Value="{Binding SegmentConfig.CornerRadius, RelativeSource={RelativeSource AncestorType=core:SegmentedTextBox}}"/>
             <Setter Property="Template">
                 <ControlTemplate>
                     <Border Background="{TemplateBinding Background}"
@@ -45,9 +45,15 @@
                 </ControlTemplate>
             </Setter>
         </Style>
+
+        <Style Selector="TextBox.segment.underline">
+            <Setter Property="BorderThickness" Value="0,0,0,2"/>
+            <Setter Property="CornerRadius" Value="0"/>
+        </Style>
+
         <Style Selector="TextBox.segment.active">
             <Setter Property="BorderThickness" Value="{StaticResource ActiveSegment.BorderThickness}"/>
-            <Setter Property="BorderBrush" Value="{Binding ActiveSegmentBorderColor, RelativeSource={RelativeSource AncestorType=core:SegmentedTextBox}}"/>
+            <Setter Property="BorderBrush" Value="{Binding SegmentConfig.ActiveBorderBrush, RelativeSource={RelativeSource AncestorType=core:SegmentedTextBox}}"/>
             <Setter Property="Template">
                 <ControlTemplate>
                     <Border Background="{TemplateBinding Background}"
@@ -75,6 +81,38 @@
                 </ControlTemplate>
             </Setter>
         </Style>
+
+        <Style Selector="TextBox.segment.active.underline">
+            <Setter Property="BorderThickness" Value="0,0,0,2"/>
+            <Setter Property="CornerRadius" Value="0"/>
+            <Setter Property="BorderBrush" Value="{Binding SegmentConfig.ActiveBorderBrush, RelativeSource={RelativeSource AncestorType=core:SegmentedTextBox}}"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            ClipToBounds="False">
+                        <TextPresenter x:Name="PART_TextPresenter"
+                                       Text="{TemplateBinding Text}"
+                                       CaretIndex="{TemplateBinding CaretIndex}"
+                                       SelectionStart="{TemplateBinding SelectionStart}"
+                                       SelectionEnd="{TemplateBinding SelectionEnd}"
+                                       TextAlignment="{TemplateBinding TextAlignment}"
+                                       TextWrapping="{TemplateBinding TextWrapping}"
+                                       PasswordChar="{TemplateBinding PasswordChar}"
+                                       RevealPassword="{TemplateBinding RevealPassword}"
+                                       SelectionBrush="{TemplateBinding SelectionBrush}"
+                                       SelectionForegroundBrush="{TemplateBinding SelectionForegroundBrush}"
+                                       CaretBrush="{TemplateBinding CaretBrush}"
+                                       HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                       VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                       Margin="{TemplateBinding Padding}"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+
         <Style Selector="StackPanel#SegmentsPanel TextBox">
             <Setter Property="ClipToBounds" Value="False"/>
         </Style>

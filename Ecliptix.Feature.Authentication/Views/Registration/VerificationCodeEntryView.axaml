@@ -6,6 +6,7 @@
              xmlns:hintedTextControls="clr-namespace:Ecliptix.Core.Controls.Core.HintedTextControls;assembly=Ecliptix.Core"
              xmlns:signUp="clr-namespace:Ecliptix.Feature.Authentication.ViewModels.Registration"
              xmlns:converters="clr-namespace:Ecliptix.Feature.Authentication.Converters"
+             xmlns:configuration="clr-namespace:Ecliptix.Core.Controls.Configuration;assembly=Ecliptix.Core"
              mc:Ignorable="d"
              d:DesignWidth="{StaticResource Content.MaxWidth}"
              d:DesignHeight="400"
@@ -22,6 +23,15 @@
             <GradientStop Offset="0" Color="#7E22CE" /> <GradientStop Offset="1" Color="#C084FC" /> </LinearGradientBrush>
 
         <converters:ProgressToTransformConverter x:Key="ProgressToTransformConverter"/>
+
+        <configuration:SegmentConfiguration x:Key="UnderlineConfig"
+                                   Width="50"
+                                   Spacing="12"
+                                   Background="Transparent"
+                                   BorderBrush="{DynamicResource SurfaceVariant}"
+                                   ActiveBorderBrush="{DynamicResource Primary}"
+                                   BorderStyle="Underline"
+                                   CornerRadius="{StaticResource Segment.CornerRadius}"/>
 
     </UserControl.Resources>
 
@@ -56,59 +66,27 @@
 
         </StackPanel>
 
-        <hintedTextControls:HintedTextBox
+        <coreControls:SegmentedTextBox
             Grid.Row="1"
-            x:Name="OtpTextBox"
-            Watermark="000000"
-            MaxLength="6"
-            IsPhoneNumberMode="False"
-            Text="{Binding VerificationCode, Mode=TwoWay}"
-            Hint="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Hint]}"
-            TextForeground="{DynamicResource OnSurface}"
-            HintForeground="{DynamicResource Primary}"
-            FocusBorderBrush="{DynamicResource Primary}"
-            MainBorderBrush="#e5e7eb"
-            Height="{StaticResource Input.Height}"
-            CornerRadius="{StaticResource Radius.L}"
-            FontSize="{StaticResource Input.FontSize}"
-            WatermarkFontSize="{StaticResource Input.WatermarkFontSize}"
-            Background="{DynamicResource Surface}"
-            HorizontalAlignment="Stretch"
-            VisualIcon="SquareChartGantt"/>
+            x:Name="OtpSegmentedControl"
+            SegmentCount="6"
+            AllowOnlyNumbers="True"
+            Height="60"
+            FontSize="20"
+            FontWeight="Bold"
+            Value="{Binding VerificationCode, Mode=TwoWay}"
+            SegmentConfig="{StaticResource UnderlineConfig}"
+            HorizontalAlignment="Center"
+            />
 
-        <StackPanel Grid.Row="2" Margin="0,-4,0,0" Spacing="6">
-            <Grid Height="4" HorizontalAlignment="Stretch">
-                <Border Background="{DynamicResource SurfaceVariant}"
-                        CornerRadius="2"
-                        Opacity="0.2" />
-
-                <Border x:Name="ProgressBarLine"
-                        Background="{StaticResource LeftBarGradient}"
-                        HorizontalAlignment="Stretch"
-                        CornerRadius="2"
-                        RenderOptions.EdgeMode="Aliased"
-                        RenderTransformOrigin="0%,50%">
-
-                    <Border.Transitions>
-                        <Transitions>
-                            <TransformOperationsTransition Property="RenderTransform"
-                                                           Duration="0:0:1"
-                                                           Easing="LinearEasing"/>
-                        </Transitions>
-                    </Border.Transitions>
-
-                    <Border.RenderTransform>
-                        <Binding Path="ProgressValue" Converter="{StaticResource ProgressToTransformConverter}" />
-                    </Border.RenderTransform>
-                </Border>
-            </Grid>
-
-            <TextBlock Text="{Binding RemainingTime}"
-                       Foreground="{DynamicResource Primary}"
-                       FontWeight="SemiBold"
-                       FontSize="{StaticResource Font.M}"
-                       HorizontalAlignment="Right"/>
-        </StackPanel>
+        <TextBlock Grid.Row="2"
+                   Text="{Binding RemainingTime}"
+                   Foreground="{DynamicResource OnSurface}"
+                   FontWeight="SemiBold"
+                   FontSize="28"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   Margin="0,5,0,0"/>
 
         <Grid Grid.Row="3"
               HorizontalAlignment="Stretch"
