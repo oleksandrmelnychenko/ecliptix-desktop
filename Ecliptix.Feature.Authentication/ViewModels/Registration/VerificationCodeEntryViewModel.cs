@@ -751,11 +751,18 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
 
     private uint HandleExpiredStatus(string? message)
     {
-        string errorMessage = !string.IsNullOrEmpty(message)
+        string logMessage = !string.IsNullOrEmpty(message)
             ? message
-            : _localizationService[AuthenticationConstants.VERIFICATION_SESSION_EXPIRED_KEY];
+            : "Verification session expired (timeout)";
 
-        PublishError(errorMessage);
+        Log.Debug("[VERIFY-OTP] {LogMessage}", logMessage);
+
+        if (HasError)
+        {
+            ErrorMessage = string.Empty;
+            HasError = false;
+        }
+
         return 0;
     }
 
@@ -1174,7 +1181,9 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
 
         if (_initialTotalSeconds.HasValue && _initialTotalSeconds.Value > 0)
         {
-            ProgressValue = (double)seconds / _initialTotalSeconds.Value;
+            double targetSeconds = seconds > 0 ? (double)seconds - 1.0 : 0.0;
+
+            ProgressValue = targetSeconds / _initialTotalSeconds.Value;
         }
         else
         {
