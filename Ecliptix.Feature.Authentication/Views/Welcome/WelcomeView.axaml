@@ -31,7 +31,7 @@
 
         </UserControl.Styles>
 
-    <Grid RowDefinitions="Auto,Auto,Auto, Auto"
+    <Grid RowDefinitions="Auto,Auto,Auto"
           HorizontalAlignment="Stretch"
           VerticalAlignment="Stretch"
           Margin="{StaticResource Welcome.Container.Margin}"
@@ -63,30 +63,6 @@
                     Classes.is-busy="{Binding IsCreateAccountBusy}"
                     MinWidth="{StaticResource Button.MinWidth}" />
         </Grid>
-
-        <StackPanel Grid.Row="3" Orientation="Horizontal" IsVisible="True">
-                <Button Background="Black"
-                        Height="20"
-                        Foreground="white"
-                        Content="Complete"
-                        Command="{Binding NavToCompleteAccountCommand}">
-                </Button>
-
-                <Button Background="Black"
-                        Height="20"
-                        Foreground="white"
-                        Content="SecureKey"
-                        Command="{Binding NavToSecureKeySetCommand}">
-                </Button>
-
-                <Button Background="Black"
-                        Height="20"
-                        Foreground="white"
-                        Content="Welcome Back"
-                        Command="{Binding NavToWelcomeBackCommand}">
-                </Button>
-
-        </StackPanel>
 
     </Grid>
 </UserControl>
