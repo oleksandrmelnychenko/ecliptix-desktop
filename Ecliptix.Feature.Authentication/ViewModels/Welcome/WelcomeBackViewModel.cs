@@ -120,8 +120,8 @@ public sealed class WelcomeBackViewModel : ViewModelBase, IRoutableViewModel, IR
                 66,
                 (host) =>
                 {
-                    host.ClearNavigationStack(preserveInitialWelcome: true);
-                    host.NavigateBack.Execute().Subscribe();
+                    host.ClearNavigationStack();
+                    host.Navigate.Execute(MembershipViewType.WELCOME_VIEW).Subscribe();
                 },
                 title,
                 subtitle

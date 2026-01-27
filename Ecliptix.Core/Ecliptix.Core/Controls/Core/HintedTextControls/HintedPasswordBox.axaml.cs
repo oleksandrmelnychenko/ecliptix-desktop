@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -930,7 +930,7 @@ public sealed partial class HintedPasswordBox : UserControl, IDisposable
         try
         {
             TopLevel? topLevel = TopLevel.GetTopLevel(this);
-#pragma warning disable CS0618 
+#pragma warning disable CS0618
             if (topLevel?.Clipboard == null)
             {
                 return;

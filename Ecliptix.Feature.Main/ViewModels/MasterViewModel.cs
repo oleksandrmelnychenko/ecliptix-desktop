@@ -23,6 +23,7 @@ using Serilog;
 using Splat;
 using Ecliptix.Core.Shell.Abstractions.Core;
 using Ecliptix.Core.Shell.Abstractions.Membership;
+using ReactiveUI.Fody.Helpers;
 using IMessageBus = Ecliptix.Core.Messaging.Core.Messaging.IMessageBus;
 using SystemU = System.Reactive.Unit;
 
@@ -100,6 +101,8 @@ public sealed class MasterViewModel : ViewModelBase, IMainHost
         get => _isTransitioning;
         set => this.RaiseAndSetIfChanged(ref _isTransitioning, value);
     }
+
+    [Reactive] public bool ShowSuggestions { get; set; }
 
     public ConnectivityNotificationViewModel ConnectivityNotification { get; }
     public NavigationSidebarViewModel NavigationSidebar { get; }
@@ -217,6 +220,14 @@ public sealed class MasterViewModel : ViewModelBase, IMainHost
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     CurrentView = viewOption.Value;
+                    if (moduleId == ModuleIdentifier.FEED)
+                    {
+                        ShowSuggestions = true;
+                    }
+                    else
+                    {
+                        ShowSuggestions = false;
+                    }
                 });
             }
         }

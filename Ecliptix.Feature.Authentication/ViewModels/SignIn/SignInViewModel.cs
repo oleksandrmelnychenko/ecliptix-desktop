@@ -304,7 +304,7 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
         OpenCountryPickerCommand = ReactiveCommand.CreateFromTask(async () =>
         {
             await GlobalModalService.ShowRightAsync(
-                new CountryCodeViewModel(_messageBus, CountryIso, "SignIn"),
+                new CountryCodeViewModel(_messageBus, LocalizationService, GlobalModalService, CountryIso, "SignIn"),
                 showScrim: true,
                 isDismissable: true
             );

@@ -54,8 +54,8 @@ public sealed class NetworkBadgeViewModel : ReactiveObject, IDisposable
             .DistinctUntilChanged();
 
         IObservable<NetworkBadgeState> badgeState = Observable.CombineLatest(
-                connectivityService.InternetStatus, 
-                connectivityService.ServerStatus,   
+                connectivityService.InternetStatus,
+                connectivityService.ServerStatus,
                 DetermineBadgeState)
             .Do(state => Log.Information("[BadgeVM] Final Calculated State: {State}", state))
             .DistinctUntilChanged();

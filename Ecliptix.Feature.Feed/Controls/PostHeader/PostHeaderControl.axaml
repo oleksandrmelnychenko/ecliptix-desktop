@@ -4,7 +4,7 @@
 			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 			 xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
 			 xmlns:vm="clr-namespace:Ecliptix.Feature.Feed.ViewModels"
-			 xmlns:converters="clr-namespace:Ecliptix.Feature.Feed.Converters"
+			 xmlns:converters="clr-namespace:Ecliptix.Feature.Feed.Converters;assembly=Ecliptix.Core"
 			 mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="60"
 			 x:Class="Ecliptix.Feature.Feed.Controls.PostHeader.PostHeaderControl"
 			 x:DataType="vm:FeedItemViewModel">
@@ -110,7 +110,7 @@
 								Height="42"
 								Padding="3"
 								BorderThickness="1"
-								CornerRadius="8"								
+								CornerRadius="8"
 								BoxShadow ="0 4 12 0 #15000000">
 							<Button Content="Copy link"
 									HorizontalContentAlignment="Left"

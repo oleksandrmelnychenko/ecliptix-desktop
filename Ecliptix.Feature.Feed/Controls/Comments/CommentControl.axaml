@@ -2,19 +2,18 @@
 			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-			 xmlns:i="using:Avalonia.Xaml.Interactivity"
-			 xmlns:ia="using:Avalonia.Xaml.Interactions"
 			 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
 			 xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
 			 xmlns:vm="clr-namespace:Ecliptix.Feature.Feed.ViewModels"
 			 xmlns:comments="clr-namespace:Ecliptix.Feature.Feed.Controls.Comments"
+			 xmlns:shared="clr-namespace:Ecliptix.Feature.Feed.Converters;assembly=Ecliptix.Core"
 			 xmlns:converters="clr-namespace:Ecliptix.Feature.Feed.Converters"
 			 x:Class="Ecliptix.Feature.Feed.Controls.Comments.CommentControl"
 			 x:DataType="vm:CommentViewModel">
 
 	<UserControl.Resources>
 		<ResourceDictionary>
-			<converters:InitialsConverter x:Key="InitialsConverter"/>
+			<shared:InitialsConverter x:Key="InitialsConverter"/>
 			<converters:LikeColorConverter x:Key="LikeColorConverter"/>
 			<converters:SaveColorConverter x:Key="SaveColorConverter"/>
 			<converters:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter"/>
@@ -158,7 +157,7 @@
 								Height="42"
 								Padding="3"
 								BorderThickness="1"
-								CornerRadius="8"								
+								CornerRadius="8"
 								BoxShadow ="0 4 12 0 #15000000">
 							<Button Content="Copy link"
 									HorizontalContentAlignment="Left"

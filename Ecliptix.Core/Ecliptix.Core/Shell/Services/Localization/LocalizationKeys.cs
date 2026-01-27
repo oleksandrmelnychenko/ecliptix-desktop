@@ -270,9 +270,16 @@ public static class LocalizationKeys
 
         public static class Profile
         {
-            public const string INVALID_NAME = "ValidationErrors.Profile.InvalidName";
-            public const string INVALID_DISPLAY_NAME = "ValidationErrors.Profile.InvalidDisplayName";
-            public const string INVALID_AGE = "ValidationErrors.Profile.InvalidAge";
+            public const string REQUIRED = "ValidationErrors.Profile.Required";
+            public const string REQUIRED_DISPLAY_NAME = "ValidationErrors.Display.Required";
+            public const string INVALID_LENGTH = "ValidationErrors.Profile.InvalidLength";
+            public const string INVALID_CHARACTERS = "ValidationErrors.Profile.InvalidChars";
+            public const string INVALID_START_END = "ValidationErrors.Profile.InvalidStartEnd";
+            public const string CONSECUTIVE_SEPARATORS = "ValidationErrors.Profile.ConsecutiveSeparators";
+            public const string RESERVED_WORD = "ValidationErrors.Profile.ReservedWord";
+            public const string DISPLAY_NAME_TOO_LONG = "ValidationErrors.Display.TooLong";
+            public const string INVALID_DISPLAY_CHARS = "ValidationErrors.Display.InvalidChars";
+            public const string NO_DOUBLE_SPACES = "ValidationErrors.Display.NoDoubleSpaces";
         }
     }
 
@@ -462,5 +469,17 @@ public static class LocalizationKeys
     {
         public const string TITLE = "LanguagePicker.Title";
         public const string SUBTITLE = "LanguagePicker.Subtitle";
+    }
+
+    public static class CountryPicker
+    {
+        public const string TITLE = "Authentication.CountryPicker.Title";
+        public const string SUBTITLE = "Authentication.CountryPicker.Subtitle";
+    }
+
+    public static class Countires
+    {
+        public const string US = "Countries.UnitedStates";
+        public const string UA = "Countries.Ukraine";
     }
 }

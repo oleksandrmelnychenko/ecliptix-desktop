@@ -36,7 +36,7 @@ namespace Ecliptix.Core.Shell.ViewModels;
 public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 {
     private readonly IBottomSheetService _bottomSheetService;
-    private readonly ISideSheetService _sideSheetService;
+    private readonly IGlobalModalService _globalModalService;
     private readonly IApplicationSecureStorageProvider _storageProvider;
     private readonly ILocalizationService _localizationService;
     private readonly IRpcMetaDataProvider _rpcMetaDataProvider;
@@ -81,7 +81,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     public event Action<PixelPoint>? OnWindowRepositionRequested;
 
     public MainWindowViewModel(
-        ISideSheetService sideSheetService,
+        IGlobalModalService globalModalService,
         IBottomSheetService bottomSheetService,
         ILocalizationService localizationService,
         IApplicationSecureStorageProvider storageProvider,
@@ -92,7 +92,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         MainWindowConfiguration configuration,
         ConnectivityNotificationViewModel connectivityNotification)
     {
-        _sideSheetService = sideSheetService;
+        _globalModalService = globalModalService;
         _bottomSheetService = bottomSheetService;
         _storageProvider = storageProvider;
         _localizationService = localizationService;
@@ -214,7 +214,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
             VerticalSeparatorViewModel separator = Track(_viewModelFactory.Create<VerticalSeparatorViewModel>());
             LanguageMenuButtonViewModel languageMenuButton = Track(_viewModelFactory.Create<LanguageMenuButtonViewModel>(
-                _sideSheetService,
+                _globalModalService,
                 _storageProvider,
                 _localizationService,
                 _rpcMetaDataProvider));
@@ -494,30 +494,6 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
         await Task.Delay(MainWindowConstants.TimeSpans.FadeDelay, cancellationToken).ConfigureAwait(false);
     }
-
-    public async Task ShowBottomSheetAsync(
-        object viewModel,
-        bool showScrim = true,
-        bool isDismissable = false) =>
-        await _bottomSheetService.ShowAsync(viewModel, showScrim, isDismissable).ConfigureAwait(false);
-
-    public async Task ShowSideSheetAsync(
-        object viewModel,
-        bool showScrim = true,
-        bool isDismissable = false) =>
-        await _sideSheetService.ShowAsync(viewModel, showScrim, isDismissable).ConfigureAwait(false);
-
-    public async Task HideBottomSheetAsync() =>
-        await _bottomSheetService.HideAsync().ConfigureAwait(false);
-
-    public async Task HideSideSheetAsync() =>
-        await _sideSheetService.HideAsync().ConfigureAwait(false);
-
-    public IDisposable OnBottomSheetHidden(Func<BottomSheetHiddenEvent, Task> handler, SubscriptionLifetime lifetime) =>
-        _bottomSheetService.OnBottomSheetHidden(handler, lifetime);
-
-    public IDisposable OnSideSheetHidden(Func<SideSheetHiddenEvent, Task> handler, SubscriptionLifetime lifetime) =>
-        _sideSheetService.OnSideSheetHidden(handler, lifetime);
 
     public async Task<WindowPlacement?> LoadInitialPlacementAsync()
     {

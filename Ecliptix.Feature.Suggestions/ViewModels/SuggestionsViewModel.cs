@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using Ecliptix.Core.MVVM;
 using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Core.Modularity.Suggestions;
+using Ecliptix.Core.Shared.Models;
 using Ecliptix.Core.Shell.Abstractions.Core;
 using Ecliptix.Feature.Feed.Domain.Models;
 using Ecliptix.Network.Infrastructure.Network.Core.Providers;
@@ -9,10 +10,19 @@ using ReactiveUI.Fody.Helpers;
 
 namespace Ecliptix.Feature.Suggestions.ViewModels;
 
-public sealed class SuggestionsViewModel : ViewModelBase, ISuggestionsViewModel
+public sealed class SuggestionsViewModel(
+    NetworkProvider networkProvider,
+    ILocalizationService localizationService,
+    IGlobalModalService globalModalService,
+    IConnectivityService? connectivityService = null)
+    : ViewModelBase(networkProvider, localizationService, globalModalService, connectivityService),
+        ISuggestionsViewModel
 {
-    [Reactive]
-    public ObservableCollection<Suggestion> TrendingItems { get; set; } =
+    [Reactive] public ObservableCollection<Suggestion> TrendingItems { get; set; } = GetData();
+
+    [Reactive] public ObservableCollection<Suggestion> Items { get; set; } = GetData();
+
+    private static ObservableCollection<Suggestion> GetData() =>
     [
         new()
         {
@@ -48,14 +58,4 @@ public sealed class SuggestionsViewModel : ViewModelBase, ISuggestionsViewModel
             IsFollowing = true
         }
     ];
-
-    public SuggestionsViewModel(
-        NetworkProvider networkProvider,
-        ILocalizationService localizationService,
-        IGlobalModalService globalModalService,
-        IConnectivityService? connectivityService = null)
-        : base(networkProvider, localizationService, globalModalService, connectivityService)
-    {
-
-    }
 }
