@@ -8,8 +8,6 @@ public interface IModuleMessage
 
     string? TargetModule { get; }
 
-    DateTime Timestamp { get; }
-
     string MessageType { get; }
 
     string? CorrelationId { get; }
@@ -20,7 +18,6 @@ public abstract record ModuleMessage : IModuleMessage
     public string MessageId { get; init; } = Guid.NewGuid().ToString();
     public string SourceModule { get; init; } = string.Empty;
     public string? TargetModule { get; init; }
-    public DateTime Timestamp { get; init; } = DateTime.UtcNow;
     public abstract string MessageType { get; }
     public string? CorrelationId { get; init; }
 }
