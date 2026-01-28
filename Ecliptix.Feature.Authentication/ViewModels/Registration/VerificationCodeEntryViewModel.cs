@@ -103,10 +103,18 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
         SendVerificationCodeCommand.ThrownExceptions
             .Subscribe(ex =>
             {
-                if (!_isDisposed)
+                if (_isDisposed)
                 {
-                    PublishError(ex.Message);
+                    return;
                 }
+
+                if (ex is OperationCanceledException or TaskCanceledException)
+                {
+                    Log.Debug("[VERIFY-OTP] SendVerificationCode was canceled. Ignoring UI notification.");
+                    return;
+                }
+
+                PublishError(ex.Message);
             })
             .DisposeWith(_disposables);
 
@@ -125,10 +133,18 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
         ResendSendVerificationCodeCommand.ThrownExceptions
             .Subscribe(ex =>
             {
-                if (!_isDisposed)
+                if (_isDisposed)
                 {
-                    PublishError(ex.Message);
+                    return;
                 }
+
+                if (ex is OperationCanceledException or TaskCanceledException)
+                {
+                    Log.Debug("[VERIFY-OTP] ResendVerificationCode was canceled. Ignoring UI notification.");
+                    return;
+                }
+
+                PublishError(ex.Message);
 
             })
             .DisposeWith(_disposables);
@@ -270,6 +286,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             return;
         }
 
+        Interlocked.Exchange(ref _autoRedirectVersion, 0);
         StartNewCountdownVersion();
         CancellationTokenSource? cancellationTokenSource = Interlocked.Exchange(ref _cancellationTokenSource, null);
         cancellationTokenSource?.Cancel();
@@ -362,14 +379,25 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
 
     private void HandleInitiateResult(Result<Ecliptix.Utilities.Unit, string> result)
     {
-        bool shouldSetError = result.IsErr
-                              && !_isDisposed
-                              && CurrentStatus != OtpCountdownStatus
-                                  .OtpCountdownStatusServerUnavailable;
+        if (result.IsOk)
+        {
+            return;
+        }
+
+        string error = result.UnwrapErr();
+
+        if (error.Contains("canceled", StringComparison.OrdinalIgnoreCase))
+        {
+            Log.Debug("[VERIFY-OTP] Initiate task was canceled.");
+            return;
+        }
+
+        bool shouldSetError = !_isDisposed
+                              && CurrentStatus != OtpCountdownStatus.OtpCountdownStatusServerUnavailable;
 
         if (shouldSetError)
         {
-            PublishError(result.UnwrapErr());
+            PublishError(error);
         }
     }
 
@@ -870,6 +898,11 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
 
     private uint HandleFailedStatus(string? error)
     {
+        if (_isDisposed)
+        {
+            return 0;
+        }
+
         Log.Information("[VERIFY-OTP] HandleFailedStatus: TRIGGERED - error={Error}, checking guards", error);
 
         // Skip if verification already succeeded (race condition protection)
