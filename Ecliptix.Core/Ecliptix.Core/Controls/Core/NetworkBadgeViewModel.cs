@@ -114,7 +114,7 @@ public sealed class NetworkBadgeViewModel : ReactiveObject, IDisposable
             return NetworkBadgeState.Connected;
         }
 
-        if (server == ConnectivityStatus.CONNECTING)
+        if (server == ConnectivityStatus.CONNECTING || server == ConnectivityStatus.DISCONNECTED)
         {
             return NetworkBadgeState.Disconnected;
         }

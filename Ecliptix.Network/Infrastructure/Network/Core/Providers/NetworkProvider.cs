@@ -105,9 +105,17 @@ public sealed partial class NetworkProvider(
             return Result<Option<EcliptixSessionState>, NetworkFailure>.Err(processResult.UnwrapErr());
         }
 
-        return await CreateAndPersistSessionStateAsync(
-            request,
-            handshakeInit);
+        Result<Option<EcliptixSessionState>, NetworkFailure> result =
+            await CreateAndPersistSessionStateAsync(
+                request,
+                handshakeInit);
+
+        if (result.IsOk)
+        {
+            PublishConnectedEvent(request.ConnectId);
+        }
+
+        return result;
     }
 
     private void PublishConnectingEventIfNeeded(PubKeyExchangeType exchangeType, uint connectId)
@@ -128,6 +136,21 @@ public sealed partial class NetworkProvider(
                     }
                 },
                 TaskScheduler.Default);
+        });
+    }
+
+    private void PublishConnectedEvent(uint connectId)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            _services.ConnectivityService.PublishAsync(ConnectivityIntent.Connected(connectId))
+                .ContinueWith(t =>
+                {
+                    if (t.IsFaulted)
+                    {
+                        Log.Error(t.Exception, "[NETWORK-PROVIDER] Failed to publish Connected event");
+                    }
+                }, TaskScheduler.Default);
         });
     }
 

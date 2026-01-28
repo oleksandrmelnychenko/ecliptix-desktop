@@ -10,7 +10,7 @@ namespace Ecliptix.Network.Infrastructure.Network.Core.Connectivity;
 public sealed class InternetConnectivityObserver : IInternetConnectivityObserver
 {
     public const string HTTP_CLIENT_NAME = "InternetConnectivityProbeClient";
-    private const int NETWORK_CHANGE_THROTTLE_MS = 500;
+    private const int NETWORK_CHANGE_THROTTLE_MS = 400;
     private const int FAILURE_POLLING_SECONDS = 1;
 
     private readonly IHttpClientFactory _httpClientFactory;
@@ -39,13 +39,20 @@ public sealed class InternetConnectivityObserver : IInternetConnectivityObserver
 
         BehaviorSubject<TimeSpan> pollingIntervalSubject = new(currentOptions.PollingInterval);
 
-        IObservable<Unit> networkChangeObservable = Observable
-            .FromEvent<NetworkAddressChangedEventHandler, EventPattern<EventArgs>>(
-                handler => (sender, e) => handler(new EventPattern<EventArgs>(sender, e)),
-                h => NetworkChange.NetworkAddressChanged += h,
-                h => NetworkChange.NetworkAddressChanged -= h)
-            .Throttle(TimeSpan.FromMilliseconds(NETWORK_CHANGE_THROTTLE_MS))
-            .Select(_ => Unit.Default);
+        IObservable<Unit> networkChangeObservable = Observable.Merge(
+                Observable.FromEvent<NetworkAddressChangedEventHandler, EventPattern<EventArgs>>(
+                        handler => (sender, e) => handler(new EventPattern<EventArgs>(sender, e)),
+                        h => NetworkChange.NetworkAddressChanged += h,
+                        h => NetworkChange.NetworkAddressChanged -= h)
+                    .Select(_ => Unit.Default),
+
+                Observable.FromEvent<NetworkAvailabilityChangedEventHandler, EventPattern<NetworkAvailabilityEventArgs>>(
+                        handler => (sender, e) => handler(new EventPattern<NetworkAvailabilityEventArgs>(sender, e)),
+                        h => NetworkChange.NetworkAvailabilityChanged += h,
+                        h => NetworkChange.NetworkAvailabilityChanged -= h)
+                    .Select(_ => Unit.Default)
+            )
+            .Throttle(TimeSpan.FromSeconds(NETWORK_CHANGE_THROTTLE_MS));
 
         IObservable<bool> probeObservable = pollingIntervalSubject
             .DistinctUntilChanged()

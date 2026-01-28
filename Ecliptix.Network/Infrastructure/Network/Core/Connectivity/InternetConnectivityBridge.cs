@@ -1,6 +1,8 @@
+using System.Reactive.Linq;
 using Ecliptix.Core.Messaging.Core.Messaging.Connectivity;
 using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Network.Infrastructure.Network.Abstractions.Core;
+using Serilog;
 
 namespace Ecliptix.Network.Infrastructure.Network.Core.Connectivity;
 
@@ -13,28 +15,27 @@ public sealed class InternetConnectivityBridge : IDisposable
         IInternetConnectivityObserver connectivityObserver,
         IConnectivityService connectivityService)
     {
-        IConnectivityService connectivityService1 = connectivityService;
-
-        _subscription = connectivityObserver.Subscribe(async void (isOnline) =>
-        {
-            try
+        _subscription = connectivityObserver
+            .Select(isOnline => isOnline
+                ? ConnectivityIntent.InternetRecovered()
+                : ConnectivityIntent.InternetLost())
+            .Do(intent =>
             {
-                if (_disposed)
+                Log.Information(
+                    "[InternetConnectivityBridge] Processing intent: Status={Status}, Source={Source}",
+                    intent.Status,
+                    intent.Source);
+            })
+            .Select(intent => Observable.FromAsync(ct => connectivityService.PublishAsync(intent, ct)))
+            .Concat()
+            .Retry()
+            .Subscribe(
+                onNext: _ => { },
+                onError: ex =>
                 {
-                    return;
-                }
-
-                ConnectivityIntent intent = isOnline
-                    ? ConnectivityIntent.InternetRecovered()
-                    : ConnectivityIntent.InternetLost();
-
-                await connectivityService1.PublishAsync(intent).ConfigureAwait(false);
-            }
-            catch
-            {
-
-            }
-        });
+                    Log.Debug("[InternetConnectivityBridge] Error publishing connectivity intent: {Error}",
+                            ex.Message);
+                });
     }
 
     public void Dispose()
