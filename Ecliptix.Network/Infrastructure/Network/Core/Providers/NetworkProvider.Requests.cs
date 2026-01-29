@@ -7,6 +7,7 @@ using Ecliptix.Network.Services.Network.Rpc;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
+using Grpc.Core;
 using Serilog;
 
 namespace Ecliptix.Network.Infrastructure.Network.Core.Providers;
@@ -172,6 +173,12 @@ public sealed partial class NetworkProvider
                     NetworkFailure.DataCenterNotResponding(
                         "Request cancelled due to network timeout or connection failure"));
             }
+            catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
+            {
+                return Result<Unit, NetworkFailure>.Err(
+                    NetworkFailure.OperationCancelled("Request cancelled via gRPC protocol"));
+            }
+
             catch (Exception ex)
             {
                 return Result<Unit, NetworkFailure>.Err(NetworkFailure.DataCenterNotResponding(ex.Message));

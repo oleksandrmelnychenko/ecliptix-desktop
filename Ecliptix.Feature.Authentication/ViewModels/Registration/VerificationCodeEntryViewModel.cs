@@ -386,7 +386,8 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
 
         string error = result.UnwrapErr();
 
-        if (error.Contains("canceled", StringComparison.OrdinalIgnoreCase))
+        if (error.Contains("canceled", StringComparison.OrdinalIgnoreCase)
+            || error.Contains("cancelled", StringComparison.OrdinalIgnoreCase))
         {
             Log.Debug("[VERIFY-OTP] Initiate task was canceled.");
             return;
@@ -692,6 +693,13 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
                 return;
             }
 
+            if (error.Contains("canceled", StringComparison.OrdinalIgnoreCase) ||
+                error.Contains("cancelled", StringComparison.OrdinalIgnoreCase))
+            {
+                Log.Debug("[VERIFY-OTP] Resend cancelled explicitly (noise). Suppressing UI error.");
+                return; // Просто виходимо, не показуємо червону плашку
+            }
+
             if (IsServerUnavailableError(error))
             {
                 PublishError(error);
@@ -709,7 +717,7 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
             }
             else
             {
-                PublishError(error);
+                Log.Debug("[VERIFY-OTP] Unhandled Error: {Error}", error);
                 SecondsRemaining = 0;
                 CurrentStatus = OtpCountdownStatus.OtpCountdownStatusExpired;
             }
