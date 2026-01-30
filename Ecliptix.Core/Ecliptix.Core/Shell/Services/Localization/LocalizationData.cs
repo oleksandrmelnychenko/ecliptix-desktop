@@ -99,6 +99,7 @@ public static class LocalizationData
         [LocalizationKeys.Authentication.SignIn.SECURE_KEY_HINT] = "Stored only on this device",
         [LocalizationKeys.Authentication.SignIn.ACCOUNT_RECOVERY] = "Forgot key?",
         [LocalizationKeys.Authentication.SignIn.CONTINUE] = "Continue",
+        [LocalizationKeys.Authentication.SignIn.RATE_LIMIT_EXCEEDED] = "Sign in attempts exceeded. Please try again later.",
         [LocalizationKeys.MobileVerificationStatus.Error.MOBILE_ALREADY_REGISTERED] =
             "A problem occurred with your registration. If you already have an account, please try logging in or use the account recovery option.",
         [LocalizationKeys.MobileVerificationStatus.AVAILABLE_FOR_REGISTRATION] =
@@ -167,7 +168,7 @@ public static class LocalizationData
         [LocalizationKeys.ValidationErrors.SecureKey.REPEATED_CHARS] = "No repeats (e.g., aaa, 111)",
         [LocalizationKeys.ValidationErrors.SecureKey.LACKS_DIVERSITY] = "Requires {0} character types (A, a, 1, $)",
         [LocalizationKeys.ValidationErrors.SecureKey.CONTAINS_APP_NAME] = "Cannot contain app name",
-        [LocalizationKeys.ValidationErrors.SecureKey.INVALID_CREDENTIALS] = "Invalid credentials",
+        [LocalizationKeys.ValidationErrors.SecureKey.INVALID_CREDENTIALS] = "Invalid mobile number or password",
         [LocalizationKeys.ValidationErrors.SecureKey.NON_ENGLISH_LETTERS] = "Latin letters only",
         [LocalizationKeys.ValidationErrors.SecureKey.NO_SPECIAL_CHAR] = "Requires a special character",
         [LocalizationKeys.ValidationErrors.VerifySecureKey.DOES_NOT_MATCH] = "Secure keys do not match",
@@ -373,6 +374,7 @@ public static class LocalizationData
         [LocalizationKeys.Authentication.SignIn.SECURE_KEY_HINT] = "Зберігається лише на цьому пристрої",
         [LocalizationKeys.Authentication.SignIn.ACCOUNT_RECOVERY] = "Забули ключ?",
         [LocalizationKeys.Authentication.SignIn.CONTINUE] = "Продовжити",
+        [LocalizationKeys.Authentication.SignIn.RATE_LIMIT_EXCEEDED] = "Перевищено кількість спроб входу. Спробуйте пізніше.",
         [LocalizationKeys.MobileVerificationStatus.Error.MOBILE_ALREADY_REGISTERED] =
             "Під час реєстрації сталася помилка. Якщо у вас вже є акаунт, будь ласка, спробуйте увійти або скористайтеся опцією відновлення доступу.",
         [LocalizationKeys.MobileVerificationStatus.AVAILABLE_FOR_REGISTRATION] = "Цей номер доступний для реєстрації.",
@@ -442,7 +444,7 @@ public static class LocalizationData
         [LocalizationKeys.ValidationErrors.SecureKey.REPEATED_CHARS] = "Без повторів (aaa, 111)",
         [LocalizationKeys.ValidationErrors.SecureKey.LACKS_DIVERSITY] = "Потрібно {0} типи символів (A, a, 1, $)",
         [LocalizationKeys.ValidationErrors.SecureKey.CONTAINS_APP_NAME] = "Не може містити назву додатку",
-        [LocalizationKeys.ValidationErrors.SecureKey.INVALID_CREDENTIALS] = "Неправильні облікові дані",
+        [LocalizationKeys.ValidationErrors.SecureKey.INVALID_CREDENTIALS] = "Неправильний номер телефону або пароль",
         [LocalizationKeys.ValidationErrors.SecureKey.NON_ENGLISH_LETTERS] = "Лише латинські літери",
         [LocalizationKeys.ValidationErrors.SecureKey.NO_SPECIAL_CHAR] = "Потрібен спеціальний символ",
         [LocalizationKeys.ValidationErrors.VerifySecureKey.DOES_NOT_MATCH] = "Ключі безпеки не збігаються",

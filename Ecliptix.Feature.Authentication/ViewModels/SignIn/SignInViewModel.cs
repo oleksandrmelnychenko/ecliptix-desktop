@@ -8,9 +8,11 @@ using System.Threading.Tasks;
 using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Messaging.Core.Messaging.Services;
 using Ecliptix.Core.Modularity;
+using Ecliptix.Core.Modularity.Authentication;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.Settings.Constants;
 using Ecliptix.Core.Shell.Abstractions.Core;
+using Ecliptix.Core.Shell.Services.Localization;
 using Ecliptix.Feature.Authentication.Domain.Abstractions;
 using Ecliptix.Feature.Authentication.Services.Authentication;
 using Ecliptix.Feature.Authentication.Services.Membership.Constants;
@@ -325,10 +327,9 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
             .Subscribe(error =>
             {
                 _hasSecureKeyBeenTouched = true;
-
-                _signInErrorSubject.OnNext(error.Message);
-
-                ServerError = error.Message;
+                Log.Debug("[SIGN-IN] Sign-in failed: {ErrorType} - {ErrorMessage}",
+                    error.FailureType, error.Message);
+                HandleSignInFailure(error);
             })
             .DisposeWith(_disposables);
 
@@ -362,6 +363,87 @@ public sealed partial class SignInViewModel : Core.MVVM.ViewModelBase, IRoutable
                 })
                 .DisposeWith(_disposables);
         }
+    }
+
+    private void HandleSignInFailure(AuthenticationFailure error)
+    {
+        if (IsRateLimitError(error))
+        {
+            Log.Warning("[SIGN-IN] Rate limit exceeded. Starting auto-redirect.");
+
+            ServerError = error.Message;
+
+            StartAutoRedirectAsync(10, MembershipViewType.WELCOME_VIEW, error.Message).ContinueWith(
+                task =>
+                {
+                    if (task is { IsFaulted: true, Exception: not null })
+                    {
+                        Log.Error(task.Exception, "[SIGN-IN] Unhandled exception in auto-redirect");
+                    }
+                },
+                TaskScheduler.Default);
+        }
+        else
+        {
+            _signInErrorSubject.OnNext(error.Message);
+            ServerError = error.Message;
+        }
+    }
+
+    private bool IsRateLimitError(AuthenticationFailure error)
+    {
+        if (error.FailureType == AuthenticationFailureType.LOGIN_ATTEMPT_EXCEEDED)
+        {
+            return true;
+        }
+
+        if (string.IsNullOrEmpty(error.Message))
+        {
+            return false;
+        }
+
+        string localizedRateLimit = LocalizationService[LocalizationKeys.Verification.Error.GLOBAL_RATE_LIMIT_EXCEEDED];
+
+        return (!string.IsNullOrEmpty(localizedRateLimit) &&
+                error.Message.Contains(localizedRateLimit, StringComparison.OrdinalIgnoreCase))
+               || error.Message.Contains("too many", StringComparison.OrdinalIgnoreCase)
+               || error.Message.Contains("rate limit", StringComparison.OrdinalIgnoreCase)
+               || error.Message.Contains("locked", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task StartAutoRedirectAsync(int seconds, MembershipViewType targetView, string message)
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        string title = LocalizationService[LocalizationKeys.Verification.Redirect.Title.MAX_ATTEMPTS];
+        string subtitle = LocalizationService[LocalizationKeys.Verification.Redirect.Subtitle.SECURITY_LIMIT];
+
+        if (string.IsNullOrEmpty(title) || title.StartsWith("!"))
+        {
+            title = "Security Limit Reached";
+        }
+
+        if (string.IsNullOrEmpty(subtitle) || subtitle.StartsWith("!"))
+        {
+            subtitle = "Too many failed attempts. Returning to start.";
+        }
+
+        await StartAutoRedirectSequenceAsync(
+            HostScreen,
+            message,
+            seconds,
+            (hostViewModel) =>
+            {
+                CancelSignInOperation();
+                hostViewModel.ClearNavigationStack();
+                hostViewModel.Navigate.Execute(targetView).Subscribe();
+            },
+            title,
+            subtitle
+        );
     }
 
     private void AttemptAutoSwitchCountry()

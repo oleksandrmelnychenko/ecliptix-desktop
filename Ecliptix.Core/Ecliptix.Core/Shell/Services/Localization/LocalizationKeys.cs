@@ -130,6 +130,7 @@ public static class LocalizationKeys
             public const string SECURE_KEY_HINT = "Authentication.SignIn.SecureKeyHint";
             public const string ACCOUNT_RECOVERY = "Authentication.SignIn.AccountRecovery";
             public const string CONTINUE = "Authentication.SignIn.Continue";
+            public const string RATE_LIMIT_EXCEEDED = "Authentication.SignIn.RateLimitExceeded";
         }
     }
 
