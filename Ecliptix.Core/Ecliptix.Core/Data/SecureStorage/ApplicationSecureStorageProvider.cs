@@ -131,6 +131,22 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         return await StoreSettingsAsync(settings);
     }
 
+   public async Task<Result<Unit, InternalServiceApiFailure>> SetRegistrationMobileNumber(string mobileNumber)
+    {
+        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
+            await GetApplicationInstanceSettingsAsync();
+        if (settingsResult.IsErr)
+        {
+            return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
+        }
+
+        ApplicationInstanceSettings settings = settingsResult.Unwrap();
+
+        settings.RegistrationMobileNumber = mobileNumber;
+
+        return await StoreSettingsAsync(settings);
+    }
+
     public async Task<Result<Unit, InternalServiceApiFailure>> SetWindowPlacementAsync(WindowPlacement windowPlacement)
     {
         try

@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Ecliptix.Core.Settings;
+using Ecliptix.Core.Shell.Services.Core;
 
 namespace Ecliptix.Core.Shell.Abstractions.Core;
 
@@ -13,5 +14,5 @@ public enum ApplicationInitializationResult
 
 public interface IApplicationInitializer
 {
-    Task<ApplicationInitializationResult> InitializeAsync(DefaultSystemSettings defaultSystemSettings);
+    Task<InitializationOutcome> InitializeAsync(DefaultSystemSettings defaultSystemSettings);
 }

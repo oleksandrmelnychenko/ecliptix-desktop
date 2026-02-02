@@ -13,10 +13,17 @@ public sealed partial class SecureKeyConfirmationViewModel
     public void ResetState()
     {
         Log.Information("[SECURE-KEY-VM] ResetState: Called, stack trace follows");
-        Log.Information("[SECURE-KEY-VM] ResetState: {StackTrace}", Environment.StackTrace);
 
-        _secureKeyBuffer.Remove(0, _secureKeyBuffer.Length);
-        _verifySecureKeyBuffer.Remove(0, _verifySecureKeyBuffer.Length);
+        if (_secureKeyBuffer.Length > 0)
+        {
+            _secureKeyBuffer.Remove(0, _secureKeyBuffer.Length);
+        }
+
+        if (_verifySecureKeyBuffer.Length > 0)
+        {
+            _verifySecureKeyBuffer.Remove(0, _verifySecureKeyBuffer.Length);
+        }
+
         _hasSecureKeyBeenTouched = false;
         _hasVerifySecureKeyBeenTouched = false;
 
@@ -30,8 +37,6 @@ public sealed partial class SecureKeyConfirmationViewModel
 
         IsMembershipLoading = true;
         MembershipUniqueId = null;
-
-        SetServerError(string.Empty);
     }
 
     private async Task<Result<Unit, InternalServiceApiFailure>> LoadMembershipAsync()

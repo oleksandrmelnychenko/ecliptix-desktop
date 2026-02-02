@@ -4,6 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Feature.Authentication.Services.Authentication.Constants;
 using Ecliptix.Feature.Authentication.ViewModels.Hosts;
+using Ecliptix.Network.Services.Common;
+using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Authentication;
@@ -50,7 +52,27 @@ public sealed partial class SecureKeyConfirmationViewModel
 
                 if (_flowContext == AuthenticationFlowContext.REGISTRATION)
                 {
-                    Option<string> mobileNumberOpt = Option<string>.Some(hostViewModel.RegistrationMobileNumber!);
+                    string? memoryNumber = hostViewModel.RegistrationMobileNumber;
+                    Option<string> mobileNumberOpt = string.IsNullOrEmpty(memoryNumber)
+                        ? Option<string>.None
+                        : Option<string>.Some(memoryNumber);
+
+                    if (!mobileNumberOpt.IsSome)
+                    {
+                        Result<ApplicationInstanceSettings, InternalServiceApiFailure> storageResult =
+                            await _applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync();
+
+                        if (storageResult.IsOk)
+                        {
+                            string storedNumber = storageResult.Unwrap().RegistrationMobileNumber;
+
+                            if (!string.IsNullOrEmpty(storedNumber))
+                            {
+                                hostViewModel.RegistrationMobileNumber = storedNumber;
+                                mobileNumberOpt = Option<string>.Some(storedNumber);
+                            }
+                        }
+                    }
 
                     if (mobileNumberOpt.IsSome)
                     {
@@ -58,8 +80,17 @@ public sealed partial class SecureKeyConfirmationViewModel
 
                         if (signedIn)
                         {
+                            await _applicationSecureStorageProvider.SetRegistrationMobileNumber(string.Empty);
+
                             hostViewModel.Navigate.Execute(MembershipViewType.COMPLETE_PROFILE_VIEW).Subscribe();
                         }
+                    }
+                    else
+                    {
+                        string errorMsg = LocalizationService[AuthenticationConstants.NO_VERIFICATION_SESSION_KEY]
+                                          ?? "Session data missing. Please restart registration.";
+                        SetServerError(errorMsg);
+                        //TODO imposible case, redirect
                     }
 
                     return SystemU.Default;

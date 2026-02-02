@@ -76,14 +76,17 @@ public sealed class ApplicationRouter(
         _ = moduleManager.UnloadModuleAsync(AuthModuleName);
     }
 
-    public async Task TransitionFromSplashAsync(Window splashWindow, bool isAuthenticated)
+    public async Task TransitionFromSplashAsync(
+        Window splashWindow,
+        StartupLaunchMode launchMode,
+        Ecliptix.Protobuf.Membership.Membership.Types.CreationStatus creationStatus)
     {
         MainWindow mainWindow = await Dispatcher.UIThread.InvokeAsync(() => new MainWindow
         {
             DataContext = mainWindowViewModel
         });
 
-        if (isAuthenticated)
+        if (launchMode == StartupLaunchMode.Authenticated)
         {
             IModule mainModule = await LoadModuleOrThrowAsync(
                 ModuleIdentifier.MAIN,
@@ -101,11 +104,16 @@ public sealed class ApplicationRouter(
                 ModuleIdentifier.AUTHENTICATION,
                 ApplicationErrorMessages.ApplicationRouter.FAILED_TO_LOAD_AUTH_MODULE_FROM_SPLASH).ConfigureAwait(false);
 
-            IAuthenticationHost membershipViewModel = GetRequiredServiceOrThrow<IAuthenticationHost>(
+            IAuthenticationHost authHost = GetRequiredServiceOrThrow<IAuthenticationHost>(
                 authModule.ServiceScope!.ServiceProvider,
                 ApplicationErrorMessages.ApplicationRouter.FAILED_TO_CREATE_MEMBERSHIP_VIEW_MODEL);
 
-            await mainWindowViewModel.SetAuthenticationContentAsync(membershipViewModel).ConfigureAwait(false);
+            if (launchMode == StartupLaunchMode.WelcomeBack)
+            {
+                await authHost.NavigateToResumeAsync(creationStatus).ConfigureAwait(false);
+            }
+
+            await mainWindowViewModel.SetAuthenticationContentAsync(authHost).ConfigureAwait(false);
         }
 
         await PrepareAndShowWindowAsync(mainWindow).ConfigureAwait(false);

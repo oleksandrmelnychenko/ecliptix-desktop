@@ -11,6 +11,7 @@ using Ecliptix.Network.Infrastructure.Data.Abstractions;
 using Ecliptix.Network.Infrastructure.Network.Core.Providers;
 using Ecliptix.Network.Services.Common;
 using Ecliptix.Protobuf.Common;
+using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
@@ -26,6 +27,8 @@ public sealed class WelcomeBackViewModel : ViewModelBase, IRoutableViewModel, IR
     private readonly CompositeDisposable _disposables = new();
     private readonly IApplicationSecureStorageProvider _storageProvider;
     private readonly IGlobalModalService _globalModalService;
+    private Membership.Types.CreationStatus _resumeStatus =
+        Protobuf.Membership.Membership.Types.CreationStatus.Unspecified;
 
     public WelcomeBackViewModel(
         IScreen hostScreen,
@@ -63,6 +66,12 @@ public sealed class WelcomeBackViewModel : ViewModelBase, IRoutableViewModel, IR
                 Log.Error(ex, "[WELCOME-BACK] Failed to close modals during reset");
             }
         });
+    }
+
+    public void SetupResumeState(Membership.Types.CreationStatus status)
+    {
+        _resumeStatus = status;
+        Log.Information("[WELCOME-BACK] Resume state setup with status: {Status}", status);
     }
 
     private void InitializeCommands()
@@ -106,7 +115,18 @@ public sealed class WelcomeBackViewModel : ViewModelBase, IRoutableViewModel, IR
         if (hasValidMembership)
         {
             hostWindow.CurrentFlowContext = AuthenticationFlowContext.REGISTRATION;
-            hostWindow.Navigate.Execute(MembershipViewType.SECURE_KEY_CONFIRMATION_VIEW).Subscribe();
+
+            MembershipViewType targetView = _resumeStatus switch
+            {
+                Protobuf.Membership.Membership.Types.CreationStatus.OtpVerified => MembershipViewType.SECURE_KEY_CONFIRMATION_VIEW,
+
+                Protobuf.Membership.Membership.Types.CreationStatus.SecureKeySet => MembershipViewType.COMPLETE_PROFILE_VIEW,
+
+                _ => MembershipViewType.SECURE_KEY_CONFIRMATION_VIEW
+            };
+
+            Log.Information("[WELCOME-BACK] Continuing registration to view: {TargetView}", targetView);
+            hostWindow.Navigate.Execute(targetView).Subscribe();
         }
         else
         {

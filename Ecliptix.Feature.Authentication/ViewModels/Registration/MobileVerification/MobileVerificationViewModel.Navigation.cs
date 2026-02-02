@@ -42,6 +42,7 @@ public sealed partial class MobileVerificationViewModel
         if (_flowContext == AuthenticationFlowContext.REGISTRATION)
         {
             hostWindow.RegistrationMobileNumber = fullNumber;
+            _applicationSecureStorageProvider.SetRegistrationMobileNumber(fullNumber);
         }
         else
         {

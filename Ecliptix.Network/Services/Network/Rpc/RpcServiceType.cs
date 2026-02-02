@@ -12,6 +12,7 @@ public enum RpcServiceType : short
     ValidateMobileNumber,
     ValidateMobileForRecovery,
     CheckMobileNumberAvailability,
+    GetMembershipState,
 
     InitiateVerification,
     VerifyOtp,

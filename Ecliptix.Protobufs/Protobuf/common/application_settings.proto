@@ -14,6 +14,7 @@ message ApplicationInstanceSettings {
   bool is_new_instance = 6;
   WindowPlacement window_placement = 7;
   ecliptix.proto.membership.Membership membership = 8;
+  string registration_mobile_number = 9;
 }
 
 message WindowPlacement {

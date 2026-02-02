@@ -12,4 +12,6 @@ public interface IAuthenticationHost : IScreen
     ReactiveCommand<Unit, IRoutableViewModel?> NavigateBack { get; }
 
     void ClearNavigationStack(bool preserveInitialWelcome = false, MembershipViewType? preserveViewType = null);
+
+    Task NavigateToResumeAsync(Ecliptix.Protobuf.Membership.Membership.Types.CreationStatus status);
 }

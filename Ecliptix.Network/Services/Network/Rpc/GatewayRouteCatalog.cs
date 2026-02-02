@@ -17,6 +17,7 @@ internal static class GatewayRouteCatalog
         { RpcServiceType.CheckMobileNumberAvailability, new GatewayRoute(EventContext.IdentityAccess, TransportEventType.IdentityMobileNumberAvailability, DeliveryKind.Unary) },
         { RpcServiceType.InitiateVerification, new GatewayRoute(EventContext.IdentityAccess, TransportEventType.IdentityOtpInitiate, DeliveryKind.ServerStream) },
         { RpcServiceType.VerifyOtp, new GatewayRoute(EventContext.IdentityAccess, TransportEventType.IdentityOtpVerify, DeliveryKind.Unary) },
+        { RpcServiceType.GetMembershipState, new GatewayRoute(EventContext.IdentityAccess, TransportEventType.IdentityMembershipStatus, DeliveryKind.Unary)},
 
         { RpcServiceType.RegistrationInit, new GatewayRoute(EventContext.IdentityAccess, TransportEventType.IdentityOpaqueRegistrationInit, DeliveryKind.Unary) },
         { RpcServiceType.RegistrationComplete, new GatewayRoute(EventContext.IdentityAccess, TransportEventType.IdentityOpaqueRegistrationComplete, DeliveryKind.Unary) },

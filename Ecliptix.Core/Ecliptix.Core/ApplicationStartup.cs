@@ -4,6 +4,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Ecliptix.Core.Modularity.Splash;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.Shell.Abstractions.Core;
+using Ecliptix.Core.Shell.Services.Core;
 using Ecliptix.Network.Infrastructure.Network.Core.Connectivity;
 using Splat;
 
@@ -30,13 +31,14 @@ public class ApplicationStartup(
 
         await _splashHost.IsSubscribedAsync;
 
-        ApplicationInitializationResult initResult = await initializer.InitializeAsync(defaultSystemSettings);
+        InitializationOutcome outcome = await initializer.InitializeAsync(defaultSystemSettings);
 
-        if (initResult == ApplicationInitializationResult.SUCCESS)
+        if (outcome.Result == ApplicationInitializationResult.SUCCESS)
         {
-            bool isAuthenticated = stateManager.CurrentState == ApplicationState.AUTHENTICATED;
-
-            await router.TransitionFromSplashAsync(splashScreen, isAuthenticated);
+            await router.TransitionFromSplashAsync(
+                splashScreen,
+                outcome.LaunchMode,
+                outcome.CreationStatus);
 
             _splashHost?.Dispose();
             _splashHost = null;

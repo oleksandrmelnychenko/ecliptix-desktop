@@ -21,6 +21,7 @@ using Ecliptix.Network.Services.Network.Rpc;
 using Ecliptix.Protected.Protocol.Sodium;
 using Ecliptix.Protected.Protocol.Utilities;
 using Ecliptix.Protobuf.Common;
+using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.SecureProtocol;
 using Ecliptix.Protobuf.Transport.DeviceProvisioning;
@@ -31,6 +32,25 @@ using Google.Protobuf;
 using Serilog;
 
 namespace Ecliptix.Core.Shell.Services.Core;
+
+public enum StartupLaunchMode
+{
+    Welcome,
+    WelcomeBack,
+    Authenticated
+}
+
+public readonly record struct InitializationOutcome(
+    ApplicationInitializationResult Result,
+    StartupLaunchMode LaunchMode,
+    Protobuf.Membership.Membership.Types.CreationStatus CreationStatus = Protobuf.Membership.Membership.Types.CreationStatus.Unspecified )
+{
+    public static InitializationOutcome Success(StartupLaunchMode mode, Protobuf.Membership.Membership.Types.CreationStatus status = Protobuf.Membership.Membership.Types.CreationStatus.Unspecified) =>
+        new(ApplicationInitializationResult.SUCCESS, mode, status);
+
+    public static InitializationOutcome Failure(ApplicationInitializationResult error) =>
+        new(error, StartupLaunchMode.Welcome);
+}
 
 public sealed class ApplicationInitializer(
     NetworkProvider networkProvider,
@@ -47,7 +67,7 @@ public sealed class ApplicationInitializer(
         networkProvider,
         new PendingLogoutRequestStorage(applicationSecureStorageProvider));
 
-    public async Task<ApplicationInitializationResult> InitializeAsync(DefaultSystemSettings defaultSystemSettings)
+    public async Task<InitializationOutcome> InitializeAsync(DefaultSystemSettings defaultSystemSettings)
     {
         Result<InstanceSettingsResult, InternalServiceApiFailure> settingsResult =
             await applicationSecureStorageProvider.InitApplicationInstanceSettingsAsync(defaultSystemSettings.Culture)
@@ -55,7 +75,7 @@ public sealed class ApplicationInitializer(
 
         if (settingsResult.IsErr)
         {
-            return ApplicationInitializationResult.SETTINGS_INITIALIZATION_FAILED;
+            return InitializationOutcome.Failure(ApplicationInitializationResult.SETTINGS_INITIALIZATION_FAILED);
         }
 
         (ApplicationInstanceSettings settings, bool isNewInstance) = settingsResult.Unwrap();
@@ -104,7 +124,7 @@ public sealed class ApplicationInitializer(
                     failure.FailureType,
                     failure.Message);
             }
-            return ApplicationInitializationResult.SECRECY_CHANNEL_FAILED;
+            return InitializationOutcome.Failure(ApplicationInitializationResult.SECRECY_CHANNEL_FAILED);
         }
 
         uint connectId = connectIdResult.Unwrap();
@@ -113,12 +133,108 @@ public sealed class ApplicationInitializer(
             await RegisterDeviceAsync(connectId, settings).ConfigureAwait(false);
         if (registrationResult.IsErr)
         {
-            return ApplicationInitializationResult.DEVICE_REGISTRATION_FAILED;
+            return InitializationOutcome.Failure(ApplicationInitializationResult.DEVICE_REGISTRATION_FAILED);
         }
 
         await ProcessPendingLogoutRequestsAsync(connectId).ConfigureAwait(false);
 
-        return ApplicationInitializationResult.SUCCESS;
+        StartupLaunchMode launchMode = StartupLaunchMode.Welcome;
+        Protobuf.Membership.Membership.Types.CreationStatus creationStatus =
+            Protobuf.Membership.Membership.Types.CreationStatus.Unspecified;
+
+        if (settings.Membership != null && !settings.Membership.MembershipId.IsEmpty)
+        {
+            (launchMode, creationStatus) = await CheckAndProcessMembershipStateAsync(connectId, settings)
+                .ConfigureAwait(false);
+        }
+
+        return InitializationOutcome.Success(launchMode, creationStatus);
+    }
+   private async Task<(StartupLaunchMode, Protobuf.Membership.Membership.Types.CreationStatus)> CheckAndProcessMembershipStateAsync(
+        uint connectId,
+        ApplicationInstanceSettings settings)
+    {
+        StartupLaunchMode resultMode = StartupLaunchMode.Welcome;
+        Protobuf.Membership.Membership.Types.CreationStatus resultStatus =
+            Protobuf.Membership.Membership.Types.CreationStatus.Unspecified;
+
+        try
+        {
+            GetMembershipStateRequest request = new()
+            {
+                MembershipId = settings.Membership.MembershipId,
+                DeviceId = settings.DeviceId
+            };
+
+            Result<Unit, NetworkFailure> rpcResult = await networkProvider.ExecuteUnaryRequestAsync(
+                connectId,
+                RpcServiceType.GetMembershipState,
+                SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()),
+
+                async decryptedPayload =>
+                {
+                    GetMembershipStateResponse response = Helpers.ParseFromBytes<GetMembershipStateResponse>(decryptedPayload);
+
+                    if (!response.CanContinue)
+                    {
+                        await ClearLocalMembershipStateAsync(settings).ConfigureAwait(false);
+
+                        resultMode = StartupLaunchMode.Welcome;
+                        resultStatus = Protobuf.Membership.Membership.Types.CreationStatus.Unspecified;
+
+                        return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+                    }
+
+                    if (response.CreationStatus == Protobuf.Membership.Membership.Types.CreationStatus.OtpVerified ||
+                        response.CreationStatus == Protobuf.Membership.Membership.Types.CreationStatus.SecureKeySet)
+                    {
+                        resultMode = StartupLaunchMode.WelcomeBack;
+                        resultStatus = response.CreationStatus;
+
+                        return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+                    }
+
+                    //TODO currently considering profile set the last step of registration
+                    if (response.CreationStatus == Protobuf.Membership.Membership.Types.CreationStatus.ProfileSet ||
+                        response.Status == MobileNumberAvailabilityStatus.MobileNumberAvailabilityTakenActive)
+                    {
+                        resultMode = StartupLaunchMode.Authenticated;
+                        resultStatus = response.CreationStatus;
+
+                        return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+                    }
+
+                    return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+                },
+                allowDuplicates: false,
+                token: CancellationToken.None).ConfigureAwait(false);
+
+            if (rpcResult.IsErr)
+            {
+                Log.Warning("[APPLICATION-INITIALIZER] Failed to get membership state. Error: {Error}", rpcResult.UnwrapErr().Message);
+                return (StartupLaunchMode.Welcome, Protobuf.Membership.Membership.Types.CreationStatus.Unspecified);
+            }
+
+            return (resultMode, resultStatus);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[APPLICATION-INITIALIZER] Exception during CheckAndProcessMembershipStateAsync");
+            return (StartupLaunchMode.Welcome, Protobuf.Membership.Membership.Types.CreationStatus.Unspecified);
+        }
+    }
+
+    private async Task ClearLocalMembershipStateAsync(ApplicationInstanceSettings settings)
+    {
+        Log.Information("[APPLICATION-INITIALIZER] Clearing local membership state.");
+
+        if (settings.Membership != null)
+        {
+            await applicationSecureStorageProvider.SetApplicationMembershipAsync(null).ConfigureAwait(false);
+            settings.Membership = null;
+        }
+
+        await stateManager.TransitionToAnonymousAsync().ConfigureAwait(false);
     }
 
     private async Task ProcessPendingLogoutRequestsAsync(uint connectId) =>
@@ -307,7 +423,12 @@ public sealed class ApplicationInitializer(
                 }
             }
 
-            await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId)
+            bool hasPendingMembership = membershipId.IsSome;
+
+            await InitializeProtocolWithoutIdentityAsync(
+                    applicationInstanceSettings,
+                    connectId,
+                    preserveMembership: hasPendingMembership)
                 .ConfigureAwait(false);
 
             ByteString? accountIdentifier = applicationInstanceSettings.CurrentAccountId;
@@ -427,14 +548,14 @@ public sealed class ApplicationInitializer(
 
     private async Task InitializeProtocolWithoutIdentityAsync(
         ApplicationInstanceSettings applicationInstanceSettings,
-        uint connectId)
+        uint connectId,
+        bool preserveMembership = false)
     {
         await stateManager.TransitionToAnonymousAsync().ConfigureAwait(false);
 
-        if (applicationInstanceSettings.Membership != null)
+        if (!preserveMembership && applicationInstanceSettings.Membership != null)
         {
             await applicationSecureStorageProvider.SetApplicationMembershipAsync(null).ConfigureAwait(false);
-
             applicationInstanceSettings.Membership = null;
         }
 

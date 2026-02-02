@@ -176,6 +176,27 @@ public sealed class AuthenticationViewModel : Core.MVVM.ViewModelBase, IAuthenti
         CanNavigateBack = _navigationStack.Count > 0;
     }
 
+    public Task NavigateToResumeAsync(Ecliptix.Protobuf.Membership.Membership.Types.CreationStatus status)
+    {
+        Log.Information("[AUTH-VM] Preparing Welcome Back flow. Resume Status: {Status}", status);
+
+        ClearNavigationStack(preserveInitialWelcome: false);
+
+
+        CurrentFlowContext = AuthenticationFlowContext.REGISTRATION;
+
+        Navigate.Execute(MembershipViewType.WELCOME_BACK_VIEW)
+            .Subscribe(viewModel =>
+            {
+                if (viewModel is WelcomeBackViewModel welcomeBackVm)
+                {
+                    welcomeBackVm.SetupResumeState(status);
+                }
+            });
+
+        return Task.CompletedTask;
+    }
+
     public void NavigateToViewModel(IRoutableViewModel viewModel)
     {
         if (_currentView != null)
@@ -510,9 +531,12 @@ public sealed class AuthenticationViewModel : Core.MVVM.ViewModelBase, IAuthenti
                 .SelectMany(_ => CheckCountryCultureMismatchCommand.Execute())
                 .Subscribe(_ => { })
                 .DisposeWith(disposables);
-            Navigate.Execute(MembershipViewType.WELCOME_VIEW)
-                .Subscribe(_ => { })
-                .DisposeWith(disposables);
+            if (CurrentView == null)
+            {
+                Navigate.Execute(MembershipViewType.WELCOME_VIEW)
+                    .Subscribe(_ => { })
+                    .DisposeWith(disposables);
+            }
         });
 
         Log.Information("[AUTH-VM] WhenActivated registered, waiting for activation...");
