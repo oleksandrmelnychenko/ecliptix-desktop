@@ -29,6 +29,8 @@ public sealed class WelcomeBackViewModel : ViewModelBase, IRoutableViewModel, IR
     private readonly IGlobalModalService _globalModalService;
     private Membership.Types.CreationStatus _resumeStatus =
         Protobuf.Membership.Membership.Types.CreationStatus.Unspecified;
+    private string _currentDescriptionKey = LocalizationKeys.Authentication.WelcomeBack.DESCRIPTION_OTP_VERIFIED;
+    public string DescriptionText => LocalizationService[_currentDescriptionKey];
 
     public WelcomeBackViewModel(
         IScreen hostScreen,
@@ -71,7 +73,18 @@ public sealed class WelcomeBackViewModel : ViewModelBase, IRoutableViewModel, IR
     public void SetupResumeState(Membership.Types.CreationStatus status)
     {
         _resumeStatus = status;
-        Log.Information("[WELCOME-BACK] Resume state setup with status: {Status}", status);
+
+        _currentDescriptionKey = status switch
+        {
+            Protobuf.Membership.Membership.Types.CreationStatus.SecureKeySet =>
+                LocalizationKeys.Authentication.WelcomeBack.DESCRIPTION_SECURE_KEY_SET,
+
+            _ => LocalizationKeys.Authentication.WelcomeBack.DESCRIPTION_OTP_VERIFIED
+        };
+
+        Log.Information("[WELCOME-BACK] Resume state setup with status: {Status}. Key: {Key}", status, _currentDescriptionKey);
+
+        this.RaisePropertyChanged(nameof(DescriptionText));
     }
 
     private void InitializeCommands()

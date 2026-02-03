@@ -193,8 +193,10 @@ public static class LocalizationData
         [LocalizationKeys.Welcome.Carousel.Slide4.TITLE] = "Wellness First",
         [LocalizationKeys.Welcome.Carousel.Slide4.DESCRIPTION] = "Track your emotional health with insights and suggestions from our AI",
         [LocalizationKeys.Authentication.WelcomeBack.TITLE] = "Welcome Back!",
-        [LocalizationKeys.Authentication.WelcomeBack.DESCRIPTION_VERIFIED] = "Your mobile number is already verified.",
-        [LocalizationKeys.Authentication.WelcomeBack.DESCRIPTION_SETUP] = "Let's finish setting up your secure key to protect your account.",
+        [LocalizationKeys.Authentication.WelcomeBack.DESCRIPTION_OTP_VERIFIED] =
+            "You have already verified your mobile number. Let's finish setting up your secure key to protect your account.",
+        [LocalizationKeys.Authentication.WelcomeBack.DESCRIPTION_SECURE_KEY_SET] =
+            "You have already set your secure key. Let's finish setting up your profile.",
         [LocalizationKeys.Authentication.WelcomeBack.BUTTON_LATER] = "Continue Later",
         [LocalizationKeys.Authentication.WelcomeBack.BUTTON_CONTINUE] = "Continue to Setup",
         [LocalizationKeys.Authentication.WelcomeBack.ERROR_SESSION_MISSING] = "We could not find your session data. Please start the registration process again.",
@@ -468,8 +470,10 @@ public static class LocalizationData
         [LocalizationKeys.Welcome.Carousel.Slide4.TITLE] = "Здоров'я понад усе",
         [LocalizationKeys.Welcome.Carousel.Slide4.DESCRIPTION] = "Відстежуйте своє емоційне здоров'я з insights та пропозиціями від нашого AI",
         [LocalizationKeys.Authentication.WelcomeBack.TITLE] = "З поверненням!",
-        [LocalizationKeys.Authentication.WelcomeBack.DESCRIPTION_VERIFIED] = "Ваш номер мобільного телефону вже підтверджено.",
-        [LocalizationKeys.Authentication.WelcomeBack.DESCRIPTION_SETUP] = "Завершіть налаштування ключа безпеки для захисту вашого акаунту.",
+        [LocalizationKeys.Authentication.WelcomeBack.DESCRIPTION_OTP_VERIFIED] =
+            "Ви вже підтвердили номер телефону. Тепер налаштуйте ключ безпеки для захисту вашого акаунту.",
+        [LocalizationKeys.Authentication.WelcomeBack.DESCRIPTION_SECURE_KEY_SET] =
+            "Ви вже встановили ключ безпеки. Завершіть налаштування профілю",
         [LocalizationKeys.Authentication.WelcomeBack.BUTTON_LATER] = "Продовжити пізніше",
         [LocalizationKeys.Authentication.WelcomeBack.BUTTON_CONTINUE] = "Продовжити",
         [LocalizationKeys.Authentication.WelcomeBack.ERROR_SESSION_MISSING] = "Не вдалося знайти дані вашої сесії. Будь ласка, розпочніть процес реєстрації заново.",

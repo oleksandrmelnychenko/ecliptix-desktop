@@ -41,17 +41,13 @@
                        TextAlignment="Center"
                        Foreground="{DynamicResource TextControlForeground}"/>
 
-            <TextBlock FontSize="16"
+            <TextBlock Text="{Binding DescriptionText}"
+                       FontSize="16"
                        TextAlignment="Center"
                        TextWrapping="Wrap"
                        Foreground="#6B7280"
                        Margin="16,0"
-                       LineHeight="24">
-                <Run Text="{Binding LocalizationService[Authentication.WelcomeBack.Description.Verified]}"/>
-                <LineBreak/>
-                <LineBreak/>
-                <Run Text="{Binding LocalizationService[Authentication.WelcomeBack.Description.Setup]}"/>
-            </TextBlock>
+                       LineHeight="24"/>
 
         </StackPanel>
 

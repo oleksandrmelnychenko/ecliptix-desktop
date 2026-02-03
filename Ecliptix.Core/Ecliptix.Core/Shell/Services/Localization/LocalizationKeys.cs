@@ -87,8 +87,10 @@ public static class LocalizationKeys
         public static class WelcomeBack
         {
             public const string TITLE = "Authentication.WelcomeBack.Title";
-            public const string DESCRIPTION_VERIFIED = "Authentication.WelcomeBack.Description.Verified";
-            public const string DESCRIPTION_SETUP = "Authentication.WelcomeBack.Description.Setup";
+
+            public const string DESCRIPTION_OTP_VERIFIED = "Authentication.WelcomeBack.Description.OtpVerified";
+            public const string DESCRIPTION_SECURE_KEY_SET = "Authentication.WelcomeBack.Description.SecureKeySet";
+
             public const string BUTTON_LATER = "Authentication.WelcomeBack.Button.Later";
             public const string BUTTON_CONTINUE = "Authentication.WelcomeBack.Button.Continue";
 
