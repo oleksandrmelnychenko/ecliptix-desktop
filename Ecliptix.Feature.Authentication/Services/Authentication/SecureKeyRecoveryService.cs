@@ -25,8 +25,8 @@ public sealed class SecureKeyRecoveryService(
     ILocalizationService localizationService)
     : ISecureKeyRecoveryService, IDisposable
 {
-    private readonly Lock _opaqueClientLock = new();
-    private Option<OpaqueClient> _opaqueClient = Option<OpaqueClient>.None;
+    private readonly Lock _opaqueAgentLock = new();
+    private Option<OpaqueAgent> _opaqueAgent = Option<OpaqueAgent>.None;
     private byte[]? _cachedServerPublicKey;
     private bool _disposed;
 
@@ -111,17 +111,17 @@ public sealed class SecureKeyRecoveryService(
 
         try
         {
-            Result<OpaqueClient, string> opaqueClientResult =
-                await GetOrCreateOpaqueClientAsync(connectId).ConfigureAwait(false);
-            if (opaqueClientResult.IsErr)
+            Result<OpaqueAgent, string> opaqueAgentResult =
+                await GetOrCreateOpaqueAgentAsync(connectId).ConfigureAwait(false);
+            if (opaqueAgentResult.IsErr)
             {
-                return Result<Unit, string>.Err(opaqueClientResult.UnwrapErr());
+                return Result<Unit, string>.Err(opaqueAgentResult.UnwrapErr());
             }
 
-            OpaqueClient opaqueClient = opaqueClientResult.Unwrap();
+            OpaqueAgent opaqueAgent = opaqueAgentResult.Unwrap();
 
             Result<RegistrationResult, string> requestResult =
-                CreateSecureKeyRecoveryRequest(opaqueClient, newSecureKey);
+                CreateSecureKeyRecoveryRequest(opaqueAgent, newSecureKey);
 
             if (requestResult.IsErr)
             {
@@ -149,7 +149,7 @@ public sealed class SecureKeyRecoveryService(
                 return processResult;
             }
 
-            return await FinalizeSecureKeyRecoveryAsync(opaqueClient, initResponse, registrationResult,
+            return await FinalizeSecureKeyRecoveryAsync(opaqueAgent, initResponse, registrationResult,
                 membershipIdentifier, connectId, cancellationToken).ConfigureAwait(false);
         }
         catch (OpaqueException)
@@ -198,7 +198,7 @@ public sealed class SecureKeyRecoveryService(
     }
 
     private Result<RegistrationResult, string> CreateSecureKeyRecoveryRequest(
-        OpaqueClient opaqueClient,
+        OpaqueAgent opaqueAgent,
         SecureTextBuffer newSecureKey)
     {
         try
@@ -210,7 +210,7 @@ public sealed class SecureKeyRecoveryService(
                 byte[] secureKeyCopy = secureKeyBytes.ToArray();
                 try
                 {
-                    registrationResult = opaqueClient.CreateRegistrationRequest(secureKeyCopy);
+                    registrationResult = opaqueAgent.CreateRegistrationRequest(secureKeyCopy);
                 }
                 finally
                 {
@@ -250,7 +250,7 @@ public sealed class SecureKeyRecoveryService(
     }
 
     private async Task<Result<Unit, string>> FinalizeSecureKeyRecoveryAsync(
-        OpaqueClient opaqueClient,
+        OpaqueAgent opaqueAgent,
         OpaqueRecoveryInitResponse initResponse,
         RegistrationResult registrationResult,
         ByteString membershipIdentifier,
@@ -265,7 +265,7 @@ public sealed class SecureKeyRecoveryService(
             serverRecoveryResponse =
                 SecureByteStringInterop.WithByteStringAsSpan(initResponse.PeerOprf, span => span.ToArray());
 
-            recoveryRecord = opaqueClient.FinalizeRegistration(serverRecoveryResponse, registrationResult);
+            recoveryRecord = opaqueAgent.FinalizeRegistration(serverRecoveryResponse, registrationResult);
 
             OpaqueRecoveryCompleteRequest completeRequest = new()
             {
@@ -319,56 +319,56 @@ public sealed class SecureKeyRecoveryService(
             return;
         }
 
-        lock (_opaqueClientLock)
+        lock (_opaqueAgentLock)
         {
-            _opaqueClient.Do(client => client.Dispose());
-            _opaqueClient = Option<OpaqueClient>.None;
+            _opaqueAgent.Do(client => client.Dispose());
+            _opaqueAgent = Option<OpaqueAgent>.None;
         }
 
         _disposed = true;
     }
 
-    private async Task<Result<OpaqueClient, string>> GetOrCreateOpaqueClientAsync(uint connectId)
+    private async Task<Result<OpaqueAgent, string>> GetOrCreateOpaqueAgentAsync(uint connectId)
     {
         Result<byte[], NetworkFailure> serverKeyResult =
             await networkProvider.GetServerPublicKeyAsync(connectId).ConfigureAwait(false);
         if (serverKeyResult.IsErr)
         {
-            return Result<OpaqueClient, string>.Err(
+            return Result<OpaqueAgent, string>.Err(
                 $"Failed to get server public key: {serverKeyResult.UnwrapErr().Message}");
         }
 
         byte[] serverPublicKey = serverKeyResult.Unwrap();
 
-        lock (_opaqueClientLock)
+        lock (_opaqueAgentLock)
         {
-            if (_opaqueClient.IsSome && _cachedServerPublicKey != null &&
+            if (_opaqueAgent.IsSome && _cachedServerPublicKey != null &&
                 CryptographicOperations.FixedTimeEquals(serverPublicKey, _cachedServerPublicKey))
             {
-                return Result<OpaqueClient, string>.Ok(_opaqueClient.Value!);
+                return Result<OpaqueAgent, string>.Ok(_opaqueAgent.Value!);
             }
 
-            _opaqueClient.Do(client => client.Dispose());
+            _opaqueAgent.Do(client => client.Dispose());
             try
             {
-                OpaqueClient newClient = new(serverPublicKey);
-                _opaqueClient = Option<OpaqueClient>.Some(newClient);
+                OpaqueAgent newAgent = new(serverPublicKey);
+                _opaqueAgent = Option<OpaqueAgent>.Some(newAgent);
                 _cachedServerPublicKey = (byte[])serverPublicKey.Clone();
 
-                return Result<OpaqueClient, string>.Ok(newClient);
+                return Result<OpaqueAgent, string>.Ok(newAgent);
             }
             catch (OpaqueException)
             {
-                _opaqueClient = Option<OpaqueClient>.None;
+                _opaqueAgent = Option<OpaqueAgent>.None;
                 _cachedServerPublicKey = null;
-                return Result<OpaqueClient, string>.Err(
+                return Result<OpaqueAgent, string>.Err(
                     localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY]);
             }
             catch (ArgumentException)
             {
-                _opaqueClient = Option<OpaqueClient>.None;
+                _opaqueAgent = Option<OpaqueAgent>.None;
                 _cachedServerPublicKey = null;
-                return Result<OpaqueClient, string>.Err(
+                return Result<OpaqueAgent, string>.Err(
                     localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY]);
             }
         }
