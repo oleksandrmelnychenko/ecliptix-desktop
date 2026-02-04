@@ -208,51 +208,47 @@ public sealed partial class NetworkProvider(
         return Result<Option<EcliptixSessionState>, NetworkFailure>.Err(failure);
     }
 
-    private Task<Result<Option<EcliptixSessionState>, NetworkFailure>> CreateAndPersistSessionStateAsync(
+    private async Task<Result<Option<EcliptixSessionState>, NetworkFailure>> CreateAndPersistSessionStateAsync(
         SecrecyChannelRequest request,
         byte[] handshakeInit)
     {
         if (!ShouldPersistSessionState(request))
         {
-            return Task.FromResult(
-                Result<Option<EcliptixSessionState>, NetworkFailure>.Ok(Option<EcliptixSessionState>.None));
+            return Result<Option<EcliptixSessionState>, NetworkFailure>.Ok(Option<EcliptixSessionState>.None);
         }
 
         Result<EcliptixSessionState, NetworkFailure> stateResult =
-            CreateSessionState(
+            await CreateSessionStateAsync(
                 request.ConnectId,
                 handshakeInit,
                 request.ExchangeType,
                 ByteString.Empty,
                 ByteString.Empty,
-                null);
+                null).ConfigureAwait(false);
 
         if (stateResult.IsErr)
         {
-            return Task.FromResult(
-                Result<Option<EcliptixSessionState>, NetworkFailure>.Err(stateResult.UnwrapErr()));
+            return Result<Option<EcliptixSessionState>, NetworkFailure>.Err(stateResult.UnwrapErr());
         }
 
         if (!request.EnablePendingRegistration)
         {
-            return Task.FromResult(
-                Result<Option<EcliptixSessionState>, NetworkFailure>.Ok(
-                    Option<EcliptixSessionState>.Some(stateResult.Unwrap())));
+            return Result<Option<EcliptixSessionState>, NetworkFailure>.Ok(
+                    Option<EcliptixSessionState>.Some(stateResult.Unwrap()));
         }
 
         _services.PendingRequestManager.RemovePendingRequest(
             BuildSecrecyChannelPendingKey(request.ConnectId, request.ExchangeType));
         ExitOutage();
 
-        return Task.FromResult(
-            Result<Option<EcliptixSessionState>, NetworkFailure>.Ok(
-                Option<EcliptixSessionState>.Some(stateResult.Unwrap())));
+        return Result<Option<EcliptixSessionState>, NetworkFailure>.Ok(
+                Option<EcliptixSessionState>.Some(stateResult.Unwrap()));
     }
 
     private static bool ShouldPersistSessionState(SecrecyChannelRequest request) =>
         request is { SaveState: true, ExchangeType: PubKeyExchangeType.DataCenterEphemeralConnect };
 
-    private Result<EcliptixSessionState, NetworkFailure> CreateSessionState(
+    private async Task<Result<EcliptixSessionState, NetworkFailure>> CreateSessionStateAsync(
         uint connectId,
         byte[] handshakeInit,
         PubKeyExchangeType exchangeType,
@@ -274,22 +270,23 @@ public sealed partial class NetworkProvider(
         if (nativeSessionResult.IsOk)
         {
             NativeProtocolSession nativeSession = nativeSessionResult.Unwrap();
-            Result<byte[], EcliptixProtocolFailure> exportResult = nativeSession.ExportState();
-            if (exportResult.IsOk)
+            byte[]? encryptionKey = null;
+            try
             {
-                byte[] stateBytes = exportResult.Unwrap();
-                state.NativeState = ByteString.CopyFrom(stateBytes);
-
-                try
+                encryptionKey = await _security.PlatformSecurityProvider.GetOrCreateSessionStateKeyAsync()
+                    .ConfigureAwait(false);
+                Result<byte[], EcliptixProtocolFailure> exportResult = nativeSession.ExportSealedState(encryptionKey);
+                if (exportResult.IsOk)
                 {
-                    ProtocolState protocolState = ProtocolState.Parser.ParseFrom(stateBytes);
-                    state.SendingChainIndex = (uint)(protocolState.SendChain?.MessageIndex ?? 0);
-                    state.ReceivingChainIndex = (uint)(protocolState.RecvChain?.MessageIndex ?? 0);
+                    byte[] stateBytes = exportResult.Unwrap();
+                    state.NativeState = ByteString.CopyFrom(stateBytes);
                 }
-                catch (Exception ex)
+            }
+            finally
+            {
+                if (encryptionKey != null)
                 {
-                    Log.Warning("[PROTOCOL-STATE] Failed to parse native state for connectId {ConnectId}: {Error}",
-                        connectId, ex.Message);
+                    CryptographicOperations.ZeroMemory(encryptionKey);
                 }
             }
         }
@@ -897,6 +894,7 @@ public sealed partial class NetworkProvider(
         }
 
         byte[]? masterKeyBytes = null;
+        byte[]? decryptionKey = null;
         using SodiumSecureMemoryHandle masterKeyHandle = masterKeyResult.Unwrap();
 
         try
@@ -910,7 +908,7 @@ public sealed partial class NetworkProvider(
             }
 
             masterKeyBytes = readResult.Unwrap();
-            byte[] nativeStateBytes = state.NativeState.ToByteArray();
+            byte[] sealedStateBytes = state.NativeState.ToByteArray();
             Result<EcliptixIdentityKeysWrapper, EcliptixProtocolFailure> nativeIdentityResult =
                 NativeProtocolSystem.CreateIdentityFromSeed(masterKeyBytes, accountGuid.ToString());
             if (nativeIdentityResult.IsErr)
@@ -926,10 +924,14 @@ public sealed partial class NetworkProvider(
                 return Result<Unit, EcliptixProtocolFailure>.Err(identityStoreResult.UnwrapErr());
             }
 
+            decryptionKey = await _security.PlatformSecurityProvider.GetOrCreateSessionStateKeyAsync()
+                .ConfigureAwait(false);
+
             Result<NativeProtocolSession, EcliptixProtocolFailure> nativeImportResult =
                 _nativeSessions.CreateOrReplaceFromState(
                     state.ConnectId,
-                    nativeStateBytes);
+                    sealedStateBytes,
+                    decryptionKey);
             if (nativeImportResult.IsErr)
             {
                 return Result<Unit, EcliptixProtocolFailure>.Err(nativeImportResult.UnwrapErr());
@@ -942,6 +944,10 @@ public sealed partial class NetworkProvider(
             if (masterKeyBytes != null)
             {
                 CryptographicOperations.ZeroMemory(masterKeyBytes);
+            }
+            if (decryptionKey != null)
+            {
+                CryptographicOperations.ZeroMemory(decryptionKey);
             }
         }
     }
@@ -1133,46 +1139,59 @@ public sealed partial class NetworkProvider(
             return;
         }
 
-        Result<byte[], EcliptixProtocolFailure> exportResult = nativeResult.Unwrap().ExportState();
-        if (exportResult.IsErr)
+        byte[]? encryptionKey = null;
+        try
         {
-            return;
-        }
+            encryptionKey = await _security.PlatformSecurityProvider.GetOrCreateSessionStateKeyAsync()
+                .ConfigureAwait(false);
+            Result<byte[], EcliptixProtocolFailure> exportResult = nativeResult.Unwrap().ExportSealedState(encryptionKey);
+            if (exportResult.IsErr)
+            {
+                return;
+            }
 
-        byte[]? accountId = GetAccountIdBytes();
-        if (accountId == null)
+            byte[]? accountId = GetAccountIdBytes();
+            if (accountId == null)
+            {
+                return;
+            }
+
+            EcliptixSessionState? existingState = await TryLoadStoredStateAsync(connectId, accountId)
+                .ConfigureAwait(false);
+            if (existingState == null)
+            {
+                Log.Warning(
+                    "[CLIENT-STATE-PERSIST] Skipping state update because existing state is missing. ConnectId: {ConnectId}",
+                    connectId);
+                return;
+            }
+
+            EcliptixSessionState state = existingState.Clone();
+            state.ConnectId = connectId;
+            state.NativeState = ByteString.CopyFrom(exportResult.Unwrap());
+
+            if (_applicationInstanceSettings.IsSome && state.MembershipId.IsEmpty)
+            {
+                state.MembershipId = _applicationInstanceSettings.Value!.Membership?.MembershipId ?? ByteString.Empty;
+            }
+
+            if (_applicationInstanceSettings.IsSome &&
+                _applicationInstanceSettings.Value!.CurrentAccountId != null &&
+                _applicationInstanceSettings.Value!.CurrentAccountId.Length > 0 &&
+                state.AccountId.IsEmpty)
+            {
+                state.AccountId = _applicationInstanceSettings.Value!.CurrentAccountId;
+            }
+
+            await PersistSessionStateAsync(state, connectId, accountId).ConfigureAwait(false);
+        }
+        finally
         {
-            return;
+            if (encryptionKey != null)
+            {
+                CryptographicOperations.ZeroMemory(encryptionKey);
+            }
         }
-
-        EcliptixSessionState? existingState = await TryLoadStoredStateAsync(connectId, accountId)
-            .ConfigureAwait(false);
-        if (existingState == null)
-        {
-            Log.Warning(
-                "[CLIENT-STATE-PERSIST] Skipping state update because existing state is missing. ConnectId: {ConnectId}",
-                connectId);
-            return;
-        }
-
-        EcliptixSessionState state = existingState.Clone();
-        state.ConnectId = connectId;
-        state.NativeState = ByteString.CopyFrom(exportResult.Unwrap());
-
-        if (_applicationInstanceSettings.IsSome && state.MembershipId.IsEmpty)
-        {
-            state.MembershipId = _applicationInstanceSettings.Value!.Membership?.MembershipId ?? ByteString.Empty;
-        }
-
-        if (_applicationInstanceSettings.IsSome &&
-            _applicationInstanceSettings.Value!.CurrentAccountId != null &&
-            _applicationInstanceSettings.Value!.CurrentAccountId.Length > 0 &&
-            state.AccountId.IsEmpty)
-        {
-            state.AccountId = _applicationInstanceSettings.Value!.CurrentAccountId;
-        }
-
-        await PersistSessionStateAsync(state, connectId, accountId).ConfigureAwait(false);
     }
 
     public void OnProtocolStateChanged(uint connectId) =>
@@ -2098,13 +2117,13 @@ public sealed partial class NetworkProvider(
                 return Result<Unit, NetworkFailure>.Err(processResult.UnwrapErr());
             }
 
-            Result<EcliptixSessionState, NetworkFailure> stateResult = CreateSessionState(
+            Result<EcliptixSessionState, NetworkFailure> stateResult = await CreateSessionStateAsync(
                 connectId,
                 handshakeInit,
                 exchangeType,
                 membershipIdentifier,
                 accountIdentifier,
-                null);
+                null).ConfigureAwait(false);
             if (stateResult.IsErr)
             {
                 await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);

@@ -395,6 +395,28 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         return aesKey;
     }
 
+    private const string SESSION_STATE_KEY_INFO = "ecliptix-session-state-encryption-v1";
+
+    public async Task<byte[]> GetOrCreateSessionStateKeyAsync()
+    {
+        byte[] hmacKey = await GetOrCreateHmacKeyAsync().ConfigureAwait(false);
+        try
+        {
+            byte[] sessionStateKey = new byte[AES_KEY_SIZE];
+            HKDF.DeriveKey(
+                HashAlgorithmName.SHA256,
+                ikm: hmacKey,
+                output: sessionStateKey,
+                salt: null,
+                info: Encoding.UTF8.GetBytes(SESSION_STATE_KEY_INFO));
+            return sessionStateKey;
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(hmacKey);
+        }
+    }
+
     private string BuildKeychainTarget(string identifier) =>
         $"{KEYCHAIN_TARGET_PREFIX}:{BuildKeychainIdentifier(identifier)}";
 
