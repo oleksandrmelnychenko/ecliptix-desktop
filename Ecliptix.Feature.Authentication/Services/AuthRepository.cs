@@ -19,35 +19,31 @@ public sealed class AuthRepository(
     ISecureKeyRecoveryService recoveryService)
     : IAuthRepository
 {
-    private readonly IAuthenticationService _authService = authService;
-    private readonly IOpaqueRegistrationService _registrationService = registrationService;
-    private readonly ISecureKeyRecoveryService _recoveryService = recoveryService;
-
     public Task<Result<Unit, AuthenticationFailure>> SignInAsync(
         string phoneNumber,
         SecureTextBuffer secureKey,
         uint connectId,
         CancellationToken cancellationToken)
-        => _authService.SignInAsync(phoneNumber, secureKey, connectId, cancellationToken);
+        => authService.SignInAsync(phoneNumber, secureKey, connectId, cancellationToken);
 
     public Task<Result<MobileNumberValidateResponse, string>> ValidateMobileNumberAsync(
         string mobileNumber,
         uint connectId,
         CancellationToken cancellationToken = default) =>
-        _registrationService.ValidateMobileNumberAsync(mobileNumber, connectId, cancellationToken);
+        registrationService.ValidateMobileNumberAsync(mobileNumber, connectId, cancellationToken);
 
     public Task<Result<MobileNumberAvailabilityResponse, string>> CheckMobileNumberAvailabilityAsync(
         ByteString mobileNumberIdentifier,
         uint connectId,
         CancellationToken cancellationToken = default) =>
-        _registrationService.CheckMobileNumberAvailabilityAsync(mobileNumberIdentifier, connectId, cancellationToken);
+        registrationService.CheckMobileNumberAvailabilityAsync(mobileNumberIdentifier, connectId, cancellationToken);
 
     public Task<Result<Unit, string>> InitiateRegistrationOtpAsync(
         ByteString mobileNumberIdentifier,
         OtpVerificationPurpose purpose,
         Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>? onCountdownUpdate,
         CancellationToken cancellationToken = default) =>
-        _registrationService.InitiateOtpVerificationAsync(
+        registrationService.InitiateOtpVerificationAsync(
             mobileNumberIdentifier,
             purpose,
             onCountdownUpdate,
@@ -58,7 +54,7 @@ public sealed class AuthRepository(
         ByteString mobileNumberIdentifier,
         Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>? onCountdownUpdate,
         CancellationToken cancellationToken = default) =>
-        _registrationService.ResendOtpVerificationAsync(
+        registrationService.ResendOtpVerificationAsync(
             sessionIdentifier,
             mobileNumberIdentifier,
             onCountdownUpdate,
@@ -69,31 +65,31 @@ public sealed class AuthRepository(
         string otpCode,
         uint connectId,
         CancellationToken cancellationToken = default) =>
-        _registrationService.VerifyOtpAsync(sessionIdentifier, otpCode, connectId, cancellationToken);
+        registrationService.VerifyOtpAsync(sessionIdentifier, otpCode, connectId, cancellationToken);
 
     public Task<Result<Unit, string>> CleanupRegistrationSessionAsync(
         Guid sessionIdentifier,
         CancellationToken cancellationToken = default) =>
-        _registrationService.CleanupVerificationSessionAsync(sessionIdentifier);
+        registrationService.CleanupVerificationSessionAsync(sessionIdentifier);
 
     public Task<Result<Unit, string>> CompleteRegistrationAsync(
         ByteString membershipIdentifier,
         SecureTextBuffer secureKey,
         uint connectId,
         CancellationToken cancellationToken = default) =>
-        _registrationService.CompleteRegistrationAsync(membershipIdentifier, secureKey, connectId, cancellationToken);
+        registrationService.CompleteRegistrationAsync(membershipIdentifier, secureKey, connectId, cancellationToken);
 
     public Task<Result<ByteString, string>> ValidateMobileForRecoveryAsync(
         string mobileNumber,
         uint connectId,
         CancellationToken cancellationToken = default) =>
-        _recoveryService.ValidateMobileForRecoveryAsync(mobileNumber, connectId, cancellationToken);
+        recoveryService.ValidateMobileForRecoveryAsync(mobileNumber, connectId, cancellationToken);
 
     public Task<Result<Unit, string>> InitiateSecureKeyResetOtpAsync(
         ByteString mobileNumberIdentifier,
         Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>? onCountdownUpdate,
         CancellationToken cancellationToken = default) =>
-        _recoveryService.InitiateSecureKeyResetOtpAsync(
+        recoveryService.InitiateSecureKeyResetOtpAsync(
             mobileNumberIdentifier,
             onCountdownUpdate,
             cancellationToken);
@@ -103,7 +99,7 @@ public sealed class AuthRepository(
         ByteString mobileNumberIdentifier,
         Action<uint, Guid, OtpCountdownStatus, string?, string?, bool>? onCountdownUpdate,
         CancellationToken cancellationToken = default) =>
-        _recoveryService.ResendSecureKeyResetOtpAsync(
+        recoveryService.ResendSecureKeyResetOtpAsync(
             sessionIdentifier,
             mobileNumberIdentifier,
             onCountdownUpdate,
@@ -114,17 +110,17 @@ public sealed class AuthRepository(
         string otpCode,
         uint connectId,
         CancellationToken cancellationToken = default) =>
-        _recoveryService.VerifySecureKeyResetOtpAsync(sessionIdentifier, otpCode, connectId, cancellationToken);
+        recoveryService.VerifySecureKeyResetOtpAsync(sessionIdentifier, otpCode, connectId, cancellationToken);
 
     public Task<Result<Unit, string>> CleanupSecureKeyResetSessionAsync(
         Guid sessionIdentifier,
         CancellationToken cancellationToken = default) =>
-        _recoveryService.CleanupSecureKeyResetSessionAsync(sessionIdentifier);
+        recoveryService.CleanupSecureKeyResetSessionAsync(sessionIdentifier);
 
     public Task<Result<Unit, string>> CompleteSecureKeyResetAsync(
         ByteString membershipIdentifier,
         SecureTextBuffer secureKey,
         uint connectId,
         CancellationToken cancellationToken = default) =>
-        _recoveryService.CompleteSecureKeyResetAsync(membershipIdentifier, secureKey, connectId, cancellationToken);
+        recoveryService.CompleteSecureKeyResetAsync(membershipIdentifier, secureKey, connectId, cancellationToken);
 }

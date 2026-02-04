@@ -7,8 +7,8 @@ namespace Ecliptix.Network.Infrastructure.Security.Crypto;
 
 public sealed class RsaChunkEncryptor : IRsaChunkEncryptor
 {
-    private const int RSA_OPTIMAL_CHUNK_SIZE = 200;
-    private const int RSA_MAX_PLAINTEXT_SIZE = 214;
+    private const int RSA_OPTIMAL_CHUNK_SIZE = 180;  // RSA-2048 with OAEP SHA-256: max 190 bytes, use 180 for safety
+    private const int RSA_MAX_PLAINTEXT_SIZE = 190;  // 256 - 2*32 - 2 = 190 bytes max for RSA-2048 OAEP SHA-256
     private const int RSA_ENCRYPTED_CHUNK_SIZE = 256;
     private const int MAX_CHUNKED_PLAINTEXT_BYTES = 1024 * 1024;
     private const int MAX_CHUNKED_CIPHERTEXT_BYTES =

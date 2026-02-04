@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Ecliptix.Core\Ecliptix.Core\Ecliptix.Core.csproj" />
     <ProjectReference Include="..\Ecliptix.Network\Ecliptix.Network.csproj" />
+    <ProjectReference Include="..\Ecliptix.Opaque.Protocol\Ecliptix.Opaque.Protocol.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -17,6 +18,7 @@
     <PackageReference Include="Avalonia.Diagnostics" Version="11.3.10" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.10" />
     <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.10" />
+    <PackageReference Include="Ecliptix.OPAQUE.Agent" Version="1.0.4" />
     <PackageReference Include="ReactiveUI.Fody" Version="19.5.41" />
   </ItemGroup>
 </Project>
