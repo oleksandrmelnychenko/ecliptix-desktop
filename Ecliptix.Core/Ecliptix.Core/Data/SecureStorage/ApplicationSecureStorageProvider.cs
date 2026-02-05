@@ -3,6 +3,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Constants;
 using Ecliptix.Core.Data.SecureStorage.Configuration;
@@ -25,6 +26,7 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
     private const string SETTINGS_KEY = "ApplicationInstanceSettings";
     private const string WINDOW_PLACEMENT_KEY = "WindowPlacement";
 
+    private readonly SemaphoreSlim _storageLock = new(1, 1);
     private readonly IDataProtector _protector;
     private readonly string _storagePath;
     private bool _disposed;
@@ -41,110 +43,42 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         InitializeStorageDirectory();
     }
 
-    public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationSettingsCultureAsync(string? cultureName)
+    public async Task<Result<Unit, InternalServiceApiFailure>> UpdateSettingsAsync(
+        Action<ApplicationInstanceSettings> updateAction)
     {
-        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
-            await GetApplicationInstanceSettingsAsync();
-        if (settingsResult.IsErr)
+        if (updateAction == null)
         {
-            return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
+            throw new ArgumentNullException(nameof(updateAction));
         }
 
-        ApplicationInstanceSettings settings = settingsResult.Unwrap();
-        settings.Culture = cultureName ?? settings.Culture;
-        return await StoreSettingsAsync(settings);
-    }
-
-    public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationInstanceAsync(bool isNewInstance)
-    {
-        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
-            await GetApplicationInstanceSettingsAsync();
-        if (settingsResult.IsErr)
+        await _storageLock.WaitAsync();
+        try
         {
-            return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
+            Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult = await GetApplicationInstanceSettingsAsync();
+
+            if (settingsResult.IsErr)
+            {
+                InternalServiceApiFailure error = settingsResult.UnwrapErr();
+                Log.Error("[SECURE-STORAGE] Update failed: Could not read settings. Error: {Message}", error.Message);
+                return Result<Unit, InternalServiceApiFailure>.Err(error);
+            }
+
+            ApplicationInstanceSettings settings = settingsResult.Unwrap();
+            updateAction(settings);
+
+            Result<Unit, InternalServiceApiFailure> storeResult = await StoreSettingsAsync(settings);
+
+            if (storeResult.IsErr)
+            {
+                Log.Error("[SECURE-STORAGE] Update failed: Could not save changes.");
+            }
+
+            return storeResult;
         }
-
-        ApplicationInstanceSettings settings = settingsResult.Unwrap();
-        settings.IsNewInstance = isNewInstance;
-        return await StoreSettingsAsync(settings);
-    }
-
-    public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationIpCountryAsync(IpCountry ipCountry)
-    {
-        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
-            await GetApplicationInstanceSettingsAsync();
-        if (settingsResult.IsErr)
+        finally
         {
-            return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
+            _storageLock.Release();
         }
-
-        ApplicationInstanceSettings settings = settingsResult.Unwrap();
-        settings.Country = ipCountry.Country;
-        return await StoreSettingsAsync(settings);
-    }
-
-    public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationMembershipAsync(Membership? membership)
-    {
-        Log.Information("[SECURE-STORAGE] SetApplicationMembershipAsync: Starting, hasMembership={HasMembership}",
-            membership != null);
-
-        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
-            await GetApplicationInstanceSettingsAsync();
-
-        if (settingsResult.IsErr)
-        {
-            Log.Warning("[SECURE-STORAGE] SetApplicationMembershipAsync: Failed to get existing settings: {Error}",
-                settingsResult.UnwrapErr().Message);
-            return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
-        }
-
-        Log.Debug("[SECURE-STORAGE] SetApplicationMembershipAsync: Got existing settings, updating membership");
-        ApplicationInstanceSettings settings = settingsResult.Unwrap();
-        settings.Membership = membership;
-
-        Result<Unit, InternalServiceApiFailure> storeResult = await StoreSettingsAsync(settings);
-
-        if (storeResult.IsOk)
-        {
-            Log.Information("[SECURE-STORAGE] SetApplicationMembershipAsync: Membership stored successfully");
-        }
-        else
-        {
-            Log.Error("[SECURE-STORAGE] SetApplicationMembershipAsync: Failed to store: {Error}",
-                storeResult.UnwrapErr().Message);
-        }
-
-        return storeResult;
-    }
-
-    public async Task<Result<Unit, InternalServiceApiFailure>> SetCurrentAccountIdAsync(ByteString? accountId)
-    {
-        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
-            await GetApplicationInstanceSettingsAsync();
-        if (settingsResult.IsErr)
-        {
-            return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
-        }
-
-        ApplicationInstanceSettings settings = settingsResult.Unwrap();
-        settings.CurrentAccountId = accountId ?? ByteString.Empty;
-        return await StoreSettingsAsync(settings);
-    }
-
-   public async Task<Result<Unit, InternalServiceApiFailure>> SetRegistrationMobileNumber(string mobileNumber)
-    {
-        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
-            await GetApplicationInstanceSettingsAsync();
-        if (settingsResult.IsErr)
-        {
-            return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
-        }
-
-        ApplicationInstanceSettings settings = settingsResult.Unwrap();
-
-        settings.RegistrationMobileNumber = mobileNumber;
-
-        return await StoreSettingsAsync(settings);
     }
 
     public async Task<Result<Unit, InternalServiceApiFailure>> SetWindowPlacementAsync(WindowPlacement windowPlacement)
@@ -160,6 +94,27 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
                 InternalServiceApiFailure.SecureStoreAccessDenied(
                     ApplicationErrorMessages.SecureStorageProvider.FAILED_TO_WRITE_TO_STORAGE, ex));
         }
+    }
+
+    public Task<Result<Unit, InternalServiceApiFailure>> SetApplicationSettingsCultureAsync(string? cultureName) =>
+        UpdateSettingsAsync(s => s.Culture = cultureName ?? s.Culture);
+
+    public Task<Result<Unit, InternalServiceApiFailure>> SetApplicationInstanceAsync(bool isNewInstance) =>
+        UpdateSettingsAsync(s => s.IsNewInstance = isNewInstance);
+
+    public Task<Result<Unit, InternalServiceApiFailure>> SetApplicationIpCountryAsync(IpCountry ipCountry) =>
+        UpdateSettingsAsync(s => s.Country = ipCountry.Country);
+
+    public Task<Result<Unit, InternalServiceApiFailure>> SetCurrentAccountIdAsync(ByteString? accountId) =>
+        UpdateSettingsAsync(s => s.CurrentAccountId = accountId ?? ByteString.Empty);
+
+    public Task<Result<Unit, InternalServiceApiFailure>> SetRegistrationMobileNumber(string mobileNumber) =>
+        UpdateSettingsAsync(s => s.RegistrationMobileNumber = mobileNumber);
+
+    public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationMembershipAsync(Membership? membership)
+    {
+        Log.Information("[SECURE-STORAGE] Updating membership data...");
+        return await UpdateSettingsAsync(s => s.Membership = membership);
     }
 
     public async Task<Result<ApplicationInstanceSettings, InternalServiceApiFailure>>
@@ -431,6 +386,7 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
     {
         if (!_disposed)
         {
+            _storageLock.Dispose();
             _disposed = true;
         }
 

@@ -18,7 +18,6 @@ using Ecliptix.Feature.Authentication.ViewModels.Hosts;
 using Ecliptix.Network.Infrastructure.Data.Abstractions;
 using Ecliptix.Network.Infrastructure.Network.Core.Providers;
 using Ecliptix.Network.Services.Common;
-using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.Membership;
 using MembershipProto = Ecliptix.Protobuf.Membership.Membership;
@@ -496,15 +495,20 @@ public sealed partial class VerificationCodeEntryViewModel : Core.MVVM.ViewModel
         Log.Information("[VERIFY-OTP] StoreMembershipData: HasMembershipId={HasMembershipId}, CreationStatus={CreationStatus}",
             hasMembershipId, membership.CreationStatus);
 
-        Result<ApplicationInstanceSettings, InternalServiceApiFailure> temp = await _applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync();
-
-        Console.WriteLine(temp);
-
-        await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership);
-        await _applicationSecureStorageProvider.SetCurrentAccountIdAsync(membership.Accounts[0].AccountId);
-        await _applicationSecureStorageProvider.SetRegistrationMobileNumber(FormattedMobileNumber);
-        //TODO temp
-
+        Result<Utilities.Unit, InternalServiceApiFailure> updateResult =
+            await _applicationSecureStorageProvider.UpdateSettingsAsync(settings =>
+        {
+            settings.Membership = membership;
+            settings.CurrentAccountId = membership.Accounts.Count > 0 //currently considering one account
+                ? membership.Accounts[0].AccountId
+                : ByteString.Empty;
+            settings.RegistrationMobileNumber = FormattedMobileNumber;
+        });
+        if (updateResult.IsErr)
+        {
+            Log.Error("[VERIFY-OTP] Failed to store combined membership data: {Error}",
+                updateResult.UnwrapErr().Message);
+        }
         Log.Information("[VERIFY-OTP] StoreMembershipData: Membership data stored successfully");
     }
 

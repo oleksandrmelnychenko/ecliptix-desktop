@@ -16,6 +16,7 @@ public interface IApplicationSecureStorageProvider : IAsyncDisposable
     Task<Result<Unit, InternalServiceApiFailure>> SetApplicationMembershipAsync(Membership? membership);
     Task<Result<Unit, InternalServiceApiFailure>> SetCurrentAccountIdAsync(ByteString? accountId);
     Task<Result<Unit, InternalServiceApiFailure>> SetRegistrationMobileNumber(string mobileNumber);
+    Task<Result<Unit, InternalServiceApiFailure>> UpdateSettingsAsync(Action<ApplicationInstanceSettings> updateAction);
     Task<Result<ApplicationInstanceSettings, InternalServiceApiFailure>> GetApplicationInstanceSettingsAsync();
     Task<Result<InstanceSettingsResult, InternalServiceApiFailure>> InitApplicationInstanceSettingsAsync(
         string? defaultCulture);
