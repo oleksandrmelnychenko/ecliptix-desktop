@@ -281,10 +281,11 @@ internal sealed class NativeProtocolSessionManager : IDisposable
 
     public Result<NativeProtocolSession, EcliptixProtocolFailure> CreateOrReplaceFromState(
         uint connectId,
-        byte[] stateBytes)
+        byte[] sealedStateBytes,
+        byte[] decryptionKey)
     {
         Log.Debug("[SESSION-MGR] CreateOrReplaceFromState called for connectId={ConnectId}, stateSize={StateSize}",
-            connectId, stateBytes.Length);
+            connectId, sealedStateBytes.Length);
 
         if (_disposed)
         {
@@ -301,7 +302,7 @@ internal sealed class NativeProtocolSessionManager : IDisposable
 
         Log.Debug("[SESSION-MGR] Importing session state for connectId={ConnectId}", connectId);
         Result<NativeProtocolSession, EcliptixProtocolFailure> importResult =
-            NativeProtocolSession.Import(stateBytes);
+            NativeProtocolSession.Import(sealedStateBytes, decryptionKey);
         if (importResult.IsErr)
         {
             Log.Error("[SESSION-MGR] Failed to import session state for connectId={ConnectId}: {Error}",
@@ -312,7 +313,7 @@ internal sealed class NativeProtocolSessionManager : IDisposable
         NativeProtocolSession session = importResult.Unwrap();
         _sessions[connectId] = session;
         Log.Information("[SESSION-MGR] Session restored from state for connectId={ConnectId}, stateSize={StateSize}",
-            connectId, stateBytes.Length);
+            connectId, sealedStateBytes.Length);
         return Result<NativeProtocolSession, EcliptixProtocolFailure>.Ok(session);
     }
 

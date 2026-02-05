@@ -47,8 +47,8 @@ public sealed class OpaqueAuthenticationService(
         { OpaqueResult.InvalidPublicKey, AuthenticationConstants.COMMON_UNEXPECTED_ERROR_KEY },
     };
 
-    private readonly Lock _opaqueClientLock = new();
-    private Option<OpaqueClient> _opaqueClient = Option<OpaqueClient>.None;
+    private readonly Lock _opaqueAgentLock = new();
+    private Option<OpaqueAgent> _opaqueAgent = Option<OpaqueAgent>.None;
 
     private sealed record SignInFlowResult(
         SodiumSecureMemoryHandle MasterKeyHandle,
@@ -161,10 +161,10 @@ public sealed class OpaqueAuthenticationService(
 
     public void Dispose()
     {
-        lock (_opaqueClientLock)
+        lock (_opaqueAgentLock)
         {
-            _opaqueClient.Do(client => client.Dispose());
-            _opaqueClient = Option<OpaqueClient>.None;
+            _opaqueAgent.Do(agent => agent.Dispose());
+            _opaqueAgent = Option<OpaqueAgent>.None;
         }
     }
 
@@ -311,7 +311,7 @@ public sealed class OpaqueAuthenticationService(
 
         try
         {
-            using OpaqueClient opaqueClient = new(serverKeyResult.Unwrap());
+            using OpaqueAgent opaqueAgent = new(serverKeyResult.Unwrap());
 
             OpaqueSignInContext signInContext = new();
 
@@ -328,7 +328,7 @@ public sealed class OpaqueAuthenticationService(
                 signInContext.SecureKeyCopy = secureKeyCopy;
 
                 Result<SignInFlowResult, AuthenticationFailure> result = await ExecuteOpaqueSignInStepsAsync(
-                    opaqueClient,
+                    opaqueAgent,
                     mobileNumber,
                     signInContext,
                     connectId,
@@ -356,14 +356,14 @@ public sealed class OpaqueAuthenticationService(
     }
 
     private async Task<Result<SignInFlowResult, AuthenticationFailure>> ExecuteOpaqueSignInStepsAsync(
-        OpaqueClient opaqueClient,
+        OpaqueAgent opaqueAgent,
         string mobileNumber,
         OpaqueSignInContext signInContext,
         uint connectId,
         RpcRequestContext requestContext,
         CancellationToken cancellationToken)
     {
-        using KeyExchangeResult ke1Result = opaqueClient.GenerateKe1(signInContext.SecureKeyCopy!);
+        using KeyExchangeResult ke1Result = opaqueAgent.GenerateKe1(signInContext.SecureKeyCopy!);
 
         Result<OpaqueSignInInitResponse, AuthenticationFailure> initResult =
             await PerformSignInInitPhaseAsync(mobileNumber, ke1Result, connectId, requestContext, cancellationToken)
@@ -378,7 +378,7 @@ public sealed class OpaqueAuthenticationService(
         signInContext.Ke2Data = initResponse.ServerStateToken.ToByteArray();
 
         Result<OpaqueExchangeData, AuthenticationFailure> exchangeResult =
-            CompleteOpaqueKeyExchange(opaqueClient, signInContext.Ke2Data, ke1Result);
+            CompleteOpaqueKeyExchange(opaqueAgent, signInContext.Ke2Data, ke1Result);
 
         if (exchangeResult.IsErr)
         {
@@ -461,11 +461,11 @@ public sealed class OpaqueAuthenticationService(
     }
 
     private Result<OpaqueExchangeData, AuthenticationFailure> CompleteOpaqueKeyExchange(
-        OpaqueClient opaqueClient,
+        OpaqueAgent opaqueAgent,
         byte[] ke2Data,
         KeyExchangeResult ke1Result)
     {
-        Result<byte[], AuthenticationFailure> ke3Result = PerformOpaqueKe3Exchange(opaqueClient, ke2Data, ke1Result);
+        Result<byte[], AuthenticationFailure> ke3Result = PerformOpaqueKe3Exchange(opaqueAgent, ke2Data, ke1Result);
         if (ke3Result.IsErr)
         {
             return Result<OpaqueExchangeData, AuthenticationFailure>.Err(ke3Result.UnwrapErr());
@@ -474,7 +474,7 @@ public sealed class OpaqueAuthenticationService(
         byte[] ke3Data = ke3Result.Unwrap();
 
         Result<OpaqueKeyMaterial, AuthenticationFailure> keyMaterialResult =
-            ExtractMasterKeyFromOpaque(opaqueClient, ke1Result);
+            ExtractMasterKeyFromOpaque(opaqueAgent, ke1Result);
 
         if (keyMaterialResult.IsErr)
         {
@@ -723,13 +723,13 @@ public sealed class OpaqueAuthenticationService(
     }
 
     private Result<byte[], AuthenticationFailure> PerformOpaqueKe3Exchange(
-        OpaqueClient opaqueClient,
+        OpaqueAgent opaqueAgent,
         byte[] ke2Data,
         KeyExchangeResult ke1Result)
     {
         try
         {
-            byte[] ke3 = opaqueClient.GenerateKe3(ke2Data, ke1Result);
+            byte[] ke3 = opaqueAgent.GenerateKe3(ke2Data, ke1Result);
             return Result<byte[], AuthenticationFailure>.Ok(ke3);
         }
         catch (OpaqueException ex)
@@ -746,7 +746,7 @@ public sealed class OpaqueAuthenticationService(
     }
 
     private Result<OpaqueKeyMaterial, AuthenticationFailure> ExtractMasterKeyFromOpaque(
-        OpaqueClient opaqueClient,
+        OpaqueAgent opaqueAgent,
         KeyExchangeResult ke1Result)
     {
         byte[] sessionKeyBytes;
@@ -754,7 +754,7 @@ public sealed class OpaqueAuthenticationService(
 
         try
         {
-            (sessionKeyBytes, masterKeyBytes) = opaqueClient.DeriveBaseMasterKey(ke1Result);
+            (sessionKeyBytes, masterKeyBytes) = opaqueAgent.DeriveBaseMasterKey(ke1Result);
         }
         catch (OpaqueException ex)
         {

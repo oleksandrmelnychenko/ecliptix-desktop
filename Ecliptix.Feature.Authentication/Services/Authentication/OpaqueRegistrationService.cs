@@ -503,11 +503,11 @@ public sealed class OpaqueRegistrationService(
     }
 
     private Result<RegistrationResult, RegistrationAttemptResult> CreateAndTrackRegistrationState(
-        OpaqueClient opaqueClient,
+        OpaqueAgent opaqueAgent,
         byte[] secureKeyCopy,
         ByteString membershipId)
     {
-        RegistrationResult registrationResult = opaqueClient.CreateRegistrationRequest(secureKeyCopy);
+        RegistrationResult registrationResult = opaqueAgent.CreateRegistrationRequest(secureKeyCopy);
 
         if (_stateManager.TryAddRegistration(membershipId, registrationResult))
         {
@@ -571,7 +571,7 @@ public sealed class OpaqueRegistrationService(
 
     private async Task<RegistrationAttemptResult>
         FinalizeAndCompleteRegistrationAsync(
-            OpaqueClient opaqueClient,
+            OpaqueAgent opaqueAgent,
             OpaqueRegistrationInitResponse initResponse,
             RegistrationResult trackedRegistrationResult,
             ByteString membershipId,
@@ -599,7 +599,7 @@ public sealed class OpaqueRegistrationService(
             Log.Information("[ECLIPTIX-OPAQUE-REGISTRATION] Calling FinalizeRegistration with response length={Length}",
                 serverRegistrationResponse.Length);
 
-            registrationRecord = opaqueClient.FinalizeRegistration(serverRegistrationResponse, trackedRegistrationResult);
+            registrationRecord = opaqueAgent.FinalizeRegistration(serverRegistrationResponse, trackedRegistrationResult);
 
             OpaqueRegistrationCompleteRequest completeRequest = new()
             {
@@ -702,10 +702,10 @@ public sealed class OpaqueRegistrationService(
 
             try
             {
-                using OpaqueClient opaqueClient = new(serverKeyResult.Unwrap());
+                using OpaqueAgent opaqueAgent = new(serverKeyResult.Unwrap());
 
                 RegistrationAttemptResult result = await TryExecuteRegistrationCycleAsync(
-                    opaqueClient,
+                    opaqueAgent,
                     membershipId,
                     secureKey,
                     connectId,
@@ -739,7 +739,7 @@ public sealed class OpaqueRegistrationService(
     }
 
     private async Task<RegistrationAttemptResult> TryExecuteRegistrationCycleAsync(
-        OpaqueClient opaqueClient,
+        OpaqueAgent opaqueAgent,
         ByteString membershipId,
         SensitiveBytes secureKey,
         uint connectId,
@@ -763,7 +763,7 @@ public sealed class OpaqueRegistrationService(
             LogSecureKeyForDebug("registration", membershipId, secureKeyCopy);
 
             Result<RegistrationResult, RegistrationAttemptResult> stateResult =
-                CreateAndTrackRegistrationState(opaqueClient, secureKeyCopy, membershipId);
+                CreateAndTrackRegistrationState(opaqueAgent, secureKeyCopy, membershipId);
 
             if (stateResult.IsErr)
             {
@@ -773,7 +773,7 @@ public sealed class OpaqueRegistrationService(
             registrationResult = stateResult.Unwrap();
 
             RegistrationAttemptResult attemptResult = await ExecuteRegistrationWorkflowAsync(
-                opaqueClient,
+                opaqueAgent,
                 membershipId,
                 registrationResult,
                 connectId,
@@ -842,7 +842,7 @@ public sealed class OpaqueRegistrationService(
     private readonly record struct SecureKeyPreparationResult(byte[] SecureKeyCopy);
 
     private async Task<RegistrationAttemptResult> ExecuteRegistrationWorkflowAsync(
-        OpaqueClient opaqueClient,
+        OpaqueAgent opaqueAgent,
         ByteString membershipId,
         RegistrationResult registrationState,
         uint connectId,
@@ -878,7 +878,7 @@ public sealed class OpaqueRegistrationService(
         }
 
         return await FinalizeAndCompleteRegistrationAsync(
-            opaqueClient,
+            opaqueAgent,
             initResponse,
             registrationState,
             membershipId,

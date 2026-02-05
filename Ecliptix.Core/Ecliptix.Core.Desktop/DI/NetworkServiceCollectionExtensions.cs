@@ -80,7 +80,8 @@ public static class NetworkServiceCollectionExtensions
         services.AddSingleton<NetworkProviderSecurity>(sp => new NetworkProviderSecurity(
             sp.GetRequiredService<ICertificatePinningServiceFactory>(),
             sp.GetRequiredService<IRsaChunkEncryptor>(),
-            sp.GetRequiredService<IRetryPolicyProvider>()));
+            sp.GetRequiredService<IRetryPolicyProvider>(),
+            sp.GetRequiredService<IPlatformSecurityProvider>()));
 
         services.AddSingleton<RetryStrategyConfiguration>(sp =>
         {

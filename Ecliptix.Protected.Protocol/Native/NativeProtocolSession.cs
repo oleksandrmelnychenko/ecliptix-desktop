@@ -15,11 +15,13 @@ public sealed class NativeProtocolSession : IDisposable
         _handle = handle;
     }
 
-    public static Result<NativeProtocolSession, EcliptixProtocolFailure> Import(byte[] stateBytes)
+    public static Result<NativeProtocolSession, EcliptixProtocolFailure> Import(byte[] sealedStateBytes, byte[] decryptionKey)
     {
         NativeInterop.EppErrorCode result = NativeInterop.epp_session_deserialize(
-            stateBytes,
-            (nuint)stateBytes.Length,
+            sealedStateBytes,
+            (nuint)sealedStateBytes.Length,
+            decryptionKey,
+            (nuint)decryptionKey.Length,
             out IntPtr handle,
             out NativeInterop.EppError error);
 
@@ -109,12 +111,14 @@ public sealed class NativeProtocolSession : IDisposable
             new ProtocolDecryptResult(plaintextResult.Unwrap(), metadataResult.Unwrap()));
     }
 
-    public Result<byte[], EcliptixProtocolFailure> ExportState()
+    public Result<byte[], EcliptixProtocolFailure> ExportSealedState(byte[] encryptionKey)
     {
         ThrowIfDisposed();
 
         NativeInterop.EppErrorCode result = NativeInterop.epp_session_serialize(
             _handle,
+            encryptionKey,
+            (nuint)encryptionKey.Length,
             out NativeInterop.EppBuffer buffer,
             out NativeInterop.EppError error);
 
@@ -126,7 +130,7 @@ public sealed class NativeProtocolSession : IDisposable
                 InteropHelpers.ConvertError(result, errorMessage));
         }
 
-        return InteropHelpers.CopyBuffer(ref buffer, "Session state");
+        return InteropHelpers.CopyBuffer(ref buffer, "Sealed session state");
     }
 
     public static Result<Unit, EcliptixProtocolFailure> ValidateEnvelope(byte[] encryptedEnvelope)

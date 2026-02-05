@@ -169,13 +169,17 @@ internal static class NativeInterop
     [DllImport(LIBRARY_NAME, CallingConvention = CallingConvention.Cdecl)]
     internal static extern EppErrorCode epp_session_serialize(
         IntPtr handle,
-        out EppBuffer outState,
+        [In] byte[] encryptionKey,
+        nuint encryptionKeyLength,
+        out EppBuffer outSealedState,
         out EppError outError);
 
     [DllImport(LIBRARY_NAME, CallingConvention = CallingConvention.Cdecl)]
     internal static extern EppErrorCode epp_session_deserialize(
-        [In] byte[] stateBytes,
-        nuint stateBytesLength,
+        [In] byte[] sealedStateBytes,
+        nuint sealedStateBytesLength,
+        [In] byte[] decryptionKey,
+        nuint decryptionKeyLength,
         out IntPtr outHandle,
         out EppError outError);
 
