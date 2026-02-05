@@ -10,5 +10,5 @@ public class EqualityConverter : IValueConverter
         value?.Equals(parameter) ?? false;
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
-        throw new NotImplementedException("ConvertBack is not supported for one-way equality binding");
+        throw new NotSupportedException("ConvertBack is not supported for one-way equality binding");
 }

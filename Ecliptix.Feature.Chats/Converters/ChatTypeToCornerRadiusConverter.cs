@@ -17,5 +17,8 @@ public class ChatTypeToCornerRadiusConverter : IValueConverter
         return new CornerRadius(24);
     }
 
-    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotImplementedException();
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotSupportedException("ChatTypeToCornerRadiusConverter does not support ConvertBack.");
+    }
 }

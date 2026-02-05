@@ -16,14 +16,6 @@
              Width="{StaticResource Content.MaxWidth}">
 
     <UserControl.Resources>
-        <LinearGradientBrush x:Key="LeftBarGradient" StartPoint="0%,0%" EndPoint="100%,0%">
-            <GradientStop Offset="0" Color="#C084FC" /> <GradientStop Offset="1" Color="#7E22CE" /> </LinearGradientBrush>
-
-        <LinearGradientBrush x:Key="RightBarGradient" StartPoint="0%,0%" EndPoint="100%,0%">
-            <GradientStop Offset="0" Color="#7E22CE" /> <GradientStop Offset="1" Color="#C084FC" /> </LinearGradientBrush>
-
-        <converters:ProgressToTransformConverter x:Key="ProgressToTransformConverter"/>
-
         <configuration:SegmentConfiguration x:Key="UnderlineConfig"
                                    Width="50"
                                    Spacing="12"

@@ -27,6 +27,6 @@ public sealed class RelativeTimeConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        throw new NotSupportedException("RelativeTimeConverter does not support ConvertBack.");
     }
 }

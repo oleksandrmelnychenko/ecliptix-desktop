@@ -24,6 +24,6 @@ public sealed class BoolToTextConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        throw new NotSupportedException("BoolToTextConverter does not support ConvertBack.");
     }
 }
