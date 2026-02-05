@@ -90,7 +90,10 @@ public sealed partial class SecureKeyConfirmationViewModel
                         string errorMsg = LocalizationService[AuthenticationConstants.NO_VERIFICATION_SESSION_KEY]
                                           ?? "Session data missing. Please restart registration.";
                         SetServerError(errorMsg);
-                        //TODO imposible case, redirect
+                        // TODO consider what type of navigation to use, with redirect notification or silent navigation
+                        ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
+                        ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.WELCOME_VIEW).Subscribe();
+
                     }
 
                     return SystemU.Default;

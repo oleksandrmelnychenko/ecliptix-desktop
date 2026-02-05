@@ -12,7 +12,7 @@ public static partial class NameValidator
     private const int MAX_PROFILE_NAME_LENGTH = 30;
     private const int MAX_DISPLAY_NAME_LENGTH = 50;
 
-    //TODO decide the place where it should be moved
+    //TODO analyze what types of words should be added, decide where to place the list of reserved words
     private static readonly HashSet<string> ReservedWords = new(StringComparer.OrdinalIgnoreCase)
     {
         "admin", "administrator", "support", "root", "system", "ecliptix", "null", "undefined"
